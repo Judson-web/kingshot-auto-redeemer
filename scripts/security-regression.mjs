@@ -62,6 +62,29 @@ assertCheck(
  auto.includes("WORKER_MAX_RUNTIME_MS=4*60*1000")
 );
 assertCheck(
+ "Worker heartbeat keeps long cycles observable",
+ auto.includes('heartbeat_kingshot_worker_run') &&
+ auto.includes('workerToken')
+);
+assertCheck(
+ "Worker summaries include per-code handling diagnostics",
+ auto.includes("handledCodeCounts") &&
+ auto.includes("codeCounts") &&
+ auto.includes("redemptionCode:item.code")
+);
+assertCheck(
+ "Worker summaries include runtime and scraper health",
+ auto.includes("cycleDurationMs") &&
+ auto.includes("sourceHealth") &&
+ auto.includes("sourceHealthPct")
+);
+assertCheck(
+ "Worker has anomaly detection for unhealthy cycles",
+ auto.includes("anomalyReasons") &&
+ auto.includes("over 30% of players failed validation") &&
+ auto.includes("scraper source health below 50%")
+);
+assertCheck(
  "Global expired-code lookup fails open instead of crashing the worker",
  auto.includes('list_kingshot_expired_gift_codes",{}).catch(error=>')
 );
