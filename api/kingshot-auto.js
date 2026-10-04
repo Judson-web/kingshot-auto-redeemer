@@ -16,8 +16,6 @@ const VERIFIED_FALLBACK_CODES=[{code:"VIP777",expiresAt:Date.parse("2026-12-31T2
 
 if(!SUPABASE_KEY)throw Error("Supabase service key is not configured on the server.");
 
-const CYCLE_STARTED_AT=Date.now();
-
 async function rpc(name,body){
  const r=await fetch(SUPABASE_URL+"/rest/v1/rpc/"+name,{method:"POST",headers:{"apikey":SUPABASE_KEY,"authorization":"Bearer "+SUPABASE_KEY,"content-type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(10000)});
  const d=await r.json().catch(()=>null);
@@ -557,6 +555,7 @@ async function runWorkerShard(slot,codes,players){
 
 export default async function handler(req,res){
  if(!["GET","POST"].includes(req.method))return res.status(405).json({error:"Method not allowed"});
+ const cycleStartedAt=Date.now();
  const cronSecret=process.env.CRON_SECRET;
  const schedulerToken=req.headers["x-kingshot-scheduler-token"];
  const requestUrl=new URL(req.url||"/","https://kingshot-autoredeemer.vercel.app");
@@ -722,7 +721,7 @@ export default async function handler(req,res){
   const healthySources=sourceResults.filter(x=>x?.ok).length;
   const sourceCount=sourceResults.length;
   const sourceHealthPct=sourceCount?Math.round(healthySources/sourceCount*100):0;
-  const cycleDurationMs=Math.max(0,Date.now()-CYCLE_STARTED_AT);
+  const cycleDurationMs=Math.max(0,Date.now()-cycleStartedAt);
   const mergedFailures=Object.values(topRedemptionFailures.reduce((map,item)=>{
    const key=String(item.category)+"/"+String(item.errCode)+"/"+String(item.status);
    const current=map[key]||{...item,count:0};
