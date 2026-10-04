@@ -57,19 +57,33 @@ function PublicAnnouncements({children}){const[state,setState]=useState(null);us
 function PublicMaintenance({children}){const [state,setState]=useState(null);useEffect(()=>{let live=true;fetch("/api/kingshot-admin-data?public=maintenance",{credentials:"same-origin",cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(live)setState(d||{maintenanceEnabled:false})}).catch(()=>{if(live)setState({maintenanceEnabled:false})});return()=>{live=false}},[]);return state?.maintenanceEnabled?<MaintenanceScreen/>:children}
 const publicPage=location.pathname==="/auto"||location.pathname==="/" ? <AutoRedeemApp/>:location.pathname==="/manual"||location.pathname==="/redeem" ? <KingshotApp/>:location.pathname==="/info"?<InfoApp/>:location.pathname==="/terms"?<LegalApp type="terms"/>:location.pathname==="/privacy"?<LegalApp type="privacy"/>:<AutoRedeemApp/>; function registerAppServiceWorker(){
  if(!("serviceWorker" in navigator))return;
+ const showUpdate=()=>{
+  if(document.getElementById("ks-update-toast"))return;
+  const toast=document.createElement("button");
+  toast.id="ks-update-toast";
+  toast.type="button";
+  toast.textContent="New version available · Refresh";
+  Object.assign(toast.style,{position:"fixed",left:"50%",bottom:"18px",transform:"translateX(-50%)",zIndex:"9999",padding:"11px 15px",border:"1px solid #3b3327",borderRadius:"999px",background:"#11131a",color:"#f2eee8",font:"700 11px system-ui,sans-serif",boxShadow:"0 14px 40px #0009",cursor:"pointer"});
+  toast.onclick=()=>{
+   const waiting=window.__ksWaitingWorker;
+   if(waiting)waiting.postMessage({type:"SKIP_WAITING"});
+   else location.reload();
+  };
+  document.body.appendChild(toast);
+ };
  window.addEventListener("load",()=>{
   navigator.serviceWorker.register("/sw.js",{updateViaCache:"none"}).then(reg=>{
    reg.update().catch(()=>{});
    reg.addEventListener("updatefound",()=>{
     const worker=reg.installing;
     if(!worker)return;
+    window.__ksWaitingWorker=worker;
     worker.addEventListener("statechange",()=>{
-     if(worker.state==="installed"&&navigator.serviceWorker.controller){
-      window.dispatchEvent(new Event("kingshot-app-update"));
-     }
+     if(worker.state==="installed"&&navigator.serviceWorker.controller)showUpdate();
     });
    });
   }).catch(()=>{});
+  navigator.serviceWorker.addEventListener("controllerchange",()=>location.reload());
  });
 }
 registerAppServiceWorker();
