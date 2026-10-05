@@ -31,7 +31,7 @@ function InfoApp(){
   <a className="skip-link" href="#main-content">Skip to main content</a>
   <header><KsLogo/><nav><a href="/auto">Auto Redeem</a><a href="/manual">Manual Redeem</a><a className="active" href="/info">How it works</a></nav><div className="header-right"><DiscordChip/><button ref={menuButtonRef} className="menu-btn" onClick={()=>setMenu(v=>!v)} aria-label={menu?"Close menu":"Open menu"} aria-expanded={menu} aria-controls="info-mobile-drawer">{menu?<X size={18}/>:<Menu size={18}/>}</button></div></header>
   {menu&&<>
-   <button className="info-menu-backdrop" type="button" aria-label="Close navigation menu" onClick={closeMenu}/>
+   <button className="info-menu-backdrop" type="button" aria-label="Close navigation menu" onPointerDown={e=>{e.preventDefault();closeMenu()}} onTouchStart={closeMenu}/>
    <nav ref={drawerRef} className="info-mobile-menu" id="info-mobile-drawer" aria-label="Mobile navigation">
     <div className="info-drawer-head"><div><span className="info-drawer-kicker">NAVIGATION</span><strong>Explore</strong></div><button type="button" onClick={closeMenu} aria-label="Close navigation menu"><X size={15}/></button></div>
     <a href="/auto" onClick={closeMenu}><b>Auto Redeem</b><span>Hands-off gift-code processing</span></a>
