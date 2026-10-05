@@ -640,7 +640,8 @@ export default async function handler(req,res){
   const apiCodes=apiSource.codes;
   const pageCodes=pageSource.codes;
   const publicCodes=publicSources.flatMap((result,index)=>result.codes.length?result.codes.map(row=>({...row,source:PUBLIC_GIFT_SOURCES[index].name})):[]);
-  const premiumCodes=premiumSources.flatMap(result=>result.codes||[]);\n  const adminCodes=(Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.active!==false).map(row=>({
+  const premiumCodes=premiumSources.flatMap(result=>result.codes||[]);
+  const adminCodes=(Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.active!==false).map(row=>({
    code:String(row?.code||"").trim(),
    expiresAt:null,
    createdAt:row?.source_date?Date.parse(String(row.source_date)):Date.parse(String(row?.first_seen_at||"")),
