@@ -46,7 +46,7 @@ export default async function handler(req,res){
   if(action!=="SEND")return res.status(400).json({error:"Invalid action."});
   if(!WEBHOOK)return res.status(503).json({error:"Discord webhook is not configured."});
   if(!rateLimit(req,res,"custom-message-send",10,60*1000))return res.status(429).json({error:"Too many messages. Please wait a moment."});
-  const message=clean(body.message,2000);
+  const message=clean(body.message,4096);
   if(!message)return res.status(400).json({error:"Message is required."});
   const title=clean(body.title,256),description=clean(body.message,4096),footer=clean(body.footer,2048),image=imageUrl(body.imageUrl);
   const embed={title,description,color:hexColor(body.color),timestamp:new Date().toISOString(),footer:{text:footer||"Kingshot Auto Redeem"}};
