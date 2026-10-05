@@ -48,12 +48,12 @@ export default async function handler(req,res){
   if(!rateLimit(req,res,"custom-message-send",10,60*1000))return res.status(429).json({error:"Too many messages. Please wait a moment."});
   const message=clean(body.message,2000);
   if(!message)return res.status(400).json({error:"Message is required."});
-  const title=clean(body.title,256),description=clean(body.description,4096),footer=clean(body.footer,2048),image=imageUrl(body.imageUrl);
+  const title=clean(body.title,256),description=clean(body.message,4096),footer=clean(body.footer,2048),image=imageUrl(body.imageUrl);
   const embed={title,description,color:hexColor(body.color),timestamp:new Date().toISOString(),footer:{text:footer||"Kingshot Auto Redeem"}};
   if(image)embed.image={url:image};
   if(!title)delete embed.title;
   if(!description)delete embed.description;
-  const payload={username:"Kingshot Auto Redeem",content:message,allowed_mentions:{parse:[]},embeds:[embed]};
+  const payload={username:"Kingshot Auto Redeem",allowed_mentions:{parse:[]},embeds:[embed]};
   const wr=await fetch(WEBHOOK,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(8000)});
   if(!wr.ok){
    const retryAfter=Number(wr.headers.get("retry-after")||"0"),detail=await wr.text().catch(()=>"");
