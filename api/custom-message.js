@@ -53,7 +53,7 @@ export default async function handler(req,res){
   if(image)embed.image={url:image};
   if(!title)delete embed.title;
   if(!description)delete embed.description;
-  const payload={username:"Kingshot Auto Redeem",allowed_mentions:{parse:[]},embeds:[embed]};
+  const payload={username:"Kingshot Auto Redeem",allowed_mentions:{parse:["everyone","roles","users"]},embeds:[embed]};
   const wr=await fetch(WEBHOOK,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(8000)});
   if(!wr.ok){
    const retryAfter=Number(wr.headers.get("retry-after")||"0"),detail=await wr.text().catch(()=>"");
