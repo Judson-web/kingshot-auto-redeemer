@@ -10,8 +10,8 @@ function assertCheck(name,condition,detail=""){
 }
 
 const auto=read("api/kingshot-auto.js");
-const register=read("api/kingshot-register.js");
-const support=read("api/kingshot-support.js");
+const register=read("internal/kingshot/register.js");
+const support=read("lib/support.js");
 const adminData=read("lib/admin-data.js");
 const adminLogin=read("lib/admin-login.js");
 const discordInteractions=read("lib/discord-interactions.js");
@@ -98,7 +98,7 @@ assertCheck(
 );
 assertCheck(
  "Expired codes are filtered before redemption",
- auto.includes("const activeCodes=codes.filter(item=>!expiredCodes.has(item.code.toUpperCase()));")
+ auto.includes("const activeCodes=codes.filter(item=>{") && auto.includes("!sourceExpired&&!expiredCodes.has(item.code.toUpperCase())")
 );
 assertCheck(
  "Worker health endpoint uses a server-only Supabase credential",
@@ -134,7 +134,7 @@ assertCheck("Admin login uses a cryptographically random session token",
  adminLogin.includes("randomBytes(32)"));
 assertCheck("Admin access-key path delegates verification to the key RPC",
  adminLogin.includes("kingshot_admin_create_session_with_key") &&
- !adminLogin.includes("kingshot_admin_create_session"));
+ !adminLogin.includes('"kingshot_admin_create_session"'));
 
 assertCheck("Discord interaction handler does not embed a Supabase publishable key",
  !/sb_publishable_[A-Za-z0-9_-]+/.test(discordInteractions));
