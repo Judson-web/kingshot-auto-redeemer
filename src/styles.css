@@ -532,6 +532,7 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  :root{--site-mobile-header-height:62px;--site-header-layer:100;--site-drawer-layer:95;--site-backdrop-layer:90}
  .ks-app>header,.legal-app>header,.info-app>header{position:relative;z-index:var(--site-header-layer)}
  .ks-app>header{height:var(--site-mobile-header-height)}
+ .ks-app .mobile-menu-backdrop,.mobile-menu-backdrop{position:fixed;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;background:rgba(3,4,7,.62);backdrop-filter:blur(3px);z-index:var(--site-backdrop-layer);cursor:default}
  .ks-app .mobile-menu{position:fixed;z-index:var(--site-drawer-layer);top:calc(var(--site-mobile-header-height) + 8px);right:12px;left:auto;width:min(230px,calc(100vw - 24px));min-width:0;max-height:calc(100dvh - var(--site-mobile-header-height) - 20px);overflow:auto}
  .info-mobile-menu{top:calc(var(--site-mobile-header-height) + 8px);z-index:var(--site-drawer-layer);max-height:calc(100dvh - var(--site-mobile-header-height) - 20px);overflow:auto}
  .info-menu-backdrop{z-index:var(--site-backdrop-layer)}
