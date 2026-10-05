@@ -343,13 +343,13 @@ function classifyError(error){const m=String(error?.message||error||"").toLowerC
 async function recordScraperRun(source,httpStatus,codes,parseOk,error){await rpc("kingshot_record_scraper_run",{p_source:source,p_http_status:httpStatus,p_code_count:Array.isArray(codes)?codes.length:0,p_codes:Array.isArray(codes)?codes.map(x=>x.code):[],p_parse_ok:Boolean(parseOk),p_error_category:error?classifyError(error):null,p_error_message:error?.message||error||null}).catch(()=>{});}
 
 async function fetchSource(url,kind){
- const sourceName=kind==="api"?"kingshot-api":kind==="page"?"kingshot-page":kind.slice(7);
+ const sourceName=kind==="api"?"kingshot-api":kind==="page"?"kingshot-page":kind==="aggregator"?"whiteout-bot-aggregator":kind.slice(7);
  try{
   let response=null,lastError=null;
   for(let attempt=0;attempt<3;attempt++){
    try{
-    response=await fetch(url,{headers:kind==="api"
-     ?{"accept":"application/json","user-agent":"Nex-Kingshot-Redeemer/1.1"}
+    response=await fetch(url,{headers:kind==="api"||kind==="aggregator"
+     ?{"accept":"application/json","user-agent":"Nex-Kingshot-Redeemer/1.1",...(kind==="aggregator"?{"X-API-Key":String(process.env.KINGSHOT_AGGREGATOR_API_KEY||"")}:{})}
      :{"accept":"text/html,application/xhtml+xml","accept-language":"en-US,en;q=0.9","cache-control":"no-cache","user-agent":"Mozilla/5.0 (compatible; Nex-Kingshot-Redeemer/1.1; +https://kingshot-autoredeemer.vercel.app/)"},
      signal:AbortSignal.timeout(15000)});
     if(response.ok||![408,425,429,500,502,503,504].includes(response.status))break;
@@ -364,13 +364,14 @@ async function fetchSource(url,kind){
   }
   const body=await response.text();
   if(!response.ok){const error=Error("HTTP "+response.status);await recordScraperRun(sourceName,response.status,[],false,error);await updateScraperHealth(sourceName,0,error.message);return kind==="api"||kind==="aggregator"?{data:null,codes:[],ok:false,httpStatus:response?.status||null,error:"HTTP "+response.status,source:sourceName}:{html:"",codes:[],ok:false,httpStatus:response?.status||null,error:"HTTP "+response.status,source:sourceName};}
-  if(kind==="api"){
+  if(kind==="api"||kind==="aggregator"){
    let data=null;try{data=JSON.parse(body)}catch{}
-   const codes=data?.status==="success"?normalizeCodes(data):[];
-   const parseError=data?.status==="success"?null:Error("Invalid API response");
-   await updateScraperHealth("kingshot-api",codes.length,parseError?.message||null);
-   await recordScraperRun("kingshot-api",response.status,codes,data?.status==="success",parseError);
-   return {data,codes,ok:true,httpStatus:response.status,error:null,source:sourceName};
+   const valid=data&&(kind==="api"?data?.status==="success":Array.isArray(data?.codes));
+   const codes=valid?(kind==="api"?normalizeCodes(data):extractAggregatorCodes(data)):[];
+   const parseError=valid?null:Error("Invalid API response");
+   await updateScraperHealth(sourceName,codes.length,parseError?.message||null);
+   await recordScraperRun(sourceName,response.status,codes,Boolean(valid),parseError);
+   return {data,codes,ok:Boolean(valid),httpStatus:response.status,error:parseError?.message||null,source:sourceName};
   }
   const codes=kind==="page"?extractPageCodes(body):extractPublicSourceCodes(body,sourceName);
   await updateScraperHealth(sourceName,codes.length,null);
