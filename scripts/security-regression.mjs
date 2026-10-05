@@ -15,8 +15,8 @@ const support=read("api/kingshot-support.js");
 const adminData=read("lib/admin-data.js");
 const adminLogin=read("lib/admin-login.js");
 const discordInteractions=read("lib/discord-interactions.js");
-const health=read("api/kingshot-health.js");
-const logs=read("api/kingshot-health.js");
+const health=read("lib/health.js");
+const logs=read("lib/health.js");
 
 assertCheck("Logs API is GET-only and server-side",
  logs.includes('if(req.method!=="GET")') &&
