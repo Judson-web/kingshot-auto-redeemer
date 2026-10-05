@@ -27,6 +27,28 @@ function clearCookie(res){res.setHeader("Set-Cookie",COOKIE+"=; Max-Age=0; Path=
 function clean(v,max){return String(v??"").trim().slice(0,max)}
 function hexColor(v){const s=clean(v,20);return /^#?[0-9a-fA-F]{6}$/.test(s)?parseInt(s.replace("#",""),16):0x5865F2}
 function imageUrl(v){const s=clean(v,2048);if(!s)return "";try{const u=new URL(s);return u.protocol==="https:"?u.toString():""}catch{return ""}}
+const ROLE_CACHE=new Map();
+async function resolveRoleMentions(message,guildId){
+ const token=process.env.DISCORD_BOT_TOKEN||"";
+ if(!token||!/^[0-9]+$/.test(guildId))return message;
+ let cached=ROLE_CACHE.get(guildId);
+ if(!cached||cached.expires<Date.now()){
+  try{
+   const r=await fetch("https://discord.com/api/v10/guilds/"+guildId+"/roles",{headers:{Authorization:"Bot "+token},signal:AbortSignal.timeout(5000)});
+   if(!r.ok)return message;
+   const data=await r.json();
+   cached={expires:Date.now()+60000,items:Array.isArray(data)?data.filter(x=>x&&x.id&&x.name):[]};
+   ROLE_CACHE.set(guildId,cached);
+  }catch{return message}
+ }
+ let out=message;
+ for(const role of cached.items){
+  const escaped=role.name.replace(/[-/\\^$*+?.()|[\\]{}]/g,"\\function imageUrl(v){const s=clean(v,2048);if(!s)return "";try{const u=new URL(s);return u.protocol==="https:"?u.toString():""}catch{return ""}}").replace(/\\s+/g,"\\\\s+");
+  if(!escaped)continue;
+  out=out.replace(new RegExp("@"+escaped,"gi"),"<@&"+role.id+">");
+ }
+ return out;
+}
 export default async function handler(req,res){
  res.setHeader("Cache-Control","no-store");
  if(req.method!=="POST")return res.status(405).json({error:"Method not allowed"});
@@ -51,8 +73,9 @@ export default async function handler(req,res){
   const WEBHOOK=webhookFor(target);
   if(!WEBHOOK)return res.status(503).json({error:"That custom-message destination is not configured."});
   if(!rateLimit(req,res,"custom-message-send",10,60*1000))return res.status(429).json({error:"Too many messages. Please wait a moment."});
-  const message=clean(body.message,4096);
-  if(!message)return res.status(400).json({error:"Message is required."});
+  const rawMessage=clean(body.message,4096);
+  if(!rawMessage)return res.status(400).json({error:"Message is required."});
+  const message=await resolveRoleMentions(rawMessage,target);
   const title=clean(body.title,256),description=clean(body.message,4096),footer=clean(body.footer,2048),image=imageUrl(body.imageUrl);
   const embed={title,description,color:hexColor(body.color),timestamp:new Date().toISOString(),footer:{text:footer||"Kingshot Auto Redeem"}};
   if(image)embed.image={url:image};
