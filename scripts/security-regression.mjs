@@ -14,7 +14,7 @@ const register=read("api/kingshot-register.js");
 const support=read("api/kingshot-support.js");
 const adminData=read("lib/admin-data.js");
 const adminLogin=read("lib/admin-login.js");
-const discordInteractions=read("api/discord-interactions.js");
+const discordInteractions=read("lib/discord-interactions.js");
 const health=read("api/kingshot-health.js");
 const logs=read("api/kingshot-health.js");
 
