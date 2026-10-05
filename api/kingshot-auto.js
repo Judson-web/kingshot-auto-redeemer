@@ -9,7 +9,7 @@ const PUBLIC_GIFT_SOURCES=[
  {name:"gamesradar",url:"https://www.gamesradar.com/games/strategy/kingshot-codes-gift/"},
  {name:"kingshot-guides",url:"https://kingshotguides.com/guide/active-giftcodes-and-how-to-redeem/"},
  {name:"beebom",url:"https://beebom.com/kingshot-codes/"},
- {name:"progameguides",url:"https://progameguides.com/kingshot/kingshot-codes/"},
+ {name:"kingshotmastery",url:"https://kingshotmastery.com/gift-codes"},
  {name:"pocketgamer",url:"https://www.pocketgamer.com/kingshot/codes/"}
 ];
 // Verified long-running fallback for codes that have been omitted from the upstream API feed.
@@ -123,7 +123,7 @@ function extractPublicSourceCodes(html,sourceName){
   /^Kingshot Gift Codes:?$/i,/^Working Gift Codes:?$/i,/^Current Gift Codes:?$/i,
   /^Latest Gift Codes:?$/i,/^Valid Gift Codes:?$/i,/^Gift Codes:?$/i,
   /^Working Kingshot Codes are:?$/i,/^Working Kingshot Codes:?$/i,
-  /^Active Kingshot codes:?$/i,/^All New Kingshot Codes:?$/i
+  /^Active Kingshot codes:?$/i,/^Active Kingshot Gift Codes and Redeem Tool:?$/i,/^All New Kingshot Codes:?$/i
  ];
  const start=lines.findIndex(line=>startPatterns.some(p=>p.test(line)));
  // Some publishers render the code list inside structured data or code-copy
