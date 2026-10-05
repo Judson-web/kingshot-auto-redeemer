@@ -3,7 +3,7 @@ import {rateLimit}from"../lib/request-rate-limit.js";
 const PASS=process.env.CUSTOM_MESSAGE_PASSKEY||"";
 // Custom-message destinations are isolated from the worker/log webhook.
 const DESTINATIONS=Object.fromEntries(String(process.env.CUSTOM_MESSAGE_DESTINATIONS||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>{const [key,...name]=x.split(":");return [key.trim(),name.join(":").trim()||key.trim()]}));
-function webhookFor(key){const k=String(key||"").trim();if(!/^[A-Za-z0-9_-]{1,40}$/.test(k)||!DESTINATIONS[k])return "";return process.env["CUSTOM_MESSAGE_WEBHOOK_"+k.toUpperCase()+"_URL"]||""}
+function webhookFor(key){const k=String(key||"").trim();if(!/^[A-Za-z0-9_-]{1,40}$/.test(k)||!DESTINATIONS[k])return "";if(k==="1494360495694549134")return process.env.DISCORD_KINGSHOT_WEBHOOK_URL||process.env.DISCORD_SCRAPER_WEBHOOK_URL||"";return process.env["CUSTOM_MESSAGE_WEBHOOK_"+k.toUpperCase()+"_URL"]||""}
 const COOKIE="__Host-ks_message_session";
 const TTL=12*60*60*1000;
 function b64(v){return Buffer.from(v).toString("base64url")}
