@@ -1,7 +1,8 @@
 import crypto from"node:crypto";
 import {rateLimit}from"../lib/request-rate-limit.js";
 const PASS=process.env.CUSTOM_MESSAGE_PASSKEY||"";
-const WEBHOOK=process.env.DISCORD_KINGSHOT_WEBHOOK_URL||process.env.DISCORD_SCRAPER_WEBHOOK_URL;
+const DESTINATIONS=Object.fromEntries(String(process.env.CUSTOM_MESSAGE_DESTINATIONS||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>{const [key,...name]=x.split(":");return [key.trim(),name.join(":").trim()||key.trim()]}));
+function webhookFor(key){const k=String(key||"").trim();if(!/^[A-Za-z0-9_-]{1,40}$/.test(k)||!DESTINATIONS[k])return "";return process.env["CUSTOM_MESSAGE_WEBHOOK_"+k.toUpperCase()+"_URL"]||""}
 const COOKIE="__Host-ks_message_session";
 const TTL=12*60*60*1000;
 function b64(v){return Buffer.from(v).toString("base64url")}
@@ -42,9 +43,12 @@ export default async function handler(req,res){
   }
   if(action==="LOGOUT"){clearCookie(res);return res.status(200).json({ok:true})}
   if(action==="CHECK")return res.status(validSession(req)?200:401).json({ok:validSession(req)});
+  if(action==="DESTINATIONS"){if(!validSession(req))return res.status(401).json({error:"Unauthorized."});return res.status(200).json({destinations:Object.entries(DESTINATIONS).map(([key,name])=>({key,name}))})}
   if(!validSession(req))return res.status(401).json({error:"Unauthorized."});
   if(action!=="SEND")return res.status(400).json({error:"Invalid action."});
-  if(!WEBHOOK)return res.status(503).json({error:"Discord webhook is not configured."});
+  const target=String(body.target||"").trim();
+  const WEBHOOK=webhookFor(target);
+  if(!WEBHOOK)return res.status(503).json({error:"That custom-message destination is not configured."});
   if(!rateLimit(req,res,"custom-message-send",10,60*1000))return res.status(429).json({error:"Too many messages. Please wait a moment."});
   const message=clean(body.message,4096);
   if(!message)return res.status(400).json({error:"Message is required."});
