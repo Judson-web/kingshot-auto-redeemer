@@ -51,6 +51,10 @@
     {
       "source": "/privacy",
       "destination": "/index.html"
+    },
+    {
+      "source": "/message",
+      "destination": "/index.html"
     }
   ],
   "headers": [
