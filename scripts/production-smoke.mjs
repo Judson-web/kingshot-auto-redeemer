@@ -32,7 +32,7 @@ if(process.env.GITHUB_EVENT_NAME!=="pull_request") await check("Production logs 
 await check("Admin data rejects unauthenticated access", "/api/kingshot-admin-data", 401);
 await check("Registration endpoint rejects wrong HTTP method", "/api/kingshot-register", 405);
 await check("Support endpoint rejects wrong HTTP method", "/api/kingshot-support", 405);
-await check("Admin login rejects wrong HTTP method", "/api/kingshot-admin-login", 405);
+await check("Admin login rejects wrong HTTP method", "/api/admin-tools/login", 405);
 await check("Worker endpoint rejects wrong HTTP method", "/api/kingshot-auto", response=>response.status===405||response.status===401);
 
 for(const item of checks){
