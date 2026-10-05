@@ -159,7 +159,19 @@ function parseExternalExpiry(value){
  const raw=String(value||"").replace(/(\d)(st|nd|rd|th)\b/gi,"$1").replace(/,/g,"").trim();
  const parsed=Date.parse(raw+" 23:59:59 UTC");return Number.isNaN(parsed)?null:parsed;
 }
-function extractAggregatorCodes(data){\n const raw=Array.isArray(data?.codes)?data.codes:[];\n const seen=new Set();\n return raw.map(value=>{\n  const parts=String(value||"").trim().split(/\\s+/);\n  const code=parts[0]||"";\n  if(!isLikelyGiftCode(code)||seen.has(code.toUpperCase()))return null;\n  seen.add(code.toUpperCase());\n  const createdAt=parts[1]&&/^\\d{2}\\.\\d{2}\\.\\d{4}$/.test(parts[1])?Date.parse(parts[1].split(".").reverse().join("-")+"T00:00:00Z"):0;\n  return {code,expiresAt:null,createdAt:Number.isNaN(createdAt)?0:createdAt,source:"whiteout-bot-aggregator"};\n }).filter(Boolean);\n}\nfunction mergeCodes(sources){
+function extractAggregatorCodes(data){
+ const raw=Array.isArray(data?.codes)?data.codes:[];
+ const seen=new Set();
+ return raw.map(value=>{
+  const parts=String(value||"").trim().split(/\s+/);
+  const code=parts[0]||"";
+  if(!isLikelyGiftCode(code)||seen.has(code.toUpperCase()))return null;
+  seen.add(code.toUpperCase());
+  const createdAt=parts[1]&&/^\d{2}\.\d{2}\.\d{4}$/.test(parts[1])?Date.parse(parts[1].split(".").reverse().join("-")+"T00:00:00Z"):0;
+  return {code,expiresAt:null,createdAt:Number.isNaN(createdAt)?0:createdAt,source:"whiteout-bot-aggregator"};
+ }).filter(Boolean);
+}
+function mergeCodes(sources){
  const map=new Map();
  for(const row of sources.flat()){
   const key=row.code.toUpperCase(),existing=map.get(key);
