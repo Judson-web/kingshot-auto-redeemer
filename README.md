@@ -57,6 +57,52 @@ flowchart LR
 
 Production coordination runs every minute. The current worker pool uses three durable shards, six concurrent player operations per worker, deterministic sharding, durable leases, atomic player/code claims, and persistent completion history.
 
+## Data architecture and privacy boundary
+
+The service deliberately separates live user/redemption data from scraper history.
+
+```mermaid
+flowchart LR
+    U[Registered players] --> S[(Supabase live database)]
+    S --> R[Worker + redemption]
+    R --> K[Kingshot gift-code endpoint]
+
+    C[Public code sources] --> SC[kingshot_scraper_runs]
+    SC --> A[Verified archive]
+    A --> ST[(Private Supabase Storage)]
+    A --> GH[(Private GitHub cold backup)]
+```
+
+The live Supabase database contains the operational data required to provide Auto Redeem, including registered Player IDs, kingdom information, player metadata, registration state, and redemption history. These records remain in the guarded live database and are not part of the scraper archive.
+
+The archive tier is intentionally limited to the scraper history table, `kingshot_scraper_runs`. Its verified schema is:
+
+```text
+id
+source
+checked_at
+http_status
+code_count
+codes
+parse_ok
+error_category
+error_message
+```
+
+The scraper archive contains **no Player IDs, Discord IDs, account IDs, or registration IDs**. It is not used by the worker to select players, claim redemptions, or call the Kingshot redemption endpoint.
+
+The archive does contain the gift codes discovered by the scraper and their detection history. This makes the archive operational intelligence: it preserves when codes were observed, by which source, and how the scraper processed them. The archive is therefore private by design, as a historical record and competitive asset, not as a user-identity store.
+
+The data boundary is:
+
+- **Live Supabase:** player registrations, player metadata, redemption state/history, and other operational records.
+- **Scraper archive:** PII-free scraper telemetry and discovered-code history.
+- **Private Supabase Storage:** queryable historical archive.
+- **Private GitHub repository:** independent cold backup of the verified archive.
+- **Kingshot:** receives only the server-side redemption request required for an actual redemption.
+
+The GitHub archive is downstream of the live system. It is not a dependency of worker execution or redemption.
+
 ## Redemption statuses
 
 The redemption layer maps common upstream results into stable internal outcomes, including:
