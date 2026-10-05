@@ -6,8 +6,8 @@ const GIFT_SOURCE_URL="https://kingshot.net/api/gift-codes";
 const PUBLIC_GIFT_SOURCES=[
  {name:"gamesradar",url:"https://www.gamesradar.com/games/strategy/kingshot-codes-gift/"},
  {name:"kingshot-guides",url:"https://kingshotguides.com/guide/active-giftcodes-and-how-to-redeem/"},
- {name:"kingshot-world",url:"https://kingshotworld.com/guides/active-giftcodes-and-how-to-redeem/"},
- {name:"mrguider",url:"https://www.mrguider.org/codes/kingshot-codes/"},
+ {name:"beebom",url:"https://beebom.com/kingshot-codes/"},
+ {name:"progameguides",url:"https://progameguides.com/kingshot/kingshot-codes/"},
  {name:"pocketgamer",url:"https://www.pocketgamer.com/kingshot/codes/"}
 ];
 // Verified long-running fallback for codes that have been omitted from the upstream API feed.
