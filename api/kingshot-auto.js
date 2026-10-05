@@ -633,6 +633,7 @@ export default async function handler(req,res){
    fetchSource(GIFT_SOURCE_URL,"api"),
    fetchSource("https://kingshot.net/gift-codes","page"),
    Promise.all(PUBLIC_GIFT_SOURCES.map(source=>fetchSource(source.url,"public:"+source.name))),
+   Promise.all(PREMIUM_GIFT_SOURCES.map(source=>fetchSource(source.url,"aggregator"))),
    rpc("list_kingshot_admin_gift_codes",{})
   ]);
   const data=apiSource.data;
