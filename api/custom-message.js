@@ -43,7 +43,7 @@ async function resolveRoleMentions(message,guildId){
  }
  let out=message;
  for(const role of cached.items){
-  const escaped=role.name.replace(/[-/\\^$*+?.()|[\\]{}]/g,"\\function imageUrl(v){const s=clean(v,2048);if(!s)return "";try{const u=new URL(s);return u.protocol==="https:"?u.toString():""}catch{return ""}}").replace(/\\s+/g,"\\\\s+");
+  const escaped=RegExp.escape(role.name).replace(/\\s+/g,"\\\\s+");
   if(!escaped)continue;
   out=out.replace(new RegExp("@"+escaped,"gi"),"<@&"+role.id+">");
  }
