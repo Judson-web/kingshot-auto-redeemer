@@ -1,10 +1,8 @@
 import {redeemKingshot} from"../lib/kingshot-redeem.js";
-import {enrichGiftCodeEvidence} from"../lib/gift-source-policy.js";
 
 const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
 const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
 const GIFT_SOURCE_URL="https://kingshot.net/api/gift-codes";
-const PREMIUM_GIFT_SOURCES=process.env.KINGSHOT_AGGREGATOR_API_KEY?[{name:"whiteout-bot-aggregator",url:"https://ks-gift-code-api.whiteout-bot.com/giftcode_api.php"}]:[];
 const PUBLIC_GIFT_SOURCES=[
  {name:"gamesradar",url:"https://www.gamesradar.com/games/strategy/kingshot-codes-gift/"},
  {name:"kingshot-guides",url:"https://kingshotguides.com/guide/active-giftcodes-and-how-to-redeem/"},
@@ -158,18 +156,6 @@ function extractPublicSourceCodes(html,sourceName){
 function parseExternalExpiry(value){
  const raw=String(value||"").replace(/(\d)(st|nd|rd|th)\b/gi,"$1").replace(/,/g,"").trim();
  const parsed=Date.parse(raw+" 23:59:59 UTC");return Number.isNaN(parsed)?null:parsed;
-}
-function extractAggregatorCodes(data){
- const raw=Array.isArray(data?.codes)?data.codes:[];
- const seen=new Set();
- return raw.map(value=>{
-  const parts=String(value||"").trim().split(/\s+/);
-  const code=parts[0]||"";
-  if(!isLikelyGiftCode(code)||seen.has(code.toUpperCase()))return null;
-  seen.add(code.toUpperCase());
-  const createdAt=parts[1]&&/^\d{2}\.\d{2}\.\d{4}$/.test(parts[1])?Date.parse(parts[1].split(".").reverse().join("-")+"T00:00:00Z"):0;
-  return {code,expiresAt:null,createdAt:Number.isNaN(createdAt)?0:createdAt,source:"whiteout-bot-aggregator"};
- }).filter(Boolean);
 }
 function mergeCodes(sources){
  const map=new Map();
@@ -629,18 +615,16 @@ export default async function handler(req,res){
   if(!lock?.claimed)return res.status(200).json({ok:true,skipped:true,reason:"WORKER_ALREADY_RUNNING"});
   workerToken=lock.token;
   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
-  const [apiSource,pageSource,publicSources,premiumSources,adminRows]=await Promise.all([
+  const [apiSource,pageSource,publicSources,adminRows]=await Promise.all([
    fetchSource(GIFT_SOURCE_URL,"api"),
    fetchSource("https://kingshot.net/gift-codes","page"),
    Promise.all(PUBLIC_GIFT_SOURCES.map(source=>fetchSource(source.url,"public:"+source.name))),
-   Promise.all(PREMIUM_GIFT_SOURCES.map(source=>fetchSource(source.url,"aggregator"))),
    rpc("list_kingshot_admin_gift_codes",{})
   ]);
   const data=apiSource.data;
   const apiCodes=apiSource.codes;
   const pageCodes=pageSource.codes;
   const publicCodes=publicSources.flatMap((result,index)=>result.codes.length?result.codes.map(row=>({...row,source:PUBLIC_GIFT_SOURCES[index].name})):[]);
-  const premiumCodes=premiumSources.flatMap(result=>result.codes||[]);
   const adminCodes=(Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.active!==false).map(row=>({
    code:String(row?.code||"").trim(),
    expiresAt:null,
@@ -648,9 +632,9 @@ export default async function handler(req,res){
    source:"admin",
    adminAdded:Boolean(row?.admin_added)
   })).filter(row=>row.code&&row.code.length>=6&&row.code.length<=32);
-  let codes=mergeCodes([apiCodes,pageCodes,publicCodes,premiumCodes,VERIFIED_FALLBACK_CODES,adminCodes]).map(enrichGiftCodeEvidence);
+  let codes=mergeCodes([apiCodes,pageCodes,publicCodes,VERIFIED_FALLBACK_CODES,adminCodes]);
   if(!codes.length)throw Error("Kingshot gift-code sources returned no active codes.");
-  console.log("Kingshot auto feed:",{apiActive:data?.data?.activeCount??null,apiCodes:apiCodes.map(x=>x.code),pageCodes:pageCodes.map(x=>x.code),publicSources:publicCodes.map(x=>({code:x.code,source:x.source})),premiumSources:premiumCodes.map(x=>({code:x.code,source:x.source})),adminCodes:adminCodes.map(x=>x.code),merged:codes.map(x=>x.code)});
+  console.log("Kingshot auto feed:",{apiActive:data?.data?.activeCount??null,apiCodes:apiCodes.map(x=>x.code),pageCodes:pageCodes.map(x=>x.code),publicSources:publicCodes.map(x=>({code:x.code,source:x.source})),adminCodes:adminCodes.map(x=>x.code),merged:codes.map(x=>x.code)});
   const knownCodes=new Set((Array.isArray(adminRows)?adminRows:[]).map(row=>String(row?.code||"").toUpperCase()));
 
   const persistedCodeRows=await Promise.all(codes.map(item=>rpc("upsert_kingshot_gift_code",{
@@ -767,7 +751,7 @@ export default async function handler(req,res){
    return map;
   },{});
   for(const value of Object.values(codeTelemetry)){value.avgRedemptionLatencyMs=value.attempts?Math.round(value.totalRedemptionLatencyMs/value.attempts):null;delete value.totalRedemptionLatencyMs;}
-  const sourceResults=[apiSource,pageSource,...publicSources,...premiumSources];
+  const sourceResults=[apiSource,pageSource,...publicSources];
   const healthySources=sourceResults.filter(x=>x?.ok).length;
   const sourceCount=sourceResults.length;
   const sourceHealthPct=sourceCount?Math.round(healthySources/sourceCount*100):0;
@@ -780,7 +764,7 @@ export default async function handler(req,res){
    return map;
   },{})).sort((x,y)=>y.count-x.count).slice(0,8);
   console.log("Kingshot auto worker pool:",{workers:WORKER_COUNT,assignments:assignments.map(x=>x.length),workerFailures:workerFailures.length,attempted:totals.attempted,success:totals.success,redemptionFailures:mergedFailures});
-  const summary={source:"multi-source",sources:sourceResults.length, premiumSources:PREMIUM_GIFT_SOURCES.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,...totals,workerFailures:workerFailures.length,redemptionFailures:mergedFailures,codeTelemetry};
+  const summary={source:"multi-source",sources:sourceResults.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,...totals,workerFailures:workerFailures.length,redemptionFailures:mergedFailures,codeTelemetry};
   await rpc("finish_kingshot_worker_run",{p_token:workerToken,p_status:totals.errors||totals.stale?"COMPLETED_WITH_WARNINGS":"COMPLETED",p_error:null,p_summary:summary}).catch(error=>console.error("Worker state update failed:",error?.message||error));
   const anomalyReasons=[];
   if(totals.errors||workerFailures.length)anomalyReasons.push("worker errors");
