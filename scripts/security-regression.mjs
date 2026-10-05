@@ -79,6 +79,14 @@ assertCheck(
  auto.includes("sourceHealthPct")
 );
 assertCheck(
+ "Worker summaries include redemption speed telemetry",
+ auto.includes("redemptionTelemetry") &&
+ auto.includes("codeTelemetry") &&
+ auto.includes("firstResultLatencyMs") &&
+ auto.includes("avgRedemptionLatencyMs") &&
+ auto.includes("first_seen_at")
+);
+assertCheck(
  "Worker has anomaly detection for unhealthy cycles",
  auto.includes("anomalyReasons") &&
  auto.includes("over 30% of players failed validation") &&
