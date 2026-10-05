@@ -68,3 +68,4 @@ export default async function handler(req,res){
  }
  catch(e){return res.status(502).json({error:e?.message||"Custom message service unavailable."})}
 }
+// Destination configuration is loaded from Vercel production environment variables.
