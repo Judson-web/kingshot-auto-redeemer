@@ -75,7 +75,7 @@ flowchart LR
 
 The live Supabase database contains the operational data required to provide Auto Redeem, including registered Player IDs, kingdom information, player metadata, registration state, and redemption history. These records remain in the guarded live database and are not part of the scraper archive.
 
-The archive tier is intentionally limited to the scraper history table, `kingshot_scraper_runs`. Its verified schema is:
+The archive tier has two deliberately separated parts. The scraper archive contains the `kingshot_scraper_runs` history table, while a separate private GitHub recovery area stores minimal registered-player snapshots for disaster recovery only. The two archives are never merged into application history.
 
 ```text
 id
@@ -98,10 +98,18 @@ The data boundary is:
 - **Live Supabase:** player registrations, player metadata, redemption state/history, and other operational records.
 - **Scraper archive:** PII-free scraper telemetry and discovered-code history.
 - **Private Supabase Storage:** queryable historical archive.
-- **Private GitHub repository:** independent cold backup of the verified archive.
+- **Private GitHub repository:** independent cold backup of verified scraper history plus a separately isolated, minimal registered-player disaster-recovery snapshot.
 - **Kingshot:** receives only the server-side redemption request required for an actual redemption.
 
 The GitHub archive is downstream of the live system. It is not a dependency of worker execution or redemption.
+
+### Registered-player disaster recovery
+
+The private GitHub archive also maintains periodic snapshots of the registered Kingshot Player IDs from `public.kingshot_autoredeem`. These snapshots intentionally contain only the minimum recovery state: `player_id`, `enabled`, and `stale`, plus snapshot metadata and a SHA-256 checksum. They do not contain Discord IDs, authentication credentials, passkeys, session tokens, or redemption history.
+
+The backup runs independently of the Auto Redeem worker. The worker never reads GitHub during normal operation. An emergency restore is a separate, manual GitHub Actions workflow that defaults to a dry run, requires an explicit confirmation phrase for a live restore, validates the snapshot, compares it with Supabase, and inserts only missing Player IDs. Existing live records are never overwritten. After restoration, the normal worker revalidates restored registrations through the existing Kingshot/MightPulse flow.
+
+GitHub Actions credentials remain in repository secrets rather than workflow files. The recovery workflow is intentionally fail-closed so a stale backup cannot silently become the live registration source.
 
 ## Redemption statuses
 
