@@ -68,7 +68,7 @@ export default function LegalApp({type}){
         </>}
         <h2>No affiliation</h2>
         <p>This project is independent and should not be represented as an official Century Games, Kingshot, or Discord service. Product names, logos, and trademarks remain the property of their respective owners.</p>
-        <p className="legal-note">This notice describes the current operation of this independent community service and is not legal advice. Effective: October 5, 2026.</p>
+        <p className="legal-note">This notice describes the current operation of this independent community service and is not legal advice. Effective: October 6, 2026.</p>
       </section>
     </main>
     <footer><span>© 2026 Judson · Independent community service</span><span><a href={"/terms?service="+serviceKey}>Terms</a> · <a href={"/privacy?service="+serviceKey}>Privacy</a></span></footer>
