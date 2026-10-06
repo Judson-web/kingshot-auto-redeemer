@@ -500,6 +500,17 @@ function summarizeWorkerResults(results){
   return map;
  },{});
  const topRedemptionFailures=Object.values(redemptionDiagnostics).sort((x,y)=>y.count-x.count).slice(0,8);
+ const workerErrorDiagnostics=results.reduce((map,r)=>{
+  if(!r?.error)return map;
+  const category=String(r.errorCategory||classifyError(r.error));
+  const message=String(r.error).replace(/\\s+/g," ").trim().slice(0,240)||"Player processing failed.";
+  const key=category+" / "+message;
+  const existing=map[key]||{count:0,category,message};
+  existing.count++;
+  map[key]=existing;
+  return map;
+ },{});
+ const topWorkerErrors=Object.values(workerErrorDiagnostics).sort((a,b)=>b.count-a.count).slice(0,8);
  const codeTelemetry=results.reduce((map,r)=>{
   const t=r?.redemptionTelemetry;
   if(!t?.code)return map;
@@ -534,7 +545,8 @@ function summarizeWorkerResults(results){
   redemptionStatuses:statusCounts,
   codeCounts,
   codeTelemetry,
-  redemptionFailures:topRedemptionFailures
+  redemptionFailures:topRedemptionFailures,
+  workerErrors:topWorkerErrors
  };
 }
 
@@ -734,6 +746,14 @@ export default async function handler(req,res){
    a.attempted+=(r?.attempted||0);a.success+=(r?.success||0);a.alreadyReceived+=(r?.alreadyReceived||0);a.alreadyHandled+=(r?.alreadyHandled||0);a.skipped+=(r?.skipped||0);a.errors+=(r?.errors||0)+(r?.error?1:0);a.deadlineSkipped+=(r?.deadlineSkipped||0);return a;
   },{attempted:0,success:0,alreadyReceived:0,alreadyHandled:0,skipped:0,errors:0,stale:0,deadlineSkipped:0,kingdomChecks:kingdomSummary.checked,kingdomChanges:kingdomSummary.changed});
   const topRedemptionFailures=workerRuns.flatMap(result=>Array.isArray(result?.redemptionFailures)?result.redemptionFailures:[]);
+  const workerErrorDiagnostics=Object.values(workerRuns.flatMap(result=>Array.isArray(result?.workerErrors)?result.workerErrors:[])
+   .reduce((map,item)=>{
+    const key=String(item.category||"UNKNOWN")+" / "+String(item.message||"Player processing failed.");
+    const existing=map[key]||{count:0,category:String(item.category||"UNKNOWN"),message:String(item.message||"Player processing failed.")};
+    existing.count+=Number(item.count||0);
+    map[key]=existing;
+    return map;
+   },{})).sort((a,b)=>b.count-a.count).slice(0,8);
   const codeCounts=workerRuns.reduce((map,r)=>{
  for(const [key,count] of Object.entries(r?.codeCounts||{}))map[key]=(map[key]||0)+Number(count||0);
  return map;
@@ -763,8 +783,8 @@ export default async function handler(req,res){
    map[key]=current;
    return map;
   },{})).sort((x,y)=>y.count-x.count).slice(0,8);
-  console.log("Kingshot auto worker pool:",{workers:WORKER_COUNT,assignments:assignments.map(x=>x.length),workerFailures:workerFailures.length,attempted:totals.attempted,success:totals.success,redemptionFailures:mergedFailures});
-  const summary={source:"multi-source",sources:sourceResults.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,...totals,workerFailures:workerFailures.length,redemptionFailures:mergedFailures,codeTelemetry};
+  console.log("Kingshot auto worker pool:",{workers:WORKER_COUNT,assignments:assignments.map(x=>x.length),workerFailures:workerFailures.length,attempted:totals.attempted,success:totals.success,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures});
+  const summary={source:"multi-source",sources:sourceResults.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,...totals,workerFailures:workerFailures.length,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures,codeTelemetry};
   await rpc("finish_kingshot_worker_run",{p_token:workerToken,p_status:totals.errors||totals.stale?"COMPLETED_WITH_WARNINGS":"COMPLETED",p_error:null,p_summary:summary}).catch(error=>console.error("Worker state update failed:",error?.message||error));
   const anomalyReasons=[];
   if(totals.errors||workerFailures.length)anomalyReasons.push("worker errors");
@@ -777,9 +797,10 @@ export default async function handler(req,res){
    {name:"Reasons",value:anomalyReasons.join("\n"),inline:false},
    {name:"Cycle runtime",value:(cycleDurationMs/1000).toFixed(1)+"s",inline:true},
    {name:"Source health",value:healthySources+"/"+sourceCount+" healthy",inline:true},
-   {name:"Validated",value:String(validPlayers.length)+"/"+String(list.length),inline:true}
+   {name:"Validated",value:String(validPlayers.length)+"/"+String(list.length),inline:true},
+   {name:"Worker diagnostics",value:workerErrorDiagnostics.length?workerErrorDiagnostics.map(x=>x.category+" · "+x.message+" · x"+x.count).join("\n").slice(0,1024):"None",inline:false}
   ],color:0xED4245});
-  if(totals.attempted||totals.errors||totals.stale||workerFailures.length||newCodes.length)await sendDiscordEvent({title:"📊 Auto-redeem cycle",description:"Scheduled Kingshot worker pool completed a cycle with activity.",fields:[{name:"Players",value:String(list.length),inline:true},{name:"Validated",value:String(validPlayers.length),inline:true},{name:"Workers",value:String(WORKER_COUNT),inline:true},{name:"Codes",value:String(activeCodes.length),inline:true},{name:"Attempts",value:String(totals.attempted),inline:true},{name:"Successes",value:String(totals.success),inline:true},{name:"Already received",value:String(totals.alreadyReceived),inline:true},{name:"Already redeemed/handled",value:String(totals.alreadyHandled),inline:true},{name:"Errors",value:String(totals.errors),inline:true},{name:"Stale",value:String(totals.stale),inline:true},{name:"Worker failures",value:String(workerFailures.length),inline:true},{name:"Deferred by deadline",value:String(totals.deadlineSkipped),inline:true},{name:"Runtime",value:(cycleDurationMs/1000).toFixed(1)+"s",inline:true},{name:"Sources",value:healthySources+"/"+sourceCount+" healthy",inline:true},{name:"Redemption statuses",value:Object.entries(workerRuns.reduce((map,r)=>{for(const [status,count] of Object.entries(r?.redemptionStatuses||{}))map[status]=(map[status]||0)+count;return map},{})).map(([status,count])=>`${status}: ${count}`).join("\n").slice(0,1024)||"None",inline:false},{name:"Code breakdown",value:Object.entries(codeCounts).filter(([k])=>!k.includes("_status_")).map(([code,count])=>`${code}: ${count} handled`).join("\n").slice(0,1024)||"None",inline:false},{name:"Speed telemetry",value:Object.entries(codeTelemetry).filter(([code])=>newCodes.some(item=>item.code===code)).map(([code,t])=>code+": first API result "+(t.firstResultLatencyMs!=null?(t.firstResultLatencyMs/1000).toFixed(1)+"s":"—")+" · "+(t.avgRedemptionLatencyMs!=null?(t.avgRedemptionLatencyMs/1000).toFixed(1)+"s avg API":"—")+(t.firstSuccessAt?" · first SUCCESS":" · no SUCCESS")).join("\n").slice(0,1024)||"None",inline:false},{name:"Redemption failures",value:mergedFailures.length?mergedFailures.map(x=>`${x.category}/${x.errCode}/${x.status}: ${x.count}`).join("\n").slice(0,1024):"None",inline:false}],color:totals.errors||totals.stale||workerFailures.length?0xFEE75C:0x57F287});
+  if(totals.attempted||totals.errors||totals.stale||workerFailures.length||newCodes.length)await sendDiscordEvent({title:"📊 Auto-redeem cycle",description:"Scheduled Kingshot worker pool completed a cycle with activity.",fields:[{name:"Players",value:String(list.length),inline:true},{name:"Validated",value:String(validPlayers.length),inline:true},{name:"Workers",value:String(WORKER_COUNT),inline:true},{name:"Codes",value:String(activeCodes.length),inline:true},{name:"Attempts",value:String(totals.attempted),inline:true},{name:"Successes",value:String(totals.success),inline:true},{name:"Already received",value:String(totals.alreadyReceived),inline:true},{name:"Already redeemed/handled",value:String(totals.alreadyHandled),inline:true},{name:"Errors",value:String(totals.errors),inline:true},{name:"Stale",value:String(totals.stale),inline:true},{name:"Worker failures",value:String(workerFailures.length),inline:true},{name:"Deferred by deadline",value:String(totals.deadlineSkipped),inline:true},{name:"Runtime",value:(cycleDurationMs/1000).toFixed(1)+"s",inline:true},{name:"Sources",value:healthySources+"/"+sourceCount+" healthy",inline:true},{name:"Redemption statuses",value:Object.entries(workerRuns.reduce((map,r)=>{for(const [status,count] of Object.entries(r?.redemptionStatuses||{}))map[status]=(map[status]||0)+count;return map},{})).map(([status,count])=>`${status}: ${count}`).join("\n").slice(0,1024)||"None",inline:false},{name:"Code breakdown",value:Object.entries(codeCounts).filter(([k])=>!k.includes("_status_")).map(([code,count])=>`${code}: ${count} handled`).join("\n").slice(0,1024)||"None",inline:false},{name:"Speed telemetry",value:Object.entries(codeTelemetry).filter(([code])=>newCodes.some(item=>item.code===code)).map(([code,t])=>code+": first API result "+(t.firstResultLatencyMs!=null?(t.firstResultLatencyMs/1000).toFixed(1)+"s":"—")+" · "+(t.avgRedemptionLatencyMs!=null?(t.avgRedemptionLatencyMs/1000).toFixed(1)+"s avg API":"—")+(t.firstSuccessAt?" · first SUCCESS":" · no SUCCESS")).join("\n").slice(0,1024)||"None",inline:false},{name:"Redemption failures",value:mergedFailures.length?mergedFailures.map(x=>`${x.category}/${x.errCode}/${x.status}: ${x.count}`).join("\n").slice(0,1024):"None",inline:false},{name:"Worker diagnostics",value:workerErrorDiagnostics.length?workerErrorDiagnostics.map(x=>x.category+" · "+x.message+" · x"+x.count).join("\n").slice(0,1024):"None",inline:false}],color:totals.errors||totals.stale||workerFailures.length?0xFEE75C:0x57F287});
   return res.status(200).json({ok:true,...summary});
  }catch(e){
   console.error("Kingshot auto redeem:",e);
