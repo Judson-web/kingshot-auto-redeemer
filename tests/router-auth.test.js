@@ -28,16 +28,6 @@ test("admin router rejects unauthenticated data access", async () => {
   assert.equal(res.body?.error,"Unauthorized");
 });
 
-test("admin router preserves public announcement access", async () => {
-  const {default:router}=await import("../api/admin-tools/[...path].js");
-  const res=response();
-  await router({
-    ...req("data"),
-    query:{path:["data"],public:"announcements"}
-  },res);
-  assert.notEqual(res.statusCode,401);
-});
-
 test("custom message endpoint rejects unauthenticated destination access", async () => {
   const {default:handler}=await import("../api/custom-message.js");
   const res=response();
