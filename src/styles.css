@@ -884,3 +884,60 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .ks-result-copy{min-height:34px;padding:7px 9px;border:1px solid #292d37;border-radius:9px;background:#101218;color:#858b98;font:700 7px system-ui,sans-serif;cursor:pointer}
 .ks-result-copy:hover{border-color:#3a3f4b;color:#c3c6ce;background:#15171e}
 @media(max-width:640px){.ks-result-actions{width:100%}.ks-result-actions .ks-result-again{flex:1}.ks-result-copy{flex:none}}
+
+
+/* Manual confirmation — clean footer hierarchy */
+.manual-page-hero .ks-result-footer{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  justify-content:flex-start!important;
+  gap:8px!important;
+  padding-top:3px!important;
+}
+.manual-page-hero .ks-result-footer>span{
+  width:100%!important;
+  min-width:0!important;
+  flex:0 0 auto!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:5px!important;
+  padding:6px 8px!important;
+  border:1px solid #20242d!important;
+  border-radius:8px!important;
+  background:#0c0e13!important;
+  color:#626a77!important;
+  font-size:6.5px!important;
+  line-height:1.35!important;
+}
+.manual-page-hero .ks-result-footer>span svg{
+  flex:none!important;
+  color:#789883!important;
+}
+.manual-page-hero .ks-result-actions{
+  width:100%!important;
+  min-width:0!important;
+  display:grid!important;
+  grid-template-columns:minmax(108px,auto) minmax(0,1fr)!important;
+  align-items:stretch!important;
+  gap:6px!important;
+}
+.manual-page-hero .ks-result-actions button{
+  min-width:0!important;
+  width:100%!important;
+  min-height:36px!important;
+}
+.manual-page-hero .ks-result-actions .ks-result-copy{
+  padding:8px 10px!important;
+}
+.manual-page-hero .ks-result-actions .ks-result-again{
+  padding:8px 12px!important;
+}
+@media(max-width:380px){
+  .manual-page-hero .ks-result-actions{
+    grid-template-columns:minmax(96px,auto) minmax(0,1fr)!important;
+  }
+  .manual-page-hero .ks-result-actions .ks-result-copy{
+    padding-inline:8px!important;
+  }
+}
