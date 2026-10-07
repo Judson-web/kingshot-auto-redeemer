@@ -49,6 +49,21 @@ function hexColor(v){const s=clean(v,20);return /^#?[0-9a-fA-F]{6}$/.test(s)?par
 function imageUrl(v){const s=clean(v,2048);if(!s)return"";try{const u=new URL(s);return u.protocol==="https:"?u.toString():""}catch{return""}}
 function escapeRegExp(value){return String(value).replace(/[.*+?^$()|[\\]\\\\]/g,"\\\\$&")}
 
+async function resolveGuildId(target){
+ const webhook=webhookFor(target);
+ if(!webhook)return"";
+ try{
+  const u=new URL(webhook);
+  if(!/discord(?:app)?\.com$/.test(u.hostname))return"";
+  const m=u.pathname.match(/\/api\/webhooks\/(\d{17,20})\/[^/]+/);
+  if(!m)return"";
+  const r=await fetch("https://discord.com/api/v10/webhooks/"+m[1]+"/"+u.pathname.split("/").pop(),{signal:AbortSignal.timeout(5000)});
+  if(!r.ok)return"";
+  const data=await r.json();
+  return /^\d{17,20}$/.test(String(data?.guild_id||""))?String(data.guild_id):"";
+ }catch{return""}
+}
+
 async function fetchGuildRoles(guildId){
  const token=process.env.DISCORD_BOT_TOKEN||"";
  if(!token||!/^[0-9]{17,20}$/.test(String(guildId)))return [];
@@ -57,8 +72,8 @@ async function fetchGuildRoles(guildId){
   if(!r.ok)return [];
   const data=await r.json();
   return Array.isArray(data)
-   ?data.filter(x=>x&&/^[0-9]{17,20}$/.test(String(x.id))&&typeof x.name==="string"&&!x.managed)
-     .map(x=>({id:String(x.id),name:x.name}))
+   ?data.filter(x=>x&&/^[0-9]{17,20}$/.test(String(x.id))&&typeof x.name==="string")
+     .map(x=>({id:String(x.id),name:x.name,managed:Boolean(x.managed)}))
      .sort((a,b)=>a.name.localeCompare(b.name))
    :[];
  }catch{return []}
@@ -120,8 +135,10 @@ export default async function handler(req,res){
   if(action==="DESTINATIONS")return res.status(200).json({destinations:await resolveDestinationNames()});
   if(action==="ROLES"){
    const target=String(body.target||"").trim();
-   if(!DESTINATIONS.has(target)||!/^[0-9]{17,20}$/.test(target))return res.status(400).json({error:"Unknown Discord server."});
-   return res.status(200).json({roles:await getGuildRoles(target)});
+   if(!DESTINATIONS.has(target))return res.status(400).json({error:"Unknown Discord destination."});
+   const guildId=await resolveGuildId(target);
+   if(!guildId)return res.status(502).json({error:"Could not resolve the Discord server for this webhook."});
+   return res.status(200).json({roles:await getGuildRoles(guildId)});
   }
   if(action!=="SEND")return res.status(400).json({error:"Invalid action."});
 
@@ -132,7 +149,8 @@ export default async function handler(req,res){
   const rawMessage=clean(body.message,4096);
   if(!rawMessage)return res.status(400).json({error:"Message is required."});
 
-  const resolved=await resolveRoleMentions(rawMessage,target);
+  const guildId=await resolveGuildId(target);
+  const resolved=await resolveRoleMentions(rawMessage,guildId);
   const title=clean(body.title,256);
   const description=clean(resolved.message.replace(/@everyone|@here|<@&\d{17,20}>|<@!?\d{17,20}>/g," ").replace(/\s{2,}/g," ").trim(),4096);
   const footer=clean(body.footer,2048);
