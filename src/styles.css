@@ -701,3 +701,44 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .ks-result-error{box-shadow:0 0 0 1px #e58b8b0d,0 10px 30px #0003}
 @keyframes feedback-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.ks-error,.ks-support-success{animation:none}}
+
+
+/* Manual Redeem — focused page polish */
+.manual-page-hero{position:relative}
+.manual-page-hero:before{content:"";position:absolute;left:-80px;top:8%;width:260px;height:260px;border-radius:50%;background:#8d73e51a;filter:blur(80px);pointer-events:none}
+.manual-hero-copy,.manual-redeem-form{position:relative;z-index:1}
+.manual-page-hero h1{max-width:680px}
+.manual-form-head{display:flex}
+.manual-form-head>div{min-width:0}
+.manual-fields .ks-field{transition:border-color .18s ease,background-color .18s ease,box-shadow .18s ease,transform .18s ease}
+.manual-fields .ks-field:hover{border-color:#343846!important}
+.manual-fields .ks-field:focus-within{transform:translateY(-1px)}
+.manual-field-card input{caret-color:#a995ff}
+.manual-field-card input::placeholder{color:#4f5663}
+.manual-submit{box-shadow:0 12px 30px #0004}
+.ks-player,.ks-result,.ks-error{max-width:820px}
+.ks-player{border-color:#29372f}
+.ks-result{border-color:#302d3b}
+.ks-result-icon{flex:none}
+@media(max-width:900px){
+ .manual-page-hero:before{left:8%;top:3%;width:220px;height:220px}
+}
+@media(max-width:640px){
+ .manual-page-hero{padding-top:42px}
+ .manual-page-hero h1{font-size:clamp(43px,12vw,60px);line-height:.94}
+ .manual-page-hero .hero-copy{font-size:10.5px}
+ .manual-redeem-form{padding:14px;border-radius:16px}
+ .manual-form-head{align-items:flex-start}
+ .manual-form-head h2{font-size:17px}
+ .manual-form-head p{font-size:8.5px}
+ .manual-fields{grid-template-columns:1fr}
+ .manual-fields .ks-field{min-height:82px}
+ .manual-submit-row{align-items:stretch;flex-direction:column}
+ .manual-submit-row>span{font-size:7.5px}
+ .manual-submit{width:100%;min-width:0}
+ .manual-page-hero+.ks-player,.manual-page-hero+.ks-result,.manual-page-hero+.ks-error{margin-top:12px}
+}
+@media(max-width:380px){
+ .manual-page-hero h1{font-size:40px}
+ .manual-trust-row{justify-content:flex-start}
+}
