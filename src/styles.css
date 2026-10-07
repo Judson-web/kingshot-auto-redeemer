@@ -1436,14 +1436,3 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  .message-mention-trigger{width:100%;max-width:none;justify-content:flex-start}
  .message-role-list{grid-template-columns:1fr}
 }
-
-.message-send-row{grid-template-columns:auto auto minmax(0,1fr)}
-.message-schedule-toggle{min-height:44px;padding:0 13px;border:1px solid #303541;border-radius:9px;background:#12161d;color:#bfc4ce;font:700 10px inherit;cursor:pointer}
-.message-schedule-toggle:hover:not(:disabled){border-color:#454c59;background:#191d25;color:#e4e6eb}
-.message-schedule-toggle:disabled{opacity:.45;cursor:not-allowed}
-.message-schedule-box{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:9px;padding:11px 12px;border:1px solid #292f3a;border-radius:10px;background:#0d1016}
-.message-schedule-box>div{min-width:0}.message-schedule-box b{display:block;color:#dfe2e8;font-size:10px}.message-schedule-box small{display:block;margin-top:3px;color:#6e7582;font-size:8px}
-.message-schedule-box input{min-height:36px;padding:0 9px;border:1px solid #303541;border-radius:8px;background:#151922;color:#dce0e7;font:600 10px inherit;color-scheme:dark}
-.message-scheduled{margin-top:22px;padding:14px;border:1px solid #252a34;border-radius:12px;background:#0f1218}.message-scheduled-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.message-scheduled-head b{display:block;margin-top:3px;color:#d9dce3;font-size:11px}.message-scheduled-list{display:grid;gap:6px;margin-top:10px}.message-scheduled-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px;border:1px solid #242a34;border-radius:9px;background:#12161d}.message-scheduled-item>div{min-width:0}.message-scheduled-item b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#d9dce3;font-size:10px}.message-scheduled-item small{display:block;margin-top:3px;color:#707784;font-size:8px}.message-status{display:inline-block;margin-top:5px;padding:3px 6px;border-radius:999px;background:#1c222d;color:#89919f;font-size:7px;font-weight:800;letter-spacing:.06em}.message-status.pending{background:#1c2a22;color:#83b18f}.message-status.sent{background:#202632;color:#8f99aa}.message-status.failed{background:#321d20;color:#d98d96}.message-status.cancelled{background:#25272c;color:#777f8d}.message-scheduled-empty{margin-top:9px;padding:12px;border:1px dashed #292f38;border-radius:8px;color:#666e7b;font-size:9px;text-align:center}
-@media(max-width:760px){.message-send-row{grid-template-columns:1fr 1fr}.message-send-row .message-primary{grid-column:1/-1}.message-schedule-box{align-items:stretch;flex-direction:column}.message-schedule-box input{width:100%;box-sizing:border-box}}
-@media(max-width:430px){.message-send-row{grid-template-columns:1fr}.message-send-row .message-primary{grid-column:auto}.message-schedule-box{padding:10px}}
