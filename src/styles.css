@@ -1411,33 +1411,3 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @media(prefers-reduced-motion:reduce){
  .message-swatches button{transition:none}
 }
-
-/* Discord role mention autocomplete */
-.message-textarea-wrap{position:relative}
-.message-textarea-wrap textarea{position:relative}
-.message-role-menu{position:absolute;left:0;right:0;bottom:calc(100% + 7px);z-index:20;max-height:260px;overflow:auto;padding:5px;border:1px solid #303540;border-radius:12px;background:#0d1016;box-shadow:0 18px 50px #0008}
-.message-role-option{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 10px;border:0;border-radius:8px;background:transparent;color:#cbd0d9;text-align:left;cursor:pointer;font:inherit}
-.message-role-option:hover,.message-role-option:focus{background:#171b23;outline:none}
-.message-role-option b{font-size:10px;font-weight:750;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.message-role-option span{flex:none;color:#606875;font-size:7px;text-transform:uppercase;letter-spacing:.08em}
-.message-description-label{position:relative}
-@media(max-width:430px){
- .message-role-menu{max-height:220px}
- .message-role-option{padding:10px}
- .message-role-option b{font-size:9px}
-}
-
-/* Discord role mention picker */
-.message-textarea-wrap{position:relative}
-.message-role-menu{position:absolute;left:0;right:0;bottom:calc(100% + 6px);z-index:30;max-height:260px;overflow:auto;padding:5px;border:1px solid #303541;border-radius:11px;background:#10131a;box-shadow:0 18px 50px #0009}
-.message-role-option{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 10px;border:0;border-radius:7px;background:transparent;color:#d9dce3;text-align:left;cursor:pointer}
-.message-role-option:hover,.message-role-option:focus-visible{background:#1a1e27;outline:none}
-.message-role-option b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
-.message-role-option span{flex:none;color:#68707e;font-size:8px}
-.message-description-label .message-role-menu{font-weight:500;letter-spacing:0}
-@media(max-width:640px){
- .message-role-menu{bottom:auto;top:calc(100% + 6px);max-height:220px}
- .message-role-option{padding:10px}
-}
-
-.message-mention-box{margin:14px 0;padding:12px;border:1px solid #252a34;border-radius:12px;background:#0f1218}.message-mention-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.message-mention-head>div{min-width:0}.message-mention-head span{display:block;font-size:10px;font-weight:800;letter-spacing:.08em;color:#d9dce3}.message-mention-head small{display:block;margin-top:3px;color:#6f7683;font-size:9px}.message-mention-trigger{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end;min-height:34px;max-width:58%;padding:5px 9px;border:1px solid #303541;border-radius:8px;background:#151922;color:#cfd3dc;font-size:10px;cursor:pointer}.message-mention-trigger:disabled{opacity:.5;cursor:not-allowed}.message-mention-chip{display:inline-flex!important;padding:3px 6px;border-radius:5px;background:#303b70;color:#dce2ff!important;font-size:9px!important;letter-spacing:0!important}.message-mention-chevron{color:#777f8d!important;font-size:14px!important}.message-role-panel{margin-top:10px;padding:7px;border:1px solid #303541;border-radius:9px;background:#10131a}.message-role-panel>input{width:100%;box-sizing:border-box;padding:9px;border:1px solid #292e38;border-radius:7px;background:#171b23;color:#e2e5eb;outline:none;font-size:10px}.message-role-list{max-height:220px;overflow:auto;margin-top:6px}.message-role-option.selected{background:#20273a}.message-role-option.selected b{color:#9daeff}.message-role-option{margin:1px 0}.message-role-panel+.message-hint{margin-top:8px}@media(max-width:640px){.message-mention-head{align-items:flex-start;flex-direction:column}.message-mention-trigger{max-width:100%;width:100%;justify-content:flex-start}}
