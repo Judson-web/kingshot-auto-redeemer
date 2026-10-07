@@ -688,3 +688,16 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   .manual-trust-row span{font-size:6.5px}
   .manual-submit-row>span{display:none}
 }
+
+
+/* Feedback states — clearer without changing application behavior */
+.ks-error{animation:feedback-in .2s ease both}
+.ks-error b{display:block}
+.ks-support-success strong{color:#b8e5c6}
+.ks-support-success{animation:feedback-in .2s ease both}
+.ks-result-success{box-shadow:0 0 0 1px #77b58a12,0 10px 30px #0003}
+.ks-result-claimed{box-shadow:0 0 0 1px #d5a85c0d,0 10px 30px #0003}
+.ks-result-warning{box-shadow:0 0 0 1px #d5a85c0d,0 10px 30px #0003}
+.ks-result-error{box-shadow:0 0 0 1px #e58b8b0d,0 10px 30px #0003}
+@keyframes feedback-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.ks-error,.ks-support-success{animation:none}}
