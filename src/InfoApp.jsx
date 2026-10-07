@@ -1,6 +1,9 @@
 import React,{useEffect,useRef,useState} from "react";
-import {ArrowLeft,CheckCircle,Clock3,Database,Gift,History,LockKeyhole,RefreshCw,Sparkles,Zap} from "lucide-react";
-import {KsLogo,SiteHeader} from "./components/KingshotChrome.jsx";
+import {ArrowLeft,CheckCircle,Clock3,Database,Gift,History,LockKeyhole,RefreshCw,Sparkles,Zap,Menu,X,ShieldCheck} from "lucide-react";
+const KINGSHOT_ICON="https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/ee/d2/22/eed22297-9313-d8b0-52c8-95f42a2795b2/AppIcon-0-0-1x_U007emarketing-0-8-0-85-220.png/0x0ss-85.png";
+function KsLogo(){return <a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={KINGSHOT_ICON} alt="Kingshot"/></span><span>Kingshot Redeemer</span></a>}
+function DiscordChip(){const [user,setUser]=useState(null);useEffect(()=>{let live=true;const load=()=>fetch("/api/discord-user?id=871756466900598815",{credentials:"same-origin",cache:"no-store",headers:{"cache-control":"no-cache"}}).then(r=>r.ok?r.json():null).then(d=>{if(live&&d?.id)setUser(d)}).catch(()=>{});load();const timer=setInterval(load,60000);return()=>{live=false;clearInterval(timer)}},[]);const avatar=user?.avatar?(user.avatarUrl||`https://cdn.discordapp.com/avatars/${encodeURIComponent(user.id)}/${encodeURIComponent(user.avatar)}.png?size=64`):"https://cdn.discordapp.com/embed/avatars/0.png?size=64";return <a className="site-discord-credit" href="https://discord.com/channels/@me/871756466900598815" target="_blank" rel="noreferrer" aria-label="Message Judson on Discord"><img key={user?.avatar||"default"} src={avatar} alt="Judson" loading="eager" onError={e=>{e.currentTarget.src="https://cdn.discordapp.com/embed/avatars/0.png?size=64"}}/><span>Judson</span></a>}
+
 const sections=[
  {icon:Zap,title:"Automatic redemption",text:"Register your Kingshot Player ID once. The service checks the active gift-code pool automatically and processes eligible codes without requiring you to return and redeem them manually."},
  {icon:History,title:"Backfill for older codes",text:"Backfill is part of the normal redemption flow. If an older code is still active and your player has not handled it, a later run can pick it up."},
@@ -26,7 +29,7 @@ function InfoApp(){
  },[menu]);
  return <div className="app ks-app info-app">
   <a className="skip-link" href="#main-content">Skip to main content</a>
-<SiteHeader links={[{href:"/auto",label:"Auto Redeem"},{href:"/manual",label:"Manual Redeem"},{href:"/info",label:"How it works",active:true}]} menuOpen={menu} onMenuToggle={()=>setMenu(v=>!v)} />
+<header><KsLogo/><nav><a href="/auto">Auto Redeem</a><a href="/manual">Manual Redeem</a><a className="active" href="/info">How it works</a></nav><div className="header-right"><DiscordChip/><button ref={menuButtonRef} className="menu-btn" onClick={()=>setMenu(v=>!v)} aria-label={menu?"Close menu":"Open menu"} aria-expanded={menu} aria-controls="info-mobile-drawer">{menu?<X size={18}/>:<Menu size={18}/>}</button></div></header>
   {menu&&<>
    <button className="info-menu-backdrop" type="button" aria-label="Close navigation menu" onPointerDown={e=>{e.preventDefault();closeMenu()}} onTouchStart={closeMenu}/>
    <nav ref={drawerRef} className="info-mobile-menu" id="info-mobile-drawer" aria-label="Mobile navigation">
