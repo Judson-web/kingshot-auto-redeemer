@@ -4,7 +4,7 @@
 
 # Kingshot Auto Redeemer
 
-**Automated Kingshot gift-code discovery, redemption, and backfill.**
+**A production-grade community service for discovering, tracking, and redeeming eligible Kingshot gift codes.**
 
 [![Live Site](https://img.shields.io/badge/Live%20Site-Kingshot%20Auto%20Redeem-2563EB?style=for-the-badge&logo=vercel&logoColor=white)](https://kingshot-autoredeemer.vercel.app/)
 [![Node 24](https://img.shields.io/badge/Node.js-24.x-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
@@ -21,123 +21,217 @@
 
 > **Independent community service:** This project is not affiliated with, endorsed by, or operated by Century Games.
 
-## Overview
+## What this project does
 
-Kingshot Auto Redeemer is a server-side automation service for eligible Kingshot gift codes. It supports continuous discovery, automatic redemption, manual redemption, and backfill for codes that were legitimately missed.
+Kingshot Auto Redeemer automates the boring parts of gift-code redemption without turning the worker into a fragile one-off script.
 
-The same redemption core powers the public website and the auto-redeem worker system, while privileged signing material remains server-side.
+It can:
 
-## What you can build
+- discover eligible public gift codes from configured sources
+- normalize and deduplicate codes before processing
+- track code history and redemption outcomes
+- automatically redeem codes for authorized Player IDs
+- backfill eligible codes that were missed
+- provide manual redemption through the website
+- revalidate player/kingdom information when required
+- coordinate concurrent workers with durable database state
+- retain a separate, privacy-conscious scraper archive
+- maintain an isolated disaster-recovery path for registered players
 
-| Capability | Intended use |
-|---|---|
-| **Auto-redeem** | Periodically redeem eligible public gift codes for an authorized Player ID. |
-| **Backfill** | Catch up on still-eligible codes missed while offline, before registration, or during an interruption. |
-| **Automation infrastructure** | Run scheduled redemption and backend automation for authorized registrations. |
-| **Manual redemption** | Submit a specific code directly from the website. |
-| **Code discovery** | Normalize and deduplicate codes from configured public sources. |
-| **Persistent history** | Prevent unnecessary duplicate processing and preserve redemption outcomes. |
+The application is designed around one principle: **the live database remains the source of truth for the worker.**
 
-## Automatic redemption architecture
+## Architecture
 
 ```mermaid
 flowchart LR
-    A[Public code sources] --> B[Normalize + deduplicate]
-    B --> C[Eligibility + expiry filtering]
-    C --> D[Redemption coordinator]
-    D --> W0[Worker 0]
-    D --> W1[Worker 1]
-    D --> W2[Worker 2]
-    W0 --> E[Player/code claims]
-    W1 --> E
-    W2 --> E
-    E --> F[Server-side redemption]
-    F --> G[(Supabase history)]
-    G --> C
+    A[Public code sources] --> B[Discovery + normalization]
+    B --> C[Eligibility + deduplication]
+    C --> D[(Supabase PostgreSQL)]
+    P[Authorized Player IDs] --> D
+    D --> E[Worker coordinator]
+    E --> W0[Worker 0]
+    E --> W1[Worker 1]
+    E --> W2[Worker 2]
+    W0 --> R[Server-side redemption]
+    W1 --> R
+    W2 --> R
+    R --> K[Kingshot service]
+    R --> D
+    A --> H[Scraper history]
+    H --> S[(Private Supabase Storage)]
+    H --> G[(Private GitHub archive)]
+    D --> V[Encrypted DR snapshot]
+    V --> G
 ```
 
-Production coordination runs every minute. The current worker pool uses three durable shards, six concurrent player operations per worker, deterministic sharding, durable leases, atomic player/code claims, and persistent completion history.
+The production service runs on Vercel with Supabase/PostgreSQL providing durable application state.
 
-## Data architecture and privacy boundary
+The worker uses three deterministic shards with six concurrent player operations per worker. Database-backed leases and atomic claims prevent multiple workers from intentionally processing the same player/code combination at the same time.
 
-The service deliberately separates live user/redemption data from scraper history.
+The GitHub archive and scraper archive are **downstream systems**. The normal redemption worker does not depend on GitHub, the cold archive, or the disaster-recovery snapshot.
+
+## Core design
+
+### 1. Discovery without duplicate chaos
+
+Public sources are normalized into a common representation before codes are considered for redemption. Duplicate observations do not become duplicate redemption work.
+
+The system also keeps persistent history so a previously handled code can be recognized without repeatedly hammering the upstream redemption service.
+
+### 2. Durable worker coordination
+
+The worker is intentionally stateless between invocations. Coordination state lives in Supabase.
+
+The production worker uses:
+
+- deterministic worker sharding
+- durable leases
+- heartbeats
+- atomic player/code claims
+- persistent redemption history
+- retry handling for transient upstream failures
+- explicit stale-player handling
+- rate-aware upstream validation
+
+A temporary worker restart should not turn into a duplicate-redemption storm.
+
+### 3. Kingdom and player validation
+
+Player validation is handled server-side through the configured player-data provider.
+
+Normal scheduled validation respects the reset/cooldown logic. A protected manual kingdom-check mode can force validation when an operator needs an immediate consistency check, without starting the redemption worker or discovering codes.
+
+Rate-limited upstream responses are treated as upstream conditions rather than reasons to rotate IPs or bypass limits.
+
+### 4. Backfill
+
+Backfill exists for a practical reason: a player can miss a code while offline, before registration, or during an interruption.
+
+Only codes that remain eligible are considered. Persistent history and atomic claims keep backfill from becoming uncontrolled duplicate work.
+
+## Data and privacy boundary
+
+Live operational data and scraper history are intentionally separated.
 
 ```mermaid
 flowchart LR
-    U[Registered players] --> S[(Supabase live database)]
-    S --> R[Worker + redemption]
-    R --> K[Kingshot gift-code endpoint]
-
-    C[Public code sources] --> SC[kingshot_scraper_runs]
-    SC --> A[Verified archive]
+    U[Registered players] --> DB[(Supabase live database)]
+    DB --> W[Worker + redemption]
+    W --> K[Kingshot]
+    C[Public sources] --> A[kingshot_scraper_runs]
     A --> ST[(Private Supabase Storage)]
-    A --> GH[(Private GitHub cold backup)]
+    A --> GH[(Private GitHub cold archive)]
+    DB --> DR[Minimal encrypted recovery snapshot]
+    DR --> GH
 ```
 
-The live Supabase database contains the operational data required to provide Auto Redeem, including registered Player IDs, kingdom information, player metadata, registration state, and redemption history. These records remain in the guarded live database and are not part of the scraper archive.
+### Live database
 
-The archive tier has two deliberately separated parts. The scraper archive contains the `kingshot_scraper_runs` history table, while a separate private GitHub recovery area stores minimal registered-player snapshots for disaster recovery only. The two archives are never merged into application history.
+The live Supabase database contains the operational state required by the service, including registered Player IDs, player/kingdom information, registration state, and redemption history.
 
-```text
-id
-source
-checked_at
-http_status
-code_count
-codes
-parse_ok
-error_category
-error_message
-```
+### Scraper archive
 
-The scraper archive contains **no Player IDs, Discord IDs, account IDs, or registration IDs**. It is not used by the worker to select players, claim redemptions, or call the Kingshot redemption endpoint.
+The scraper archive records code-discovery telemetry such as:
 
-The archive does contain the gift codes discovered by the scraper and their detection history. This makes the archive operational intelligence: it preserves when codes were observed, by which source, and how the scraper processed them. The archive is therefore private by design, as a historical record and competitive asset, not as a user-identity store.
+NaN
+NaN
+NaN
+NaN
+NaN
+NaN
+NaN
+NaN
+NaN
+NaN
+NaN
 
-The data boundary is:
+The scraper archive contains **no Player IDs, Discord IDs, account IDs, or registration IDs**.
 
-- **Live Supabase:** player registrations, player metadata, redemption state/history, and other operational records.
-- **Scraper archive:** PII-free scraper telemetry and discovered-code history.
-- **Private Supabase Storage:** queryable historical archive.
-- **Private GitHub repository:** independent cold backup of verified scraper history plus a separately isolated, minimal registered-player disaster-recovery snapshot.
-- **Kingshot:** receives only the server-side redemption request required for an actual redemption.
+It is not used by the worker to select players, claim redemptions, or execute redemption requests.
 
-The GitHub archive is downstream of the live system. It is not a dependency of worker execution or redemption.
+### Disaster recovery
 
-### Registered-player disaster recovery
+A separate private GitHub recovery area stores minimal registered-player snapshots for disaster recovery.
 
-The private GitHub archive also maintains periodic snapshots of the registered Kingshot Player IDs from `public.kingshot_autoredeem`. These snapshots intentionally contain only the minimum recovery state: `player_id`, `enabled`, and `stale`, plus snapshot metadata and a SHA-256 checksum. They do not contain Discord IDs, authentication credentials, passkeys, session tokens, or redemption history.
+Recovery snapshots contain only the minimum state needed to restore missing registrations:
 
-The backup runs independently of the Auto Redeem worker. The worker never reads GitHub during normal operation. An emergency restore is a separate, manual GitHub Actions workflow that defaults to a dry run, requires an explicit confirmation phrase for a live restore, validates the snapshot, compares it with Supabase, and inserts only missing Player IDs. Existing live records are never overwritten. After restoration, the normal worker revalidates restored registrations through the existing Kingshot/MightPulse flow.
+- `player_id`
+- `enabled`
+- `stale`
+- snapshot metadata
+- SHA-256 integrity data
 
-GitHub Actions credentials remain in repository secrets rather than workflow files. The recovery workflow is intentionally fail-closed so a stale backup cannot silently become the live registration source.
+They do not contain Discord IDs, authentication credentials, passkeys, session tokens, or redemption history.
 
-## Redemption statuses
+Recovery is deliberately fail-closed. The normal worker never reads GitHub as a registration source. A recovery workflow validates the snapshot, compares it with Supabase, and inserts only missing records. Existing live records are not overwritten.
 
-The redemption layer maps common upstream results into stable internal outcomes, including:
+Recovery snapshots are encrypted off-site using AES-256-GCM, with the encryption key stored outside the repository.
 
-- `SUCCESS` — redemption completed.
-- `RECEIVED` — already redeemed/received.
-- `SAME TYPE EXCHANGE` — already handled for the relevant reward type.
-- `TIME_ERROR` — code expired.
-- `CDK_NOT_FOUND` — code invalid or unavailable.
-- `USAGE_LIMIT` — code reached its usage limit.
+## Reliability and recovery
 
-Upstream rate-limit, login, and player errors may also be recorded.
+The project treats backups as an operational system, not as a folder full of JSON files.
 
-## Acceptable use
+The infrastructure includes:
 
-Automation is permitted. Abuse is not.
+- verified scraper archives
+- encrypted registered-player recovery snapshots
+- checksum validation
+- DR vault health checks
+- off-site backup verification
+- disaster-recovery rehearsal
+- ephemeral restore testing
+- RTO/RPO validation
+- GitHub Actions automation
 
-Use only authorized Player IDs and legitimate public gift codes. Do not use the service to bypass quotas, evade authentication, flood requests, generate duplicate work intentionally, probe protected endpoints, harvest private data, manipulate redemption requests or results, or automate accounts/services without authorization.
+The recovery rehearsal restores into an **ephemeral SQLite database** for validation. It does not modify production.
 
-We may throttle, suspend, revoke, or block access when necessary to protect users, the service, or upstream systems.
+The production database remains the authoritative source of truth.
 
-## Architecture and infrastructure
+## Security model
 
-The application uses Vercel for deployment and Supabase/PostgreSQL for persistent state. Privileged operations, worker coordination, authentication, and redemption signing remain server-side.
+Secrets are never committed to the repository.
 
-The repository contains security regression checks, production smoke tests, worker health checks, API guardrails, and database privilege checks.
+Production credentials and sensitive configuration are kept in deployment/repository secret stores, including items such as:
+
+- Supabase service-role credentials
+- MightPulse/Kingshot API credentials
+- Discord webhook credentials
+- cron/authentication secrets
+- DR encryption keys
+
+The repository also includes security regression checks and database privilege checks.
+
+Protected operational endpoints require server-side authentication. The public website does not expose privileged credentials or signing material.
+
+## Redemption outcomes
+
+The redemption layer maps common upstream results into stable internal outcomes:
+
+NaN
+NaN
+NaN`SUCCESS` | Redemption completed. |
+NaN`RECEIVED` | Code was already redeemed/received. |
+NaN`SAME TYPE EXCHANGE` | The relevant reward type was already handled. |
+NaN`TIME_ERROR` | Code is expired. |
+NaN`CDK_NOT_FOUND` | Code is invalid or unavailable. |
+NaN`USAGE_LIMIT` | Code reached its usage limit. |
+
+Transient upstream errors, rate limits, authentication failures, and stale-player conditions are tracked separately.
+
+## Observability and guardrails
+
+The repository production checks cover more than just "does the build compile?"
+
+The guardrail pipeline includes:
+
+- security regression checks
+- unit tests
+- production build validation
+- production smoke tests
+- worker watchdog checks
+- scheduled health verification
+
+Operational workflows also cover manual kingdom validation and disaster-recovery verification.
 
 ## Website
 
@@ -147,45 +241,124 @@ The repository contains security regression checks, production smoke tests, work
 | `/auto` | Automatic redemption |
 | `/manual` | Manual redemption |
 | `/info` | Service documentation |
-| `/terms` | Terms |
-| `/privacy` | Privacy |
+| `/terms` | Terms of service |
+| `/privacy` | Privacy information |
+
+## Technology
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 19 + Vite 6 |
+| Runtime | Node.js 24.x |
+| Deployment | Vercel |
+| Database | Supabase PostgreSQL |
+| Storage | Supabase Storage |
+| Automation | GitHub Actions |
+| Recovery | Private GitHub archive + encrypted DR vault |
+| License | AGPL-3.0 |
 
 ## Local development
 
-**Requirements:** Node.js 24.x and npm.
+### Requirements
 
-```bash
-npm install
-npm run dev
-```
+- Node.js 24.x
+- npm
 
-Production build:
+Install dependencies:
 
-```bash
-npm run build
-```
+NaN
+NaN
+NaN
 
-Preview:
+Start the development server:
 
-```bash
-npm run preview
-```
+NaN
+NaN
+NaN
+
+Create a production build:
+
+NaN
+NaN
+NaN
+
+Preview the production build:
+
+NaN
+NaN
+NaN
+
+Run the test suite:
+
+NaN
+NaN
+NaN
 
 ## Environment
 
-Production secrets are configured through the deployment environment and are never committed to the repository.
+Production secrets are configured through the deployment environment and repository secrets. They must never be committed.
 
 Do not commit:
 
 - Supabase service-role or secret keys
-- Kingshot API/signing secrets
-- Discord credentials
-- admin passwords
+- Kingshot/MightPulse credentials
+- Discord credentials or webhook secrets
+- cron/authentication secrets
+- admin credentials
 - session tokens
+- DR encryption keys
+
+Use local environment files only for development, and keep them outside version control.
+
+## Acceptable use
+
+Automation is permitted. Abuse is not.
+
+Use only authorized Player IDs and legitimate public gift codes.
+
+Do not use this project to:
+
+- bypass quotas or authentication
+- evade upstream rate limits
+- rotate IPs to circumvent restrictions
+- flood upstream endpoints
+- intentionally create duplicate redemption work
+- probe protected endpoints
+- harvest private data
+- manipulate redemption requests or results
+- automate accounts or services without authorization
+
+The service may throttle, suspend, revoke, or block access when necessary to protect users, the service, or upstream systems.
 
 ## Contributing
 
-Changes involving redemption behavior, workers, database functions, authentication, API security, or public contracts are production-sensitive. Keep focused changes isolated, run the relevant regression checks, and never include credentials in commits.
+Production-sensitive areas include redemption behavior, worker coordination, database functions, authentication, API security, and recovery workflows.
+
+Before submitting changes:
+
+1. Keep changes focused.
+2. Run `npm test`.
+3. Run `npm run build`.
+4. Review security-sensitive changes carefully.
+5. Never commit credentials or private user data.
+
+For larger architectural changes, open an issue first so the operational and recovery implications can be reviewed.
+
+## Project status
+
+This is an actively maintained production service rather than a demo implementation.
+
+The architecture deliberately favors boring, durable components over unnecessary infrastructure:
+
+- one production database
+- one queryable scraper archive
+- one private cold-backup repository
+- encrypted disaster-recovery snapshots
+- deterministic workers
+- database-backed coordination
+- automated validation and recovery checks
+
+There is intentionally no second production database, no IP-rotation layer, and no dependency on the cold archive during normal redemption.
 
 ## License
 
