@@ -32,6 +32,8 @@ jobs:
         run: npm install
       - name: Security regression checks
         run: node scripts/security-regression.mjs
+      - name: Unit tests
+        run: npm test
       - name: Production build
         run: npm run build
 
