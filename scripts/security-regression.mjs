@@ -177,8 +177,9 @@ assertCheck(
  migrations.includes("revoke all on function public.kingshot_admin_upsert_announcement")
 );
 assertCheck(
- "pg_net relocation is not included in migrations",
- !/drop extension pg_net|create extension pg_net with schema extensions/i.test(migrations)
+ "pg_net relocation is reproducible in migrations",
+ /drop extension if exists pg_net/i.test(migrations) &&
+ /create extension pg_net schema extensions/i.test(migrations)
 );
 
 const failed=checks.filter(item=>!item.ok);
