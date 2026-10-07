@@ -1,4 +1,5 @@
 import React from "react";
+import {SiteHeader} from "./components/KingshotChrome.jsx";
 
 const services={
   "kingshot-manual":{label:"Kingshot Manual Redeemer",summary:"Manual gift-code redemption for a Kingshot Player ID."},
@@ -11,7 +12,7 @@ export default function LegalApp({type}){
   const privacy=type==="privacy";
   const serviceKey=key||"kingshot-manual";
   return <div className="app legal-app">
-    <header><a className="brand" href="/"><span className="brand-mark">K</span><span>{privacy?"Privacy":"Terms"} · {service.label}</span></a><div className="header-right"><a className="legal-back" href="/">← Back</a></div></header>
+    <header className="legal-header"><SiteHeader links={[]} /><a className="legal-back" href="/">← Back</a></header>
     <main>
       <section className="legal-hero">
         <div className="eyebrow"><span/>{privacy?"PRIVACY NOTICE":"TERMS OF USE"}</div>
