@@ -12,7 +12,7 @@ export default function LegalApp({type}){
   const privacy=type==="privacy";
   const serviceKey=key||"kingshot-manual";
   return <div className="app legal-app">
-    <header className="legal-header"><SiteHeader links={[]} /><a className="legal-back" href="/">← Back</a></header>
+    <SiteHeader links={[]} rightContent={<a className="legal-back" href="/">← Back</a>} />
     <main>
       <section className="legal-hero">
         <div className="eyebrow"><span/>{privacy?"PRIVACY NOTICE":"TERMS OF USE"}</div>
