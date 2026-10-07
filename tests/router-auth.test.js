@@ -12,9 +12,44 @@ function response() {
     end() { return this; }
   };
 }
-const req = (path, method="GET") => ({method,query:{path:Array.isArray(path)?path:[path]},headers:{},body:{}});
+
+const req = (path, method="GET", body={}) => ({
+  method,
+  query: { path: Array.isArray(path) ? path : [path] },
+  headers: {},
+  body
+});
 
 test("admin router rejects unauthenticated data access", async () => {
-  const {default:router}=await import("../api/admin-tools/[...path].js"); const res=response();
-  await router(req("data"),res); assert.equal(res.statusCode,401); assert.equal(res.body?.error,"Unauthorized");
+  const {default:router}=await import("../api/admin-tools/[...path].js");
+  const res=response();
+  await router(req("data"),res);
+  assert.equal(res.statusCode,401);
+  assert.equal(res.body?.error,"Unauthorized");
+});
+
+test("admin router preserves public announcement access", async () => {
+  const {default:router}=await import("../api/admin-tools/[...path].js");
+  const res=response();
+  await router({
+    ...req("data"),
+    query:{path:["data"],public:"announcements"}
+  },res);
+  assert.notEqual(res.statusCode,401);
+});
+
+test("custom message endpoint rejects unauthenticated destination access", async () => {
+  const {default:handler}=await import("../api/custom-message.js");
+  const res=response();
+  await handler(req("", "POST", {action:"DESTINATIONS"}),res);
+  assert.equal(res.statusCode,401);
+  assert.equal(res.body?.error,"Unauthorized.");
+});
+
+test("custom message endpoint rejects unauthenticated sends", async () => {
+  const {default:handler}=await import("../api/custom-message.js");
+  const res=response();
+  await handler(req("", "POST", {action:"SEND",target:"test",message:"hello"}),res);
+  assert.equal(res.statusCode,401);
+  assert.equal(res.body?.error,"Unauthorized.");
 });
