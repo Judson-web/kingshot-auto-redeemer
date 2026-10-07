@@ -1,5 +1,5 @@
 const CACHE = "kingshot-shell-v3";
-const SHELL = ["/", "/auto", "/manual", "/redeem", "/info", "/site.webmanifest", "/favicon.svg"];
+const SHELL = ["/", "/auto", "/manual", "/redeem", "/info", "/site.webmanifest", "/favicon.svg", "/icons/icon-192.svg", "/icons/icon-512.svg"];
 
 self.addEventListener("install", event => {
   event.waitUntil(
