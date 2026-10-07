@@ -742,3 +742,38 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  .manual-page-hero h1{font-size:40px}
  .manual-trust-row{justify-content:flex-start}
 }
+
+
+/* Auto Redeem — dashboard-like registration experience */
+.ks-auto-hero{position:relative;isolation:isolate}
+.ks-auto-hero:before{content:"";position:absolute;left:50%;top:-120px;width:520px;height:320px;transform:translateX(-50%);border-radius:50%;background:#d5a85c12;filter:blur(80px);pointer-events:none;z-index:-1}
+.ks-auto-hero>.eyebrow,.ks-auto-hero>h1,.ks-auto-hero>.hero-copy,.ks-register-box,.ks-registered,.ks-error,.ks-support,.ks-auto-how{position:relative;z-index:1}
+.ks-register-box{padding:8px;border:1px solid #252831;border-radius:16px;background:#0d0f14;box-shadow:0 22px 65px #0006}
+.ks-register-box .ks-register-field{border-color:#292d37;background:#11131a}
+.ks-register-box .ks-submit{border-radius:11px}
+.ks-registered{box-shadow:0 16px 45px #0004}
+.ks-registered-new{border-color:#2d4936;background:linear-gradient(145deg,#111a14,#0d120f)}
+.ks-registered-existing{border-color:#322e3d}
+.ks-registered-head .result-label{color:#777e8a}
+.ks-registered-new .ks-registered-head .result-label{color:#75977f}
+.ks-existing-note{transition:border-color .18s ease,background-color .18s ease}
+.ks-existing-note:hover{border-color:#343541}
+.ks-profile-slides>.ks-registered-row{transition:border-color .18s ease,transform .18s ease}
+.ks-profile-slides>.ks-registered-row:hover{border-color:#334338;transform:translateY(-1px)}
+.ks-support{box-shadow:0 16px 45px #0003}
+.ks-support .section-title h2{letter-spacing:-.035em}
+.ks-auto-how .feature-grid article{transition:transform .18s ease,border-color .18s ease,background-color .18s ease}
+.ks-auto-how .feature-grid article:hover{transform:translateY(-2px);border-color:#30343e}
+@media(max-width:680px){
+ .ks-auto-hero:before{width:380px;height:260px;top:-90px}
+ .ks-register-box{padding:7px}
+ .ks-register-box .ks-submit{box-shadow:0 10px 28px #0004}
+ .ks-registered{padding:13px}
+ .ks-registered-head h2{font-size:18px}
+ .ks-profile-slides>.ks-registered-row{min-height:68px}
+ .ks-support{box-shadow:0 12px 32px #0003}
+}
+@media(max-width:380px){
+ .ks-auto-hero h1{font-size:39px}
+ .ks-registered-head h2{font-size:17px}
+}
