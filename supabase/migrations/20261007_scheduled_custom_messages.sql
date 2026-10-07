@@ -1,6 +1,12 @@
 begin;
 
-create extension if not exists vault with schema vault;
+create schema if not exists private;
+
+create table if not exists private.custom_message_scheduler_secret (
+  id boolean primary key default true check (id),
+  secret text not null,
+  updated_at timestamptz not null default now()
+);
 
 create table if not exists public.kingshot_scheduled_messages (
   id uuid primary key default gen_random_uuid(),
@@ -69,7 +75,7 @@ begin
           url := 'https://kingshot-autoredeemer.vercel.app/api/custom-message-scheduler',
           headers := jsonb_build_object(
             'Content-Type', 'application/json',
-            'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'custom_message_scheduler_secret')
+            'Authorization', 'Bearer ' || (select secret from private.custom_message_scheduler_secret where id = true)
           ),
           body := '{}'::jsonb,
           timeout_milliseconds := 8000
