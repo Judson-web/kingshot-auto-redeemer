@@ -635,3 +635,23 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @media(max-width:760px){.message-page{padding:22px 14px}.message-top{margin-bottom:40px}.message-composer{grid-template-columns:1fr}.message-preview{min-height:unset}.message-grid{grid-template-columns:1fr}.message-card{margin:7vh auto;padding:20px}.message-hero h1{font-size:38px}.message-logout{padding:8px}.message-brand span{display:none}}
 
 .message-select{width:100%;margin-top:8px;min-width:0;border:1px solid #2a2e38;background:#0b0e13;color:#f3f0ea;border-radius:10px;padding:12px 13px;outline:none;font:500 13px/1.5 inherit}.message-select:focus{border-color:#596172;box-shadow:0 0 0 3px #5865f218}.message-select:disabled{opacity:.55;cursor:not-allowed}
+
+
+/* Micro-interaction polish — visual only */
+:where(button,a,input,textarea,select){-webkit-tap-highlight-color:transparent}
+:where(button,a):focus-visible{outline:2px solid #a995ff;outline-offset:3px}
+:where(button,a){transition:transform .16s ease,opacity .16s ease,filter .16s ease,border-color .16s ease,background-color .16s ease,color .16s ease}
+:where(button:not(:disabled)):active{transform:translateY(1px)}
+.ks-field,.ks-register-field,.ks-support-reason textarea,.ks-submit,.ks-auto-btn,.ks-auto-link,.ks-player,.ks-result,.ks-registered,.ks-info,.legal-card,.message-form,.message-preview{
+ transition:border-color .18s ease,background-color .18s ease,box-shadow .18s ease,transform .18s ease;
+}
+.ks-field:focus-within,.ks-register-field:focus-within{border-color:#4b4660;box-shadow:0 0 0 3px #a995ff0d}
+.ks-submit:not(:disabled):hover{filter:brightness(1.06);transform:translateY(-1px)}
+.ks-submit:not(:disabled):active{transform:translateY(0)}
+.ks-player:hover,.ks-result:hover,.ks-auto-link:hover,.legal-card:hover{border-color:#353846}
+.ks-result{animation:micro-result-in .22s ease both}
+@keyframes micro-result-in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){
+ :where(button,a){transition:none}
+ .ks-result{animation:none}
+}
