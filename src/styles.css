@@ -851,3 +851,15 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  .ks-result-footer{flex-direction:row!important;align-items:center!important}
  .ks-result-footer button{width:auto!important}
 }
+
+/* Manual confirmation — fix inherited flex sizing and tighten composition */
+.manual-page-hero .ks-result>div{flex:0 0 auto}
+.manual-page-hero .ks-result-identity,
+.manual-page-hero .ks-result-main,
+.manual-page-hero .ks-result-details,
+.manual-page-hero .ks-result-footer{width:100%}
+.manual-page-hero .ks-result-identity>div:nth-child(2){flex:1}
+.manual-page-hero .ks-result-main .ks-result-copy{flex:1}
+.manual-page-hero .ks-result-details>span{flex:1}
+.manual-page-hero .ks-result-footer{margin-top:1px}
+.manual-page-hero .ks-result{max-height:none}
