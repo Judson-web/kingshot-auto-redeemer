@@ -33,7 +33,7 @@ The same redemption core powers the public website and the auto-redeem worker sy
 |---|---|
 | **Auto-redeem** | Periodically redeem eligible public gift codes for an authorized Player ID. |
 | **Backfill** | Catch up on still-eligible codes missed while offline, before registration, or during an interruption. |
-| **Bots & workers** | Run scheduled Discord bots, backend jobs, or community services. |
+| **Automation infrastructure** | Run scheduled redemption and backend automation for authorized registrations. |
 | **Manual redemption** | Submit a specific code directly from the website. |
 | **Code discovery** | Normalize and deduplicate codes from configured public sources. |
 | **Persistent history** | Prevent unnecessary duplicate processing and preserve redemption outcomes. |
