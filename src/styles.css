@@ -877,3 +877,10 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @media(prefers-reduced-motion:reduce){
  .ks-result-footer .ks-result-again,.ks-result-footer .ks-result-again svg{transition:none!important}
 }
+
+/* Manual result actions */
+.ks-result-actions{display:flex;align-items:center;gap:6px;flex:none}
+.ks-result-actions button{display:inline-flex!important;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.ks-result-copy{min-height:34px;padding:7px 9px;border:1px solid #292d37;border-radius:9px;background:#101218;color:#858b98;font:700 7px system-ui,sans-serif;cursor:pointer}
+.ks-result-copy:hover{border-color:#3a3f4b;color:#c3c6ce;background:#15171e}
+@media(max-width:640px){.ks-result-actions{width:100%}.ks-result-actions .ks-result-again{flex:1}.ks-result-copy{flex:none}}
