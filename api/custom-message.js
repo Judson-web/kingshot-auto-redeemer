@@ -46,28 +46,17 @@ function clearCookie(res){res.setHeader("Set-Cookie",COOKIE+"=; Max-Age=0; Path=
 function clean(v,max){return String(v??"").trim().slice(0,max)}
 function hexColor(v){const s=clean(v,20);return /^#?[0-9a-fA-F]{6}$/.test(s)?parseInt(s.replace("#",""),16):0x5865F2}
 function imageUrl(v){const s=clean(v,2048);if(!s)return"";try{const u=new URL(s);return u.protocol==="https:"?u.toString():""}catch{return""}}
-const ROLE_CACHE=new Map();
-async function resolveRoleMentions(message,guildId){
- const token=process.env.DISCORD_BOT_TOKEN||"";
- if(!token||!/^[0-9]+$/.test(guildId))return message;
- let cached=ROLE_CACHE.get(guildId);
- if(!cached||cached.expires<Date.now()){
-  try{
-   const r=await fetch("https://discord.com/api/v10/guilds/"+guildId+"/roles",{headers:{Authorization:"Bot "+token},signal:AbortSignal.timeout(5000)});
-   if(!r.ok)return message;
-   const data=await r.json();
-   cached={expires:Date.now()+60000,items:Array.isArray(data)?data.filter(x=>x&&x.id&&x.name):[]};
-   ROLE_CACHE.set(guildId,cached);
-  }catch{return message}
- }
- let out=message;
- for(const role of cached.items){
-  const escaped=RegExp.escape(role.name).replace(/\s+/g,"\\s+");
-  if(!escaped)continue;
-  out=out.replace(new RegExp("@"+escaped,"gi"),"<@&"+role.id+">");
- }
- return out;
+const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
+const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY||"";
+async function db(path,options={}){
+ if(!SUPABASE_KEY)throw Error("Supabase service key is not configured.");
+ const r=await fetch(SUPABASE_URL+"/rest/v1/"+path,{...options,headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY,"content-type":"application/json",Prefer:"return=representation",...(options.headers||{})},signal:AbortSignal.timeout(8000)});
+ const text=await r.text();let data=null;try{data=text?JSON.parse(text):null}catch{}
+ if(!r.ok)throw Error(data?.message||data?.hint||text||("Supabase request failed ("+r.status+")"));
+ return data;
 }
+function scheduledMentions(value){return Array.isArray(value)?[...new Set(value.filter(x=>x==="everyone"||x==="here"))]:[]}
+
 async function resolveDestinationNames(){
  const items=[...DESTINATIONS.entries()].map(([key,name])=>({key,name}));
  const token=process.env.DISCORD_BOT_TOKEN||"";
@@ -102,6 +91,32 @@ export default async function handler(req,res){
   if(action==="DESTINATIONS"){
    if(!validSession(req))return res.status(401).json({error:"Unauthorized."});
    return res.status(200).json({destinations:await resolveDestinationNames()});
+  }
+  if(action==="LIST_SCHEDULED"){
+   if(!validSession(req))return res.status(401).json({error:"Unauthorized."});
+   const rows=await db("kingshot_scheduled_messages?select=id,target,target_name,message,title,footer,color,image_url,mentions,scheduled_for,status,attempts,sent_at,error,created_at&order=scheduled_for.desc&limit=25");
+   return res.status(200).json({messages:Array.isArray(rows)?rows:[]});
+  }
+  if(action==="SCHEDULE"){
+   if(!validSession(req))return res.status(401).json({error:"Unauthorized."});
+   const target=String(body.target||"").trim(),WEBHOOK=webhookFor(target);
+   if(!WEBHOOK)return res.status(400).json({error:"That custom-message destination is not configured."});
+   const rawMessage=clean(body.message,4096);
+   if(!rawMessage)return res.status(400).json({error:"Message is required."});
+   const when=new Date(String(body.scheduledAt||""));
+   if(!Number.isFinite(when.getTime()))return res.status(400).json({error:"Choose a valid date and time."});
+   if(when.getTime()<Date.now()+30000)return res.status(400).json({error:"Schedule the message at least 30 seconds from now."});
+   if(when.getTime()>Date.now()+90*24*60*60*1000)return res.status(400).json({error:"Messages can only be scheduled up to 90 days ahead."});
+   const row={target,target_name:DESTINATIONS.get(target)||target,message:rawMessage,title:clean(body.title,256),footer:clean(body.footer,2048)||"Kingshot Auto Redeem",color:clean(body.color,20),image_url:clean(body.imageUrl,2048),mentions:scheduledMentions(body.mentions),scheduled_for:when.toISOString()};
+   const rows=await db("kingshot_scheduled_messages",{method:"POST",body:JSON.stringify(row)});
+   return res.status(201).json({ok:true,message:Array.isArray(rows)?rows[0]:rows});
+  }
+  if(action==="CANCEL_SCHEDULE"){
+   if(!validSession(req))return res.status(401).json({error:"Unauthorized."});
+   const id=String(body.id||"").trim();
+   if(!/^[0-9a-f-]{36}$/i.test(id))return res.status(400).json({error:"Invalid scheduled message."});
+   const rows=await db("kingshot_scheduled_messages?id=eq."+encodeURIComponent(id)+"&status=eq.PENDING",{method:"PATCH",body:JSON.stringify({status:"CANCELLED",updated_at:new Date().toISOString()})});
+   return res.status(200).json({ok:true,cancelled:Array.isArray(rows)&&rows.length>0});
   }
   if(!validSession(req))return res.status(401).json({error:"Unauthorized."});
   if(action!=="SEND")return res.status(400).json({error:"Invalid action."});
