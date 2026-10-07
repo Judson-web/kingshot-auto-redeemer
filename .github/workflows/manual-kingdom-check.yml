@@ -1,0 +1,19 @@
+name: Manual Kingdom Check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  kingdom-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger protected kingdom check
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          test -n "$CRON_SECRET"
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            "https://kingshot-autoredeemer.vercel.app/api/kingshot-auto?mode=kingdom-check"
