@@ -4,29 +4,9 @@ const KINGSHOT_ICON="https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/ee/d2
 export default function CustomMessageApp(){
  const[passkey,setPasskey]=useState(""),[authed,setAuthed]=useState(false),[checking,setChecking]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(""),[sent,setSent]=useState(false),[showPass,setShowPass]=useState(false),[destinations,setDestinations]=useState([]),[target,setTarget]=useState("");
  const[message,setMessage]=useState(""),[title,setTitle]=useState(""),[footer,setFooter]=useState("Kingshot Auto Redeem"),[color,setColor]=useState("#5865F2"),[imageUrl,setImageUrl]=useState("");
- const[roles,setRoles]=useState([]),[roleQuery,setRoleQuery]=useState(""),[showRoles,setShowRoles]=useState(false);
- const messageRef=useRef(null);
- const loadRoles=async key=>{
-  if(!key){setRoles([]);return}
-  const d=await fetch("/api/custom-message",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"ROLES",target:key}),credentials:"same-origin",cache:"no-store"}).then(x=>x.json()).catch(()=>({}));
-  setRoles(Array.isArray(d.roles)?d.roles:[]);
- };
- const updateMessage=(value,cursor)=>{
-  setMessage(value.slice(0,4096));setSent(false);
-  const before=value.slice(0,cursor);
-  const match=before.match(/@([^@\n]*)$/);
-  if(match){setRoleQuery(match[1]);setShowRoles(true)}else{setRoleQuery("");setShowRoles(false)}
- };
- const insertRole=(roleName)=>{
-  const el=messageRef.current;
-  if(!el)return;
-  const start=el.selectionStart,end=el.selectionEnd,before=message.slice(0,start),after=message.slice(end);
-  const match=before.match(/@([^@\n]*)$/);
-  const replacement="@"+roleName+" ";
-  const next=match?before.slice(0,before.length-match[0].length)+replacement+after:message;
-  setMessage(next.slice(0,4096));setRoleQuery("");setShowRoles(false);
-  requestAnimationFrame(()=>{el.focus();const pos=(match?before.slice(0,before.length-match[0].length):before).length+replacement.length;el.setSelectionRange(pos,pos)});
- };
+ const[roles,setRoles]=useState([]),[roleQuery,setRoleQuery]=useState(""),[showRolePicker,setShowRolePicker]=useState(false),[selectedMentions,setSelectedMentions]=useState([]);
+ const loadRoles=async key=>{if(!key){setRoles([]);setSelectedMentions([]);return}const d=await fetch("/api/custom-message",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"ROLES",target:key}),credentials:"same-origin",cache:"no-store"}).then(x=>x.json()).catch(()=>({}));setRoles(Array.isArray(d.roles)?d.roles:[]);setSelectedMentions([])};
+ const toggleMention=mention=>setSelectedMentions(current=>current.some(x=>x.id===mention.id)?current.filter(x=>x.id!==mention.id):[...current,mention]);
  const loadDestinations=async()=>{const d=await fetch("/api/custom-message",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"DESTINATIONS"}),credentials:"same-origin",cache:"no-store"}).then(x=>x.json()).catch(()=>({}));const list=Array.isArray(d.destinations)?d.destinations:[];setDestinations(list);setTarget(current=>list.some(x=>x.key===current)?current:(list[0]?.key||""));return list};
  useEffect(()=>{fetch("/api/custom-message",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"CHECK"}),credentials:"same-origin",cache:"no-store"}).then(async r=>{setAuthed(r.ok);if(r.ok)await loadDestinations()}).catch(()=>{}).finally(()=>setChecking(false))},[]);
  useEffect(()=>{if(authed&&target)loadRoles(target)},[authed,target]);
