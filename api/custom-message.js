@@ -47,22 +47,31 @@ function clean(v,max){return String(v??"").trim().slice(0,max)}
 function hexColor(v){const s=clean(v,20);return /^#?[0-9a-fA-F]{6}$/.test(s)?parseInt(s.replace("#",""),16):0x5865F2}
 function imageUrl(v){const s=clean(v,2048);if(!s)return"";try{const u=new URL(s);return u.protocol==="https:"?u.toString():""}catch{return""}}
 const ROLE_CACHE=new Map();
-async function resolveRoleMentions(message,guildId){
+function escapeRegExp(value){return String(value).replace(/[.*+?^$()|[\\]\\\\]/g,"\\\\$&")}
+async function fetchGuildRoles(guildId){
  const token=process.env.DISCORD_BOT_TOKEN||"";
- if(!token||!/^[0-9]+$/.test(guildId))return message;
- let cached=ROLE_CACHE.get(guildId);
- if(!cached||cached.expires<Date.now()){
-  try{
-   const r=await fetch("https://discord.com/api/v10/guilds/"+guildId+"/roles",{headers:{Authorization:"Bot "+token},signal:AbortSignal.timeout(5000)});
-   if(!r.ok)return message;
-   const data=await r.json();
-   cached={expires:Date.now()+60000,items:Array.isArray(data)?data.filter(x=>x&&x.id&&x.name):[]};
-   ROLE_CACHE.set(guildId,cached);
-  }catch{return message}
- }
+ if(!token||!/^[0-9]{17,20}$/.test(guildId))return [];
+ try{
+  const r=await fetch("https://discord.com/api/v10/guilds/"+guildId+"/roles",{headers:{Authorization:"Bot "+token},signal:AbortSignal.timeout(5000)});
+  if(!r.ok)return [];
+  const data=await r.json();
+  return Array.isArray(data)?data.filter(x=>x&&/^[0-9]{17,20}$/.test(String(x.id))&&typeof x.name==="string"&&x.name.trim()).map(x=>({id:String(x.id),name:x.name})).sort((a,b)=>a.name.localeCompare(b.name)): [];
+ }catch{return []}
+}
+const ROLE_CACHE=new Map();
+async function getGuildRoles(guildId){
+ const key=String(guildId||"");
+ const cached=ROLE_CACHE.get(key);
+ if(cached&&cached.expires>Date.now())return cached.items;
+ const items=await fetchGuildRoles(key);
+ ROLE_CACHE.set(key,{expires:Date.now()+60000,items});
+ return items;
+}
+async function resolveRoleMentions(message,guildId){
+ const roles=await getGuildRoles(guildId);
  let out=message;
- for(const role of cached.items){
-  const escaped=role.name.replace(/[.*+?^${}()|[\]\\]/g,"\\  const escaped=RegExp.escape(role.name).replace(/\s+/g,"\\s+");").replace(/\s+/g,"\\s+");
+ for(const role of roles){
+  const escaped=escapeRegExp(role.name).replace(/\\s+/g,"\\\\s+");
   if(!escaped)continue;
   out=out.replace(new RegExp("@"+escaped,"gi"),"<@&"+role.id+">");
  }
