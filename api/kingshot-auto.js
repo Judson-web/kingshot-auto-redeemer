@@ -172,6 +172,10 @@ function mergeCodes(sources){
 const HANDLED_STATUSES=new Set(["SUCCESS","RECEIVED","SAME TYPE EXCHANGE","TIME_ERROR","CDK_NOT_FOUND","USAGE_LIMIT"]);
 const WORKER_COUNT=3;
 const PLAYER_CONCURRENCY=6;
+// Kingdom-reset validation has its own upstream-aware lane limit. Redemption
+// concurrency stays at 6; only the daily MightPulse validation burst is paced.
+const KINGDOM_VALIDATION_CONCURRENCY=3;
+const MIGHTPULSE_RATE_LIMIT_BACKOFF_MS=[15000,30000,60000];
 // Keep each shard bounded so a slow upstream cannot pin a Vercel invocation.
 // A player redemption can take up to 30s at the upstream boundary, so 4m gives
 // the six-lane pool enough room for normal bursts while leaving recovery time.
@@ -247,12 +251,30 @@ async function fetchCurrentKingshotPlayer(playerId){
    });
    const d=await r.json().catch(()=>({}));
    if(r.status===404)return {notFound:true};
-   if(!r.ok){const error=Error(d?.message||d?.error||"MightPulse revalidation failed.");error.status=r.status;throw error;}
+   if(!r.ok){
+    const error=Error(d?.message||d?.error||"MightPulse revalidation failed.");
+    error.status=r.status;
+    const retryAfter=Number(r.headers.get("retry-after")||"0");
+    if(Number.isFinite(retryAfter)&&retryAfter>0)error.retryAfterMs=Math.min(90000,retryAfter*1000);
+    throw error;
+   }
    return {player:d.player||d};
   }catch(error){
    lastError=error;
    const status=Number(error?.status||0);
-   if(attempt<2&&(UPSTREAM_RETRYABLE.test(String(error?.message||""))||[429,502,503,504].includes(status))){await sleep(750*(attempt+1));continue;}
+   const message=String(error?.message||"");
+   const rateLimited=status===429||/rate[_ -]?limited|rate limit|too many requests/i.test(message);
+   const retryable=UPSTREAM_RETRYABLE.test(message)||[429,502,503,504].includes(status);
+   if(attempt<2&&retryable){
+    if(rateLimited){
+     const base=MIGHTPULSE_RATE_LIMIT_BACKOFF_MS[Math.min(attempt,MIGHTPULSE_RATE_LIMIT_BACKOFF_MS.length-1)];
+     const jitter=Math.floor(Math.random()*2000);
+     await sleep(Math.min(90000,Number(error?.retryAfterMs)||base)+jitter);
+    }else{
+     await sleep(750*(attempt+1));
+    }
+    continue;
+   }
    throw error;
   }
  }
@@ -685,7 +707,7 @@ export default async function handler(req,res){
   // starts. This prevents the 05:30 IST reset burst from competing with the
   // three redemption shards for Supabase/MightPulse capacity.
   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
-  const kingdomResults=await runWithConcurrency(list,player=>revalidatePlayer(player),PLAYER_CONCURRENCY);
+  const kingdomResults=await runWithConcurrency(list,player=>revalidatePlayer(player),KINGDOM_VALIDATION_CONCURRENCY);
   const validPlayers=[];
   const kingdomSummary=kingdomResults.reduce((a,result)=>{
    if(result?.revalidationError){
