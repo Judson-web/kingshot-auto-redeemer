@@ -643,6 +643,37 @@ export default async function handler(req,res){
  }
  if(!authorized)return res.status(401).json({error:"Unauthorized"});
 
+ // Manual diagnostic mode: validate every registered player against MightPulse
+ // without discovering codes, claiming redemptions, or starting worker shards.
+ if(mode==="kingdom-check"){
+  try{
+   const players=await rpc("list_kingshot_autoredeem_players",{});
+   const list=Array.isArray(players)?players:[];
+   const results=await runWithConcurrency(list,player=>revalidatePlayer(player),KINGDOM_VALIDATION_CONCURRENCY);
+   const summary=results.reduce((a,result)=>{
+    if(result?.revalidationError){a.errors++;return a;}
+    if(result?.stale){a.stale++;return a;}
+    if(result?.revalidated)a.checked++;
+    if(result?.kingdomChanged)a.changed++;
+    if(result?.player?.kingdom_id)a.validated++;
+    return a;
+   },{checked:0,changed:0,stale:0,errors:0,validated:0});
+   console.log("Kingshot manual kingdom check:",{players:list.length,...summary});
+   await sendDiscordEvent({title:"🔍 Manual kingdom check",description:"A manual kingdom revalidation completed without starting redemption.",fields:[
+    {name:"Players",value:String(list.length),inline:true},
+    {name:"Checked",value:String(summary.checked),inline:true},
+    {name:"Kingdom changes",value:String(summary.changed),inline:true},
+    {name:"Stale accounts",value:String(summary.stale),inline:true},
+    {name:"Errors",value:String(summary.errors),inline:true},
+    {name:"Validated",value:String(summary.validated),inline:true}
+   ],color:summary.errors||summary.stale?0xFEE75C:0x57F287});
+   return res.status(200).json({ok:true,mode:"kingdom-check",...summary,players:list.length});
+  }catch(error){
+   console.error("Manual kingdom check failed:",error);
+   return res.status(502).json({ok:false,mode:"kingdom-check",error:error?.message||"Manual kingdom check failed.",errorCategory:classifyError(error)});
+  }
+ }
+
  let workerToken=null;
  try{
   const lock=await rpc("claim_kingshot_worker_run",{});
