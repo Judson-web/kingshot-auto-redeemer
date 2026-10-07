@@ -68,6 +68,51 @@ async function getGuildRoles(guildId){
  return items;
 }
 async function resolveRoleMentions(message,guildId){
+ const token=process.env.DISCORD_BOT_TOKEN||"";
+ if(!token||!^[0-9]{17,20}$/.test(String(guildId)))return {message,roleIds:[]};
+ let cached=ROLE_CACHE.get(String(guildId));
+ if(!cached||cached.expires<Date.now()){
+  try{
+   const r=await fetch("https://discord.com/api/v10/guilds/"+guildId+"/roles",{headers:{Authorization:"Bot "+token},signal:AbortSignal.timeout(5000)});
+   if(!r.ok)return {message,roleIds:[]};
+   const data=await r.json();
+   cached={expires:Date.now()+60000,items:Array.isArray(data)?data.filter(x=>x&&/^[0-9]{17,20}$/.test(String(x.id))&&typeof x.name==="string"&&!x.managed):[]};
+   ROLE_CACHE.set(String(guildId),cached);
+  }catch{return {message,roleIds:[]}}
+ }
+ let out=message;
+ const roleIds=[];
+ for(const role of cached.items){
+  const escaped=role.name.replace(/[.*+?^()|[\]\\]/g,"\\$&").replace(/\s+/g,"\\s+");
+  if(!escaped)continue;
+  const pattern=new RegExp("(^|\\s)@"+escaped+"(?=\\s|$|[.,!?;:])","giu");
+  if(pattern.test(out)){
+   out=out.replace(pattern,(match,prefix)=>prefix+"<@&"+role.id+">");
+   if(!roleIds.includes(String(role.id)))roleIds.push(String(role.id));
+  }
+ }
+ return {message:out,roleIds};
+}
+async function fetchGuildRoles(guildId){
+ const token=process.env.DISCORD_BOT_TOKEN||"";
+ if(!token||!/^[0-9]{17,20}$/.test(guildId))return [];
+ try{
+  const r=await fetch("https://discord.com/api/v10/guilds/"+guildId+"/roles",{headers:{Authorization:"Bot "+token},signal:AbortSignal.timeout(5000)});
+  if(!r.ok)return [];
+  const data=await r.json();
+  return Array.isArray(data)?data.filter(x=>x&&/^[0-9]{17,20}$/.test(String(x.id))&&typeof x.name==="string"&&x.name.trim()).map(x=>({id:String(x.id),name:x.name})).sort((a,b)=>a.name.localeCompare(b.name)): [];
+ }catch{return []}
+}
+const ROLE_CACHE=new Map();
+async function getGuildRoles(guildId){
+ const key=String(guildId||"");
+ const cached=ROLE_CACHE.get(key);
+ if(cached&&cached.expires>Date.now())return cached.items;
+ const items=await fetchGuildRoles(key);
+ ROLE_CACHE.set(key,{expires:Date.now()+60000,items});
+ return items;
+}
+async function resolveRoleMentions(message,guildId){
  const roles=await getGuildRoles(guildId);
  let out=message;
  for(const role of roles){
@@ -134,15 +179,23 @@ export default async function handler(req,res){
   if(!rateLimit(req,res,"custom-message-send",10,60*1000))return res.status(429).json({error:"Too many messages. Please wait a moment."});
   const rawMessage=clean(body.message,4096);
   if(!rawMessage)return res.status(400).json({error:"Message is required."});
-  const message=await resolveRoleMentions(rawMessage,target);
+  const resolved=await resolveRoleMentions(rawMessage,target);
+  const message=resolved.message;
   const title=clean(body.title,256),description=clean(body.message,4096),footer=clean(body.footer,2048),image=imageUrl(body.imageUrl);
   const embed={title,description,color:hexColor(body.color),timestamp:new Date().toISOString(),footer:{text:footer||"Kingshot Auto Redeem"}};
   if(image)embed.image={url:image};
   if(!title)delete embed.title;
   if(!description)delete embed.description;
-  const mentionTokens=[...message.matchAll(/@everyone|@here|<@!?\d+>|<@&\d+>/g)].map(m=>m[0]);
-  const content=mentionTokens.length?message:"";
-  const payload={username:"Kingshot Auto Redeem",...(content?{content}:{}),allowed_mentions:{parse:["everyone","roles","users"]},embeds:[embed]};
+  const roleMentions=[...message.matchAll(/<@&(\d{17,20})>/g)].map(m=>m[1]);
+  const userMentions=[...message.matchAll(/<@!?([0-9]{17,20})>/g)].map(m=>m[1]);
+  const hasEveryone=/@everyone|@here/.test(message);
+  const mentionTokens=[...new Set([...roleMentions.map(id=>"<@&"+id+">"),...userMentions.map(id=>"<@"+id+">"),...(hasEveryone?["@everyone"]:[])])];
+  const content=mentionTokens.join(" ");
+  const allowedMentions={parse:[]};
+  if(hasEveryone)allowedMentions.parse.push("everyone");
+  if(resolved.roleIds.length)allowedMentions.roles=[...new Set(resolved.roleIds)];
+  if(userMentions.length)allowedMentions.users=[...new Set(userMentions)];
+  const payload={username:"Kingshot Auto Redeem",...(content?{content}:{}),allowed_mentions:allowedMentions,embeds:[embed]};
   const wr=await fetch(WEBHOOK,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(8000)});
   if(!wr.ok){
    const retryAfter=Number(wr.headers.get("retry-after")||"0"),detail=await wr.text().catch(()=>"");
