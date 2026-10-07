@@ -68,69 +68,14 @@ async function getGuildRoles(guildId){
  return items;
 }
 async function resolveRoleMentions(message,guildId){
- const token=process.env.DISCORD_BOT_TOKEN||"";
- if(!token||!^[0-9]{17,20}$/.test(String(guildId)))return {message,roleIds:[]};
- let cached=ROLE_CACHE.get(String(guildId));
- if(!cached||cached.expires<Date.now()){
-  try{
-   const r=await fetch("https://discord.com/api/v10/guilds/"+guildId+"/roles",{headers:{Authorization:"Bot "+token},signal:AbortSignal.timeout(5000)});
-   if(!r.ok)return {message,roleIds:[]};
-   const data=await r.json();
-   cached={expires:Date.now()+60000,items:Array.isArray(data)?data.filter(x=>x&&/^[0-9]{17,20}$/.test(String(x.id))&&typeof x.name==="string"&&!x.managed):[]};
-   ROLE_CACHE.set(String(guildId),cached);
-  }catch{return {message,roleIds:[]}}
- }
- let out=message;
- const roleIds=[];
- for(const role of cached.items){
-  const escaped=role.name.replace(/[.*+?^()|[\]\\]/g,"\\$&").replace(/\s+/g,"\\s+");
-  if(!escaped)continue;
-  const pattern=new RegExp("(^|\\s)@"+escaped+"(?=\\s|$|[.,!?;:])","giu");
-  if(pattern.test(out)){
-   out=out.replace(pattern,(match,prefix)=>prefix+"<@&"+role.id+">");
-   if(!roleIds.includes(String(role.id)))roleIds.push(String(role.id));
-  }
- }
- return {message:out,roleIds};
-}
-async function fetchGuildRoles(guildId){
- const token=process.env.DISCORD_BOT_TOKEN||"";
- if(!token||!/^[0-9]{17,20}$/.test(guildId))return [];
- try{
-  const r=await fetch("https://discord.com/api/v10/guilds/"+guildId+"/roles",{headers:{Authorization:"Bot "+token},signal:AbortSignal.timeout(5000)});
-  if(!r.ok)return [];
-  const data=await r.json();
-  return Array.isArray(data)?data.filter(x=>x&&/^[0-9]{17,20}$/.test(String(x.id))&&typeof x.name==="string"&&x.name.trim()).map(x=>({id:String(x.id),name:x.name})).sort((a,b)=>a.name.localeCompare(b.name)): [];
- }catch{return []}
-}
-const ROLE_CACHE=new Map();
-async function getGuildRoles(guildId){
- const key=String(guildId||"");
- const cached=ROLE_CACHE.get(key);
- if(cached&&cached.expires>Date.now())return cached.items;
- const items=await fetchGuildRoles(key);
- ROLE_CACHE.set(key,{expires:Date.now()+60000,items});
- return items;
-}
-async function resolveRoleMentions(message,guildId){
  const roles=await getGuildRoles(guildId);
  let out=message;
  for(const role of roles){
-  const escaped=escapeRegExp(role.name).replace(/\\s+/g,"\\\\s+");
+  const escaped=escapeRegExp(role.name).replace(/\s+/g,"\\\\s+");
   if(!escaped)continue;
   out=out.replace(new RegExp("@"+escaped,"gi"),"<@&"+role.id+">");
  }
  return out;
-}
-async function fetchGuildRoles(guildId){
- const token=process.env.DISCORD_BOT_TOKEN||"";
- if(!token||!/^[0-9]{17,20}$/.test(guildId))return [];
- try{
-  const r=await fetch("https://discord.com/api/v10/guilds/"+guildId+"/roles",{headers:{Authorization:"Bot "+token},signal:AbortSignal.timeout(5000)});
-  if(!r.ok)return [];
-  const data=await r.json();
-  return Array.isArray(data)?data.filter(x=>x&&/^\d{17,20}$/.test(String(x.id))&&typeof x.name==="string").map(x=>({id:String(x.id),name:x.name})).sort((a,b)=>a.name.localeCompare(b.name)): [];
- }catch{return []}
 }
 async function resolveDestinationNames(){
  const items=[...DESTINATIONS.entries()].map(([key,name])=>({key,name}));
