@@ -1,9 +1,6 @@
 import React,{useEffect,useRef,useState} from "react";
-import {ArrowLeft,CheckCircle,Clock3,Database,Gift,History,LockKeyhole,RefreshCw,Sparkles,Zap,Menu,X,ShieldCheck} from "lucide-react";
-const KINGSHOT_ICON="https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/ee/d2/22/eed22297-9313-d8b0-52c8-95f42a2795b2/AppIcon-0-0-1x_U007emarketing-0-8-0-85-220.png/0x0ss-85.png";
-function KsLogo(){return <a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={KINGSHOT_ICON} alt="Kingshot"/></span><span>Kingshot Redeemer</span></a>}
-function DiscordChip(){const [user,setUser]=useState(null);useEffect(()=>{let live=true;const load=()=>fetch("/api/discord-user?id=871756466900598815",{credentials:"same-origin",cache:"no-store",headers:{"cache-control":"no-cache"}}).then(r=>r.ok?r.json():null).then(d=>{if(live&&d?.id)setUser(d)}).catch(()=>{});load();const timer=setInterval(load,60000);return()=>{live=false;clearInterval(timer)}},[]);const avatar=user?.avatar?(user.avatarUrl||`https://cdn.discordapp.com/avatars/${encodeURIComponent(user.id)}/${encodeURIComponent(user.avatar)}.png?size=64`):"https://cdn.discordapp.com/embed/avatars/0.png?size=64";return <a className="site-discord-credit" href="https://discord.com/channels/@me/871756466900598815" target="_blank" rel="noreferrer" aria-label="Message Judson on Discord"><img key={user?.avatar||"default"} src={avatar} alt="Judson" loading="eager" onError={e=>{e.currentTarget.src="https://cdn.discordapp.com/embed/avatars/0.png?size=64"}}/><span>Judson</span></a>}
-
+import {ArrowLeft,CheckCircle,Clock3,Database,Gift,History,LockKeyhole,RefreshCw,Sparkles,Zap} from "lucide-react";
+import {KsLogo,SiteHeader} from "./components/KingshotChrome.jsx";
 const sections=[
  {icon:Zap,title:"Automatic redemption",text:"Register your Kingshot Player ID once. The service checks the active gift-code pool automatically and processes eligible codes without requiring you to return and redeem them manually."},
  {icon:History,title:"Backfill for older codes",text:"Backfill is part of the normal redemption flow. If an older code is still active and your player has not handled it, a later run can pick it up."},
@@ -29,17 +26,15 @@ function InfoApp(){
  },[menu]);
  return <div className="app ks-app info-app">
   <a className="skip-link" href="#main-content">Skip to main content</a>
-  <header><KsLogo/><nav><a href="/auto">Auto Redeem</a><a href="/manual">Manual Redeem</a><a className="active" href="/info">How it works</a></nav><div className="header-right"><DiscordChip/><button ref={menuButtonRef} className="menu-btn" onClick={()=>setMenu(v=>!v)} aria-label={menu?"Close menu":"Open menu"} aria-expanded={menu} aria-controls="info-mobile-drawer">{menu?<X size={18}/>:<Menu size={18}/>}</button></div></header>
+<SiteHeader links={[{href:"/auto",label:"Auto Redeem"},{href:"/manual",label:"Manual Redeem"},{href:"/info",label:"How it works",active:true}]} menuOpen={menu} onMenuToggle={()=>setMenu(v=>!v)} />
   {menu&&<>
    <button className="info-menu-backdrop" type="button" aria-label="Close navigation menu" onPointerDown={e=>{e.preventDefault();closeMenu()}} onTouchStart={closeMenu}/>
    <nav ref={drawerRef} className="info-mobile-menu" id="info-mobile-drawer" aria-label="Mobile navigation">
-    <div className="info-drawer-head"><div><span className="info-drawer-kicker">NAVIGATION</span><strong>Explore</strong></div><button type="button" onClick={closeMenu} aria-label="Close navigation menu"><X size={15}/></button></div>
-    <a href="/auto" onClick={closeMenu}><b>Auto Redeem</b><span>Hands-off gift-code processing</span></a>
-    <a href="/manual" onClick={closeMenu}><b>Manual Redeem</b><span>Submit a specific gift code</span></a>
-    <a className="active" href="/info" onClick={closeMenu}><b>How it works</b><span>See exactly how the service operates</span><i>Current page</i></a>
-    <div className="info-drawer-foot"><ShieldCheck size={13}/><span>Your game password is never requested.</span></div>
+    <div className="info-drawer-head"><div><span className="info-drawer-kicker">NAVIGATION</span><strong>Explore</strong></div><button type="button" onClick={closeMenu} aria-label="Close navigation menu">×</button></div>
+    <a href="/auto" onClick={closeMenu}><b>Auto Redeem</b><span>Hands-off gift-code processing</span></a><a href="/manual" onClick={closeMenu}><b>Manual Redeem</b><span>Submit a specific gift code</span></a><a className="active" href="/info" onClick={closeMenu}><b>How it works</b><span>See exactly how the service operates</span><i>Current page</i></a>
+    <div className="info-drawer-foot"><span>✓</span><span>Your game password is never requested.</span></div>
    </nav>
-  </>}
+  </> }
   <main id="main-content">
    <section className="info-hero"><button className="info-back" onClick={goBack}><ArrowLeft size={14}/> Back</button><div className="eyebrow"><span/>ABOUT THE SERVICE</div><h1>How Kingshot<br/><em>Auto Redeem works.</em></h1><p className="hero-copy">A plain-English guide to the service, from code discovery and backfill to redemption history, server-side processing, and account protection.</p></section>
    <section className="info-flow"><div className="section-title"><span>01</span><h2>The basic flow.</h2></div><div className="info-steps"><article><b>01</b><div><strong>Register your player</strong><p>Your Player ID is looked up so the current kingdom can be associated with the registration.</p></div></article><article><b>02</b><div><strong>Codes enter the active pool</strong><p>Public code sources are checked and normalized. Codes known to be expired are excluded.</p></div></article><article><b>03</b><div><strong>Workers process eligible players</strong><p>Registered players are distributed across a durable worker pool. Each worker processes its assigned shard concurrently.</p></div></article><article><b>04</b><div><strong>Results are remembered</strong><p>Each player/code attempt is claimed and recorded, preventing duplicate work while preserving the redemption result.</p></div></article></div></section>
