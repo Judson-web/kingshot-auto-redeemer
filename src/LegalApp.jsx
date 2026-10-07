@@ -17,7 +17,7 @@ export default function LegalApp({type}){
         <div className="eyebrow"><span/>{privacy?"PRIVACY NOTICE":"TERMS OF USE"}</div>
         <h1>{privacy?"Privacy, made clear.":"Terms, without the clutter."}</h1>
         <p className="hero-copy">{service.summary}</p>
-        <div className="legal-tabs"><a className={!privacy?"active":""} href={"/terms?service="+serviceKey}>Terms</a><a className={privacy?"active":""} href={"/privacy?service="+serviceKey}>Privacy</a></div>
+        <div className="legal-meta"><span>Updated October 6, 2026</span><span>Independent community service</span><span>No game password required</span></div><div className="legal-tabs"><a className={!privacy?"active":""} href={"/terms?service="+serviceKey}>Terms</a><a className={privacy?"active":""} href={"/privacy?service="+serviceKey}>Privacy</a></div>
       </section>
       <section className="legal-body">
         <h2>Accessibility</h2>
@@ -66,7 +66,7 @@ export default function LegalApp({type}){
           <h2>Changes to these terms</h2>
           <p>These terms may be updated as the service changes. Continued use after an updated version is published means you are using the service under the revised terms.</p>
         </>}
-        <h2>No affiliation</h2>
+        <h2>Questions and requests</h2><p>For registration removal or service questions, use the support form on the Auto Redeem page. Do not send passwords, authentication codes, payment details, or other sensitive information through support. Requests are reviewed through the service’s normal operational process.</p><h2>No affiliation</h2>
         <p>This project is independent and should not be represented as an official Century Games, Kingshot, or Discord service. Product names, logos, and trademarks remain the property of their respective owners.</p>
         <p className="legal-note">This notice describes the current operation of this independent community service and is not legal advice. Effective: October 6, 2026.</p>
       </section>
