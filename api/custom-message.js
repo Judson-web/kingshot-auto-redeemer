@@ -134,7 +134,7 @@ export default async function handler(req,res){
 
   const resolved=await resolveRoleMentions(rawMessage,target);
   const title=clean(body.title,256);
-  const description=clean(body.message,4096);
+  const description=clean(resolved.message.replace(/@everyone|@here|<@&\d{17,20}>|<@!?\d{17,20}>/g," ").replace(/\s{2,}/g," ").trim(),4096);
   const footer=clean(body.footer,2048);
   const image=imageUrl(body.imageUrl);
   const embed={title,description,color:hexColor(body.color),timestamp:new Date().toISOString(),footer:{text:footer||"Kingshot Auto Redeem"}};
@@ -142,13 +142,17 @@ export default async function handler(req,res){
   if(!title)delete embed.title;
   if(!description)delete embed.description;
 
+  const explicitMentions=Array.isArray(body.mentions)?body.mentions:[];
   const roleMentions=[...resolved.message.matchAll(/<@&(\d{17,20})>/g)].map(m=>m[1]);
+  roleMentions.push(...explicitMentions.filter(x=>x&&x.type==="role"&&/^\d{17,20}$/.test(String(x.id))).map(x=>String(x.id)));
   const userMentions=[...resolved.message.matchAll(/<@!?([0-9]{17,20})>/g)].map(m=>m[1]);
-  const hasEveryone=/@everyone|@here/.test(resolved.message);
+  const hasEveryone=/@everyone/.test(resolved.message)||explicitMentions.some(x=>x&&x.type==="everyone");
+  const hasHere=/@here/.test(resolved.message)||explicitMentions.some(x=>x&&x.type==="here");
   const mentionContent=[...new Set([
    ...roleMentions.map(id=>"<@&"+id+">"),
    ...userMentions.map(id=>"<@"+id+">"),
-   ...(hasEveryone?["@everyone"]:[])
+   ...(hasEveryone?["@everyone"]:[]),
+   ...(hasHere?["@here"]:[])
   ])].join(" ");
 
   const allowedMentions={parse:[]};
