@@ -58,13 +58,13 @@ revoke all on function public.claim_due_custom_messages(integer) from public, an
 grant execute on function public.claim_due_custom_messages(integer) to service_role;
 revoke all on table public.kingshot_scheduled_messages from anon, authenticated;
 
-do $$
+do $do$
 begin
   if not exists (select 1 from cron.job where jobname = 'kingshot-custom-message-scheduler') then
     perform cron.schedule(
       'kingshot-custom-message-scheduler',
       '* * * * *',
-      $$
+      $job$
         select net.http_post(
           url := 'https://kingshot-autoredeemer.vercel.app/api/custom-message-scheduler',
           headers := jsonb_build_object(
@@ -74,9 +74,9 @@ begin
           body := '{}'::jsonb,
           timeout_milliseconds := 8000
         );
-      $$
+      $job$
     );
   end if;
-end $$;
+end $do$;
 
 commit;
