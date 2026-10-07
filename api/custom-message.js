@@ -4,7 +4,6 @@ import {rateLimit}from"../lib/request-rate-limit.js";
 const PASS=process.env.CUSTOM_MESSAGE_PASSKEY||"";
 const COOKIE="__Host-ks_message_session";
 const TTL=12*60*60*1000;
-const ROLE_CACHE=new Map();
 
 function parseConfiguredDestinations(){
  const entries=String(process.env.CUSTOM_MESSAGE_DESTINATIONS||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>{
@@ -49,52 +48,6 @@ function hexColor(v){const s=clean(v,20);return /^#?[0-9a-fA-F]{6}$/.test(s)?par
 function imageUrl(v){const s=clean(v,2048);if(!s)return"";try{const u=new URL(s);return u.protocol==="https:"?u.toString():""}catch{return""}}
 function escapeRegExp(value){return String(value).replace(/[.*+?^$()|[\\]\\\\]/g,"\\\\$&")}
 
-async function resolveGuildId(target){
- const webhook=webhookFor(target);
- if(!webhook)return"";
- try{
-  const r=await fetch(webhook,{signal:AbortSignal.timeout(5000)});
-  if(!r.ok)return"";
-  const data=await r.json();
-  return /^\d{17,20}$/.test(String(data?.guild_id||""))?String(data.guild_id):"";
- }catch{return""}
-}
-
-async function fetchGuildRoles(guildId){
- const token=process.env.DISCORD_BOT_TOKEN||"";
- if(!token)return {roles:[],error:"DISCORD_BOT_TOKEN is not configured."};
- if(!/^\d{17,20}$/.test(String(guildId)))return {roles:[],error:"Discord guild could not be resolved."};
- try{
-  const r=await fetch("https://discord.com/api/v10/guilds/"+guildId+"/roles",{headers:{Authorization:"Bot "+token},signal:AbortSignal.timeout(8000)});
-  const data=await r.json().catch(()=>null);
-  if(!r.ok)return {roles:[],error:"Discord roles request failed ("+r.status+")."};
-  return {roles:Array.isArray(data)?data.filter(x=>x&&/^\d{17,20}$/.test(String(x.id))&&typeof x.name==="string").map(x=>({id:String(x.id),name:x.name,managed:Boolean(x.managed)})).sort((a,b)=>a.name.localeCompare(b.name)):[],error:""};
- }catch(e){return {roles:[],error:"Discord roles request timed out or failed."}}
-}
-async function getGuildRoles(guildId){
- const key=String(guildId||"");
- const cached=ROLE_CACHE.get(key);
- if(cached&&cached.expires>Date.now())return cached.items;
- const result=await fetchGuildRoles(key);
- const items=Array.isArray(result?.roles)?result.roles:[];
- ROLE_CACHE.set(key,{expires:Date.now()+60000,items});
- return items;
-}
-async function resolveRoleMentions(message,guildId){
- const roles=await getGuildRoles(guildId);
- let out=message;
- const roleIds=[];
- for(const role of roles){
-  const escaped=escapeRegExp(role.name).replace(/\s+/g,"\\s+");
-  if(!escaped)continue;
-  const pattern=new RegExp("(^|\\s)@"+escaped+"(?=\\s|$|[.,!?;:])","giu");
-  if(pattern.test(out)){
-   out=out.replace(pattern,(match,prefix)=>prefix+"<@&"+role.id+">");
-   if(!roleIds.includes(role.id))roleIds.push(role.id);
-  }
- }
- return {message:out,roleIds};
-}
 async function resolveDestinationNames(){
  const items=[...DESTINATIONS.entries()].map(([key,name])=>({key,name}));
  const token=process.env.DISCORD_BOT_TOKEN||"";
@@ -127,16 +80,6 @@ export default async function handler(req,res){
   if(action==="CHECK"){const ok=validSession(req);return res.status(ok?200:401).json({ok})}
   if(!validSession(req))return res.status(401).json({error:"Unauthorized."});
   if(action==="DESTINATIONS")return res.status(200).json({destinations:await resolveDestinationNames()});
-  if(action==="ROLES"){
-   const target=String(body.target||"").trim();
-   if(!DESTINATIONS.has(target))return res.status(400).json({error:"Unknown Discord destination."});
-   const guildId=await resolveGuildId(target);
-   if(!guildId)return res.status(502).json({error:"Could not resolve the Discord server for this webhook."});
-   const result=await fetchGuildRoles(guildId);
-   if(result.error)return res.status(502).json({error:result.error});
-   ROLE_CACHE.set(guildId,{expires:Date.now()+60000,items:result.roles});
-   return res.status(200).json({roles:result.roles,guildId});
-  }
   if(action!=="SEND")return res.status(400).json({error:"Invalid action."});
 
   const target=String(body.target||"").trim(),WEBHOOK=webhookFor(target);
@@ -146,8 +89,7 @@ export default async function handler(req,res){
   const rawMessage=clean(body.message,4096);
   if(!rawMessage)return res.status(400).json({error:"Message is required."});
 
-  const guildId=await resolveGuildId(target);
-  const resolved=await resolveRoleMentions(rawMessage,guildId);
+  const resolved={message:rawMessage};
   const title=clean(body.title,256);
   const description=clean(resolved.message.replace(/@everyone|@here|<@&\d{17,20}>|<@!?\d{17,20}>/g," ").replace(/\s{2,}/g," ").trim(),4096);
   const footer=clean(body.footer,2048);
@@ -158,13 +100,10 @@ export default async function handler(req,res){
   if(!description)delete embed.description;
 
   const explicitMentions=Array.isArray(body.mentions)?body.mentions:[];
-  const roleMentions=[...resolved.message.matchAll(/<@&(\d{17,20})>/g)].map(m=>m[1]);
-  roleMentions.push(...explicitMentions.filter(x=>x&&x.type==="role"&&/^\d{17,20}$/.test(String(x.id))).map(x=>String(x.id)));
   const userMentions=[...resolved.message.matchAll(/<@!?([0-9]{17,20})>/g)].map(m=>m[1]);
   const hasEveryone=/@everyone/.test(resolved.message)||explicitMentions.some(x=>x&&x.type==="everyone");
   const hasHere=/@here/.test(resolved.message)||explicitMentions.some(x=>x&&x.type==="here");
   const mentionContent=[...new Set([
-   ...roleMentions.map(id=>"<@&"+id+">"),
    ...userMentions.map(id=>"<@"+id+">"),
    ...(hasEveryone?["@everyone"]:[]),
    ...(hasHere?["@here"]:[])
@@ -172,7 +111,6 @@ export default async function handler(req,res){
 
   const allowedMentions={parse:[]};
   if(hasEveryone)allowedMentions.parse.push("everyone");
-  if(roleMentions.length)allowedMentions.roles=[...new Set(roleMentions)];
   if(userMentions.length)allowedMentions.users=[...new Set(userMentions)];
 
   const payload={
