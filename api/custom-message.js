@@ -115,7 +115,8 @@ export default async function handler(req,res){
   const hasHere=/@here/.test(rawMessage)||explicitMentions.includes("here");
   const message=rawMessage;
   const title=clean(body.title,256),description=clean(message.replace(/@everyone|@here/g," ").replace(/\\s{2,}/g," ").trim(),4096),footer=clean(body.footer,2048),image=imageUrl(body.imageUrl);
-  const embed={title,description,color:hexColor(body.color),timestamp:new Date().toISOString(),footer:{text:footer||"Kingshot Auto Redeem"}};
+  const nowUtc=new Date().toISOString().replace("T"," ").replace(".000Z"," UTC");
+  const embed={title,description,color:hexColor(body.color),fields:[{name:"Time (UTC)",value:nowUtc,inline:false}],footer:{text:footer||"Kingshot Auto Redeem"}};
   if(image)embed.image={url:image};
   if(!title)delete embed.title;
   if(!description)delete embed.description;
