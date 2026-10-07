@@ -193,7 +193,7 @@ async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
   description:description?String(description).slice(0,4096):undefined,
   color,
   fields:fields.slice(0,25).map(f=>({name:String(f.name||"Info").slice(0,256),value:String(f.value??"—").slice(0,1024),inline:Boolean(f.inline)})),
-  fields:[...fields.slice(0,24).map(f=>({name:String(f.name||"Info").slice(0,256),value:String(f.value??"—").slice(0,1024),inline:Boolean(f.inline)})),{name:"Time (UTC)",value:new Date().toISOString().replace("T"," ").replace(".000Z"," UTC"),inline:false}],
+  timestamp:new Date().toISOString(),
   footer:{text:"Kingshot Redeemer"}
  }]};
  for(let attempt=0;attempt<3;attempt++){
