@@ -1,1 +1,58 @@
-{"name":"Kingshot Auto Redeem","short_name":"Kingshot Redeem","description":"Automatic Kingshot gift code redemption for registered players.","start_url":"/","display":"standalone","background_color":"#08090c","theme_color":"#08090c","icons":[{"src":"/favicon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{
+  "name": "Kingshot Auto Redeem",
+  "short_name": "Kingshot Redeem",
+  "description": "Automatic Kingshot gift code redemption for registered players.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": [
+    "standalone"
+  ],
+  "orientation": "portrait-primary",
+  "lang": "en",
+  "dir": "ltr",
+  "background_color": "#08090c",
+  "theme_color": "#08090c",
+  "categories": [
+    "utilities",
+    "games"
+  ],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Auto Redeem",
+      "short_name": "Auto Redeem",
+      "description": "Register Kingshot Player IDs for automatic gift-code redemption.",
+      "url": "/auto",
+      "icons": [
+        {
+          "src": "/favicon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Manual Redeem",
+      "short_name": "Manual Redeem",
+      "description": "Redeem a Kingshot gift code manually.",
+      "url": "/manual",
+      "icons": [
+        {
+          "src": "/favicon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ]
+}
