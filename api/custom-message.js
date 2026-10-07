@@ -53,11 +53,7 @@ async function resolveGuildId(target){
  const webhook=webhookFor(target);
  if(!webhook)return"";
  try{
-  const u=new URL(webhook);
-  if(!/discord(?:app)?\.com$/.test(u.hostname))return"";
-  const m=u.pathname.match(/\/api\/webhooks\/(\d{17,20})\/[^/]+/);
-  if(!m)return"";
-  const r=await fetch("https://discord.com/api/v10/webhooks/"+m[1]+"/"+u.pathname.split("/").pop(),{signal:AbortSignal.timeout(5000)});
+  const r=await fetch(webhook,{signal:AbortSignal.timeout(5000)});
   if(!r.ok)return"";
   const data=await r.json();
   return /^\d{17,20}$/.test(String(data?.guild_id||""))?String(data.guild_id):"";
@@ -66,17 +62,14 @@ async function resolveGuildId(target){
 
 async function fetchGuildRoles(guildId){
  const token=process.env.DISCORD_BOT_TOKEN||"";
- if(!token||!/^[0-9]{17,20}$/.test(String(guildId)))return [];
+ if(!token)return {roles:[],error:"DISCORD_BOT_TOKEN is not configured."};
+ if(!/^\d{17,20}$/.test(String(guildId)))return {roles:[],error:"Discord guild could not be resolved."};
  try{
-  const r=await fetch("https://discord.com/api/v10/guilds/"+guildId+"/roles",{headers:{Authorization:"Bot "+token},signal:AbortSignal.timeout(5000)});
-  if(!r.ok)return [];
-  const data=await r.json();
-  return Array.isArray(data)
-   ?data.filter(x=>x&&/^[0-9]{17,20}$/.test(String(x.id))&&typeof x.name==="string")
-     .map(x=>({id:String(x.id),name:x.name,managed:Boolean(x.managed)}))
-     .sort((a,b)=>a.name.localeCompare(b.name))
-   :[];
- }catch{return []}
+  const r=await fetch("https://discord.com/api/v10/guilds/"+guildId+"/roles",{headers:{Authorization:"Bot "+token},signal:AbortSignal.timeout(8000)});
+  const data=await r.json().catch(()=>null);
+  if(!r.ok)return {roles:[],error:"Discord roles request failed ("+r.status+")."};
+  return {roles:Array.isArray(data)?data.filter(x=>x&&/^\d{17,20}$/.test(String(x.id))&&typeof x.name==="string").map(x=>({id:String(x.id),name:x.name,managed:Boolean(x.managed)})).sort((a,b)=>a.name.localeCompare(b.name)):[],error:""};
+ }catch(e){return {roles:[],error:"Discord roles request timed out or failed."}}
 }
 async function getGuildRoles(guildId){
  const key=String(guildId||"");
@@ -138,7 +131,10 @@ export default async function handler(req,res){
    if(!DESTINATIONS.has(target))return res.status(400).json({error:"Unknown Discord destination."});
    const guildId=await resolveGuildId(target);
    if(!guildId)return res.status(502).json({error:"Could not resolve the Discord server for this webhook."});
-   return res.status(200).json({roles:await getGuildRoles(guildId)});
+   const result=await fetchGuildRoles(guildId);
+   if(result.error)return res.status(502).json({error:result.error});
+   ROLE_CACHE.set(guildId,{expires:Date.now()+60000,items:result.roles});
+   return res.status(200).json({roles:result.roles,guildId});
   }
   if(action!=="SEND")return res.status(400).json({error:"Invalid action."});
 
