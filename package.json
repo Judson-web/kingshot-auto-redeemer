@@ -5,7 +5,7 @@
   "description": "Independent Kingshot community service for automatic and manual gift-code redemption.",
   "type": "module",
   "engines": {
-    "node": "22.x"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "vite",
