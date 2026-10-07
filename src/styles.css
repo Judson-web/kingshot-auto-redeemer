@@ -1411,3 +1411,28 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @media(prefers-reduced-motion:reduce){
  .message-swatches button{transition:none}
 }
+
+/* Custom message mentions — compact selector */
+.message-mention-box{margin:14px 0 16px;padding:12px;border:1px solid #252a34;border-radius:12px;background:#0f1218}
+.message-mention-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.message-mention-head>div{min-width:0}
+.message-mention-head>div>span{display:block;color:#d9dce3;font-size:10px;font-weight:800;letter-spacing:.08em}
+.message-mention-head small{display:block;margin-top:3px;color:#6f7683;font-size:9px;line-height:1.45}
+.message-mention-trigger{min-height:34px;max-width:58%;display:inline-flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap;padding:5px 9px;border:1px solid #303541;border-radius:8px;background:#151922;color:#cfd3dc;font:600 10px inherit;cursor:pointer}
+.message-mention-trigger:hover{border-color:#414857;background:#191d26}
+.message-mention-chevron{color:#777f8d;font-size:14px;line-height:1}
+.message-mention-chip{display:inline-flex!important;align-items:center;padding:4px 7px;border-radius:6px;background:#303b70;color:#dce2ff!important;font-size:9px!important;font-weight:700!important;letter-spacing:0!important}
+.message-role-panel{margin-top:9px;padding:5px;border:1px solid #303541;border-radius:9px;background:#10131a;box-shadow:0 14px 32px #0005}
+.message-role-list{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.message-role-option{min-width:0;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;border:1px solid transparent;border-radius:7px;background:transparent;color:#cfd3dc;text-align:left;cursor:pointer}
+.message-role-option:hover{background:#191d26;border-color:#292f3a}
+.message-role-option.selected{background:#20273a;border-color:#39476f}
+.message-role-option b{font-size:10px;color:#dfe2e9}
+.message-role-option.selected b{color:#aebaff}
+.message-role-option span{font-size:8px;color:#68707e;white-space:nowrap}
+.message-mention-box>.message-hint{margin:8px 0 0;padding:7px 8px;border:0;background:transparent}
+@media(max-width:640px){
+ .message-mention-head{align-items:flex-start;flex-direction:column;gap:9px}
+ .message-mention-trigger{width:100%;max-width:none;justify-content:flex-start}
+ .message-role-list{grid-template-columns:1fr}
+}
