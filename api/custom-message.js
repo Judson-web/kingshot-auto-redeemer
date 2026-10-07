@@ -68,6 +68,16 @@ async function resolveRoleMentions(message,guildId){
  }
  return out;
 }
+async function fetchGuildRoles(guildId){
+ const token=process.env.DISCORD_BOT_TOKEN||"";
+ if(!token||!/^[0-9]{17,20}$/.test(guildId))return [];
+ try{
+  const r=await fetch("https://discord.com/api/v10/guilds/"+guildId+"/roles",{headers:{Authorization:"Bot "+token},signal:AbortSignal.timeout(5000)});
+  if(!r.ok)return [];
+  const data=await r.json();
+  return Array.isArray(data)?data.filter(x=>x&&/^\d{17,20}$/.test(String(x.id))&&typeof x.name==="string").map(x=>({id:String(x.id),name:x.name})).sort((a,b)=>a.name.localeCompare(b.name)): [];
+ }catch{return []}
+}
 async function resolveDestinationNames(){
  const items=[...DESTINATIONS.entries()].map(([key,name])=>({key,name}));
  const token=process.env.DISCORD_BOT_TOKEN||"";
@@ -104,6 +114,11 @@ export default async function handler(req,res){
    return res.status(200).json({destinations:await resolveDestinationNames()});
   }
   if(!validSession(req))return res.status(401).json({error:"Unauthorized."});
+  if(action==="ROLES"){
+   const target=String(body.target||"").trim();
+   if(!DESTINATIONS.has(target))return res.status(400).json({error:"Unknown destination."});
+   return res.status(200).json({roles:await fetchGuildRoles(target)});
+  }
   if(action!=="SEND")return res.status(400).json({error:"Invalid action."});
   const target=String(body.target||"").trim(),WEBHOOK=webhookFor(target);
   if(!WEBHOOK)return res.status(503).json({error:"That custom-message destination is not configured."});
@@ -117,7 +132,7 @@ export default async function handler(req,res){
   if(!title)delete embed.title;
   if(!description)delete embed.description;
   const mentionTokens=[...message.matchAll(/@everyone|@here|<@!?\d+>|<@&\d+>/g)].map(m=>m[0]);
-  const content=[...new Set(mentionTokens)].join(" ");
+  const content=mentionTokens.length?message:"";
   const payload={username:"Kingshot Auto Redeem",...(content?{content}:{}),allowed_mentions:{parse:["everyone","roles","users"]},embeds:[embed]};
   const wr=await fetch(WEBHOOK,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(8000)});
   if(!wr.ok){
