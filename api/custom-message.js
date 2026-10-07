@@ -71,7 +71,7 @@ async function resolveRoleMentions(message,guildId){
  const roles=await getGuildRoles(guildId);
  let out=message;
  for(const role of roles){
-  const escaped=escapeRegExp(role.name).replace(/\s+/g,"\\\\s+");
+  const escaped=RegExp.escape(role.name).replace(/\s+/g,"\\s+");
   if(!escaped)continue;
   out=out.replace(new RegExp("@"+escaped,"gi"),"<@&"+role.id+">");
  }
