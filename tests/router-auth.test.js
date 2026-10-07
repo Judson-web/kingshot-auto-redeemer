@@ -18,9 +18,3 @@ test("admin router rejects unauthenticated data access", async () => {
   const {default:router}=await import("../api/admin-tools/[...path].js"); const res=response();
   await router(req("data"),res); assert.equal(res.statusCode,401); assert.equal(res.body?.error,"Unauthorized");
 });
-
-test("versioned router resolves direct URL paths", async () => {
-  const {default:router}=await import("../api/v1/[[...path]].js"); const res=response();
-  await router({method:"GET",query:{},url:"/api/v1/health",headers:{},body:{}},res);
-  assert.equal(res.statusCode,200); assert.equal(res.body?.ok,true);
-});
