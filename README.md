@@ -133,17 +133,17 @@ The live Supabase database contains the operational state required by the servic
 
 The scraper archive records code-discovery telemetry such as:
 
-NaN
-NaN
-NaN
-NaN
-NaN
-NaN
-NaN
-NaN
-NaN
-NaN
-NaN
+```text
+id
+source
+checked_at
+http_status
+code_count
+codes
+parse_ok
+error_category
+error_message
+```
 
 The scraper archive contains **no Player IDs, Discord IDs, account IDs, or registration IDs**.
 
@@ -207,14 +207,14 @@ Protected operational endpoints require server-side authentication. The public w
 
 The redemption layer maps common upstream results into stable internal outcomes:
 
-NaN
-NaN
-NaN`SUCCESS` | Redemption completed. |
-NaN`RECEIVED` | Code was already redeemed/received. |
-NaN`SAME TYPE EXCHANGE` | The relevant reward type was already handled. |
-NaN`TIME_ERROR` | Code is expired. |
-NaN`CDK_NOT_FOUND` | Code is invalid or unavailable. |
-NaN`USAGE_LIMIT` | Code reached its usage limit. |
+| Status | Meaning |
+|---|---|
+| `SUCCESS` | Redemption completed. |
+| `RECEIVED` | Code was already redeemed/received. |
+| `SAME TYPE EXCHANGE` | The relevant reward type was already handled. |
+| `TIME_ERROR` | Code is expired. |
+| `CDK_NOT_FOUND` | Code is invalid or unavailable. |
+| `USAGE_LIMIT` | Code reached its usage limit. |
 
 Transient upstream errors, rate limits, authentication failures, and stale-player conditions are tracked separately.
 
@@ -266,33 +266,33 @@ Operational workflows also cover manual kingdom validation and disaster-recovery
 
 Install dependencies:
 
-NaN
-NaN
-NaN
+```bash
+npm install
+```
 
 Start the development server:
 
-NaN
-NaN
-NaN
+```bash
+npm run dev
+```
 
 Create a production build:
 
-NaN
-NaN
-NaN
+```bash
+npm run build
+```
 
 Preview the production build:
 
-NaN
-NaN
-NaN
+```bash
+npm run preview
+```
 
 Run the test suite:
 
-NaN
-NaN
-NaN
+```bash
+npm test
+```
 
 ## Environment
 
