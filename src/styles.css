@@ -941,3 +941,263 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
     padding-inline:8px!important;
   }
 }
+
+
+/* Mobile + accessibility pass — focused on Auto Redeem and form controls */
+.ks-auto-hero .ks-register-box,
+.ks-support,
+.ks-auto-how{scroll-margin-top:20px}
+
+.ks-auto-hero input:focus-visible,
+.ks-support input:focus-visible,
+.ks-support textarea:focus-visible,
+.ks-profile-slides:focus-visible{
+  outline:2px solid #a995ff;
+  outline-offset:3px;
+}
+
+.ks-profile-slides:focus{outline-color:#a995ff}
+
+.ks-support .ks-register-field small{
+  display:block;
+  margin:7px 2px 0;
+  color:#555c68;
+  font-size:7px;
+  line-height:1.5;
+}
+
+@media (max-width:760px){
+  .ks-auto-hero{
+    padding-left:16px;
+    padding-right:16px;
+  }
+  .ks-auto-hero h1{
+    max-width:680px;
+    letter-spacing:-.045em;
+  }
+  .ks-auto-hero .hero-copy{
+    max-width:560px;
+  }
+  .ks-register-box{
+    width:100%;
+    box-sizing:border-box;
+  }
+  .ks-register-field{
+    min-height:76px;
+  }
+  .ks-register-field>div{
+    min-width:0;
+  }
+  .ks-register-field input{
+    min-width:0;
+    width:100%;
+    box-sizing:border-box;
+  }
+  .ks-register-box .ks-submit{
+    width:100%;
+    min-height:48px;
+  }
+  .ks-registered{
+    width:100%;
+    box-sizing:border-box;
+  }
+  .ks-registered-head{
+    gap:10px;
+  }
+  .ks-registered-head h2{
+    line-height:1.12;
+  }
+  .ks-registered-row{
+    min-width:0;
+    gap:10px;
+  }
+  .ks-registered-row>div:nth-child(2){
+    min-width:0;
+  }
+  .ks-registered-row b,
+  .ks-registered-row span{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .ks-profile-slides{
+    width:100%;
+    box-sizing:border-box;
+    scroll-snap-type:x mandatory;
+    scrollbar-width:none;
+    overscroll-behavior-x:contain;
+  }
+  .ks-profile-slides::-webkit-scrollbar{
+    display:none;
+  }
+  .ks-profile-slides>.ks-registered-row{
+    scroll-snap-align:start;
+  }
+  .ks-profile-slide-meta{
+    min-height:22px;
+  }
+  .ks-profile-slide-meta small{
+    font-size:7px;
+  }
+  .ks-support{
+    margin-left:16px;
+    margin-right:16px;
+    box-sizing:border-box;
+  }
+  .ks-support .section-title{
+    align-items:flex-start;
+  }
+  .ks-support .section-title h2{
+    line-height:1.08;
+  }
+  .ks-support-form{
+    gap:12px;
+  }
+  .ks-support-form .ks-register-field{
+    min-height:76px;
+  }
+  .ks-support-reason{
+    display:block;
+  }
+  .ks-support-reason textarea{
+    width:100%;
+    min-height:108px;
+    box-sizing:border-box;
+    font-size:16px;
+    line-height:1.5;
+    resize:vertical;
+  }
+  .ks-support-form .ks-submit{
+    width:100%;
+    min-height:48px;
+  }
+  .ks-support-success{
+    align-items:flex-start;
+  }
+  .ks-auto-how{
+    padding-left:16px;
+    padding-right:16px;
+    box-sizing:border-box;
+  }
+  .ks-auto-how .feature-grid{
+    gap:10px;
+  }
+  .ks-auto-how .feature-grid article{
+    padding:16px;
+  }
+}
+
+@media (max-width:430px){
+  .ks-auto-hero{
+    padding-left:14px;
+    padding-right:14px;
+  }
+  .ks-auto-hero .eyebrow{
+    font-size:6.5px;
+    letter-spacing:.15em;
+  }
+  .ks-auto-hero h1{
+    font-size:clamp(38px,11.5vw,52px);
+    line-height:.94;
+  }
+  .ks-auto-hero .hero-copy{
+    font-size:10px;
+    line-height:1.65;
+  }
+  .ks-register-box{
+    margin-top:20px;
+    padding:6px;
+    border-radius:15px;
+  }
+  .ks-register-field{
+    min-height:74px;
+    padding:12px;
+  }
+  .ks-register-field label{
+    font-size:6px;
+  }
+  .ks-register-field small{
+    font-size:7px;
+    line-height:1.45;
+  }
+  .ks-register-box .ks-submit{
+    min-height:46px;
+    font-size:8px;
+  }
+  .ks-registered{
+    padding:12px;
+    border-radius:14px;
+  }
+  .ks-registered-head h2{
+    font-size:17px;
+  }
+  .ks-registered-head .result-label{
+    font-size:6px;
+  }
+  .ks-registered-row{
+    padding:9px 0;
+  }
+  .ks-registered-row .ks-avatar{
+    width:38px;
+    height:38px;
+    border-radius:11px;
+  }
+  .ks-registered-row b{
+    font-size:10px;
+  }
+  .ks-registered-row span{
+    font-size:7px;
+  }
+  .ks-existing-note{
+    font-size:8px;
+    line-height:1.55;
+  }
+  .ks-profile-slide-meta{
+    gap:7px;
+  }
+  .ks-support{
+    margin-left:14px;
+    margin-right:14px;
+    padding:14px;
+    border-radius:14px;
+  }
+  .ks-support .section-title h2{
+    font-size:18px;
+  }
+  .ks-support-copy{
+    font-size:8.5px;
+  }
+  .ks-support .ks-register-field{
+    min-height:72px;
+  }
+  .ks-support-reason textarea{
+    min-height:104px;
+  }
+}
+
+@media (max-width:360px){
+  .ks-auto-hero h1{
+    font-size:37px;
+  }
+  .ks-auto-hero .hero-copy{
+    font-size:9.5px;
+  }
+  .ks-register-field{
+    padding:11px;
+  }
+  .ks-register-field small{
+    font-size:6.5px;
+  }
+  .ks-registered-head h2{
+    font-size:16px;
+  }
+  .ks-support .section-title h2{
+    font-size:17px;
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .ks-profile-slides{
+    scroll-behavior:auto!important;
+  }
+}
