@@ -655,3 +655,36 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  :where(button,a){transition:none}
  .ks-result{animation:none}
 }
+
+
+/* Mobile UX polish — layout only, no shared chrome changes */
+@media (max-width:760px){
+  .ks-hero,.ks-auto-hero{padding-top:54px}
+  .manual-hero-copy,.ks-auto-hero>.eyebrow{max-width:100%}
+  .hero-copy{font-size:11px;line-height:1.7}
+  .ks-form,.ks-register-box,.ks-support{margin-top:24px}
+  .ks-field input,.ks-register-field input,.ks-support-reason textarea{font-size:16px}
+  .ks-field,.ks-register-field{border-radius:13px}
+  .ks-submit{min-height:48px}
+  .ks-player,.ks-result,.ks-registered{border-radius:14px}
+  .feature-grid article{min-height:0}
+  .ks-how,.ks-auto-how{padding-top:8px}
+}
+@media (max-width:520px){
+  .ks-hero,.ks-auto-hero{padding-top:46px}
+  .manual-trust-row{flex-wrap:wrap;justify-content:center;gap:7px}
+  .manual-trust-row span{font-size:7px}
+  .manual-submit-row{gap:10px}
+  .manual-submit-row>span{font-size:8px;line-height:1.45}
+  .ks-register-field{min-height:78px}
+  .ks-register-field small{font-size:8px}
+  .ks-support-copy{font-size:9px;line-height:1.7}
+  .ks-support-reason textarea{min-height:100px}
+  .section-title{gap:8px}
+  .section-title h2{font-size:18px}
+}
+@media (max-width:380px){
+  .ks-hero,.ks-auto-hero{padding-top:40px}
+  .manual-trust-row span{font-size:6.5px}
+  .manual-submit-row>span{display:none}
+}
