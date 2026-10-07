@@ -1,4 +1,4 @@
-const CACHE="kingshot-shell-v1";
+const CACHE="kingshot-shell-v2";
 const SHELL=["/","/manual"];
 
 self.addEventListener("install",event=>{
@@ -12,7 +12,7 @@ self.addEventListener("fetch",event=>{
  const url=new URL(event.request.url);
  if(url.origin!==self.location.origin)return;
  if(event.request.mode==="navigate"){
-  event.respondWith(fetch(event.request).catch(()=>caches.match("/manual").then(r=>r||caches.match("/"))));
+  event.respondWith(fetch(event.request).catch(()=>caches.match("/").then(r=>r||caches.match("/manual"))));
   return;
  }
 });
