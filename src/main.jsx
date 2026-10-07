@@ -1,12 +1,17 @@
 import React,{useEffect,useState}from"react";
 import{createRoot}from"react-dom/client";
-import{Gift,Search,Menu,ShieldCheck,X,CheckCircle,LoaderCircle,AlertTriangle,Info,OctagonAlert}from"lucide-react";
+import{ExternalLink,Gift,Menu,Search,ShieldCheck,X,CheckCircle,LoaderCircle,AlertTriangle,Info,OctagonAlert}from"lucide-react";
 import"./styles.css";
 import LegalApp from"./LegalApp.jsx";
 import InfoApp from"./InfoApp.jsx";
 import CustomMessageApp from"./CustomMessageApp.jsx";
 
 
+const imageUrl=(user,size=1024,format=user.format)=>"/api/discord-avatar?id="+encodeURIComponent(user.id)+"&hash="+encodeURIComponent(user.avatar)+"&format="+encodeURIComponent(format)+"&size="+encodeURIComponent(size);
+const manualResultMeta=status=>{const s=String(status||"").toUpperCase();if(s==="SUCCESS")return{tone:"success",label:"Redeemed successfully.",Icon:CheckCircle};if(s==="RECEIVED"||s==="SAME TYPE EXCHANGE")return{tone:"claimed",label:"Already claimed.",Icon:CheckCircle};if(s==="TIME_ERROR")return{tone:"warning",label:"Code expired.",Icon:AlertTriangle};if(s==="CDK_NOT_FOUND")return{tone:"error",label:"Code not found.",Icon:OctagonAlert};if(s==="USAGE_LIMIT")return{tone:"warning",label:"Redemption limit reached.",Icon:AlertTriangle};if(s==="ROLE_NOT_EXIST")return{tone:"error",label:"Player not found.",Icon:OctagonAlert};if(s==="STATE_MISMATCH")return{tone:"error",label:"Kingdom mismatch.",Icon:OctagonAlert};if(s==="SIGN_ERROR"||s==="LOGIN_EXPIRED_MID_PROCESS")return{tone:"error",label:"Redemption unavailable.",Icon:OctagonAlert};if(s==="TIMEOUT_RETRY")return{tone:"warning",label:"Try again shortly.",Icon:AlertTriangle};return{tone:"error",label:"Redemption could not be completed.",Icon:AlertTriangle};};
+const KINGSHOT_ICON="https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/ee/d2/22/eed22297-9313-d8b0-52c8-95f42a2795b2/AppIcon-0-0-1x_U007emarketing-0-8-0-85-220.png/0x0ss-85.png";
+function KsLogo(){return <a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={KINGSHOT_ICON} alt="Kingshot"/></span><span>Kingshot Redeemer</span></a>}
+function DiscordChip(){const [user,setUser]=useState(null);useEffect(()=>{let live=true;const load=()=>fetch("/api/discord-user?id=871756466900598815",{credentials:"same-origin",cache:"no-store",headers:{"cache-control":"no-cache"}}).then(r=>r.ok?r.json():null).then(d=>{if(live&&d?.id)setUser(d)}).catch(()=>{});load();const timer=setInterval(load,60000);return()=>{live=false;clearInterval(timer)}},[]);const avatar=user?.avatar?(user.avatarUrl||imageUrl(user,64,user.animated?"gif":"png")):"https://cdn.discordapp.com/embed/avatars/0.png?size=64";return <a className="site-discord-credit" href="https://discord.com/channels/@me/871756466900598815" target="_blank" rel="noreferrer" aria-label="Message Judson on Discord"><img key={user?.avatar||"default"} src={avatar} alt="Judson" loading="eager" onError={e=>{e.currentTarget.src="https://cdn.discordapp.com/embed/avatars/0.png?size=64"}}/><span>Judson</span></a>}
 
 function KingshotApp(){
  const [playerId,setPlayerId]=useState(""),[code,setCode]=useState(""),[player,setPlayer]=useState(null),[busy,setBusy]=useState(false),[result,setResult]=useState(null),[error,setError]=useState(""),[menu,setMenu]=useState(false);
