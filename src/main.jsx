@@ -91,4 +91,4 @@ const publicPage=location.pathname==="/auto"||location.pathname==="/" ? <AutoRed
 }
 registerAppServiceWorker();
 
-createRoot(document.getElementById("root")).render(<PublicMaintenance><PublicAnnouncements>{publicPage}</PublicAnnouncements></PublicMaintenance>);
+createRoot(document.getElementById("root")).render(<><PublicMaintenance><PublicAnnouncements>{publicPage}</PublicAnnouncements></PublicMaintenance><InstallAppPrompt/></>);
