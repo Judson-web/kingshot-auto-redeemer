@@ -863,3 +863,17 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .manual-page-hero .ks-result-details>span{flex:1}
 .manual-page-hero .ks-result-footer{margin-top:1px}
 .manual-page-hero .ks-result{max-height:none}
+
+/* Manual confirmation — refined secondary action */
+.ks-result-footer .ks-result-again{display:inline-flex!important;align-items:center;justify-content:center;gap:7px;min-height:34px;padding:8px 12px!important;border:1px solid #34313b!important;border-radius:10px!important;background:linear-gradient(180deg,#17151d,#111117)!important;color:#c7c1d0!important;font-size:7px!important;font-weight:800!important;letter-spacing:.01em;box-shadow:0 5px 16px #0003;transition:transform .16s ease,border-color .16s ease,background-color .16s ease,color .16s ease,box-shadow .16s ease!important}
+.ks-result-footer .ks-result-again svg{color:#a995ff;transition:transform .16s ease}
+.ks-result-footer .ks-result-again:hover{border-color:#4b4560!important;background:linear-gradient(180deg,#1d1926,#15131b)!important;color:#eeeaf4!important;box-shadow:0 7px 20px #0004}
+.ks-result-footer .ks-result-again:hover svg{transform:translateX(2px)}
+.ks-result-footer .ks-result-again:active{transform:translateY(1px);box-shadow:0 3px 10px #0003}
+.ks-result-footer .ks-result-again:focus-visible{outline:2px solid #a995ff;outline-offset:3px}
+@media(max-width:640px){
+ .ks-result-footer .ks-result-again{min-height:36px;padding:8px 13px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .ks-result-footer .ks-result-again,.ks-result-footer .ks-result-again svg{transition:none!important}
+}
