@@ -75,7 +75,8 @@ async function getGuildRoles(guildId){
  const key=String(guildId||"");
  const cached=ROLE_CACHE.get(key);
  if(cached&&cached.expires>Date.now())return cached.items;
- const items=await fetchGuildRoles(key);
+ const result=await fetchGuildRoles(key);
+ const items=Array.isArray(result?.roles)?result.roles:[];
  ROLE_CACHE.set(key,{expires:Date.now()+60000,items});
  return items;
 }
