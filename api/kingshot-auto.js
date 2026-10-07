@@ -318,8 +318,33 @@ async function ensureCurrentKingdom(player){
   throw error;
  }
 }
-async function revalidatePlayer(player){
+async function revalidatePlayer(player,{force=false}={}){
  try{
+  // Forced/manual checks deliberately bypass the reset-cycle claim/cooldown.
+  // They still use the same MightPulse fetch and Supabase revalidation RPC,
+  // but never enter the redemption path.
+  if(force){
+   const fresh=await fetchCurrentKingshotPlayer(player.player_id);
+   if(fresh.notFound){
+    await rpc("mark_kingshot_player_stale",{p_player_id:player.player_id,p_reason:"MIGHTPULSE_PLAYER_NOT_FOUND"});
+    return {stale:true};
+   }
+   const p=fresh.player||{};
+   const currentKingdom=String(p.kid??p.kingdom_id??"").replace(/\D/g,"");
+   if(!currentKingdom)throw Error("MightPulse returned no kingdom for this player.");
+   const result=await rpc("record_kingshot_kingdom_revalidation",{
+    p_player_id:player.player_id,
+    p_kingdom_id:currentKingdom,
+    p_player_name:p.nick_name||p.name||p.nickname||null,
+    p_avatar_url:p.avatar_url||p.avatar||p.avatarUrl||null
+   });
+   if(result?.kingdom_changed){
+    console.log("Kingshot manual kingdom changed:",{playerId:player.player_id,from:result.old_kingdom_id,to:result.new_kingdom_id});
+    await sendDiscordEvent({title:"🔄 Kingdom changed",description:"A manual kingdom check detected a registered player's kingdom change.",fields:[{name:"Player ID",value:String(player.player_id),inline:true},{name:"Previous",value:String(result.old_kingdom_id||"Unknown"),inline:true},{name:"Current",value:String(result.new_kingdom_id||currentKingdom),inline:true}],color:0x5865F2});
+   }
+   return {player:result?.player||player,revalidated:true,kingdomChanged:Boolean(result?.kingdom_changed)};
+  }
+
   if(!player?.kingdom_id){
    const fresh=await fetchCurrentKingshotPlayer(player.player_id);
    if(fresh.notFound){
@@ -646,10 +671,18 @@ export default async function handler(req,res){
  // Manual diagnostic mode: validate every registered player against MightPulse
  // without discovering codes, claiming redemptions, or starting worker shards.
  if(mode==="kingdom-check"){
+  let manualWorkerToken=null;
   try{
+   // Reuse the global worker lock so a manual validation cannot overlap a
+   // scheduled redemption cycle. This mode never discovers codes or redeems.
+   const lock=await rpc("claim_kingshot_worker_run",{});
+   if(!lock?.claimed)return res.status(200).json({ok:true,mode:"kingdom-check",skipped:true,reason:"WORKER_ALREADY_RUNNING"});
+   manualWorkerToken=lock.token;
+   await rpc("heartbeat_kingshot_worker_run",{p_token:manualWorkerToken}).catch(()=>{});
+
    const players=await rpc("list_kingshot_autoredeem_players",{});
    const list=Array.isArray(players)?players:[];
-   const results=await runWithConcurrency(list,player=>revalidatePlayer(player),KINGDOM_VALIDATION_CONCURRENCY);
+   const results=await runWithConcurrency(list,player=>revalidatePlayer(player,{force:true}),KINGDOM_VALIDATION_CONCURRENCY);
    const summary=results.reduce((a,result)=>{
     if(result?.revalidationError){a.errors++;return a;}
     if(result?.stale){a.stale++;return a;}
@@ -658,8 +691,16 @@ export default async function handler(req,res){
     if(result?.player?.kingdom_id)a.validated++;
     return a;
    },{checked:0,changed:0,stale:0,errors:0,validated:0});
+   const status=summary.errors||summary.stale?"COMPLETED_WITH_WARNINGS":"COMPLETED";
+   await rpc("finish_kingshot_worker_run",{
+    p_token:manualWorkerToken,
+    p_status:status,
+    p_error:null,
+    p_summary:{mode:"kingdom-check",players:list.length,...summary}
+   }).catch(error=>console.error("Manual worker state update failed:",error?.message||error));
+   manualWorkerToken=null;
    console.log("Kingshot manual kingdom check:",{players:list.length,...summary});
-   await sendDiscordEvent({title:"🔍 Manual kingdom check",description:"A manual kingdom revalidation completed without starting redemption.",fields:[
+   await sendDiscordEvent({title:"🔍 Manual kingdom check",description:"A forced kingdom revalidation completed without starting redemption.",fields:[
     {name:"Players",value:String(list.length),inline:true},
     {name:"Checked",value:String(summary.checked),inline:true},
     {name:"Kingdom changes",value:String(summary.changed),inline:true},
@@ -667,9 +708,10 @@ export default async function handler(req,res){
     {name:"Errors",value:String(summary.errors),inline:true},
     {name:"Validated",value:String(summary.validated),inline:true}
    ],color:summary.errors||summary.stale?0xFEE75C:0x57F287});
-   return res.status(200).json({ok:true,mode:"kingdom-check",...summary,players:list.length});
+   return res.status(200).json({ok:true,mode:"kingdom-check",forced:true,...summary,players:list.length});
   }catch(error){
    console.error("Manual kingdom check failed:",error);
+   if(manualWorkerToken)await rpc("finish_kingshot_worker_run",{p_token:manualWorkerToken,p_status:"FAILED",p_error:error?.message||"Manual kingdom check failed.",p_summary:{mode:"kingdom-check",errorCategory:classifyError(error)}}).catch(releaseError=>console.error("Manual worker failure state update failed:",releaseError?.message||releaseError));
    return res.status(502).json({ok:false,mode:"kingdom-check",error:error?.message||"Manual kingdom check failed.",errorCategory:classifyError(error)});
   }
  }
