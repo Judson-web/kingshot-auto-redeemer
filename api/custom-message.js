@@ -110,15 +110,18 @@ export default async function handler(req,res){
   if(!rateLimit(req,res,"custom-message-send",10,60*1000))return res.status(429).json({error:"Too many messages. Please wait a moment."});
   const rawMessage=clean(body.message,4096);
   if(!rawMessage)return res.status(400).json({error:"Message is required."});
-  const message=await resolveRoleMentions(rawMessage,target);
-  const title=clean(body.title,256),description=clean(body.message,4096),footer=clean(body.footer,2048),image=imageUrl(body.imageUrl);
+  const explicitMentions=Array.isArray(body.mentions)?body.mentions:[];
+  const hasEveryone=/@everyone/.test(rawMessage)||explicitMentions.includes("everyone");
+  const hasHere=/@here/.test(rawMessage)||explicitMentions.includes("here");
+  const message=rawMessage;
+  const title=clean(body.title,256),description=clean(message.replace(/@everyone|@here/g," ").replace(/\\s{2,}/g," ").trim(),4096),footer=clean(body.footer,2048),image=imageUrl(body.imageUrl);
   const embed={title,description,color:hexColor(body.color),timestamp:new Date().toISOString(),footer:{text:footer||"Kingshot Auto Redeem"}};
   if(image)embed.image={url:image};
   if(!title)delete embed.title;
   if(!description)delete embed.description;
-  const mentionTokens=[...message.matchAll(/@everyone|@here|<@!?\d+>|<@&\d+>/g)].map(m=>m[0]);
+  const mentionTokens=[...(hasEveryone?["@everyone"]:[]),...(hasHere?["@here"]:[])];
   const content=[...new Set(mentionTokens)].join(" ");
-  const payload={username:"Kingshot Auto Redeem",...(content?{content}:{}),allowed_mentions:{parse:["everyone","roles","users"]},embeds:[embed]};
+  const payload={username:"Kingshot Auto Redeem",...(content?{content}:{}),allowed_mentions:{parse:[...(hasEveryone||hasHere?["everyone"]:[])]},embeds:[embed]};
   const wr=await fetch(WEBHOOK,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(8000)});
   if(!wr.ok){
    const retryAfter=Number(wr.headers.get("retry-after")||"0"),detail=await wr.text().catch(()=>"");
