@@ -10,7 +10,9 @@ function assertCheck(name,condition,detail=""){
 }
 
 const auto=read("api/kingshot-auto.js");
-const register=read("internal/kingshot/register.js");
+const worker=read("internal/kingshot/worker.ts");
+const workerCode=auto+"\n"+worker;
+const register=read("internal/kingshot/register.ts");
 const support=read("lib/support.js");
 const adminData=read("lib/admin-data.js");
 const adminLogin=read("lib/admin-login.js");
@@ -41,7 +43,7 @@ assertCheck(
 assertCheck(
  "Worker pool fans redemption work across three internal shards",
  auto.includes("const WORKER_COUNT=3;") &&
- auto.includes("runWorkerShard") &&
+ workerCode.includes("runWorkerShard") &&
  auto.includes("Promise.all(assignments.map")
 );
 assertCheck(
@@ -58,7 +60,7 @@ assertCheck(
 assertCheck(
  "Worker pool preserves bounded per-shard concurrency",
  auto.includes("const PLAYER_CONCURRENCY=6;") &&
- auto.includes("runWithConcurrency(assigned,p=>redeemForPlayer(p,codes),PLAYER_CONCURRENCY,{deadline})") &&
+ workerCode.includes("runWithConcurrency(assigned, player => redeemForPlayer(player, codes), options.concurrency, { deadline })") &&
  auto.includes("WORKER_MAX_RUNTIME_MS=4*60*1000")
 );
 assertCheck(
@@ -68,8 +70,8 @@ assertCheck(
 );
 assertCheck(
  "Worker summaries include per-code handling diagnostics",
- auto.includes("handledCodeCounts") &&
- auto.includes("codeCounts") &&
+ workerCode.includes("handledCodeCounts") &&
+ workerCode.includes("codeCounts") &&
  auto.includes("redemptionCode:item.code")
 );
 assertCheck(
