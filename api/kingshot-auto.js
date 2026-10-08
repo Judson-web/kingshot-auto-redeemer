@@ -66,7 +66,7 @@ async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
 }
 
 import { fetchSource, classifyScraperError } from "../internal/kingshot/scraper.js";
-import { runWithConcurrency, runWorkerShard, summarizeWorkerResults, workerBucket } from "../internal/kingshot/worker.js";
+import { runWithConcurrency, runWorkerShard, workerBucket } from "../internal/kingshot/worker.js";
 async function redeemForPlayer(player,codes){
 const kingdomState=await revalidatePlayer(player,{rpc,notify:sendDiscordEvent});
  const kingdomCheck=Boolean(kingdomState.revalidated);

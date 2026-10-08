@@ -1,4 +1,4 @@
-import { extractAggregatorCodes, extractPageCodes, extractPublicSourceCodes, normalizeCodes } from "./gift-codes.js";
+import { extractPageCodes, extractPublicSourceCodes, normalizeCodes, isLikelyGiftCode, type GiftCodeRow } from "./gift-codes.js";
 
 export interface ScraperResult {
   source: string;
@@ -8,6 +8,16 @@ export interface ScraperResult {
   error: string | null;
   data?: unknown;
   html?: string;
+}
+
+function extractAggregatorCodes(data: unknown): GiftCodeRow[] {
+  const rows = Array.isArray((data as { codes?: unknown[] })?.codes) ? (data as { codes: unknown[] }).codes : [];
+  return rows.map((row): GiftCodeRow | null => {
+    const value = typeof row === "string" ? row : (row as { code?: unknown })?.code;
+    const code = String(value ?? "").trim();
+    if (!isLikelyGiftCode(code)) return null;
+    return { code, expiresAt: null, createdAt: 0, source: "whiteout-bot-aggregator" };
+  }).filter((row): row is GiftCodeRow => row !== null);
 }
 
 interface Rpc {
