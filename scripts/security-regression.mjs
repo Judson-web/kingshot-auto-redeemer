@@ -13,6 +13,7 @@ const auto=read("api/kingshot-auto.js");
 const worker=read("internal/kingshot/worker.ts");
 const workerCode=auto+"\n"+worker;
 const register=read("internal/kingshot/register.ts");
+const registerHandler=read("api/kingshot-register.ts");
 const support=read("lib/support.js");
 const adminData=read("lib/admin-data.js");
 const adminLogin=read("lib/admin-login.js");
@@ -115,13 +116,13 @@ assertCheck(
 assertCheck("Worker uses server-only Supabase credential",
  auto.includes("process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY"));
 assertCheck("Registration uses server-only Supabase credential",
- register.includes("process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY"));
+ /process\.env\.SUPABASE_SERVICE_ROLE_KEY\s*\|\|\s*process\.env\.SUPABASE_SECRET_KEY/.test(register));
 assertCheck("Support uses server-only Supabase credential",
  support.includes("process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY"));
 assertCheck("Worker has scheduler/authorization guard",
  /X-Kingshot-Scheduler-Token|KINGSHOT_SCHEDULER_TOKEN|scheduler/i.test(auto));
 assertCheck("Registration has request rate limiting",
- register.includes('rateLimit(req,res,"register",60,60000)'));
+ registerHandler.includes('rateLimit(req,res,"register",60,60000)'));
 assertCheck("Support has request rate limiting",
  support.includes('rateLimit(req,res,"support",6,60000)'));
 assertCheck("Admin login has request rate limiting",
