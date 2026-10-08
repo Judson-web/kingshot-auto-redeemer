@@ -1466,3 +1466,6 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @media(max-width:760px){.site-status-trigger{min-height:27px;padding-inline:7px}.site-status-popover{right:-46px}}
 @media(max-width:520px){.site-status-label{display:none}.site-status-trigger{width:29px;height:29px;padding:0;justify-content:center;gap:0}.site-status-trigger svg{width:13px;height:13px}.site-status-chevron{display:none}.site-status-popover{right:-8px;width:min(300px,calc(100vw - 24px))}}
 @media(prefers-reduced-motion:reduce){.site-status-trigger{transition:none}}
+
+/* Live status — mobile-safe detail panel */
+@media(max-width:520px){.site-status-popover{position:fixed;top:calc(env(safe-area-inset-top) + 72px);right:12px;left:auto;width:min(320px,calc(100vw - 24px));max-height:calc(100dvh - 96px);overflow:auto;overscroll-behavior:contain;box-sizing:border-box;-webkit-overflow-scrolling:touch}.site-status-popover-head{position:sticky;top:0;padding-bottom:9px;background:#0d1016;z-index:1}.site-status-popover p{font-size:8.5px}.site-status-grid b,.site-status-maintenance b{font-size:7.5px}}
