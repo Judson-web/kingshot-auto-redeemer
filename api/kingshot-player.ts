@@ -1,6 +1,6 @@
 import { rateLimit } from "../lib/request-rate-limit.js";
 import { isValidPlayerId, lookupPlayer, normalizePlayerId, PlayerLookupError } from "../internal/kingshot/player.js";
-interface RequestLike { method?: string; query?: Record<string, unknown>; headers: Record<string, string | string[] | undefined>; }
+interface RequestLike { url?: string; method?: string; query?: Record<string, unknown>; headers: Record<string, string | string[] | undefined>; }
 interface ResponseLike { status(code: number): ResponseLike; json(body: unknown): ResponseLike; setHeader(name: string, value: string): void; }
 export default async function handler(req: RequestLike, res: ResponseLike): Promise<void> {
  if (req.method !== "GET") return void res.status(405).json({ error: "Method not allowed" });
