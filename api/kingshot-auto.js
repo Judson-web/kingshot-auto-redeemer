@@ -31,16 +31,11 @@ const PLAYER_CONCURRENCY=6;
 // Kingdom-reset validation has its own upstream-aware lane limit. Redemption
 // concurrency stays at 6; only the daily MightPulse validation burst is paced.
 const KINGDOM_VALIDATION_CONCURRENCY=3;
-const MIGHTPULSE_RATE_LIMIT_BACKOFF_MS=[15000,30000,60000];
 // Keep each shard bounded so a slow upstream cannot pin a Vercel invocation.
 // A player redemption can take up to 30s at the upstream boundary, so 4m gives
 // the six-lane pool enough room for normal bursts while leaving recovery time.
 const WORKER_MAX_RUNTIME_MS=4*60*1000;
 const WORKER_REQUEST_TIMEOUT_MS=4*60*1000;
-const UPSTREAM_RETRYABLE=/timeout|timed out|abort|429|rate limit|too many requests|502|503|504/i;
-const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-const KINGDOM_RESET_HOUR=5;
-const KINGDOM_RESET_MINUTE=30;
 const DISCORD_WEBHOOK_URL=process.env.DISCORD_KINGSHOT_WEBHOOK_URL||process.env.DISCORD_SCRAPER_WEBHOOK_URL;
 async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
  if(!DISCORD_WEBHOOK_URL)return;
@@ -78,33 +73,7 @@ async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
 
 import { fetchSource, classifyScraperError } from "../internal/kingshot/scraper.js";
 async function redeemForPlayer(player,codes){
- // New registrations may not have a kingdom yet. Populate it immediately
- // instead of waiting for the next daily reset revalidation.
- if(!player.kingdom_id){
-  try{
-   const fresh=await fetchCurrentKingshotPlayer(player.player_id);
-   if(fresh.notFound){
-    await rpc("mark_kingshot_player_stale",{p_player_id:player.player_id,p_reason:"MIGHTPULSE_PLAYER_NOT_FOUND"});
-    await sendDiscordEvent({title:"🗑️ Deleted Kingshot account filtered",description:"A newly registered player could not be found during initial validation and was excluded from auto-redeem.",fields:[{name:"Player ID",value:String(player.player_id),inline:true}],color:0xFEE75C});
-    return {attempted:0,success:0,alreadyHandled:0,skipped:1,stale:1};
-   }
-   const p=fresh.player||{};
-   const currentKingdom=String(p.kid??p.kingdom_id??"").replace(/\D/g,"");
-   if(!currentKingdom)throw Error("MightPulse returned no kingdom for this player.");
-   const result=await rpc("record_kingshot_kingdom_revalidation",{
-    p_player_id:player.player_id,
-    p_kingdom_id:currentKingdom,
-    p_player_name:p.nick_name||p.name||p.nickname||null,
-    p_avatar_url:p.avatar_url||p.avatar||p.avatarUrl||null
-   });
-   player=result?.player||player;
-   console.log("Kingshot initial player validation:",{playerId:player.player_id,kingdomId:player.kingdom_id});
-  }catch(error){
-   console.error("Initial Kingshot player validation failed:",player.player_id,error?.message||error);
-   return {attempted:0,success:0,alreadyHandled:0,skipped:1,revalidationError:1};
-  }
- }
- const kingdomState=await revalidatePlayer(player,{rpc,notify:sendDiscordEvent});
+const kingdomState=await revalidatePlayer(player,{rpc,notify:sendDiscordEvent});
  const kingdomCheck=Boolean(kingdomState.revalidated);
  const kingdomChanged=Boolean(kingdomState.kingdomChanged);
  if(kingdomState.stale)return {attempted:0,success:0,alreadyHandled:0,skipped:1,stale:1,kingdomCheck,kingdomChanged};
@@ -196,7 +165,7 @@ function summarizeWorkerResults(results){
  const topRedemptionFailures=Object.values(redemptionDiagnostics).sort((x,y)=>y.count-x.count).slice(0,8);
  const workerErrorDiagnostics=results.reduce((map,r)=>{
   if(!r?.error)return map;
-  const category=String(r.errorCategory||classifyError(r.error));
+  const category=String(r.errorCategory||classifyScraperError(r.error));
   const message=String(r.error).replace(/\\s+/g," ").trim().slice(0,240)||"Player processing failed.";
   const key=category+" / "+message;
   const existing=map[key]||{count:0,category,message};
