@@ -1,4 +1,5 @@
-import {redeemKingshot} from"../internal/kingshot/redeem.js";\nimport { revalidatePlayer, type KingdomValidationPlayer } from "../internal/kingshot/kingdom-validation.js";
+import {redeemKingshot} from"../internal/kingshot/redeem.js";
+import { revalidatePlayer, type KingdomValidationPlayer } from "../internal/kingshot/kingdom-validation.js";
 
 const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
 const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
