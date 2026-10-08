@@ -5,7 +5,7 @@ interface ResponseLike { status(code: number): ResponseLike; json(body: unknown)
 export default async function handler(req: RequestLike, res: ResponseLike): Promise<void> {
  if (req.method !== "GET") return void res.status(405).json({ error: "Method not allowed" });
  if (!rateLimit(req, res, "player-lookup", 30, 60000)) return;
- const id = normalizePlayerId(req.query?.id);
+ const id = normalizePlayerId(new URL(req.url || "/", "http://localhost").searchParams.get("id"));
  if (!isValidPlayerId(id)) return void res.status(400).json({ error: "Invalid player ID." });
  try { const player = await lookupPlayer(id); res.status(200).json({ player }); }
  catch (error) { const typed = error as PlayerLookupError;

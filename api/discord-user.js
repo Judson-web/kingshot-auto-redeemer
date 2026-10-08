@@ -2,7 +2,7 @@ export default async function handler(req,res){
   res.setHeader("Allow","GET");
   res.setHeader("Cache-Control","no-store, max-age=0");
   if(req.method!=="GET")return res.status(405).json({error:"Method not allowed."});
-  const id=String(req.query.id||"").trim();
+  const id=new URL(req.url||"/","http://localhost").searchParams.get("id")?.trim()||"";
   if(!/^\d{15,22}$/.test(id))return res.status(400).json({error:"Enter a valid Discord user ID."});
   const token=process.env.DISCORD_BOT_TOKEN;
   if(!token)return res.status(503).json({error:"Discord API access is not configured."});
