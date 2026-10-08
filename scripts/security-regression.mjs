@@ -10,7 +10,10 @@ function assertCheck(name,condition,detail=""){
 }
 
 const auto=read("api/kingshot-auto.js");
-const register=read("internal/kingshot/register.js");
+const worker=read("internal/kingshot/worker.ts");
+const workerCode=auto+"\n"+worker;
+const register=read("internal/kingshot/register.ts");
+const registerHandler=read("api/kingshot-register.ts");
 const support=read("lib/support.js");
 const adminData=read("lib/admin-data.js");
 const adminLogin=read("lib/admin-login.js");
@@ -41,14 +44,14 @@ assertCheck(
 assertCheck(
  "Worker pool fans redemption work across three internal shards",
  auto.includes("const WORKER_COUNT=3;") &&
- auto.includes("runWorkerShard") &&
+ workerCode.includes("runWorkerShard") &&
  auto.includes("Promise.all(assignments.map")
 );
 assertCheck(
  "Worker shards use durable per-slot claims",
- auto.includes('rpc("claim_kingshot_worker_slot"') &&
- auto.includes('rpc("finish_kingshot_worker_slot"') &&
- auto.includes("WORKER_REQUEST_TIMEOUT_MS=4*60*1000")
+ workerCode.includes("claim_kingshot_worker_slot") &&
+ workerCode.includes("finish_kingshot_worker_slot") &&
+ workerCode.includes("maxRuntimeMs")
 );
 assertCheck(
  "Worker shard endpoint requires internal authorization",
@@ -58,7 +61,7 @@ assertCheck(
 assertCheck(
  "Worker pool preserves bounded per-shard concurrency",
  auto.includes("const PLAYER_CONCURRENCY=6;") &&
- auto.includes("runWithConcurrency(assigned,p=>redeemForPlayer(p,codes),PLAYER_CONCURRENCY,{deadline})") &&
+ workerCode.includes("runWithConcurrency(assigned, player => redeemForPlayer(player, codes), options.concurrency, { deadline })") &&
  auto.includes("WORKER_MAX_RUNTIME_MS=4*60*1000")
 );
 assertCheck(
@@ -68,8 +71,8 @@ assertCheck(
 );
 assertCheck(
  "Worker summaries include per-code handling diagnostics",
- auto.includes("handledCodeCounts") &&
- auto.includes("codeCounts") &&
+ workerCode.includes("handledCodeCounts") &&
+ workerCode.includes("codeCounts") &&
  auto.includes("redemptionCode:item.code")
 );
 assertCheck(
@@ -113,13 +116,13 @@ assertCheck(
 assertCheck("Worker uses server-only Supabase credential",
  auto.includes("process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY"));
 assertCheck("Registration uses server-only Supabase credential",
- register.includes("process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY"));
+ /process\.env\.SUPABASE_SERVICE_ROLE_KEY\s*\|\|\s*process\.env\.SUPABASE_SECRET_KEY/.test(register));
 assertCheck("Support uses server-only Supabase credential",
  support.includes("process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY"));
 assertCheck("Worker has scheduler/authorization guard",
  /X-Kingshot-Scheduler-Token|KINGSHOT_SCHEDULER_TOKEN|scheduler/i.test(auto));
 assertCheck("Registration has request rate limiting",
- register.includes('rateLimit(req,res,"register",60,60000)'));
+ /rateLimit\(req,\s*res,\s*"register",\s*60,\s*60000\)/.test(registerHandler));
 assertCheck("Support has request rate limiting",
  support.includes('rateLimit(req,res,"support",6,60000)'));
 assertCheck("Admin login has request rate limiting",

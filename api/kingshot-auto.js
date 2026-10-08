@@ -1,4 +1,4 @@
-import {redeemKingshot} from"../lib/kingshot-redeem.js";
+import {redeemKingshot} from"../internal/kingshot/redeem.js";\nimport { revalidatePlayer, type KingdomValidationPlayer } from "../internal/kingshot/kingdom-validation.js";
 
 const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
 const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
@@ -23,168 +23,13 @@ async function rpc(name,body){
  return d;
 }
 
-const KNOWN_MIXED_CASE_CODES=new Set(["Kingshot888"]);
-function isLikelyGiftCode(value){
- const code=String(value||"").trim();
- if(!code||code.length<6||code.length>32)return false;
- // Kingshot codes are case-sensitive. Current codes are overwhelmingly
- // uppercase A-Z/digits; preserve the documented mixed-case legacy code.
- if(!/^[A-Z0-9]+$/.test(code)&&!KNOWN_MIXED_CASE_CODES.has(code))return false;
- if(/^u00[0-9a-f]+/i.test(code))return false;
- // Never accept obvious page/UI prose even if it happens to be uppercase.
- const blocked=new Set(["ACTIVE","EXPIRED","CONTINUE","COPYCODE","SIGNINTOREDEEM","SHARELINK","GIFTCODES","REDEEMGIFTCODE","GIFTCODE","LOADING","COMMUNITY","FEATURES","LATEST","CURRENT","POPULAR","PROFILE","PLAYER","KINGDOM","SERVER","MESSAGE","SETTINGS"]);
- if(blocked.has(code.toUpperCase()))return false;
- return true;
-}
-function normalizeCodes(data){
- const rows=Array.isArray(data?.data?.giftCodes)?data.data.giftCodes:[];
- const now=Date.now(),seen=new Set();
- return rows.map(row=>{
-  const code=String(row?.code||"").trim();
-  const expiresAt=row?.expiresAt?Date.parse(row.expiresAt):null;
-  const createdAt=row?.createdAt?Date.parse(row.createdAt):null;
-  if(!isLikelyGiftCode(code))return null;
-  if(expiresAt&&!Number.isNaN(expiresAt)&&expiresAt<=now)return null;
-  if(seen.has(code.toUpperCase()))return null;
-  seen.add(code.toUpperCase());
-  return {code,expiresAt,createdAt};
- }).filter(Boolean).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-}
-
-function decodeHtml(value){
- return String(value||"")
-  .replace(/&amp;/gi,"&")
-  .replace(/&quot;/gi,'"')
-  .replace(/&#39;/gi,"'")
-  .replace(/&lt;/gi,"<")
-  .replace(/&gt;/gi,">");
-}
-
-function cleanPageLines(html){
- const text=decodeHtml(String(html||"")
-  .replace(/<script[\s\S]*?<\/script>/gi," ")
-  .replace(/<style[\s\S]*?<\/style>/gi," ")
-  .replace(/<\/(?:p|div|section|article|li|h[1-6]|button|a|br|tr|td|header|footer)>/gi,"\n")
-  .replace(/<[^>]+>/g," "));
- return text
-  .split(/\r?\n/)
-  .map(line=>line.replace(/\s+/g," ").trim())
-  .filter(Boolean);
-}
-
-function extractPageCodes(html){
- const source=String(html||"");
- const seen=new Set(),rows=[];
- const add=(value,expiresAt=null)=>{
-  const code=decodeHtml(value).trim();
-  const key=code.toUpperCase();
-  if(!isLikelyGiftCode(code)||seen.has(key))return;
-  if(expiresAt&&!Number.isNaN(expiresAt)&&expiresAt<=Date.now())return;
-  seen.add(key);
-  rows.push({code,expiresAt,createdAt:0,source:"page"});
- };
-
- // Handle explicit code attributes/links if the page exposes them.
- for(const match of source.matchAll(/(?:data-code|data-gift-code|giftCode|gift_code|["']code["'])\s*[:=]\s*["']([A-Za-z0-9_-]{4,64})["']/gi))add(match[1]);
- for(const match of source.matchAll(/\/gift-codes\/redeem\?code=([A-Za-z0-9_-]{4,64})/gi))add(match[1]);
-
- // Otherwise parse only the visible Active Gift Codes card sequence.
- // Each active card is rendered as: Active -> CODE -> optional Expires: DATE.
- const lines=cleanPageLines(source);
- const start=lines.findIndex(line=>/^Active Gift Codes$/i.test(line));
- const end=lines.findIndex((line,index)=>index>start&&/^Expired Gift Codes$/i.test(line));
- if(start>=0){
-  const stop=end>start?end:lines.length;
-  for(let i=start+1;i<stop;i++){
-   if(!/^Active$/i.test(lines[i]))continue;
-   const codeLine=lines[i+1];
-   if(!codeLine)continue;
-   const expiryLine=lines[i+2]||"";
-   const expiryMatch=expiryLine.match(/^Expires:\s*(\d{1,2}\/\d{1,2}\/\d{4})$/i);
-   const expiresAt=expiryMatch?Date.parse(expiryMatch[1]+" 23:59:59 UTC"):null;
-   add(codeLine,expiresAt);
-  }
- }
- return rows;
-}
-function extractPublicSourceCodes(html,sourceName){
- const lines=cleanPageLines(html),rows=[],seen=new Set();
- const add=(value,expiresAt=null)=>{
-  const code=decodeHtml(value).trim(),key=code.toUpperCase();
-  if(!isLikelyGiftCode(code)||seen.has(key))return;
-  if(expiresAt&&!Number.isNaN(expiresAt)&&expiresAt<=Date.now())return;
-  seen.add(key);rows.push({code,expiresAt,createdAt:0,source:sourceName});
- };
- const startPatterns=[
-  /^Active Gift Codes:?$/i,/^Active Giftcodes:?$/i,/^All Kingshot codes:?$/i,
-  /^New valid gift codes for Kingshot:?$/i,/^Active Codes:?$/i,
-  /^Kingshot Gift Codes:?$/i,/^Working Gift Codes:?$/i,/^Current Gift Codes:?$/i,
-  /^Latest Gift Codes:?$/i,/^Valid Gift Codes:?$/i,/^Gift Codes:?$/i,
-  /^Working Kingshot Codes are:?$/i,/^Working Kingshot Codes:?$/i,
-  /^Active Kingshot codes:?$/i,/^Active Kingshot Gift Codes and Redeem Tool:?$/i,/^All New Kingshot Codes:?$/i
- ];
- const start=lines.findIndex(line=>startPatterns.some(p=>p.test(line)));
- // Some publishers render the code list inside structured data or code-copy
- // attributes instead of visible heading/row text. Prefer those explicit
- // signals before falling back to the visible section parser.
- for(const match of String(html||"").matchAll(/(?:data-(?:gift-)?code|(?:gift_?code|code))\s*[:=]\s*["']([A-Za-z0-9_-]{6,32})["']/gi)){
-  add(match[1]);
- }
- for(const match of String(html||"").matchAll(/(?:copy|redeem)[^<>]{0,80}\b([A-Z][A-Z0-9]{5,31})\b/gi)){
-  add(match[1]);
- }
- if(start<0)return rows;
- const endPatterns=[/^Expired Kingshot codes:?$/i,/^Expired Gift Codes:?$/i,/^Expired Codes:?$/i,/^Unavailable or Archived Codes:?$/i,/^How to Redeem/i,/^How to claim/i,/^How to use/i];
- let stop=lines.length;
- for(let i=start+1;i<lines.length;i++){if(endPatterns.some(p=>p.test(lines[i]))){stop=i;break;}}
- for(let i=start+1;i<stop;i++){
-  const line=lines[i].replace(/^[•*·▪]\s*/,"").replace(/^[`]|[`]$/g,"").trim();
-  const row=line.match(/^([A-Za-z0-9]{6,32})(?:\s+[–—-]\s+|\s+)(.*)$/);
-  if(row&&isLikelyGiftCode(row[1])){
-   const expiry=(row[2]||"").match(/expires?[^0-9]*(\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+\s+\d{4}|[A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{4})/i);
-   add(row[1],expiry?parseExternalExpiry(expiry[1]):null);continue;
-  }
-  const token=line.match(/^(?:`)?([A-Za-z][A-Za-z0-9]{5,31})(?:`)?$/);
-  if(token&&isLikelyGiftCode(token[1])){
-   const next=(lines[i+1]||"")+" "+(lines[i+2]||"");
-   const expiry=next.match(/expires?[^0-9]*(\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+\s+\d{4}|[A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{4})/i);
-   add(token[1],expiry?parseExternalExpiry(expiry[1]):null);
-  }
- }
- return rows;
-}
-function parseExternalExpiry(value){
- const raw=String(value||"").replace(/(\d)(st|nd|rd|th)\b/gi,"$1").replace(/,/g,"").trim();
- const parsed=Date.parse(raw+" 23:59:59 UTC");return Number.isNaN(parsed)?null:parsed;
-}
-function mergeCodes(sources){
- const map=new Map();
- for(const row of sources.flat()){
-  const key=row.code.toUpperCase(),existing=map.get(key);
-  if(existing){
-   const sourceSet=new Set([...(existing.sources||[existing.source]),row.source]);
-   map.set(key,{...existing,expiresAt:existing.expiresAt||row.expiresAt,createdAt:existing.createdAt||row.createdAt,source:sourceSet.size>1?"multiple":existing.source,sources:[...sourceSet]});
-  }else map.set(key,{...row,sources:[row.source]});
- }
- return [...map.values()].filter(row=>!row.expiresAt||Number.isNaN(row.expiresAt)||row.expiresAt>Date.now()).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-}
+import {extractPageCodes, extractPublicSourceCodes, mergeCodes, normalizeCodes} from "../internal/kingshot/gift-codes.js";
 
 const HANDLED_STATUSES=new Set(["SUCCESS","RECEIVED","SAME TYPE EXCHANGE","TIME_ERROR","CDK_NOT_FOUND","USAGE_LIMIT"]);
 const WORKER_COUNT=3;
 const PLAYER_CONCURRENCY=6;
-// Kingdom-reset validation has its own upstream-aware lane limit. Redemption
-// concurrency stays at 6; only the daily MightPulse validation burst is paced.
 const KINGDOM_VALIDATION_CONCURRENCY=3;
-const MIGHTPULSE_RATE_LIMIT_BACKOFF_MS=[15000,30000,60000];
-// Keep each shard bounded so a slow upstream cannot pin a Vercel invocation.
-// A player redemption can take up to 30s at the upstream boundary, so 4m gives
-// the six-lane pool enough room for normal bursts while leaving recovery time.
 const WORKER_MAX_RUNTIME_MS=4*60*1000;
-const WORKER_REQUEST_TIMEOUT_MS=4*60*1000;
-const UPSTREAM_RETRYABLE=/timeout|timed out|abort|429|rate limit|too many requests|502|503|504/i;
-const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-const KINGDOM_RESET_HOUR=5;
-const KINGDOM_RESET_MINUTE=30;
 const DISCORD_WEBHOOK_URL=process.env.DISCORD_KINGSHOT_WEBHOOK_URL||process.env.DISCORD_SCRAPER_WEBHOOK_URL;
 async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
  if(!DISCORD_WEBHOOK_URL)return;
@@ -220,244 +65,10 @@ async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
  return false;
 }
 
-function getKingshotResetBoundary(now=Date.now()){
- const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date(now));
- const values=Object.fromEntries(parts.map(part=>[part.type,part.value]));
- const year=Number(values.year),month=Number(values.month),day=Number(values.day),hour=Number(values.hour),minute=Number(values.minute);
- const afterReset=hour>KINGDOM_RESET_HOUR||(hour===KINGDOM_RESET_HOUR&&minute>=KINGDOM_RESET_MINUTE);
- const dateKey=year+"-"+String(month).padStart(2,"0")+"-"+String(day).padStart(2,"0");
- return {dateKey,afterReset};
-}
-
-function needsKingdomResetCheck(lastCheckedAt,now=Date.now()){
- if(!lastCheckedAt)return true;
- const last=Date.parse(lastCheckedAt);
- if(Number.isNaN(last))return true;
- const current=getKingshotResetBoundary(now);
- const previous=getKingshotResetBoundary(last);
- if(current.dateKey!==previous.dateKey)return current.afterReset;
- return current.afterReset&&!previous.afterReset;
-}
-
-async function fetchCurrentKingshotPlayer(playerId){
- const key=process.env.MIGHTPULSE_API_KEY||process.env.KSS_API_KEY;
- if(!key)throw Error("MightPulse API key is not configured on the server.");
- let lastError=null;
- for(let attempt=0;attempt<3;attempt++){
-  try{
-   const r=await fetch("https://api.mightpulse.com/v1/players/"+encodeURIComponent(playerId)+"?include=base",{
-    headers:{Authorization:"Bearer "+key},
-    signal:AbortSignal.timeout(15000)
-   });
-   const d=await r.json().catch(()=>({}));
-   if(r.status===404)return {notFound:true};
-   if(!r.ok){
-    const error=Error(d?.message||d?.error||"MightPulse revalidation failed.");
-    error.status=r.status;
-    const retryAfter=Number(r.headers.get("retry-after")||"0");
-    if(Number.isFinite(retryAfter)&&retryAfter>0)error.retryAfterMs=Math.min(90000,retryAfter*1000);
-    throw error;
-   }
-   return {player:d.player||d};
-  }catch(error){
-   lastError=error;
-   const status=Number(error?.status||0);
-   const message=String(error?.message||"");
-   const rateLimited=status===429||/rate[_ -]?limited|rate limit|too many requests/i.test(message);
-   const retryable=UPSTREAM_RETRYABLE.test(message)||[429,502,503,504].includes(status);
-   if(attempt<2&&retryable){
-    if(rateLimited){
-     const base=MIGHTPULSE_RATE_LIMIT_BACKOFF_MS[Math.min(attempt,MIGHTPULSE_RATE_LIMIT_BACKOFF_MS.length-1)];
-     const jitter=Math.floor(Math.random()*2000);
-     await sleep(Math.min(90000,Number(error?.retryAfterMs)||base)+jitter);
-    }else{
-     await sleep(750*(attempt+1));
-    }
-    continue;
-   }
-   throw error;
-  }
- }
- throw lastError||Error("MightPulse revalidation failed.");
-}
-
-async function claimKingdomResetCheck(player){
- if(!needsKingdomResetCheck(player.last_kingdom_check_at))return false;
- const result=await rpc("claim_kingshot_kingdom_reset_check",{p_player_id:player.player_id});
- return Boolean(result?.claimed);
-}
-
-async function ensureCurrentKingdom(player){
- if(!(await claimKingdomResetCheck(player)))return {player,revalidated:false};
- let claimed=true;
- try{
-  const fresh=await fetchCurrentKingshotPlayer(player.player_id);
-  if(fresh.notFound){
-   await rpc("mark_kingshot_player_stale",{p_player_id:player.player_id,p_reason:"MIGHTPULSE_PLAYER_NOT_FOUND"});
-   await sendDiscordEvent({title:"🗑️ Deleted Kingshot account filtered",description:"The scheduled kingdom-reset revalidation could not find this registered player. The registration is now stale and excluded from future auto-redeem cycles.",fields:[{name:"Player ID",value:String(player.player_id),inline:true},{name:"Last kingdom",value:String(player.kingdom_id||"Unknown"),inline:true},{name:"Check",value:"Reset-cycle player revalidation",inline:true}],color:0xFEE75C});
-   return {stale:true};
-  }
-  const p=fresh.player||{};
-  const currentKingdom=String(p.kid??p.kingdom_id??"").replace(/\D/g,"");
-  if(!currentKingdom)throw Error("MightPulse returned no kingdom for this player.");
-  const result=await rpc("record_kingshot_kingdom_revalidation",{
-   p_player_id:player.player_id,
-   p_kingdom_id:currentKingdom,
-   p_player_name:p.nick_name||p.name||p.nickname||null,
-   p_avatar_url:p.avatar_url||p.avatar||p.avatarUrl||null
-  });
-  const updated=result?.player||player;
-  claimed=false;
-  if(result?.kingdom_changed){
-   console.log("Kingshot kingdom changed:",{playerId:player.player_id,from:result.old_kingdom_id,to:result.new_kingdom_id});
-   await sendDiscordEvent({title:"🔄 Kingdom changed",description:"A registered player's current Kingshot kingdom changed.",fields:[{name:"Player ID",value:String(player.player_id),inline:true},{name:"Previous",value:String(result.old_kingdom_id||"Unknown"),inline:true},{name:"Current",value:String(result.new_kingdom_id||currentKingdom),inline:true}],color:0x5865F2});
-  }
-  return {player:updated,revalidated:true,kingdomChanged:Boolean(result?.kingdom_changed)};
- }catch(error){
-  if(claimed)await rpc("release_kingshot_kingdom_reset_check",{p_player_id:player.player_id}).catch(releaseError=>console.error("Kingdom check claim release failed:",releaseError?.message||releaseError));
-  throw error;
- }
-}
-async function revalidatePlayer(player,{force=false}={}){
- try{
-  // Forced/manual checks deliberately bypass the reset-cycle claim/cooldown.
-  // They still use the same MightPulse fetch and Supabase revalidation RPC,
-  // but never enter the redemption path.
-  if(force){
-   const fresh=await fetchCurrentKingshotPlayer(player.player_id);
-   if(fresh.notFound){
-    await rpc("mark_kingshot_player_stale",{p_player_id:player.player_id,p_reason:"MIGHTPULSE_PLAYER_NOT_FOUND"});
-    return {stale:true};
-   }
-   const p=fresh.player||{};
-   const currentKingdom=String(p.kid??p.kingdom_id??"").replace(/\D/g,"");
-   if(!currentKingdom)throw Error("MightPulse returned no kingdom for this player.");
-   const result=await rpc("record_kingshot_kingdom_revalidation",{
-    p_player_id:player.player_id,
-    p_kingdom_id:currentKingdom,
-    p_player_name:p.nick_name||p.name||p.nickname||null,
-    p_avatar_url:p.avatar_url||p.avatar||p.avatarUrl||null
-   });
-   if(result?.kingdom_changed){
-    console.log("Kingshot manual kingdom changed:",{playerId:player.player_id,from:result.old_kingdom_id,to:result.new_kingdom_id});
-    await sendDiscordEvent({title:"🔄 Kingdom changed",description:"A manual kingdom check detected a registered player's kingdom change.",fields:[{name:"Player ID",value:String(player.player_id),inline:true},{name:"Previous",value:String(result.old_kingdom_id||"Unknown"),inline:true},{name:"Current",value:String(result.new_kingdom_id||currentKingdom),inline:true}],color:0x5865F2});
-   }
-   return {player:result?.player||player,revalidated:true,kingdomChanged:Boolean(result?.kingdom_changed)};
-  }
-
-  if(!player?.kingdom_id){
-   const fresh=await fetchCurrentKingshotPlayer(player.player_id);
-   if(fresh.notFound){
-    await rpc("mark_kingshot_player_stale",{p_player_id:player.player_id,p_reason:"MIGHTPULSE_PLAYER_NOT_FOUND"});
-    return {stale:true};
-   }
-   const p=fresh.player||{};
-   const currentKingdom=String(p.kid??p.kingdom_id??"").replace(/\D/g,"");
-   if(!currentKingdom)throw Error("MightPulse returned no kingdom for this player.");
-   const result=await rpc("record_kingshot_kingdom_revalidation",{
-    p_player_id:player.player_id,
-    p_kingdom_id:currentKingdom,
-    p_player_name:p.nick_name||p.name||p.nickname||null,
-    p_avatar_url:p.avatar_url||p.avatar||p.avatarUrl||null
-   });
-   player=result?.player||player;
-  }
-  const kingdomState=await ensureCurrentKingdom(player);
-  if(kingdomState.stale)return {stale:true};
-  return {
-   player:kingdomState.player||player,
-   revalidated:Boolean(kingdomState.revalidated),
-   kingdomChanged:Boolean(kingdomState.kingdomChanged)
-  };
- }catch(error){
-  console.error("Kingshot player validation failed:",player?.player_id,error?.message||error);
-  return {revalidationError:1};
- }
-}
-
-async function updateScraperHealth(source,codeCount,error=null){
- try{
-  // Keep scraper health/history in Supabase, but do not spam Discord with
-  // per-source zero-code alerts. The primary API/page and merged feed remain
-  // observable through worker logs and scraper-run history.
-  await rpc("record_kingshot_scraper_health",{p_source:source,p_code_count:codeCount,p_error:error});
- }catch(error){console.error("Scraper health update failed:",source,error?.message||error)}
-}
-
-function classifyError(error){const m=String(error?.message||error||"").toLowerCase();if(/timeout|timed out|abort/.test(m))return"TIMEOUT";if(/unauthorized|forbidden|401|403/.test(m))return"AUTH";if(/429|rate limit|too frequent/.test(m))return"RATE_LIMIT";if(/404|not found/.test(m))return"NOT_FOUND";if(/parse|json|invalid api response/.test(m))return"PARSE";if(/supabase|database|rpc/.test(m))return"DATABASE";if(/mightpulse|player/.test(m))return"UPSTREAM_PLAYER";if(/kingshot|gift|redemption/.test(m))return"UPSTREAM_REDEMPTION";return"UNKNOWN"}
-async function recordScraperRun(source,httpStatus,codes,parseOk,error){await rpc("kingshot_record_scraper_run",{p_source:source,p_http_status:httpStatus,p_code_count:Array.isArray(codes)?codes.length:0,p_codes:Array.isArray(codes)?codes.map(x=>x.code):[],p_parse_ok:Boolean(parseOk),p_error_category:error?classifyError(error):null,p_error_message:error?.message||error||null}).catch(()=>{});}
-
-async function fetchSource(url,kind){
- const sourceName=kind==="api"?"kingshot-api":kind==="page"?"kingshot-page":kind==="aggregator"?"whiteout-bot-aggregator":kind.slice(7);
- try{
-  let response=null,lastError=null;
-  for(let attempt=0;attempt<3;attempt++){
-   try{
-    response=await fetch(url,{headers:kind==="api"||kind==="aggregator"
-     ?{"accept":"application/json","user-agent":"Nex-Kingshot-Redeemer/1.1",...(kind==="aggregator"?{"X-API-Key":String(process.env.KINGSHOT_AGGREGATOR_API_KEY||"")}:{})}
-     :{"accept":"text/html,application/xhtml+xml","accept-language":"en-US,en;q=0.9","cache-control":"no-cache","user-agent":"Mozilla/5.0 (compatible; Nex-Kingshot-Redeemer/1.1; +https://kingshot-autoredeemer.vercel.app/)"},
-     signal:AbortSignal.timeout(15000)});
-    if(response.ok||![408,425,429,500,502,503,504].includes(response.status))break;
-    lastError=Error("HTTP "+response.status);
-   }catch(error){lastError=error}
-   if(attempt<2)await sleep(700*(attempt+1));
-  }
-  if(!response){
-   await recordScraperRun(sourceName,null,[],false,lastError||Error("Source request failed"));
-   await updateScraperHealth(sourceName,0,lastError?.message||"Source request failed");
-   return kind==="api"||kind==="aggregator"?{data:null,codes:[],ok:false,httpStatus:null,error:lastError?.message||"Source request failed",source:sourceName}:{html:"",codes:[],ok:false,httpStatus:null,error:lastError?.message||"Source request failed",source:sourceName};
-  }
-  const body=await response.text();
-  if(!response.ok){const error=Error("HTTP "+response.status);await recordScraperRun(sourceName,response.status,[],false,error);await updateScraperHealth(sourceName,0,error.message);return kind==="api"||kind==="aggregator"?{data:null,codes:[],ok:false,httpStatus:response?.status||null,error:"HTTP "+response.status,source:sourceName}:{html:"",codes:[],ok:false,httpStatus:response?.status||null,error:"HTTP "+response.status,source:sourceName};}
-  if(kind==="api"||kind==="aggregator"){
-   let data=null;try{data=JSON.parse(body)}catch{}
-   const valid=data&&(kind==="api"?data?.status==="success":Array.isArray(data?.codes));
-   const codes=valid?(kind==="api"?normalizeCodes(data):extractAggregatorCodes(data)):[];
-   const parseError=valid?null:Error("Invalid API response");
-   await updateScraperHealth(sourceName,codes.length,parseError?.message||null);
-   await recordScraperRun(sourceName,response.status,codes,Boolean(valid),parseError);
-   return {data,codes,ok:Boolean(valid),httpStatus:response.status,error:parseError?.message||null,source:sourceName};
-  }
-  const codes=kind==="page"?extractPageCodes(body):extractPublicSourceCodes(body,sourceName);
-  await updateScraperHealth(sourceName,codes.length,null);
-  await recordScraperRun(sourceName,response.status,codes,true,null);
-  return {html:body,codes,ok:true,httpStatus:response.status,error:null,source:sourceName};
- }catch(error){
-  await updateScraperHealth(sourceName,0,error?.message||"Source request failed");
-  await recordScraperRun(sourceName,null,[],false,error);
-  return kind==="api"||kind==="aggregator"?{data:null,codes:[],ok:false,httpStatus:null,error:error?.message||"Source request failed",source:sourceName}:{html:"",codes:[],ok:false,httpStatus:null,error:error?.message||"Source request failed",source:sourceName};
- }
-
-}
-
+import { fetchSource, classifyScraperError } from "../internal/kingshot/scraper.js";
+import { runWithConcurrency, runWorkerShard, workerBucket } from "../internal/kingshot/worker.js";
 async function redeemForPlayer(player,codes){
- // New registrations may not have a kingdom yet. Populate it immediately
- // instead of waiting for the next daily reset revalidation.
- if(!player.kingdom_id){
-  try{
-   const fresh=await fetchCurrentKingshotPlayer(player.player_id);
-   if(fresh.notFound){
-    await rpc("mark_kingshot_player_stale",{p_player_id:player.player_id,p_reason:"MIGHTPULSE_PLAYER_NOT_FOUND"});
-    await sendDiscordEvent({title:"🗑️ Deleted Kingshot account filtered",description:"A newly registered player could not be found during initial validation and was excluded from auto-redeem.",fields:[{name:"Player ID",value:String(player.player_id),inline:true}],color:0xFEE75C});
-    return {attempted:0,success:0,alreadyHandled:0,skipped:1,stale:1};
-   }
-   const p=fresh.player||{};
-   const currentKingdom=String(p.kid??p.kingdom_id??"").replace(/\D/g,"");
-   if(!currentKingdom)throw Error("MightPulse returned no kingdom for this player.");
-   const result=await rpc("record_kingshot_kingdom_revalidation",{
-    p_player_id:player.player_id,
-    p_kingdom_id:currentKingdom,
-    p_player_name:p.nick_name||p.name||p.nickname||null,
-    p_avatar_url:p.avatar_url||p.avatar||p.avatarUrl||null
-   });
-   player=result?.player||player;
-   console.log("Kingshot initial player validation:",{playerId:player.player_id,kingdomId:player.kingdom_id});
-  }catch(error){
-   console.error("Initial Kingshot player validation failed:",player.player_id,error?.message||error);
-   return {attempted:0,success:0,alreadyHandled:0,skipped:1,revalidationError:1};
-  }
- }
- const kingdomState=await ensureCurrentKingdom(player);
+const kingdomState=await revalidatePlayer(player,{rpc,notify:sendDiscordEvent});
  const kingdomCheck=Boolean(kingdomState.revalidated);
  const kingdomChanged=Boolean(kingdomState.kingdomChanged);
  if(kingdomState.stale)return {attempted:0,success:0,alreadyHandled:0,skipped:1,stale:1,kingdomCheck,kingdomChanged};
@@ -495,142 +106,6 @@ async function redeemForPlayer(player,codes){
  return {attempted:1,success:status==="SUCCESS"?1:0,alreadyReceived:status==="RECEIVED"?1:0,alreadyHandled:0,skipped:0,kingdomCheck,kingdomChanged,redemptionCode:item.code,redemptionStatus:status,redemptionErrorCategory:d?.errorCategory||null,redemptionErrCode:d?.errCode??null,redemptionMessage:message?String(message).slice(0,240):null,redemptionTelemetry};
 }
 
-async function runWithConcurrency(players,fn,limit,{deadline=Infinity}={}){
- const results=new Array(players.length);
- let next=0;
- let deadlineSkipped=0;
- async function worker(){
-  while(true){
-   const i=next++;
-   if(i>=players.length)return;
-   if(Date.now()>=deadline){
-    deadlineSkipped++;
-    results[i]={attempted:0,success:0,alreadyHandled:0,skipped:1,deadlineSkipped:1};
-    continue;
-   }
-   try{results[i]=await fn(players[i])}catch(error){results[i]={error:error?.message||"Player processing failed",errorCategory:classifyError(error)}}
-  }
- }
- await Promise.all(Array.from({length:Math.min(limit,players.length)},worker));
- if(deadlineSkipped)console.warn("Kingshot worker shard deadline reached; deferred players:",deadlineSkipped);
- return results;
-}
-
-function workerBucket(value){
- const input=String(value||"");
- let hash=2166136261;
- for(let i=0;i<input.length;i++){
-  hash^=input.charCodeAt(i);
-  hash=Math.imul(hash,16777619);
- }
- return (hash>>>0)%WORKER_COUNT;
-}
-
-function summarizeWorkerResults(results){
- const redemptionDiagnostics=results.reduce((map,r)=>{
-  if(!r?.redemptionStatus)return map;
-  const status=String(r.redemptionStatus).toUpperCase();
-  if(status==="SUCCESS"||status==="RECEIVED"||status==="SAME TYPE EXCHANGE")return map;
-  const category=String(r.redemptionErrorCategory||"UNKNOWN");
-  const errCode=r.redemptionErrCode==null?"none":String(r.redemptionErrCode);
-  const key=category+" / "+errCode+" / "+status;
-  const existing=map[key]||{count:0,category,errCode,status,message:r.redemptionMessage||null};
-  existing.count++;
-  if(!existing.message&&r.redemptionMessage)existing.message=r.redemptionMessage;
-  map[key]=existing;
-  return map;
- },{});
- const statusCounts=results.reduce((map,r)=>{
-  if(!r?.redemptionStatus)return map;
-  const status=String(r.redemptionStatus).toUpperCase();
-  map[status]=(map[status]||0)+1;
-  return map;
- },{});
- const topRedemptionFailures=Object.values(redemptionDiagnostics).sort((x,y)=>y.count-x.count).slice(0,8);
- const workerErrorDiagnostics=results.reduce((map,r)=>{
-  if(!r?.error)return map;
-  const category=String(r.errorCategory||classifyError(r.error));
-  const message=String(r.error).replace(/\\s+/g," ").trim().slice(0,240)||"Player processing failed.";
-  const key=category+" / "+message;
-  const existing=map[key]||{count:0,category,message};
-  existing.count++;
-  map[key]=existing;
-  return map;
- },{});
- const topWorkerErrors=Object.values(workerErrorDiagnostics).sort((a,b)=>b.count-a.count).slice(0,8);
- const codeTelemetry=results.reduce((map,r)=>{
-  const t=r?.redemptionTelemetry;
-  if(!t?.code)return map;
-  const code=String(t.code);
-  const existing=map[code]||{attempts:0,successes:0,firstResultAt:null,firstSuccessAt:null,firstResultLatencyMs:null,totalRedemptionLatencyMs:0};
-  existing.attempts++;
-  if(t.status==="SUCCESS"){existing.successes++;if(!existing.firstSuccessAt||t.resultAt<existing.firstSuccessAt)existing.firstSuccessAt=t.resultAt;}
-  if(!existing.firstResultAt||t.resultAt<existing.firstResultAt){existing.firstResultAt=t.resultAt;existing.firstResultLatencyMs=Number.isFinite(t.discoveryToResultMs)?t.discoveryToResultMs:null;}
-  existing.totalRedemptionLatencyMs+=Number(t.redemptionLatencyMs||0);
-  map[code]=existing;
-  return map;
- },{});
- for(const value of Object.values(codeTelemetry)){value.avgRedemptionLatencyMs=value.attempts?Math.round(value.totalRedemptionLatencyMs/value.attempts):null;delete value.totalRedemptionLatencyMs;}
- const codeCounts=results.reduce((map,r)=>{
-  for(const [code,count] of Object.entries(r?.handledCodeCounts||{}))map[code]=(map[code]||0)+Number(count||0);
-  if(r?.redemptionCode){
-   const code=String(r.redemptionCode);
-   const status=String(r.redemptionStatus||"UNKNOWN").toUpperCase();
-   map[code]=map[code]||0;
-   map[code+"_status_"+status]=(map[code+"_status_"+status]||0)+1;
-  }
-  return map;
- },{});
- return {
-  attempted:results.reduce((n,r)=>n+(r?.attempted||0),0),
-  success:results.reduce((n,r)=>n+(r?.success||0),0),
-  alreadyHandled:results.reduce((n,r)=>n+(r?.alreadyHandled||0),0),
-  alreadyReceived:results.reduce((n,r)=>n+(r?.alreadyReceived||0),0),
-  skipped:results.reduce((n,r)=>n+(r?.skipped||0),0),
-  errors:results.reduce((n,r)=>n+(r?.error?1:0),0),
-  stale:results.reduce((n,r)=>n+(r?.stale?1:0),0),
-  redemptionStatuses:statusCounts,
-  codeCounts,
-  codeTelemetry,
-  redemptionFailures:topRedemptionFailures,
-  workerErrors:topWorkerErrors
- };
-}
-
-async function runWorkerShard(slot,codes,players){
- const claim=await rpc("claim_kingshot_worker_slot",{p_slot:slot});
- if(!claim?.claimed){
-  return {slot,claimed:false,skipped:true,reason:claim?.reason||"SLOT_ALREADY_RUNNING"};
- }
- const workerToken=claim.token;
- try{
-  const assigned=(Array.isArray(players)?players:[]).filter(player=>workerBucket(player?.player_id)===slot);
-  const deadline=Date.now()+WORKER_MAX_RUNTIME_MS;
-  const results=await runWithConcurrency(assigned,p=>redeemForPlayer(p,codes),PLAYER_CONCURRENCY,{deadline});
-  const totals=summarizeWorkerResults(results);
-  totals.deadlineSkipped=results.reduce((n,r)=>n+(r?.deadlineSkipped||0),0);
-  const summary={slot,players:assigned.length,...totals};
-  await rpc("finish_kingshot_worker_slot",{
-   p_slot:slot,
-   p_token:workerToken,
-   p_status:totals.errors||totals.stale?"COMPLETED_WITH_WARNINGS":"COMPLETED",
-   p_error:null,
-   p_summary:summary
-  }).catch(error=>console.error("Worker slot state update failed:",slot,error?.message||error));
-  console.log("Kingshot worker shard:",summary);
-  return {claimed:true,...summary};
- }catch(error){
-  await rpc("finish_kingshot_worker_slot",{
-   p_slot:slot,
-   p_token:workerToken,
-   p_status:"FAILED",
-   p_error:error?.message||"Worker shard failed.",
-   p_summary:{slot,errorCategory:classifyError(error)}
-  }).catch(releaseError=>console.error("Worker slot failure state update failed:",slot,releaseError?.message||releaseError));
-  throw error;
- }
-}
-
 export default async function handler(req,res){
  if(!["GET","POST"].includes(req.method))return res.status(405).json({error:"Method not allowed"});
  const cycleStartedAt=Date.now();
@@ -654,11 +129,11 @@ export default async function handler(req,res){
   const codes=Array.isArray(body?.codes)?body.codes:[];
   const players=Array.isArray(body?.players)?body.players:[];
   try{
-   const result=await runWorkerShard(slot,codes,players);
+   const result=await runWorkerShard(slot,codes,players,{rpc,redeemForPlayer},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
    return res.status(200).json({ok:true,...result});
   }catch(error){
    console.error("Kingshot worker shard:",slot,error);
-   return res.status(502).json({error:error?.message||"Worker shard failed.",errorCategory:classifyError(error),slot});
+   return res.status(502).json({error:error?.message||"Worker shard failed.",errorCategory:classifyScraperError(error),slot});
   }
  }
 
@@ -682,7 +157,7 @@ export default async function handler(req,res){
 
    const players=await rpc("list_kingshot_autoredeem_players",{});
    const list=Array.isArray(players)?players:[];
-   const results=await runWithConcurrency(list,player=>revalidatePlayer(player,{force:true}),KINGDOM_VALIDATION_CONCURRENCY);
+   const results=await runWithConcurrency(list,player=>revalidatePlayer(player,{rpc,notify:sendDiscordEvent},{force:true}),KINGDOM_VALIDATION_CONCURRENCY);
    const summary=results.reduce((a,result)=>{
     if(result?.revalidationError){a.errors++;return a;}
     if(result?.stale){a.stale++;return a;}
@@ -711,8 +186,8 @@ export default async function handler(req,res){
    return res.status(200).json({ok:true,mode:"kingdom-check",forced:true,...summary,players:list.length});
   }catch(error){
    console.error("Manual kingdom check failed:",error);
-   if(manualWorkerToken)await rpc("finish_kingshot_worker_run",{p_token:manualWorkerToken,p_status:"FAILED",p_error:error?.message||"Manual kingdom check failed.",p_summary:{mode:"kingdom-check",errorCategory:classifyError(error)}}).catch(releaseError=>console.error("Manual worker failure state update failed:",releaseError?.message||releaseError));
-   return res.status(502).json({ok:false,mode:"kingdom-check",error:error?.message||"Manual kingdom check failed.",errorCategory:classifyError(error)});
+   if(manualWorkerToken)await rpc("finish_kingshot_worker_run",{p_token:manualWorkerToken,p_status:"FAILED",p_error:error?.message||"Manual kingdom check failed.",p_summary:{mode:"kingdom-check",errorCategory:classifyScraperError(error)}}).catch(releaseError=>console.error("Manual worker failure state update failed:",releaseError?.message||releaseError));
+   return res.status(502).json({ok:false,mode:"kingdom-check",error:error?.message||"Manual kingdom check failed.",errorCategory:classifyScraperError(error)});
   }
  }
 
@@ -723,9 +198,9 @@ export default async function handler(req,res){
   workerToken=lock.token;
   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
   const [apiSource,pageSource,publicSources,adminRows]=await Promise.all([
-   fetchSource(GIFT_SOURCE_URL,"api"),
-   fetchSource("https://kingshot.net/gift-codes","page"),
-   Promise.all(PUBLIC_GIFT_SOURCES.map(source=>fetchSource(source.url,"public:"+source.name))),
+   fetchSource(rpc,GIFT_SOURCE_URL,"api"),
+   fetchSource(rpc,"https://kingshot.net/gift-codes","page"),
+   Promise.all(PUBLIC_GIFT_SOURCES.map(source=>fetchSource(rpc,source.url,"public:"+source.name))),
    rpc("list_kingshot_admin_gift_codes",{})
   ]);
   const data=apiSource.data;
@@ -780,7 +255,7 @@ export default async function handler(req,res){
   // starts. This prevents the 05:30 IST reset burst from competing with the
   // three redemption shards for Supabase/MightPulse capacity.
   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
-  const kingdomResults=await runWithConcurrency(list,player=>revalidatePlayer(player),KINGDOM_VALIDATION_CONCURRENCY);
+  const kingdomResults=await runWithConcurrency(list,player=>revalidatePlayer(player,{rpc,notify:sendDiscordEvent}),KINGDOM_VALIDATION_CONCURRENCY);
   const validPlayers=[];
   const kingdomSummary=kingdomResults.reduce((a,result)=>{
    if(result?.revalidationError){
@@ -818,7 +293,7 @@ export default async function handler(req,res){
   else throw Error("No internal worker authorization is configured.");
 
   const assignments=Array.from({length:WORKER_COUNT},()=>[]);
-  for(const player of validPlayers)assignments[workerBucket(player?.player_id)].push(player);
+  for(const player of validPlayers)assignments[workerBucket(player?.player_id,WORKER_COUNT)].push(player);
   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
   const workerRuns=await Promise.all(assignments.map(async(assigned,workerIndex)=>{
    try{
@@ -833,7 +308,7 @@ export default async function handler(req,res){
     return payload;
    }catch(error){
     console.error("Kingshot worker fan-out failed:",workerIndex,error?.message||error);
-    return {slot:workerIndex,claimed:false,error:error?.message||"Worker shard failed.",errorCategory:classifyError(error),players:assigned.length};
+    return {slot:workerIndex,claimed:false,error:error?.message||"Worker shard failed.",errorCategory:classifyScraperError(error),players:assigned.length};
    }
   }));
   const workerFailures=workerRuns.filter(result=>result?.error||result?.claimed===false&&result?.reason!=="SLOT_ALREADY_RUNNING");
@@ -899,8 +374,8 @@ export default async function handler(req,res){
   return res.status(200).json({ok:true,...summary});
  }catch(e){
   console.error("Kingshot auto redeem:",e);
-  if(workerToken)await rpc("finish_kingshot_worker_run",{p_token:workerToken,p_status:"FAILED",p_error:e?.message||"Auto redemption failed.",p_summary:{errorCategory:classifyError(e)}}).catch(error=>console.error("Worker failure state update failed:",error?.message||error));
+  if(workerToken)await rpc("finish_kingshot_worker_run",{p_token:workerToken,p_status:"FAILED",p_error:e?.message||"Auto redemption failed.",p_summary:{errorCategory:classifyScraperError(e)}}).catch(error=>console.error("Worker failure state update failed:",error?.message||error));
   await sendDiscordEvent({title:"❌ Auto-redeem worker error",description:e?.message||"Auto redemption failed.",color:0xED4245});
-  return res.status(502).json({error:e.message||"Auto redemption failed.",errorCategory:classifyError(e)});
+  return res.status(502).json({error:e.message||"Auto redemption failed.",errorCategory:classifyScraperError(e)});
  }
 }

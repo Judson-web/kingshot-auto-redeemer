@@ -58,7 +58,7 @@ export async function getPlayer(playerId: string): Promise<KingshotPlayer> {
     error.status = response.status;
     throw error;
   }
-  return data.player || data;
+  return data.player || (data as KingshotPlayer);
 }
 
 export async function verifyKingdom(playerId: string): Promise<KingdomVerification> {
@@ -69,7 +69,7 @@ export async function verifyKingdom(playerId: string): Promise<KingdomVerificati
       data?.message || data?.error || "Could not verify the player kingdom."
     );
   }
-  const player = data.player || data;
+  const player = data.player || (data as KingshotPlayer);
   const kingdomId = String(player.kid ?? player.kingdom_id ?? "").replace(/\D/g, "");
   if (!kingdomId) throw new Error("Kingdom verification returned no kingdom.");
   return {

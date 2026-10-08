@@ -1,4 +1,4 @@
-import {redeemKingshot} from"../lib/kingshot-redeem.js";
+import {redeemKingshot} from"../internal/kingshot/redeem.js";
 import {rateLimit} from"../lib/request-rate-limit.js";
 
 export default async function handler(req,res){
