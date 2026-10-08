@@ -1,4 +1,5 @@
 import {rateLimit}from"../../lib/request-rate-limit.js";
+import {verifyKingdom}from"./mightpulse.js";
 
 const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
 const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
@@ -10,19 +11,6 @@ async function rpc(name,body){
  const d=await r.json().catch(()=>null);
  if(!r.ok)throw Error(d?.message||"Supabase request failed.");
  return Array.isArray(d)?d[0]:d;
-}
-
-async function verifyKingdom(playerId){
- const key=process.env.MIGHTPULSE_API_KEY||process.env.KSS_API_KEY;
- if(!key)throw Error("MightPulse API key is not configured on the server.");
- const r=await fetch("https://api.mightpulse.com/v1/players/"+encodeURIComponent(playerId)+"?include=base",{headers:{Authorization:"Bearer "+key},signal:AbortSignal.timeout(15000)});
- const d=await r.json().catch(()=>({}));
- if(r.status===404)return {notFound:true};
- if(!r.ok)throw Error(d?.message||d?.error||"Could not verify the player kingdom.");
- const p=d.player||d;
- const currentKingdom=String(p.kid??p.kingdom_id??"").replace(/\D/g,"");
- if(!currentKingdom)throw Error("Kingdom verification returned no kingdom.");
- return {kingdomId:currentKingdom,name:p.nick_name||p.name||p.nickname||null,avatarUrl:p.avatar_url||p.avatar||p.avatarUrl||null};
 }
 
 export default async function handler(req,res){
