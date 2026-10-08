@@ -9,7 +9,7 @@ const PUBLIC_GIFT_SOURCES=[
  {name:"kingshot-guides",url:"https://kingshotguides.com/guide/active-giftcodes-and-how-to-redeem/"},
  {name:"beebom",url:"https://beebom.com/kingshot-codes/"},
  {name:"kingshotmastery",url:"https://kingshotmastery.com/gift-codes"},
- {name:"supercheats",url:"https://www.supercheats.com/kingshot-codes"}
+ {name:"pocketgamer",url:"https://www.pocketgamer.com/kingshot/codes/"}
 ];
 // Verified long-running fallback for codes that have been omitted from the upstream API feed.
 // Revalidated against public Kingshot code listings; the redemption endpoint remains the final authority.
@@ -102,8 +102,8 @@ const kingdomState=await revalidatePlayer(player,{rpc,notify:sendDiscordEvent});
  const message=d?.message||d?.error||"";
  await rpc("record_kingshot_redemption",{p_player_id:player.player_id,p_code:item.code,p_status:status,p_err_code:d?.errCode??null,p_message:(d?.errorCategory?"["+d.errorCategory+"] ":"")+message});
 
- const firstSeenAt=Number.isFinite(Date.parse(item.firstSeenAt||""))?Date.parse(item.firstSeenAt):null;
- const redemptionTelemetry={code:item.code,resultAt:new Date(completedAt).toISOString(),status,redemptionLatencyMs:Math.max(0,completedAt-redemptionStartedAt),discoveryToResultMs:firstSeenAt==null?null:Math.max(0,completedAt-firstSeenAt)};
+ const discoveryAt=Number.isFinite(item.discoveredAt)?item.discoveredAt:null;
+ const redemptionTelemetry={code:item.code,resultAt:new Date(completedAt).toISOString(),status,redemptionLatencyMs:Math.max(0,completedAt-redemptionStartedAt),discoveryToResultMs:discoveryAt==null?null:Math.max(0,completedAt-discoveryAt)};
  return {attempted:1,success:status==="SUCCESS"?1:0,alreadyReceived:status==="RECEIVED"?1:0,alreadyHandled:0,skipped:0,kingdomCheck,kingdomChanged,redemptionCode:item.code,redemptionStatus:status,redemptionErrorCategory:d?.errorCategory||null,redemptionErrCode:d?.errCode??null,redemptionMessage:message?String(message).slice(0,240):null,redemptionTelemetry};
 }
 
@@ -217,6 +217,7 @@ export default async function handler(req,res){
   })).filter(row=>row.code&&row.code.length>=6&&row.code.length<=32);
   let codes=mergeCodes([apiCodes,pageCodes,publicCodes,VERIFIED_FALLBACK_CODES,adminCodes]);
   if(!codes.length)throw Error("Kingshot gift-code sources returned no active codes.");
+  const codesDiscoveredAt=Date.now();
   console.log("Kingshot auto feed:",{apiActive:data?.data?.activeCount??null,apiCodes:apiCodes.map(x=>x.code),pageCodes:pageCodes.map(x=>x.code),publicSources:publicCodes.map(x=>({code:x.code,source:x.source})),adminCodes:adminCodes.map(x=>x.code),merged:codes.map(x=>x.code)});
   const knownCodes=new Set((Array.isArray(adminRows)?adminRows:[]).map(row=>String(row?.code||"").toUpperCase()));
 
@@ -225,8 +226,7 @@ export default async function handler(req,res){
    p_source_date:item.createdAt&&!Number.isNaN(item.createdAt)?new Date(item.createdAt).toISOString().slice(0,10):null,
    p_expires_at:item.expiresAt&&!Number.isNaN(item.expiresAt)?new Date(item.expiresAt).toISOString():null
   })));
-  const firstSeenByCode=new Map(persistedCodeRows.map(row=>[String(row?.code||"").toUpperCase(),row?.first_seen_at||null]));
-  codes=codes.map(item=>({...item,firstSeenAt:firstSeenByCode.get(String(item.code).toUpperCase())||null}));
+  codes=codes.map(item=>({...item,discoveredAt:codesDiscoveredAt}));
   const expiredRows=await rpc("list_kingshot_expired_gift_codes",{}).catch(error=>{
    console.error("Expired-code lookup failed:",error?.message||error);
    return [];
