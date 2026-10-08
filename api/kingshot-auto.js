@@ -76,61 +76,7 @@ async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
  return false;
 }
 
-async function updateScraperHealth(source,codeCount,error=null){
- try{
-  // Keep scraper health/history in Supabase, but do not spam Discord with
-  // per-source zero-code alerts. The primary API/page and merged feed remain
-  // observable through worker logs and scraper-run history.
-  await rpc("record_kingshot_scraper_health",{p_source:source,p_code_count:codeCount,p_error:error});
- }catch(error){console.error("Scraper health update failed:",source,error?.message||error)}
-}
-
-function classifyError(error){const m=String(error?.message||error||"").toLowerCase();if(/timeout|timed out|abort/.test(m))return"TIMEOUT";if(/unauthorized|forbidden|401|403/.test(m))return"AUTH";if(/429|rate limit|too frequent/.test(m))return"RATE_LIMIT";if(/404|not found/.test(m))return"NOT_FOUND";if(/parse|json|invalid api response/.test(m))return"PARSE";if(/supabase|database|rpc/.test(m))return"DATABASE";if(/mightpulse|player/.test(m))return"UPSTREAM_PLAYER";if(/kingshot|gift|redemption/.test(m))return"UPSTREAM_REDEMPTION";return"UNKNOWN"}
-async function recordScraperRun(source,httpStatus,codes,parseOk,error){await rpc("kingshot_record_scraper_run",{p_source:source,p_http_status:httpStatus,p_code_count:Array.isArray(codes)?codes.length:0,p_codes:Array.isArray(codes)?codes.map(x=>x.code):[],p_parse_ok:Boolean(parseOk),p_error_category:error?classifyError(error):null,p_error_message:error?.message||error||null}).catch(()=>{});}
-
-async function fetchSource(url,kind){
- const sourceName=kind==="api"?"kingshot-api":kind==="page"?"kingshot-page":kind==="aggregator"?"whiteout-bot-aggregator":kind.slice(7);
- try{
-  let response=null,lastError=null;
-  for(let attempt=0;attempt<3;attempt++){
-   try{
-    response=await fetch(url,{headers:kind==="api"||kind==="aggregator"
-     ?{"accept":"application/json","user-agent":"Nex-Kingshot-Redeemer/1.1",...(kind==="aggregator"?{"X-API-Key":String(process.env.KINGSHOT_AGGREGATOR_API_KEY||"")}:{})}
-     :{"accept":"text/html,application/xhtml+xml","accept-language":"en-US,en;q=0.9","cache-control":"no-cache","user-agent":"Mozilla/5.0 (compatible; Nex-Kingshot-Redeemer/1.1; +https://kingshot-autoredeemer.vercel.app/)"},
-     signal:AbortSignal.timeout(15000)});
-    if(response.ok||![408,425,429,500,502,503,504].includes(response.status))break;
-    lastError=Error("HTTP "+response.status);
-   }catch(error){lastError=error}
-   if(attempt<2)await sleep(700*(attempt+1));
-  }
-  if(!response){
-   await recordScraperRun(sourceName,null,[],false,lastError||Error("Source request failed"));
-   await updateScraperHealth(sourceName,0,lastError?.message||"Source request failed");
-   return kind==="api"||kind==="aggregator"?{data:null,codes:[],ok:false,httpStatus:null,error:lastError?.message||"Source request failed",source:sourceName}:{html:"",codes:[],ok:false,httpStatus:null,error:lastError?.message||"Source request failed",source:sourceName};
-  }
-  const body=await response.text();
-  if(!response.ok){const error=Error("HTTP "+response.status);await recordScraperRun(sourceName,response.status,[],false,error);await updateScraperHealth(sourceName,0,error.message);return kind==="api"||kind==="aggregator"?{data:null,codes:[],ok:false,httpStatus:response?.status||null,error:"HTTP "+response.status,source:sourceName}:{html:"",codes:[],ok:false,httpStatus:response?.status||null,error:"HTTP "+response.status,source:sourceName};}
-  if(kind==="api"||kind==="aggregator"){
-   let data=null;try{data=JSON.parse(body)}catch{}
-   const valid=data&&(kind==="api"?data?.status==="success":Array.isArray(data?.codes));
-   const codes=valid?(kind==="api"?normalizeCodes(data):extractAggregatorCodes(data)):[];
-   const parseError=valid?null:Error("Invalid API response");
-   await updateScraperHealth(sourceName,codes.length,parseError?.message||null);
-   await recordScraperRun(sourceName,response.status,codes,Boolean(valid),parseError);
-   return {data,codes,ok:Boolean(valid),httpStatus:response.status,error:parseError?.message||null,source:sourceName};
-  }
-  const codes=kind==="page"?extractPageCodes(body):extractPublicSourceCodes(body,sourceName);
-  await updateScraperHealth(sourceName,codes.length,null);
-  await recordScraperRun(sourceName,response.status,codes,true,null);
-  return {html:body,codes,ok:true,httpStatus:response.status,error:null,source:sourceName};
- }catch(error){
-  await updateScraperHealth(sourceName,0,error?.message||"Source request failed");
-  await recordScraperRun(sourceName,null,[],false,error);
-  return kind==="api"||kind==="aggregator"?{data:null,codes:[],ok:false,httpStatus:null,error:error?.message||"Source request failed",source:sourceName}:{html:"",codes:[],ok:false,httpStatus:null,error:error?.message||"Source request failed",source:sourceName};
- }
-
-}
-
+import { fetchSource, classifyScraperError } from "../internal/kingshot/scraper.js";
 async function redeemForPlayer(player,codes){
  // New registrations may not have a kingdom yet. Populate it immediately
  // instead of waiting for the next daily reset revalidation.
@@ -158,7 +104,7 @@ async function redeemForPlayer(player,codes){
    return {attempted:0,success:0,alreadyHandled:0,skipped:1,revalidationError:1};
   }
  }
- const kingdomState=await ensureCurrentKingdom(player);
+ const kingdomState=await revalidatePlayer(player,{rpc,notify:sendDiscordEvent});
  const kingdomCheck=Boolean(kingdomState.revalidated);
  const kingdomChanged=Boolean(kingdomState.kingdomChanged);
  if(kingdomState.stale)return {attempted:0,success:0,alreadyHandled:0,skipped:1,stale:1,kingdomCheck,kingdomChanged};
@@ -209,7 +155,7 @@ async function runWithConcurrency(players,fn,limit,{deadline=Infinity}={}){
     results[i]={attempted:0,success:0,alreadyHandled:0,skipped:1,deadlineSkipped:1};
     continue;
    }
-   try{results[i]=await fn(players[i])}catch(error){results[i]={error:error?.message||"Player processing failed",errorCategory:classifyError(error)}}
+   try{results[i]=await fn(players[i])}catch(error){results[i]={error:error?.message||"Player processing failed",errorCategory:classifyScraperError(error)}}
   }
  }
  await Promise.all(Array.from({length:Math.min(limit,players.length)},worker));
@@ -326,7 +272,7 @@ async function runWorkerShard(slot,codes,players){
    p_token:workerToken,
    p_status:"FAILED",
    p_error:error?.message||"Worker shard failed.",
-   p_summary:{slot,errorCategory:classifyError(error)}
+   p_summary:{slot,errorCategory:classifyScraperError(error)}
   }).catch(releaseError=>console.error("Worker slot failure state update failed:",slot,releaseError?.message||releaseError));
   throw error;
  }
@@ -359,7 +305,7 @@ export default async function handler(req,res){
    return res.status(200).json({ok:true,...result});
   }catch(error){
    console.error("Kingshot worker shard:",slot,error);
-   return res.status(502).json({error:error?.message||"Worker shard failed.",errorCategory:classifyError(error),slot});
+   return res.status(502).json({error:error?.message||"Worker shard failed.",errorCategory:classifyScraperError(error),slot});
   }
  }
 
@@ -412,8 +358,8 @@ export default async function handler(req,res){
    return res.status(200).json({ok:true,mode:"kingdom-check",forced:true,...summary,players:list.length});
   }catch(error){
    console.error("Manual kingdom check failed:",error);
-   if(manualWorkerToken)await rpc("finish_kingshot_worker_run",{p_token:manualWorkerToken,p_status:"FAILED",p_error:error?.message||"Manual kingdom check failed.",p_summary:{mode:"kingdom-check",errorCategory:classifyError(error)}}).catch(releaseError=>console.error("Manual worker failure state update failed:",releaseError?.message||releaseError));
-   return res.status(502).json({ok:false,mode:"kingdom-check",error:error?.message||"Manual kingdom check failed.",errorCategory:classifyError(error)});
+   if(manualWorkerToken)await rpc("finish_kingshot_worker_run",{p_token:manualWorkerToken,p_status:"FAILED",p_error:error?.message||"Manual kingdom check failed.",p_summary:{mode:"kingdom-check",errorCategory:classifyScraperError(error)}}).catch(releaseError=>console.error("Manual worker failure state update failed:",releaseError?.message||releaseError));
+   return res.status(502).json({ok:false,mode:"kingdom-check",error:error?.message||"Manual kingdom check failed.",errorCategory:classifyScraperError(error)});
   }
  }
 
@@ -424,9 +370,9 @@ export default async function handler(req,res){
   workerToken=lock.token;
   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
   const [apiSource,pageSource,publicSources,adminRows]=await Promise.all([
-   fetchSource(GIFT_SOURCE_URL,"api"),
-   fetchSource("https://kingshot.net/gift-codes","page"),
-   Promise.all(PUBLIC_GIFT_SOURCES.map(source=>fetchSource(source.url,"public:"+source.name))),
+   fetchSource(rpc,GIFT_SOURCE_URL,"api"),
+   fetchSource(rpc,"https://kingshot.net/gift-codes","page"),
+   Promise.all(PUBLIC_GIFT_SOURCES.map(source=>fetchSource(rpc,source.url,"public:"+source.name))),
    rpc("list_kingshot_admin_gift_codes",{})
   ]);
   const data=apiSource.data;
@@ -534,7 +480,7 @@ export default async function handler(req,res){
     return payload;
    }catch(error){
     console.error("Kingshot worker fan-out failed:",workerIndex,error?.message||error);
-    return {slot:workerIndex,claimed:false,error:error?.message||"Worker shard failed.",errorCategory:classifyError(error),players:assigned.length};
+    return {slot:workerIndex,claimed:false,error:error?.message||"Worker shard failed.",errorCategory:classifyScraperError(error),players:assigned.length};
    }
   }));
   const workerFailures=workerRuns.filter(result=>result?.error||result?.claimed===false&&result?.reason!=="SLOT_ALREADY_RUNNING");
@@ -600,8 +546,8 @@ export default async function handler(req,res){
   return res.status(200).json({ok:true,...summary});
  }catch(e){
   console.error("Kingshot auto redeem:",e);
-  if(workerToken)await rpc("finish_kingshot_worker_run",{p_token:workerToken,p_status:"FAILED",p_error:e?.message||"Auto redemption failed.",p_summary:{errorCategory:classifyError(e)}}).catch(error=>console.error("Worker failure state update failed:",error?.message||error));
+  if(workerToken)await rpc("finish_kingshot_worker_run",{p_token:workerToken,p_status:"FAILED",p_error:e?.message||"Auto redemption failed.",p_summary:{errorCategory:classifyScraperError(e)}}).catch(error=>console.error("Worker failure state update failed:",error?.message||error));
   await sendDiscordEvent({title:"❌ Auto-redeem worker error",description:e?.message||"Auto redemption failed.",color:0xED4245});
-  return res.status(502).json({error:e.message||"Auto redemption failed.",errorCategory:classifyError(e)});
+  return res.status(502).json({error:e.message||"Auto redemption failed.",errorCategory:classifyScraperError(e)});
  }
 }
