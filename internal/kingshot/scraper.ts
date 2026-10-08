@@ -30,7 +30,7 @@ export function classifyScraperError(error: unknown): string {
   if (/unauthorized|forbidden|401|403/.test(message)) return "AUTH";
   if (/429|rate limit|too frequent/.test(message)) return "RATE_LIMIT";
   if (/404|not found/.test(message)) return "NOT_FOUND";
-  if (/parse|json|invalid api response/.test(message)) return "PARSE";
+  if (/parse|json|invalid api response|no active gift codes/.test(message)) return "PARSE";
   if (/supabase|database|rpc/.test(message)) return "DATABASE";
   if (/mightpulse|player/.test(message)) return "UPSTREAM_PLAYER";
   if (/kingshot|gift|redemption/.test(message)) return "UPSTREAM_REDEMPTION";
@@ -106,9 +106,17 @@ export async function fetchSource(rpc: Rpc, url: string, kind: string): Promise<
     }
 
     const codes = kind === "page" ? extractPageCodes(body) : extractPublicSourceCodes(body, source);
-    await updateHealth(rpc, source, codes.length, null);
-    await recordRun(rpc, source, response.status, codes, true, null);
-    return { source, html: body, codes, ok: true, httpStatus: response.status, error: null };
+    const parseError = codes.length ? null : Error("No active gift codes parsed");
+    await updateHealth(rpc, source, codes.length, parseError?.message || null);
+    await recordRun(rpc, source, response.status, codes, !parseError, parseError);
+    return {
+      source,
+      html: body,
+      codes,
+      ok: !parseError,
+      httpStatus: response.status,
+      error: parseError?.message || null
+    };
   } catch (error) {
     const message = (error as { message?: string })?.message || "Source request failed";
     await updateHealth(rpc, source, 0, message);
