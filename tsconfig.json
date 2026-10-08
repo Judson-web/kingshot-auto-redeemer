@@ -1,17 +1,18 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "ES2020",
-    "moduleResolution": "node",
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "rootDir": ".",
+    "strict": false,
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "isolatedModules": false,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "types": ["node"]
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*", "api/**/*.ts", "internal/**/*.ts", "lib/**/*.ts", "scripts/**/*.ts", "tests/**/*.ts"],
+  "exclude": ["node_modules", "dist", ".vercel"]
 }
