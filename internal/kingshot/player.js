@@ -1,16 +1,17 @@
 import {rateLimit}from"../../lib/request-rate-limit.js";
+import {getPlayer}from"./mightpulse.js";
 
 export default async function handler(req,res){
  if(req.method!=="GET")return res.status(405).json({error:"Method not allowed"});
  if(!rateLimit(req,res,"player-lookup",30,60000))return res.status(429).json({error:"Too many player lookups. Please try again shortly."});
  const id=String(req.query?.id||"").trim();
  if(!/^\d{5,20}$/.test(id))return res.status(400).json({error:"Invalid player ID."});
- const key=process.env.MIGHTPULSE_API_KEY||process.env.KSS_API_KEY;
- if(!key)return res.status(503).json({error:"MightPulse API key is not configured on the server."});
  try{
-  const r=await fetch("https://api.mightpulse.com/v1/players/"+encodeURIComponent(id)+"?include=base",{headers:{Authorization:"Bearer "+key},signal:AbortSignal.timeout(15000)});
-  const d=await r.json().catch(()=>({}));
-  if(!r.ok)return res.status(r.status===404?404:502).json({error:d?.message||d?.error||"MightPulse could not find this player."});
-  return res.status(200).json({player:d.player||d});
- }catch(e){return res.status(504).json({error:"MightPulse request timed out."})}
+  const player=await getPlayer(id);
+  return res.status(200).json({player});
+ }catch(e){
+  if(e?.status===404)return res.status(404).json({error:e.message||"MightPulse could not find this player."});
+  if(/timed out|abort/i.test(e?.message||""))return res.status(504).json({error:"MightPulse request timed out."});
+  return res.status(502).json({error:e?.message||"MightPulse request failed."});
+ }
 }
