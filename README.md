@@ -66,7 +66,7 @@ flowchart LR
 
 The production service runs on Vercel with Supabase/PostgreSQL providing durable application state. Domain logic is progressively isolated in TypeScript modules under `internal/kingshot/`, while the API files remain thin HTTP adapters.
 
-The worker uses three deterministic shards with six concurrent player operations per worker. Gift-code discovery, redemption, player lookup, and registration now have typed domain boundaries that can be validated independently. Database-backed leases and atomic claims prevent multiple workers from intentionally processing the same player/code combination at the same time.
+The worker uses three deterministic shards with six concurrent player operations per worker. Gift-code discovery, redemption, player lookup, and registration have typed domain boundaries that can be validated independently. Player lookups also refresh the stored profile for an already-registered Player ID when fresh MightPulse data is available, without changing the scheduler's kingdom-validation cooldown state. Database-backed leases and atomic claims prevent multiple workers from intentionally processing the same player/code combination at the same time.
 
 The GitHub archive and scraper archive are **downstream systems**. The normal redemption worker does not depend on GitHub, the cold archive, or the disaster-recovery snapshot.
 
