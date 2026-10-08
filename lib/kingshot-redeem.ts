@@ -42,7 +42,7 @@ export async function redeemKingshot({playerId,code,kid}){
    signal:AbortSignal.timeout(30000)
   });
   const raw=await r.text();
-  let d={};
+  let d: { msg?: unknown; err_code?: unknown } = {};
   try{d=JSON.parse(raw)}catch{
    const snippet=raw.replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim().slice(0,180);
    return {httpStatus:502,error:snippet?"Kingshot returned a non-JSON response: "+snippet:"Kingshot returned an invalid response."};
