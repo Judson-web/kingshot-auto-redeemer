@@ -1,4 +1,4 @@
-import {redeemKingshot} from"../internal/kingshot/redeem.js";
+import {redeemKingshot} from"../internal/kingshot/redeem.js";\nimport { revalidatePlayer, type KingdomValidationPlayer } from "../internal/kingshot/kingdom-validation.js";
 
 const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
 const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
@@ -74,161 +74,6 @@ async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
   }
  }
  return false;
-}
-
-function getKingshotResetBoundary(now=Date.now()){
- const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date(now));
- const values=Object.fromEntries(parts.map(part=>[part.type,part.value]));
- const year=Number(values.year),month=Number(values.month),day=Number(values.day),hour=Number(values.hour),minute=Number(values.minute);
- const afterReset=hour>KINGDOM_RESET_HOUR||(hour===KINGDOM_RESET_HOUR&&minute>=KINGDOM_RESET_MINUTE);
- const dateKey=year+"-"+String(month).padStart(2,"0")+"-"+String(day).padStart(2,"0");
- return {dateKey,afterReset};
-}
-
-function needsKingdomResetCheck(lastCheckedAt,now=Date.now()){
- if(!lastCheckedAt)return true;
- const last=Date.parse(lastCheckedAt);
- if(Number.isNaN(last))return true;
- const current=getKingshotResetBoundary(now);
- const previous=getKingshotResetBoundary(last);
- if(current.dateKey!==previous.dateKey)return current.afterReset;
- return current.afterReset&&!previous.afterReset;
-}
-
-async function fetchCurrentKingshotPlayer(playerId){
- const key=process.env.MIGHTPULSE_API_KEY||process.env.KSS_API_KEY;
- if(!key)throw Error("MightPulse API key is not configured on the server.");
- let lastError=null;
- for(let attempt=0;attempt<3;attempt++){
-  try{
-   const r=await fetch("https://api.mightpulse.com/v1/players/"+encodeURIComponent(playerId)+"?include=base",{
-    headers:{Authorization:"Bearer "+key},
-    signal:AbortSignal.timeout(15000)
-   });
-   const d=await r.json().catch(()=>({}));
-   if(r.status===404)return {notFound:true};
-   if(!r.ok){
-    const error=Error(d?.message||d?.error||"MightPulse revalidation failed.");
-    error.status=r.status;
-    const retryAfter=Number(r.headers.get("retry-after")||"0");
-    if(Number.isFinite(retryAfter)&&retryAfter>0)error.retryAfterMs=Math.min(90000,retryAfter*1000);
-    throw error;
-   }
-   return {player:d.player||d};
-  }catch(error){
-   lastError=error;
-   const status=Number(error?.status||0);
-   const message=String(error?.message||"");
-   const rateLimited=status===429||/rate[_ -]?limited|rate limit|too many requests/i.test(message);
-   const retryable=UPSTREAM_RETRYABLE.test(message)||[429,502,503,504].includes(status);
-   if(attempt<2&&retryable){
-    if(rateLimited){
-     const base=MIGHTPULSE_RATE_LIMIT_BACKOFF_MS[Math.min(attempt,MIGHTPULSE_RATE_LIMIT_BACKOFF_MS.length-1)];
-     const jitter=Math.floor(Math.random()*2000);
-     await sleep(Math.min(90000,Number(error?.retryAfterMs)||base)+jitter);
-    }else{
-     await sleep(750*(attempt+1));
-    }
-    continue;
-   }
-   throw error;
-  }
- }
- throw lastError||Error("MightPulse revalidation failed.");
-}
-
-async function claimKingdomResetCheck(player){
- if(!needsKingdomResetCheck(player.last_kingdom_check_at))return false;
- const result=await rpc("claim_kingshot_kingdom_reset_check",{p_player_id:player.player_id});
- return Boolean(result?.claimed);
-}
-
-async function ensureCurrentKingdom(player){
- if(!(await claimKingdomResetCheck(player)))return {player,revalidated:false};
- let claimed=true;
- try{
-  const fresh=await fetchCurrentKingshotPlayer(player.player_id);
-  if(fresh.notFound){
-   await rpc("mark_kingshot_player_stale",{p_player_id:player.player_id,p_reason:"MIGHTPULSE_PLAYER_NOT_FOUND"});
-   await sendDiscordEvent({title:"🗑️ Deleted Kingshot account filtered",description:"The scheduled kingdom-reset revalidation could not find this registered player. The registration is now stale and excluded from future auto-redeem cycles.",fields:[{name:"Player ID",value:String(player.player_id),inline:true},{name:"Last kingdom",value:String(player.kingdom_id||"Unknown"),inline:true},{name:"Check",value:"Reset-cycle player revalidation",inline:true}],color:0xFEE75C});
-   return {stale:true};
-  }
-  const p=fresh.player||{};
-  const currentKingdom=String(p.kid??p.kingdom_id??"").replace(/\D/g,"");
-  if(!currentKingdom)throw Error("MightPulse returned no kingdom for this player.");
-  const result=await rpc("record_kingshot_kingdom_revalidation",{
-   p_player_id:player.player_id,
-   p_kingdom_id:currentKingdom,
-   p_player_name:p.nick_name||p.name||p.nickname||null,
-   p_avatar_url:p.avatar_url||p.avatar||p.avatarUrl||null
-  });
-  const updated=result?.player||player;
-  claimed=false;
-  if(result?.kingdom_changed){
-   console.log("Kingshot kingdom changed:",{playerId:player.player_id,from:result.old_kingdom_id,to:result.new_kingdom_id});
-   await sendDiscordEvent({title:"🔄 Kingdom changed",description:"A registered player's current Kingshot kingdom changed.",fields:[{name:"Player ID",value:String(player.player_id),inline:true},{name:"Previous",value:String(result.old_kingdom_id||"Unknown"),inline:true},{name:"Current",value:String(result.new_kingdom_id||currentKingdom),inline:true}],color:0x5865F2});
-  }
-  return {player:updated,revalidated:true,kingdomChanged:Boolean(result?.kingdom_changed)};
- }catch(error){
-  if(claimed)await rpc("release_kingshot_kingdom_reset_check",{p_player_id:player.player_id}).catch(releaseError=>console.error("Kingdom check claim release failed:",releaseError?.message||releaseError));
-  throw error;
- }
-}
-async function revalidatePlayer(player,{force=false}={}){
- try{
-  // Forced/manual checks deliberately bypass the reset-cycle claim/cooldown.
-  // They still use the same MightPulse fetch and Supabase revalidation RPC,
-  // but never enter the redemption path.
-  if(force){
-   const fresh=await fetchCurrentKingshotPlayer(player.player_id);
-   if(fresh.notFound){
-    await rpc("mark_kingshot_player_stale",{p_player_id:player.player_id,p_reason:"MIGHTPULSE_PLAYER_NOT_FOUND"});
-    return {stale:true};
-   }
-   const p=fresh.player||{};
-   const currentKingdom=String(p.kid??p.kingdom_id??"").replace(/\D/g,"");
-   if(!currentKingdom)throw Error("MightPulse returned no kingdom for this player.");
-   const result=await rpc("record_kingshot_kingdom_revalidation",{
-    p_player_id:player.player_id,
-    p_kingdom_id:currentKingdom,
-    p_player_name:p.nick_name||p.name||p.nickname||null,
-    p_avatar_url:p.avatar_url||p.avatar||p.avatarUrl||null
-   });
-   if(result?.kingdom_changed){
-    console.log("Kingshot manual kingdom changed:",{playerId:player.player_id,from:result.old_kingdom_id,to:result.new_kingdom_id});
-    await sendDiscordEvent({title:"🔄 Kingdom changed",description:"A manual kingdom check detected a registered player's kingdom change.",fields:[{name:"Player ID",value:String(player.player_id),inline:true},{name:"Previous",value:String(result.old_kingdom_id||"Unknown"),inline:true},{name:"Current",value:String(result.new_kingdom_id||currentKingdom),inline:true}],color:0x5865F2});
-   }
-   return {player:result?.player||player,revalidated:true,kingdomChanged:Boolean(result?.kingdom_changed)};
-  }
-
-  if(!player?.kingdom_id){
-   const fresh=await fetchCurrentKingshotPlayer(player.player_id);
-   if(fresh.notFound){
-    await rpc("mark_kingshot_player_stale",{p_player_id:player.player_id,p_reason:"MIGHTPULSE_PLAYER_NOT_FOUND"});
-    return {stale:true};
-   }
-   const p=fresh.player||{};
-   const currentKingdom=String(p.kid??p.kingdom_id??"").replace(/\D/g,"");
-   if(!currentKingdom)throw Error("MightPulse returned no kingdom for this player.");
-   const result=await rpc("record_kingshot_kingdom_revalidation",{
-    p_player_id:player.player_id,
-    p_kingdom_id:currentKingdom,
-    p_player_name:p.nick_name||p.name||p.nickname||null,
-    p_avatar_url:p.avatar_url||p.avatar||p.avatarUrl||null
-   });
-   player=result?.player||player;
-  }
-  const kingdomState=await ensureCurrentKingdom(player);
-  if(kingdomState.stale)return {stale:true};
-  return {
-   player:kingdomState.player||player,
-   revalidated:Boolean(kingdomState.revalidated),
-   kingdomChanged:Boolean(kingdomState.kingdomChanged)
-  };
- }catch(error){
-  console.error("Kingshot player validation failed:",player?.player_id,error?.message||error);
-  return {revalidationError:1};
- }
 }
 
 async function updateScraperHealth(source,codeCount,error=null){
@@ -538,7 +383,7 @@ export default async function handler(req,res){
 
    const players=await rpc("list_kingshot_autoredeem_players",{});
    const list=Array.isArray(players)?players:[];
-   const results=await runWithConcurrency(list,player=>revalidatePlayer(player,{force:true}),KINGDOM_VALIDATION_CONCURRENCY);
+   const results=await runWithConcurrency(list,player=>revalidatePlayer(player,{rpc,notify:sendDiscordEvent},{force:true}),KINGDOM_VALIDATION_CONCURRENCY);
    const summary=results.reduce((a,result)=>{
     if(result?.revalidationError){a.errors++;return a;}
     if(result?.stale){a.stale++;return a;}
@@ -636,7 +481,7 @@ export default async function handler(req,res){
   // starts. This prevents the 05:30 IST reset burst from competing with the
   // three redemption shards for Supabase/MightPulse capacity.
   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
-  const kingdomResults=await runWithConcurrency(list,player=>revalidatePlayer(player),KINGDOM_VALIDATION_CONCURRENCY);
+  const kingdomResults=await runWithConcurrency(list,player=>revalidatePlayer(player,{rpc,notify:sendDiscordEvent}),KINGDOM_VALIDATION_CONCURRENCY);
   const validPlayers=[];
   const kingdomSummary=kingdomResults.reduce((a,result)=>{
    if(result?.revalidationError){
