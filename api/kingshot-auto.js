@@ -8,7 +8,7 @@ const PUBLIC_GIFT_SOURCES=[
  {name:"kingshot-guides",url:"https://kingshotguides.com/guide/active-giftcodes-and-how-to-redeem/"},
  {name:"beebom",url:"https://beebom.com/kingshot-codes/"},
  {name:"kingshotmastery",url:"https://kingshotmastery.com/gift-codes"},
- {name:"pocketgamer",url:"https://www.pocketgamer.com/kingshot/codes/"}
+ {name:"supercheats",url:"https://www.supercheats.com/kingshot-codes"}
 ];
 // Verified long-running fallback for codes that have been omitted from the upstream API feed.
 // Revalidated against public Kingshot code listings; the redemption endpoint remains the final authority.
