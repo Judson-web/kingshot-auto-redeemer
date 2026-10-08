@@ -140,13 +140,31 @@ export function summarizeWorkerResults(results: WorkerResult[]) {
   };
 }
 
+export interface WorkerSummary {
+  slot: number;
+  players: number;
+  attempted: number;
+  success: number;
+  alreadyHandled: number;
+  alreadyReceived: number;
+  skipped: number;
+  errors: number;
+  stale: number;
+  redemptionStatuses: Record<string, number>;
+  codeCounts: Record<string, number>;
+  codeTelemetry: Record<string, any>;
+  redemptionFailures: any[];
+  workerErrors: any[];
+  deadlineSkipped: number;
+}
+
 export async function runWorkerShard(
   slot: number,
   codes: any[],
   players: Player[],
   dependencies: WorkerDependencies,
   options: { workerCount: number; concurrency: number; maxRuntimeMs: number }
-) {
+): Promise<{ claimed: boolean; skipped?: boolean; reason?: string } & WorkerSummary> {
   const { rpc, redeemForPlayer } = dependencies;
   const claim = await rpc("claim_kingshot_worker_slot", { p_slot: slot });
   if (!claim?.claimed) return { slot, claimed: false, skipped: true, reason: claim?.reason || "SLOT_ALREADY_RUNNING" };
@@ -156,7 +174,10 @@ export async function runWorkerShard(
     const assigned = (Array.isArray(players) ? players : []).filter(player => workerBucket(player?.player_id, options.workerCount) === slot);
     const deadline = Date.now() + options.maxRuntimeMs;
     const results = await runWithConcurrency(assigned, player => redeemForPlayer(player, codes), options.concurrency, { deadline });
-    const totals = summarizeWorkerResults(results);
+    const totals: Omit<WorkerSummary, "slot" | "players" | "deadlineSkipped"> & { deadlineSkipped: number } = {
+      ...summarizeWorkerResults(results),
+      deadlineSkipped: 0
+    };
     totals.deadlineSkipped = results.reduce((n, r) => n + (r?.deadlineSkipped || 0), 0);
     const summary = { slot, players: assigned.length, ...totals };
 
