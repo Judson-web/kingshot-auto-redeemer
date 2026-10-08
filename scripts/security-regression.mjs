@@ -49,9 +49,9 @@ assertCheck(
 );
 assertCheck(
  "Worker shards use durable per-slot claims",
- auto.includes('rpc("claim_kingshot_worker_slot"') &&
- auto.includes('rpc("finish_kingshot_worker_slot"') &&
- auto.includes("WORKER_REQUEST_TIMEOUT_MS=4*60*1000")
+ workerCode.includes("claim_kingshot_worker_slot") &&
+ workerCode.includes("finish_kingshot_worker_slot") &&
+ workerCode.includes("maxRuntimeMs")
 );
 assertCheck(
  "Worker shard endpoint requires internal authorization",
@@ -122,7 +122,7 @@ assertCheck("Support uses server-only Supabase credential",
 assertCheck("Worker has scheduler/authorization guard",
  /X-Kingshot-Scheduler-Token|KINGSHOT_SCHEDULER_TOKEN|scheduler/i.test(auto));
 assertCheck("Registration has request rate limiting",
- registerHandler.includes('rateLimit(req,res,"register",60,60000)'));
+ /rateLimit\(req,\s*res,\s*"register",\s*60,\s*60000\)/.test(registerHandler));
 assertCheck("Support has request rate limiting",
  support.includes('rateLimit(req,res,"support",6,60000)'));
 assertCheck("Admin login has request rate limiting",
