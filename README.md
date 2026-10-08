@@ -64,9 +64,9 @@ flowchart LR
     V --> G
 ```
 
-The production service runs on Vercel with Supabase/PostgreSQL providing durable application state.
+The production service runs on Vercel with Supabase/PostgreSQL providing durable application state. Domain logic is progressively isolated in TypeScript modules under `internal/kingshot/`, while the API files remain thin HTTP adapters.
 
-The worker uses three deterministic shards with six concurrent player operations per worker. Database-backed leases and atomic claims prevent multiple workers from intentionally processing the same player/code combination at the same time.
+The worker uses three deterministic shards with six concurrent player operations per worker. Gift-code discovery, redemption, player lookup, and registration now have typed domain boundaries that can be validated independently. Database-backed leases and atomic claims prevent multiple workers from intentionally processing the same player/code combination at the same time.
 
 The GitHub archive and scraper archive are **downstream systems**. The normal redemption worker does not depend on GitHub, the cold archive, or the disaster-recovery snapshot.
 
@@ -249,7 +249,7 @@ Operational workflows also cover manual kingdom validation and disaster-recovery
 | Layer | Technology |
 |---|---|
 | Frontend | React 19 + Vite 6 |
-| Runtime | Node.js 24.x |
+| Runtime | Node.js 24.x + TypeScript 5.9 |
 | Deployment | Vercel |
 | Database | Supabase PostgreSQL |
 | Storage | Supabase Storage |
