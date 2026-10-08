@@ -164,7 +164,7 @@ export async function runWorkerShard(
   players: Player[],
   dependencies: WorkerDependencies,
   options: { workerCount: number; concurrency: number; maxRuntimeMs: number }
-): Promise<{ claimed: boolean; skipped?: boolean; reason?: string } & WorkerSummary> {
+): Promise<{ claimed: false; skipped: true; reason: string } | ({ claimed: true } & WorkerSummary)> {
   const { rpc, redeemForPlayer } = dependencies;
   const claim = await rpc("claim_kingshot_worker_slot", { p_slot: slot });
   if (!claim?.claimed) return { slot, claimed: false, skipped: true, reason: claim?.reason || "SLOT_ALREADY_RUNNING" };
