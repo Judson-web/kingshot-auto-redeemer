@@ -28,14 +28,8 @@ import {extractPageCodes, extractPublicSourceCodes, mergeCodes, normalizeCodes} 
 const HANDLED_STATUSES=new Set(["SUCCESS","RECEIVED","SAME TYPE EXCHANGE","TIME_ERROR","CDK_NOT_FOUND","USAGE_LIMIT"]);
 const WORKER_COUNT=3;
 const PLAYER_CONCURRENCY=6;
-// Kingdom-reset validation has its own upstream-aware lane limit. Redemption
-// concurrency stays at 6; only the daily MightPulse validation burst is paced.
 const KINGDOM_VALIDATION_CONCURRENCY=3;
-// Keep each shard bounded so a slow upstream cannot pin a Vercel invocation.
-// A player redemption can take up to 30s at the upstream boundary, so 4m gives
-// the six-lane pool enough room for normal bursts while leaving recovery time.
 const WORKER_MAX_RUNTIME_MS=4*60*1000;
-const WORKER_REQUEST_TIMEOUT_MS=4*60*1000;
 const DISCORD_WEBHOOK_URL=process.env.DISCORD_KINGSHOT_WEBHOOK_URL||process.env.DISCORD_SCRAPER_WEBHOOK_URL;
 async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
  if(!DISCORD_WEBHOOK_URL)return;
@@ -72,6 +66,7 @@ async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
 }
 
 import { fetchSource, classifyScraperError } from "../internal/kingshot/scraper.js";
+import { runWithConcurrency, runWorkerShard, summarizeWorkerResults, workerBucket } from "../internal/kingshot/worker.js";
 async function redeemForPlayer(player,codes){
 const kingdomState=await revalidatePlayer(player,{rpc,notify:sendDiscordEvent});
  const kingdomCheck=Boolean(kingdomState.revalidated);
@@ -111,142 +106,6 @@ const kingdomState=await revalidatePlayer(player,{rpc,notify:sendDiscordEvent});
  return {attempted:1,success:status==="SUCCESS"?1:0,alreadyReceived:status==="RECEIVED"?1:0,alreadyHandled:0,skipped:0,kingdomCheck,kingdomChanged,redemptionCode:item.code,redemptionStatus:status,redemptionErrorCategory:d?.errorCategory||null,redemptionErrCode:d?.errCode??null,redemptionMessage:message?String(message).slice(0,240):null,redemptionTelemetry};
 }
 
-async function runWithConcurrency(players,fn,limit,{deadline=Infinity}={}){
- const results=new Array(players.length);
- let next=0;
- let deadlineSkipped=0;
- async function worker(){
-  while(true){
-   const i=next++;
-   if(i>=players.length)return;
-   if(Date.now()>=deadline){
-    deadlineSkipped++;
-    results[i]={attempted:0,success:0,alreadyHandled:0,skipped:1,deadlineSkipped:1};
-    continue;
-   }
-   try{results[i]=await fn(players[i])}catch(error){results[i]={error:error?.message||"Player processing failed",errorCategory:classifyScraperError(error)}}
-  }
- }
- await Promise.all(Array.from({length:Math.min(limit,players.length)},worker));
- if(deadlineSkipped)console.warn("Kingshot worker shard deadline reached; deferred players:",deadlineSkipped);
- return results;
-}
-
-function workerBucket(value){
- const input=String(value||"");
- let hash=2166136261;
- for(let i=0;i<input.length;i++){
-  hash^=input.charCodeAt(i);
-  hash=Math.imul(hash,16777619);
- }
- return (hash>>>0)%WORKER_COUNT;
-}
-
-function summarizeWorkerResults(results){
- const redemptionDiagnostics=results.reduce((map,r)=>{
-  if(!r?.redemptionStatus)return map;
-  const status=String(r.redemptionStatus).toUpperCase();
-  if(status==="SUCCESS"||status==="RECEIVED"||status==="SAME TYPE EXCHANGE")return map;
-  const category=String(r.redemptionErrorCategory||"UNKNOWN");
-  const errCode=r.redemptionErrCode==null?"none":String(r.redemptionErrCode);
-  const key=category+" / "+errCode+" / "+status;
-  const existing=map[key]||{count:0,category,errCode,status,message:r.redemptionMessage||null};
-  existing.count++;
-  if(!existing.message&&r.redemptionMessage)existing.message=r.redemptionMessage;
-  map[key]=existing;
-  return map;
- },{});
- const statusCounts=results.reduce((map,r)=>{
-  if(!r?.redemptionStatus)return map;
-  const status=String(r.redemptionStatus).toUpperCase();
-  map[status]=(map[status]||0)+1;
-  return map;
- },{});
- const topRedemptionFailures=Object.values(redemptionDiagnostics).sort((x,y)=>y.count-x.count).slice(0,8);
- const workerErrorDiagnostics=results.reduce((map,r)=>{
-  if(!r?.error)return map;
-  const category=String(r.errorCategory||classifyScraperError(r.error));
-  const message=String(r.error).replace(/\\s+/g," ").trim().slice(0,240)||"Player processing failed.";
-  const key=category+" / "+message;
-  const existing=map[key]||{count:0,category,message};
-  existing.count++;
-  map[key]=existing;
-  return map;
- },{});
- const topWorkerErrors=Object.values(workerErrorDiagnostics).sort((a,b)=>b.count-a.count).slice(0,8);
- const codeTelemetry=results.reduce((map,r)=>{
-  const t=r?.redemptionTelemetry;
-  if(!t?.code)return map;
-  const code=String(t.code);
-  const existing=map[code]||{attempts:0,successes:0,firstResultAt:null,firstSuccessAt:null,firstResultLatencyMs:null,totalRedemptionLatencyMs:0};
-  existing.attempts++;
-  if(t.status==="SUCCESS"){existing.successes++;if(!existing.firstSuccessAt||t.resultAt<existing.firstSuccessAt)existing.firstSuccessAt=t.resultAt;}
-  if(!existing.firstResultAt||t.resultAt<existing.firstResultAt){existing.firstResultAt=t.resultAt;existing.firstResultLatencyMs=Number.isFinite(t.discoveryToResultMs)?t.discoveryToResultMs:null;}
-  existing.totalRedemptionLatencyMs+=Number(t.redemptionLatencyMs||0);
-  map[code]=existing;
-  return map;
- },{});
- for(const value of Object.values(codeTelemetry)){value.avgRedemptionLatencyMs=value.attempts?Math.round(value.totalRedemptionLatencyMs/value.attempts):null;delete value.totalRedemptionLatencyMs;}
- const codeCounts=results.reduce((map,r)=>{
-  for(const [code,count] of Object.entries(r?.handledCodeCounts||{}))map[code]=(map[code]||0)+Number(count||0);
-  if(r?.redemptionCode){
-   const code=String(r.redemptionCode);
-   const status=String(r.redemptionStatus||"UNKNOWN").toUpperCase();
-   map[code]=map[code]||0;
-   map[code+"_status_"+status]=(map[code+"_status_"+status]||0)+1;
-  }
-  return map;
- },{});
- return {
-  attempted:results.reduce((n,r)=>n+(r?.attempted||0),0),
-  success:results.reduce((n,r)=>n+(r?.success||0),0),
-  alreadyHandled:results.reduce((n,r)=>n+(r?.alreadyHandled||0),0),
-  alreadyReceived:results.reduce((n,r)=>n+(r?.alreadyReceived||0),0),
-  skipped:results.reduce((n,r)=>n+(r?.skipped||0),0),
-  errors:results.reduce((n,r)=>n+(r?.error?1:0),0),
-  stale:results.reduce((n,r)=>n+(r?.stale?1:0),0),
-  redemptionStatuses:statusCounts,
-  codeCounts,
-  codeTelemetry,
-  redemptionFailures:topRedemptionFailures,
-  workerErrors:topWorkerErrors
- };
-}
-
-async function runWorkerShard(slot,codes,players){
- const claim=await rpc("claim_kingshot_worker_slot",{p_slot:slot});
- if(!claim?.claimed){
-  return {slot,claimed:false,skipped:true,reason:claim?.reason||"SLOT_ALREADY_RUNNING"};
- }
- const workerToken=claim.token;
- try{
-  const assigned=(Array.isArray(players)?players:[]).filter(player=>workerBucket(player?.player_id)===slot);
-  const deadline=Date.now()+WORKER_MAX_RUNTIME_MS;
-  const results=await runWithConcurrency(assigned,p=>redeemForPlayer(p,codes),PLAYER_CONCURRENCY,{deadline});
-  const totals=summarizeWorkerResults(results);
-  totals.deadlineSkipped=results.reduce((n,r)=>n+(r?.deadlineSkipped||0),0);
-  const summary={slot,players:assigned.length,...totals};
-  await rpc("finish_kingshot_worker_slot",{
-   p_slot:slot,
-   p_token:workerToken,
-   p_status:totals.errors||totals.stale?"COMPLETED_WITH_WARNINGS":"COMPLETED",
-   p_error:null,
-   p_summary:summary
-  }).catch(error=>console.error("Worker slot state update failed:",slot,error?.message||error));
-  console.log("Kingshot worker shard:",summary);
-  return {claimed:true,...summary};
- }catch(error){
-  await rpc("finish_kingshot_worker_slot",{
-   p_slot:slot,
-   p_token:workerToken,
-   p_status:"FAILED",
-   p_error:error?.message||"Worker shard failed.",
-   p_summary:{slot,errorCategory:classifyScraperError(error)}
-  }).catch(releaseError=>console.error("Worker slot failure state update failed:",slot,releaseError?.message||releaseError));
-  throw error;
- }
-}
-
 export default async function handler(req,res){
  if(!["GET","POST"].includes(req.method))return res.status(405).json({error:"Method not allowed"});
  const cycleStartedAt=Date.now();
@@ -270,7 +129,7 @@ export default async function handler(req,res){
   const codes=Array.isArray(body?.codes)?body.codes:[];
   const players=Array.isArray(body?.players)?body.players:[];
   try{
-   const result=await runWorkerShard(slot,codes,players);
+   const result=await runWorkerShard(slot,codes,players,{rpc,redeemForPlayer},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
    return res.status(200).json({ok:true,...result});
   }catch(error){
    console.error("Kingshot worker shard:",slot,error);
@@ -434,7 +293,7 @@ export default async function handler(req,res){
   else throw Error("No internal worker authorization is configured.");
 
   const assignments=Array.from({length:WORKER_COUNT},()=>[]);
-  for(const player of validPlayers)assignments[workerBucket(player?.player_id)].push(player);
+  for(const player of validPlayers)assignments[workerBucket(player?.player_id,WORKER_COUNT)].push(player);
   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
   const workerRuns=await Promise.all(assignments.map(async(assigned,workerIndex)=>{
    try{
