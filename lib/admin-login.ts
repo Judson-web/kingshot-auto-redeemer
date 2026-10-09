@@ -3,7 +3,7 @@ import { rateLimit } from "../lib/request-rate-limit.js";
 
 interface RequestLike {
   method?: string;
-  headers: { cookie?: string | string[]; [key: string]: unknown };
+  headers: Record<string, string | string[] | undefined>;
   body?: unknown;
 }
 
