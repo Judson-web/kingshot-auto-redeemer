@@ -9,7 +9,6 @@ export interface RedemptionTelemetry {
 }
 
 export interface WorkerResult {
-  [key: string]: any;
   attempted?: number; success?: number; alreadyHandled?: number; alreadyReceived?: number; skipped?: number;
   stale?: number; deadlineSkipped?: number; error?: string; errorCategory?: string;
   redemptionStatus?: string; redemptionErrorCategory?: string; redemptionErrCode?: string | number | null;
