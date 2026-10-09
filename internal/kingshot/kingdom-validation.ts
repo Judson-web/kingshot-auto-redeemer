@@ -29,7 +29,7 @@ interface KingdomRpcResult {
 }
 
 interface Rpc {
-  (name: string, body: Record<string, unknown>): Promise<any>;
+  (name: string, body: Record<string, unknown>): Promise<unknown>;
 }
 
 interface Notify {
