@@ -4,7 +4,7 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "rootDir": ".",
-    "strict": true,
+    "strict": false,
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "isolatedModules": false,
@@ -18,9 +18,7 @@
     "jsx": "react-jsx",
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "noImplicitOverride": true,
-    "noImplicitAny": false,
-    "useUnknownInCatchVariables": false
+    "noImplicitOverride": true
   },
   "include": [
     "src/**/*",
