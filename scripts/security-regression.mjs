@@ -9,6 +9,17 @@ function assertCheck(name,condition,detail=""){
  checks.push({name,ok:Boolean(condition),detail});
 }
 
+const vercelConfig=JSON.parse(read("vercel.json"));
+const configuredHeaders=vercelConfig.headers?.flatMap(rule=>rule.headers||[])||[];
+const cspHeader=configuredHeaders.find(header=>header.key.toLowerCase()==="content-security-policy");
+assertCheck("Deployment defines a baseline Content Security Policy", Boolean(cspHeader));
+if(cspHeader){
+ const csp=cspHeader.value;
+ for(const directive of ["default-src 'self'","base-uri 'self'","object-src 'none'","frame-ancestors 'none'","form-action 'self'","script-src 'self'","style-src 'self'","connect-src 'self'","worker-src 'self'","upgrade-insecure-requests"]){
+  assertCheck(`CSP includes ${directive}`, csp.includes(directive));
+ }
+}
+
 const auto=read("api/kingshot-auto.js");
 const worker=read("internal/kingshot/worker.ts");
 const workerCode=auto+"\n"+worker;
