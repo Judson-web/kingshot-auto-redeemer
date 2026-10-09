@@ -126,7 +126,7 @@ assertCheck("Registration has request rate limiting",
 assertCheck("Support has request rate limiting",
  /rateLimit\(req,\s*res,\s*"support",\s*6,\s*60000\)/.test(support));
 assertCheck("Admin login has request rate limiting",
- /rateLimit\\(req,\\s*res,\\s*"admin-login",\\s*5,\\s*900000\\)/.test(adminLogin));
+ /rateLimit\(req,\s*res,\s*"admin-login",\s*5,\s*900000\)/.test(adminLogin));
 assertCheck("Admin data validates an admin session before privileged work",
  adminData.includes("kingshot_admin_validate_session"));
 assertCheck("Admin player listing passes a session token hash",
