@@ -37,7 +37,13 @@ function getCookie(req: RequestLike): string {
     .split(";")
     .map((value) => value.trim())
     .find((value) => value.startsWith(COOKIE + "="));
-  return part ? decodeURIComponent(part.slice(COOKIE.length + 1)) : "";
+  if (!part) return "";
+  try {
+    return decodeURIComponent(part.slice(COOKIE.length + 1));
+  } catch {
+    // Ignore malformed client cookies so logout can still clear the session.
+    return "";
+  }
 }
 
 function setCookie(res: ResponseLike, value: string, maxAge: number): void {

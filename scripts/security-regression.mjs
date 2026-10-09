@@ -18,6 +18,7 @@ const support=read("lib/support.ts");
 const adminData=read("lib/admin-data.js");
 const adminDataRoute=read("api/admin-tools/data.ts");
 const adminLogin=read("api/admin-tools/login.ts");
+const mainApp=read("src/main.jsx");
 const discordInteractions=read("lib/discord-interactions.js");
 const health=read("lib/health.js");
 const logs=read("lib/health.js");
@@ -137,6 +138,13 @@ assertCheck("Admin login is a direct TypeScript API entrypoint without runtime T
  !adminLogin.includes('from "../../lib/admin-login.ts"'));
 assertCheck("Admin data validates an admin session before privileged work",
  adminData.includes("kingshot_admin_validate_session"));
+assertCheck("Maintenance gate escapes infinite preflight after bounded status failures",
+ mainApp.includes("MAX_CONSECUTIVE_STATUS_FAILURES=3") &&
+ mainApp.includes("consecutiveFailures>=MAX_CONSECUTIVE_STATUS_FAILURES") &&
+ mainApp.includes("maintenanceEnabled:false"));
+assertCheck("Malformed admin cookies cannot break logout or authentication checks",
+ adminLogin.includes("Ignore malformed client cookies") &&
+ adminData.includes("try{return decodeURIComponent(part.slice(name.length+1))}catch{return\"\"}"));
 assertCheck("Admin player listing passes a session token hash",
  adminData.includes('rpc("kingshot_admin_list_players",{p_token_hash:tokenHash})'));
 assertCheck("Admin session cookie is HttpOnly/Secure/Strict",
