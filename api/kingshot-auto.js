@@ -131,7 +131,8 @@ export default async function handler(req,res){
   try{
    const adminRows=await rpc("list_kingshot_admin_gift_codes",{});
    const suppressedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.suppressed===true).map(row=>String(row?.code||"").trim().toUpperCase()).filter(Boolean));
-   const codes=requestedCodes.filter(item=>item&&typeof item.code==="string"&&!suppressedCodes.has(item.code.trim().toUpperCase()));
+   const verifiedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(r=>r?.validation_status==="verified"&&r?.active!==false&&r?.suppressed!==true).map(r=>String(r?.code||"").trim().toUpperCase()));
+   const codes=requestedCodes.filter(item=>item&&typeof item.code==="string"&&!suppressedCodes.has(item.code.trim().toUpperCase())&&verifiedCodes.has(item.code.trim().toUpperCase()));
    const result=await runWorkerShard(slot,codes,players,{rpc,redeemForPlayer},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
    return res.status(200).json({ok:true,...result});
   }catch(error){
@@ -238,7 +239,7 @@ export default async function handler(req,res){
    .map(row=>String(row?.gift_code||"").trim().toUpperCase())
    .filter(Boolean));
   const now=Date.now();
-  const activeCodes=codes.filter(item=>{
+  let activeCodes=codes.filter(item=>{
    const sourceExpired=item.expiresAt&&!Number.isNaN(item.expiresAt)&&item.expiresAt<=now;
    return !sourceExpired&&!expiredCodes.has(item.code.toUpperCase());
   });
@@ -251,7 +252,7 @@ export default async function handler(req,res){
    remaining:activeCodes.map(x=>x.code)
   });
   const newCodes=activeCodes.filter(item=>!knownCodes.has(String(item.code).toUpperCase()));
-  for(const item of newCodes)await sendDiscordEvent({title:"🎁 New Kingshot gift code",description:"A new active gift code was discovered by the multi-source scraper.",fields:[{name:"Gift code",value:String(item.code),inline:true},{name:"Sources",value:String((item.sources||[item.source||"merged"]).join(", ")),inline:true},{name:"Confidence",value:Math.round(Number(item.confidence||0)*100)+"% "+String(item.confidenceTier||"unverified"),inline:true},{name:"Expires",value:item.expiresAt&&!Number.isNaN(item.expiresAt)?new Date(item.expiresAt).toISOString():"Not specified",inline:true}]});
+  for(const item of newCodes)await sendDiscordEvent({title:"🎁 New Kingshot gift code",description:"A candidate gift code was discovered by the multi-source scraper and is awaiting player verification.",fields:[{name:"Gift code",value:String(item.code),inline:true},{name:"Sources",value:String((item.sources||[item.source||"merged"]).join(", ")),inline:true},{name:"Confidence",value:Math.round(Number(item.confidence||0)*100)+"% "+String(item.confidenceTier||"unverified"),inline:true},{name:"Expires",value:item.expiresAt&&!Number.isNaN(item.expiresAt)?new Date(item.expiresAt).toISOString():"Not specified",inline:true}]});
   const players=await rpc("list_kingshot_autoredeem_players",{});
   const list=Array.isArray(players)?players:[];
 
@@ -273,6 +274,31 @@ export default async function handler(req,res){
    return a;
   },{checked:0,changed:0,stale:0,errors:0});
   console.log("Kingshot kingdom check:",{players:list.length,...kingdomSummary,validPlayers:validPlayers.length});
+  // One canary per cycle. The real endpoint can consume the reward on this player.
+  const pendingCandidates=persistedCodeRows.filter(r=>r&&r.validation_status==="pending"&&r.suppressed!==true).map(r=>({code:String(r.code||"").trim()})).filter(r=>r.code&&!expiredCodes.has(r.code.toUpperCase())&&codes.some(c=>c.code.toUpperCase()===r.code.toUpperCase()));
+  const canaryCandidate=pendingCandidates[0];let verificationAttempt=null;
+  if(canaryCandidate&&validPlayers.length){
+   for(const player of validPlayers){
+    try{
+     const history=await rpc("list_kingshot_player_redemptions",{p_player_id:player.player_id});
+     const handled=new Set((Array.isArray(history)?history:[]).filter(r=>HANDLED_STATUSES.has(String(r?.status||"").toUpperCase())).map(r=>String(r?.gift_code||"").toUpperCase()));
+     if(handled.has(canaryCandidate.code.toUpperCase()))continue;
+     const claim=await rpc("claim_kingshot_redemption",{p_player_id:player.player_id,p_code:canaryCandidate.code});if(!claim)continue;
+     const result=await redeemKingshot({playerId:player.player_id,code:canaryCandidate.code,kid:player.kingdom_id});
+     const status=String(result?.status||"ERROR").toUpperCase(),message=String(result?.message||result?.error||"");
+     await rpc("record_kingshot_redemption",{p_player_id:player.player_id,p_code:canaryCandidate.code,p_status:status,p_err_code:result?.errCode??null,p_message:(result?.errorCategory?"["+result.errorCategory+"] ":"")+message});
+     let validationStatus="pending";if(["SUCCESS","RECEIVED","SAME TYPE EXCHANGE"].includes(status))validationStatus="verified";else if(status==="CDK_NOT_FOUND")validationStatus="invalid";else if(status==="TIME_ERROR")validationStatus="expired";else if(status==="USAGE_LIMIT")validationStatus="usage_limit";
+     await rpc("set_kingshot_gift_code_validation",{p_code:canaryCandidate.code,p_status:validationStatus,p_player_id:String(player.player_id),p_message:message||status});
+     verificationAttempt={code:canaryCandidate.code,status,validationStatus,playerId:String(player.player_id)};
+     await sendDiscordEvent({title:validationStatus==="verified"?"✅ Gift code verified":validationStatus==="invalid"||validationStatus==="expired"?"⚠️ Gift code rejected":"🕓 Gift code verification pending",description:"A player-based redemption check completed. This attempt may have claimed the reward on the verification player.",fields:[{name:"Code",value:canaryCandidate.code,inline:true},{name:"Result",value:status,inline:true},{name:"Validation",value:validationStatus.toUpperCase(),inline:true}],color:validationStatus==="verified"?0x57F287:validationStatus==="pending"?0xFEE75C:0xED4245});break;
+    }catch(error){console.error("Gift-code verification attempt failed:",canaryCandidate.code,error?.message||error);verificationAttempt={code:canaryCandidate.code,status:"VERIFICATION_ERROR",validationStatus:"pending",errorCategory:classifyScraperError(error)};break;}
+   }
+  }
+  const latestCodeRows=await rpc("list_kingshot_admin_gift_codes",{});
+  const verifiedCodeSet=new Set((Array.isArray(latestCodeRows)?latestCodeRows:[]).filter(r=>r?.validation_status==="verified"&&r?.active!==false&&r?.suppressed!==true).map(r=>String(r?.code||"").trim().toUpperCase()));
+  activeCodes=activeCodes.filter(c=>verifiedCodeSet.has(c.code.toUpperCase()));
+  console.log("Kingshot code validation gate:",{pending:pendingCandidates.length,verificationAttempt,verifiedForWorkers:activeCodes.map(c=>c.code)});
+
 
   if(kingdomSummary.checked||kingdomSummary.changed||kingdomSummary.stale||kingdomSummary.errors){
    await sendDiscordEvent({
@@ -358,7 +384,7 @@ export default async function handler(req,res){
    return map;
   },{})).sort((x,y)=>y.count-x.count).slice(0,8);
   console.log("Kingshot auto worker pool:",{workers:WORKER_COUNT,assignments:assignments.map(x=>x.length),workerFailures:workerFailures.length,attempted:totals.attempted,success:totals.success,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures});
-  const summary={source:"multi-source",sources:sourceResults.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,...totals,workerFailures:workerFailures.length,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures,codeTelemetry};
+  const summary={source:"multi-source",sources:sourceResults.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,verificationAttempt,...totals,workerFailures:workerFailures.length,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures,codeTelemetry};
   await rpc("finish_kingshot_worker_run",{p_token:workerToken,p_status:totals.errors||totals.stale?"COMPLETED_WITH_WARNINGS":"COMPLETED",p_error:null,p_summary:summary}).catch(error=>console.error("Worker state update failed:",error?.message||error));
   const anomalyReasons=[];
   if(totals.errors||workerFailures.length)anomalyReasons.push("worker errors");
