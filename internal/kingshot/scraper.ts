@@ -2,7 +2,7 @@ import { extractPageCodes, extractPublicSourceCodes, normalizeCodes, isLikelyGif
 
 export interface ScraperResult {
   source: string;
-  codes: any[];
+  codes: GiftCodeRow[];
   ok: boolean;
   httpStatus: number | null;
   error: string | null;
@@ -45,7 +45,7 @@ async function updateHealth(rpc: Rpc, source: string, codeCount: number, error: 
   }
 }
 
-async function recordRun(rpc: Rpc, source: string, httpStatus: number | null, codes: any[], parseOk: boolean, error: unknown) {
+async function recordRun(rpc: Rpc, source: string, httpStatus: number | null, codes: GiftCodeRow[], parseOk: boolean, error: unknown) {
   await rpc("kingshot_record_scraper_run", {
     p_source: source,
     p_http_status: httpStatus,
