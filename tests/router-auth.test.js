@@ -20,12 +20,20 @@ const req = (path, method="GET", body={}) => ({
   body
 });
 
-test("admin router rejects unauthenticated data access", async () => {
-  const {default:router}=await import("../api/admin-tools/[...path].ts");
+test("admin data endpoint rejects unauthenticated access", async () => {
+  const {default:handler}=await import("../api/admin-tools/data.ts");
   const res=response();
-  await router(req("data"),res);
+  await handler(req("data"),res);
   assert.equal(res.statusCode,401);
   assert.equal(res.body?.error,"Unauthorized");
+});
+
+test("admin login endpoint rejects missing access keys", async () => {
+  const {default:handler}=await import("../api/admin-tools/login.ts");
+  const res=response();
+  await handler(req("", "POST"),res);
+  assert.equal(res.statusCode,400);
+  assert.equal(res.body?.error,"Admin access key is required.");
 });
 
 test("custom message endpoint rejects unauthenticated destination access", async () => {

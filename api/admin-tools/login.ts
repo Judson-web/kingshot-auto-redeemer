@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { rateLimit } from "../lib/request-rate-limit.js";
+import { rateLimit } from "../../lib/request-rate-limit.js";
 
 interface RequestLike {
   method?: string;
