@@ -19,6 +19,7 @@ const adminData=read("lib/admin-data.ts");
 const adminDataRoute=read("api/admin-tools/data.ts");
 const adminLogin=read("api/admin-tools/login.ts");
 const customMessage=read("api/custom-message.ts");
+const requestRateLimit=read("lib/request-rate-limit.ts");
 const mainApp=read("src/main.tsx");
 const discordInteractions=read("lib/discord-interactions.ts");
 const health=read("lib/health.ts");
@@ -185,6 +186,13 @@ assertCheck(
 assertCheck(
  "Discord interaction command handlers avoid untyped any",
  !/\\bany\\b/.test(discordInteractions)
+);
+
+assertCheck(
+ "In-process rate limiter bounds memory and fails closed at capacity",
+ requestRateLimit.includes("const MAX_BUCKETS = 5000") &&
+ requestRateLimit.includes("if (buckets.size >= MAX_BUCKETS)") &&
+ requestRateLimit.includes("return false")
 );
 
 const migrationDir=path.join(root,"supabase","migrations");
