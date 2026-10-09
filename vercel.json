@@ -87,6 +87,9 @@
   "functions": {
     "api/kingshot-auto.js": {
       "maxDuration": 300
+    },
+    "api/custom-message.js": {
+      "maxDuration": 300
     }
   }
 }
