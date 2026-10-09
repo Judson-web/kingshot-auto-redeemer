@@ -36,3 +36,16 @@ test("uses the first forwarded address as the client key", () => {
   assert.equal(rateLimit(request("203.0.113.1, 203.0.113.2"), response(), "ip-test", 1), true);
   assert.equal(rateLimit(request("203.0.113.2"), response(), "ip-test", 1), true);
 });
+
+test("bounds limiter memory and fails closed for new keys at capacity", () => {
+  reset();
+  const buckets = new Map();
+  const resetAt = Date.now() + 60000;
+  for (let i = 0; i < 5000; i++) buckets.set("occupied:" + i, { count: 1, resetAt });
+  globalThis.__ksRateLimitBuckets = buckets;
+  const res = response();
+  assert.equal(rateLimit(request("198.51.100.200"), res, "capacity-test", 20, 60000), false);
+  assert.equal(buckets.size, 5000);
+  assert.equal(res.headers.get("X-RateLimit-Remaining"), "0");
+  assert.ok(Number(res.headers.get("Retry-After")) >= 1);
+});
