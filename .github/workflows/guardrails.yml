@@ -41,7 +41,7 @@ jobs:
 
   smoke:
     name: Production smoke test
-    if: github.event_name != 'schedule'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     needs: regression
     runs-on: ubuntu-latest
     steps:
