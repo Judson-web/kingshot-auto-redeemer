@@ -43,7 +43,7 @@ function webhookFor(key: unknown): string {
 }
 const COOKIE="__Host-ks_message_session";
 const TTL=12*60*60*1000;
-function sign(value){return crypto.createHmac("sha256",PASS).update(value).digest("base64url")}
+function sign(value: string): string {return crypto.createHmac("sha256",PASS).update(value).digest("base64url")}
 function token(){const exp=Date.now()+TTL,nonce=crypto.randomBytes(24).toString("base64url"),body=exp+"."+nonce;return body+"."+sign(body)}
 function validSession(req: RequestLike): boolean {
  if(!PASS)return false;
