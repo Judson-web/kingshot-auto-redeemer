@@ -11,7 +11,7 @@ declare module "react" {
   export default React;
 }
 declare module "react-dom/client" {
-  export function createRoot(container: Element | DocumentFragment): { render(children: any): void };
+  export function createRoot(container: Element | DocumentFragment | null): { render(children: any): void };
 }
 declare module "lucide-react";
 declare module "react/jsx-runtime" {
@@ -19,7 +19,10 @@ declare module "react/jsx-runtime" {
   export const jsxs: any;
   export const Fragment: any;
 }
+declare module "*.css";
+interface Window { __ksWaitingWorker?: ServiceWorker; }
 declare namespace JSX {
   interface Element {}
+  interface IntrinsicAttributes { key?: any; }
   interface IntrinsicElements { [elementName: string]: any; }
 }
