@@ -4,7 +4,7 @@ export interface RegisterPlayerInput { playerId?: unknown; kingdomId?: unknown; 
 export interface RegisterPlayerResult { registered: boolean; alreadyRegistered: boolean; registrationStatus: string; kingdomVerified: boolean; verificationPending?: boolean; stale?: boolean; verifiedKingdomId?: string; player?: unknown; }
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wocxvtptqapietlteshr.supabase.co";
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || "";
 if (!SUPABASE_KEY) throw Error("Supabase service key is not configured on the server.");
 
 async function rpc(name: string, body: Record<string, unknown>): Promise<unknown> {
