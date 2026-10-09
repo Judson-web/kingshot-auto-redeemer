@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "strict": true
+  },
+  "include": [
+    "internal/kingshot/gift-codes.ts",
+    "internal/kingshot/kingdom-validation.ts",
+    "internal/kingshot/mightpulse.ts",
+    "internal/kingshot/player.ts",
+    "internal/kingshot/scraper.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".vercel"
+  ]
+}
