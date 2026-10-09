@@ -16,6 +16,7 @@ const register=read("internal/kingshot/register.ts");
 const registerHandler=read("api/kingshot-register.ts");
 const support=read("lib/support.ts");
 const adminData=read("lib/admin-data.js");
+const adminRouter=read("api/admin-tools/[...path].ts");
 const adminLogin=read("lib/admin-login.ts");
 const discordInteractions=read("lib/discord-interactions.js");
 const health=read("lib/health.js");
@@ -127,6 +128,9 @@ assertCheck("Support has request rate limiting",
  /rateLimit\(req,\s*res,\s*"support",\s*6,\s*60000\)/.test(support));
 assertCheck("Admin login has request rate limiting",
  /rateLimit\(req,\s*res,\s*"admin-login",\s*5,\s*900000\)/.test(adminLogin));
+assertCheck("Admin API router is a TypeScript entrypoint and imports the typed login module",
+ adminRouter.includes('from "../../lib/admin-login.ts"') &&
+ !fs.existsSync(path.join(root,"api","admin-tools","[...path].js")));
 assertCheck("Admin data validates an admin session before privileged work",
  adminData.includes("kingshot_admin_validate_session"));
 assertCheck("Admin player listing passes a session token hash",
