@@ -4,19 +4,9 @@
     "strict": true
   },
   "include": [
-    "internal/kingshot/gift-codes.ts",
-    "internal/kingshot/kingdom-validation.ts",
-    "internal/kingshot/mightpulse.ts",
-    "internal/kingshot/player.ts",
-    "internal/kingshot/scraper.ts",
-    "internal/kingshot/register.ts",
-    "internal/kingshot/worker.ts",
-    "lib/discord-interactions.ts",
-    "lib/discord-user.ts",
-    "api/discord-user.ts",
-    "api/admin-tools/login.ts",
-    "api/custom-message.ts",
-    "lib/request-rate-limit.ts"
+    "api/**/*.ts",
+    "internal/**/*.ts",
+    "lib/**/*.ts"
   ],
   "exclude": [
     "node_modules",
