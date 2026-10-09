@@ -199,9 +199,9 @@ export interface WorkerSummary {
   stale: number;
   redemptionStatuses: Record<string, number>;
   codeCounts: Record<string, number>;
-  codeTelemetry: Record<string, any>;
-  redemptionFailures: any[];
-  workerErrors: any[];
+  codeTelemetry: Record<string, CodeTelemetrySummary>;
+  redemptionFailures: RedemptionFailureDiagnostic[];
+  workerErrors: WorkerErrorDiagnostic[];
   deadlineSkipped: number;
 }
 
