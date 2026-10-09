@@ -4,8 +4,8 @@ const DISCORD_API="https://discord.com/api/v10";
 const PUBLIC_KEY=process.env.DISCORD_PUBLIC_KEY||process.env.DISCORD_APPLICATION_PUBLIC_KEY||"";
 const BOT_TOKEN=process.env.DISCORD_BOT_TOKEN||"";
 
-function getRawBody(req){
- return new Promise((resolve,reject)=>{
+function getRawBody(req):Promise<string>{
+ return new Promise<string>((resolve,reject)=>{
   const chunks=[];
   req.on("data",chunk=>chunks.push(Buffer.isBuffer(chunk)?chunk:Buffer.from(chunk)));
   req.on("end",()=>resolve(Buffer.concat(chunks).toString("utf8")));

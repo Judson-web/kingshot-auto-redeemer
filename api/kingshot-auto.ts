@@ -104,7 +104,7 @@ const kingdomState=await revalidatePlayer(player,{rpc,notify:sendDiscordEvent});
 
  const discoveryAt=Number.isFinite(item.discoveredAt)?item.discoveredAt:null;
  const redemptionTelemetry={code:item.code,resultAt:new Date(completedAt).toISOString(),status,redemptionLatencyMs:Math.max(0,completedAt-redemptionStartedAt),discoveryToResultMs:discoveryAt==null?null:Math.max(0,completedAt-discoveryAt)};
- return {attempted:1,success:status==="SUCCESS"?1:0,alreadyReceived:status==="RECEIVED"?1:0,alreadyHandled:0,skipped:0,kingdomCheck,kingdomChanged,redemptionCode:item.code,redemptionStatus:status,redemptionErrorCategory:d?.errorCategory||null,redemptionErrCode:d?.errCode??null,redemptionMessage:message?String(message).slice(0,240):null,redemptionTelemetry};
+ return {attempted:1,success:status==="SUCCESS"?1:0,alreadyReceived:status==="RECEIVED"?1:0,alreadyHandled:0,skipped:0,kingdomCheck,kingdomChanged,redemptionCode:item.code,redemptionStatus:status,redemptionErrorCategory:d?.errorCategory||null,redemptionErrCode:typeof d?.errCode === "number" || typeof d?.errCode === "string" ? d.errCode : null,redemptionMessage:message?String(message).slice(0,240):null,redemptionTelemetry};
 }
 
 export default async function handler(req,res){
@@ -364,7 +364,7 @@ export default async function handler(req,res){
   if(!activeCodes.length)anomalyReasons.push("no active codes");
   if(sourceHealthPct<50)anomalyReasons.push("scraper source health below 50%");
   if(list.length&&validPlayers.length<Math.floor(list.length*0.7))anomalyReasons.push("over 30% of players failed validation");
-  const statusMap=workerRuns.reduce<Record<string,number>>((map,r)=>{for(const [status,count] of Object.entries(r?.redemptionStatuses||{}))map[status]=(map[status]||0)+count;return map},{});
+  const statusMap=workerRuns.reduce<Record<string,number>>((map,r)=>{for(const [status,count] of Object.entries(r?.redemptionStatuses||{}))map[status]=(map[status]||0)+Number(count||0);return map},{});
   if(anomalyReasons.length)await sendDiscordEvent({title:"🚨 Auto-redeem anomaly detected",description:anomalyReasons.join(" · "),fields:[
    {name:"Reasons",value:anomalyReasons.join("\n"),inline:false},
    {name:"Cycle runtime",value:(cycleDurationMs/1000).toFixed(1)+"s",inline:true},
