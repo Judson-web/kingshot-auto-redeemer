@@ -21,7 +21,7 @@ function extractAggregatorCodes(data: unknown): GiftCodeRow[] {
 }
 
 interface Rpc {
-  (name: string, body: Record<string, unknown>): Promise<any>;
+  (name: string, body: Record<string, unknown>): Promise<unknown>;
 }
 
 export function classifyScraperError(error: unknown): string {
