@@ -10,7 +10,7 @@ async function check(name,path,expected,options={}){
    const timer=setTimeout(()=>controller.abort(),options.timeout||10000);
    const response=await fetch(url,{method:options.method||"GET",headers:options.headers,signal:controller.signal});
    clearTimeout(timer);
-   const ok=typeof expected==="function"?expected(response):response.status===expected;
+   const ok=typeof expected==="function"?await expected(response):response.status===expected;
    if(ok||attempt===18){
     checks.push({name,ok,status:response.status});
     return;
@@ -28,6 +28,11 @@ async function check(name,path,expected,options={}){
 }
 
 await check("Production homepage", "/", response=>response.status>=200&&response.status<400);
+await check("Public maintenance status returns a boolean", "/api/kingshot-admin-data?public=maintenance", async response=>{
+ if(response.status!==200)return false;
+ const data=await response.json().catch(()=>null);
+ return typeof data?.maintenanceEnabled==="boolean";
+});
 if(process.env.GITHUB_EVENT_NAME!=="pull_request") await check("Production logs JSON API", "/api/kingshot-health?logs=1", response=>response.status===200);
 await check("Admin data rejects unauthenticated access", "/api/kingshot-admin-data", 401);
 await check("Registration endpoint rejects wrong HTTP method", "/api/kingshot-register", 405);
