@@ -26,7 +26,8 @@ import {extractPageCodes, extractPublicSourceCodes, mergeCodes, normalizeCodes} 
 
 const HANDLED_STATUSES=new Set(["SUCCESS","RECEIVED","SAME TYPE EXCHANGE","TIME_ERROR","CDK_NOT_FOUND","USAGE_LIMIT"]);
 const WORKER_COUNT=3;
-const PLAYER_CONCURRENCY=6;
+// Keep aggregate upstream pressure bounded: 3 shards × 2 concurrent redemptions.
+const PLAYER_CONCURRENCY=2;
 const KINGDOM_VALIDATION_CONCURRENCY=3;
 const WORKER_MAX_RUNTIME_MS=4*60*1000;
 const DISCORD_WEBHOOK_URL=process.env.DISCORD_KINGSHOT_WEBHOOK_URL||process.env.DISCORD_SCRAPER_WEBHOOK_URL;
