@@ -5,10 +5,8 @@ const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supab
 const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
 const GIFT_SOURCE_URL="https://kingshot.net/api/gift-codes";
 const PUBLIC_GIFT_SOURCES=[
- // Disabled: source repeatedly returned HTTP 200 but no parseable active codes.
- {name:"kingshot-guides",url:"https://kingshotguides.com/guide/active-giftcodes-and-how-to-redeem/"},
+ // Keep only sources whose active-code sections have a useful signal-to-noise ratio.
  {name:"beebom",url:"https://beebom.com/kingshot-codes/"},
- {name:"kingshotmastery",url:"https://kingshotmastery.com/gift-codes"},
  {name:"pocketgamer",url:"https://www.pocketgamer.com/kingshot/codes/"}
 ];
 // Verified long-running fallback for codes that have been omitted from the upstream API feed.
@@ -28,7 +26,8 @@ import {extractPageCodes, extractPublicSourceCodes, mergeCodes, normalizeCodes} 
 
 const HANDLED_STATUSES=new Set(["SUCCESS","RECEIVED","SAME TYPE EXCHANGE","TIME_ERROR","CDK_NOT_FOUND","USAGE_LIMIT"]);
 const WORKER_COUNT=3;
-const PLAYER_CONCURRENCY=6;
+// Keep aggregate upstream pressure bounded: 3 shards × 2 concurrent redemptions.
+const PLAYER_CONCURRENCY=2;
 const KINGDOM_VALIDATION_CONCURRENCY=3;
 const WORKER_MAX_RUNTIME_MS=4*60*1000;
 const DISCORD_WEBHOOK_URL=process.env.DISCORD_KINGSHOT_WEBHOOK_URL||process.env.DISCORD_SCRAPER_WEBHOOK_URL;
