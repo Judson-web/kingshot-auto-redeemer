@@ -33,7 +33,7 @@ const KINGDOM_VALIDATION_CONCURRENCY=3;
 const WORKER_MAX_RUNTIME_MS=4*60*1000;
 const DISCORD_WEBHOOK_URL=process.env.DISCORD_KINGSHOT_WEBHOOK_URL||process.env.DISCORD_SCRAPER_WEBHOOK_URL;
 async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
- if(!DISCORD_WEBHOOK_URL)return;
+ if(!DISCORD_WEBHOOK_URL)return false;
  const payload={username:"Kingshot Auto Redeem",allowed_mentions:{parse:[]},embeds:[{
   title:String(title||"Kingshot Auto Redeem").slice(0,256),
   description:description?String(description).slice(0,4096):undefined,
