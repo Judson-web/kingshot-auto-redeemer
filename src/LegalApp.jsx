@@ -19,7 +19,7 @@ export default function LegalApp({type}){
         <div className="eyebrow"><span/>{privacy?"PRIVACY NOTICE":"TERMS OF USE"}</div>
         <h1>{privacy?"Privacy, made clear.":"Terms, without the clutter."}</h1>
         <p className="hero-copy">{service.summary}</p>
-        <div className="legal-meta"><span>Updated October 6, 2026</span><span>Independent community service</span><span>No game password required</span></div><div className="legal-tabs"><a className={!privacy?"active":""} href={"/terms?service="+serviceKey}>Terms</a><a className={privacy?"active":""} href={"/privacy?service="+serviceKey}>Privacy</a></div>
+        <div className="legal-meta"><span>Updated October 9, 2026</span><span>Independent community service</span><span>No game password required</span></div><div className="legal-tabs"><a className={!privacy?"active":""} href={"/terms?service="+serviceKey}>Terms</a><a className={privacy?"active":""} href={"/privacy?service="+serviceKey}>Privacy</a></div>
       </section>
       <section className="legal-body">
         <h2>Accessibility</h2>
