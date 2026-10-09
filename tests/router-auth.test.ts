@@ -37,7 +37,7 @@ test("admin login endpoint rejects missing access keys", async () => {
 });
 
 test("custom message endpoint rejects unauthenticated destination access", async () => {
-  const {default:handler}=await import("../api/custom-message.js");
+  const {default:handler}=await import("../api/custom-message.ts");
   const res=response();
   await handler(req("", "POST", {action:"DESTINATIONS"}),res);
   assert.equal(res.statusCode,401);
@@ -45,7 +45,7 @@ test("custom message endpoint rejects unauthenticated destination access", async
 });
 
 test("custom message endpoint rejects unauthenticated sends", async () => {
-  const {default:handler}=await import("../api/custom-message.js");
+  const {default:handler}=await import("../api/custom-message.ts");
   const res=response();
   await handler(req("", "POST", {action:"SEND",target:"test",message:"hello"}),res);
   assert.equal(res.statusCode,401);

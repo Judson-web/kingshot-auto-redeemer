@@ -2,9 +2,9 @@ import React,{useEffect,useRef,useState}from"react";
 import{createRoot}from"react-dom/client";
 import{ExternalLink,Gift,Menu,Search,ShieldCheck,X,CheckCircle,LoaderCircle,AlertTriangle,Info,OctagonAlert,ArrowRight,Copy,Activity,Wrench,WifiOff}from"lucide-react";
 import"./styles.css";
-import LegalApp from"./LegalApp.jsx";
-import InfoApp from"./InfoApp.jsx";
-import CustomMessageApp from"./CustomMessageApp.jsx";
+import LegalApp from"./LegalApp.tsx";
+import InfoApp from"./InfoApp.tsx";
+import CustomMessageApp from"./CustomMessageApp.tsx";
 
 
 const imageUrl=(user,size=1024,format=user.format)=>"/api/discord-avatar?id="+encodeURIComponent(user.id)+"&hash="+encodeURIComponent(user.avatar)+"&format="+encodeURIComponent(format)+"&size="+encodeURIComponent(size);

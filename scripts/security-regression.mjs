@@ -9,19 +9,19 @@ function assertCheck(name,condition,detail=""){
  checks.push({name,ok:Boolean(condition),detail});
 }
 
-const auto=read("api/kingshot-auto.js");
+const auto=read("api/kingshot-auto.ts");
 const worker=read("internal/kingshot/worker.ts");
 const workerCode=auto+"\n"+worker;
 const register=read("internal/kingshot/register.ts");
 const registerHandler=read("api/kingshot-register.ts");
 const support=read("lib/support.ts");
-const adminData=read("lib/admin-data.js");
+const adminData=read("lib/admin-data.ts");
 const adminDataRoute=read("api/admin-tools/data.ts");
 const adminLogin=read("api/admin-tools/login.ts");
-const mainApp=read("src/main.jsx");
-const discordInteractions=read("lib/discord-interactions.js");
-const health=read("lib/health.js");
-const logs=read("lib/health.js");
+const mainApp=read("src/main.tsx");
+const discordInteractions=read("lib/discord-interactions.ts");
+const health=read("lib/health.ts");
+const logs=read("lib/health.ts");
 
 assertCheck("Logs API is GET-only and server-side",
  logs.includes('if(req.method!=="GET")') &&
