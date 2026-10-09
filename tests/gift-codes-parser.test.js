@@ -26,3 +26,18 @@ test("extracts a code from an explicit active gift-code section", () => {
     ["Hangul2026"]
   );
 });
+
+test("ignores fake code-like tokens inside scripts and generic code attributes", () => {
+  const html = `
+    <script>const height = "height"; const gift_code = "FAKECODE99";</script>
+    <div class="height buttons">height</div>
+    <div code="FAKECODE99">ordinary component</div>
+    <h2>Active Gift Codes</h2>
+    <p>Hangul2026</p>
+    <h2>Expired Gift Codes</h2>
+  `;
+  assert.deepEqual(
+    extractPublicSourceCodes(html, "fixture").map(row => row.code),
+    ["Hangul2026"]
+  );
+});
