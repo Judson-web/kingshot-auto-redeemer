@@ -26,18 +26,38 @@ export function extractPageCodes(html: unknown): GiftCodeRow[] {
  return rows;
 }
 export function extractPublicSourceCodes(html: unknown, sourceName: string): GiftCodeRow[] {
- const lines=cleanPageLines(html);const rows:GiftCodeRow[]=[];const seen=new Set<string>();
+ // Strip executable/style content before any token extraction. Script bundles often
+ // contain UI identifiers such as "height", "buttons", or "Guides" that are not codes.
+ const source=String(html??"")
+  .replace(/<!--[\\s\\S]*?-->/g," ")
+  .replace(/<script\\b[\\s\\S]*?<\\/script>/gi," ")
+  .replace(/<style\\b[\\s\\S]*?<\\/style>/gi," ")
+  .replace(/<noscript\\b[\\s\\S]*?<\\/noscript>/gi," ");
+ const lines=cleanPageLines(source);const rows:GiftCodeRow[]=[];const seen=new Set<string>();
  const add=(value:unknown,expiresAt:number|null=null)=>{const code=decodeHtml(value).trim();const key=code.toUpperCase();if(!isLikelyGiftCode(code)||seen.has(key)||(expiresAt&&!Number.isNaN(expiresAt)&&expiresAt<=Date.now()))return;seen.add(key);rows.push({code,expiresAt,createdAt:0,source:sourceName});};
  const startPatterns=[/^Active Gift Codes:?$/i,/^Active Giftcodes:?$/i,/^All Kingshot codes:?$/i,/^New valid gift codes for Kingshot:?$/i,/^Active Codes:?$/i,/^Kingshot Gift Codes:?$/i,/^Working Gift Codes:?$/i,/^Current Gift Codes:?$/i,/^Latest Gift Codes:?$/i,/^Valid Gift Codes:?$/i,/^Gift Codes:?$/i,/^Working Kingshot Codes are:?$/i,/^Working Kingshot Codes:?$/i,/^Active Kingshot codes:?$/i,/^Active Kingshot Gift Codes and Redeem Tool:?$/i,/^All New Kingshot Codes:?$/i];
- const start=lines.findIndex(line=>startPatterns.some(p=>p.test(line)));
- for(const match of String(html??"").matchAll(/(?:data-(?:gift-)?code|(?:gift_?code|code))\s*[:=]\s*["']([A-Za-z0-9_-]{6,32})["']/gi)) add(match[1]);
- // Do not infer codes from words near generic “copy” or “redeem” text. This
- // heuristic treated nearby page copy/CTA text as codes and generated false alerts.
- if(start<0)return rows;
- const endPatterns=[/^Expired Kingshot codes:?$/i,/^Expired Gift Codes:?$/i,/^Expired Codes:?$/i,/^Unavailable or Archived Codes:?$/i,/^How to Redeem/i,/^How to claim/i,/^How to use/i];let stop=lines.length;for(let i=start+1;i<lines.length;i++){if(endPatterns.some(p=>p.test(lines[i]))){stop=i;break;}}
- const activeLines=lines.slice(start+1,stop);
- for(let i=0;i<activeLines.length;i++){const line=activeLines[i].replace(/^[•*·▪-]\s*/,"").replace(/^[`]|[`]$/g,"").trim();const row=line.match(/^([A-Za-z0-9]{6,32})(?:\s+[–—-]\s+|\s+)(.*)$/);if(row&&isLikelyGiftCode(row[1])){const expiry=(row[2]||"").match(/expires?[^0-9]*(\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+\s+\d{4}|[A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{4})/i);add(row[1],expiry?parseExternalExpiry(expiry[1]):null);continue;}const token=line.match(/^(?:`)?([A-Za-z][A-Za-z0-9]{5,31})(?:`)?$/);if(token&&isLikelyGiftCode(token[1])){const next=(activeLines[i+1]||"")+" "+(activeLines[i+2]||"");const expiry=next.match(/expires?[^0-9]*(\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+\s+\d{4}|[A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{4})/i);add(token[1],expiry?parseExternalExpiry(expiry[1]):null);}}
- if(!rows.length){const segment=activeLines.join("\n");for(const match of segment.matchAll(/(?:^|\n|>)[\s*•·▪-]*([A-Za-z][A-Za-z0-9]{5,31})(?=\s*(?:–|—|-|\b(?:new|active|copy|redeem|expires)\b))/gi)){add(match[1]);}}
+ const startIndex=lines.findIndex(line=>startPatterns.some(p=>p.test(line)));
+ // Only accept explicitly named data attributes; generic "code" properties occur in
+ // analytics, schema markup, and unrelated page widgets and create false positives.
+ for(const match of source.matchAll(/data-(?:gift-)?code\\s*=\\s*["']([A-Za-z0-9_-]{6,32})["']/gi)) add(match[1]);
+ if(startIndex<0)return rows;
+ const endPatterns=[/^Expired Kingshot codes:?$/i,/^Expired Gift Codes:?$/i,/^Expired Codes:?$/i,/^Unavailable or Archived Codes:?$/i,/^How to Redeem/i,/^How to claim/i,/^How to use/i];
+ let stop=lines.length;for(let i=startIndex+1;i<lines.length;i++){if(endPatterns.some(p=>p.test(lines[i]))){stop=i;break;}}
+ const activeLines=lines.slice(startIndex+1,stop);
+ for(let i=0;i<activeLines.length;i++){
+  const line=activeLines[i].replace(/^[•*·▪-]\\s*/,"").replace(/^[`]|[`]$/g,"").trim();
+  const row=line.match(/^([A-Za-z0-9]{6,32})(?:\\s+[–—-]\\s+|\\s+)(.*)$/);
+  if(row&&isLikelyGiftCode(row[1])){
+   const expiry=(row[2]||"").match(/expires?[^0-9]*(\\d{1,2}(?:st|nd|rd|th)?\\s+[A-Za-z]+\\s+\\d{4}|[A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4}|\\d{1,2}\\/\\d{1,2}\\/\\d{4})/i);
+   add(row[1],expiry?parseExternalExpiry(expiry[1]):null);continue;
+  }
+  const token=line.match(/^(?:`)?([A-Za-z][A-Za-z0-9]{5,31})(?:`)?$/);
+  if(token&&isLikelyGiftCode(token[1])){
+   const next=(activeLines[i+1]||"")+" "+(activeLines[i+2]||"");
+   const expiry=next.match(/expires?[^0-9]*(\\d{1,2}(?:st|nd|rd|th)?\\s+[A-Za-z]+\\s+\\d{4}|[A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4}|\\d{1,2}\\/\\d{1,2}\\/\\d{4})/i);
+   add(token[1],expiry?parseExternalExpiry(expiry[1]):null);
+  }
+ }
  return rows;
 }
 export function mergeCodes(sources: GiftCodeRow[][]): GiftCodeRow[] { const map=new Map<string,GiftCodeRow>(); for(const row of sources.flat()){const key=row.code.toUpperCase();const existing=map.get(key);if(existing){const sourceSet=new Set([...(existing.sources||[existing.source||"unknown"]),row.source||"unknown"]);map.set(key,{...existing,expiresAt:existing.expiresAt||row.expiresAt,createdAt:existing.createdAt||row.createdAt,source:sourceSet.size>1?"multiple":existing.source,sources:[...sourceSet]});}else map.set(key,{...row,sources:[row.source||"unknown"]});} return [...map.values()].filter(row=>!row.expiresAt||Number.isNaN(row.expiresAt)||row.expiresAt>Date.now()).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); }
