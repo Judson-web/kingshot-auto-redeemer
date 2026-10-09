@@ -80,13 +80,13 @@ flowchart LR
     V --> S
 ```
 
-The production service runs on Vercel, with Supabase/PostgreSQL providing durable application state. Domain logic is progressively isolated in TypeScript modules under `internal/kingshot/`, while API files act as thin HTTP adapters.
+The production service runs on Vercel, with Supabase/PostgreSQL providing durable application state. The TypeScript migration is in progress: TypeScript 5.9 type-checking is part of CI, but the repository still contains JavaScript/JSX modules. Do not treat the migration as complete until the remaining modules are converted and the full regression suite passes.
 
 The worker is coordinated through database-backed state rather than process-local memory. Worker sharding, leases, heartbeats, atomic claims, retry handling, and persistent redemption history are designed to prevent duplicate work across concurrent invocations.
 
 Player lookups can refresh the stored profile of an already-registered Player ID when fresh provider data is available. This does not reset the scheduler's kingdom-validation cooldown.
 
-The archive and DR systems are downstream of production. **Normal redemption does not depend on GitHub, the cold archive, or the DR vault.**
+The archive and DR systems are downstream of production. **Normal redemption does not depend on GitHub, the cold archive, or the DR vault.** The private archive repository's README publishes its generated checkpoint and recovery status; consult it before treating a backup as current. At the latest checked archive state (9 October 2026), the encrypted offsite copy was **not yet matched to the latest recovery point**, so offsite freshness still required verification.
 
 ## ✦ Data & privacy boundary
 
@@ -239,7 +239,7 @@ The goal is simple: **a green build should mean more than “the frontend compil
 | Database | Supabase PostgreSQL |
 | Storage | Supabase Storage |
 | Automation | GitHub Actions |
-| Recovery | Private GitHub archive + encrypted DR vault |
+| Recovery | Private GitHub archive + encrypted DR vault; check archive README for live checkpoint/backup status |
 | License | AGPL-3.0 |
 
 ## ✦ Local development
