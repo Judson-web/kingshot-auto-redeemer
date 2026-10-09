@@ -1494,3 +1494,16 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  .site-status-foot{font-size:7.5px}
 }
 @media(prefers-reduced-motion:reduce){.site-status-close{transition:none}}
+
+/* Maintenance preflight: never flash the app before the live mode check */
+.maintenance-preflight{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;min-height:100dvh;padding:24px;box-sizing:border-box;background:#08090c;color:#e8e5df}
+.maintenance-preflight-card{width:min(100%,420px);display:flex;flex-direction:column;align-items:center;gap:14px;padding:clamp(24px,6vw,42px);box-sizing:border-box;border:1px solid #292d36;border-radius:22px;background:linear-gradient(145deg,#12151c,#0b0d12);box-shadow:0 28px 90px #0008;text-align:center}
+.maintenance-preflight-mark{display:grid;place-items:center;width:48px;height:48px;border:1px solid #3c3324;border-radius:15px;background:#19150e;color:#d1a85f}
+.maintenance-preflight .maintenance-kicker{margin-top:6px;color:#9b8255;font-size:9px;font-weight:900;letter-spacing:.17em}
+.maintenance-preflight h1{margin:0;color:#eeece7;font-size:clamp(22px,5vw,30px);line-height:1.2;letter-spacing:-.04em}
+.maintenance-preflight p{max-width:320px;margin:0;color:#8b919d;font-size:13px;line-height:1.7}
+.maintenance-preflight-progress{position:relative;display:block;width:min(220px,80%);height:3px;overflow:hidden;border-radius:99px;background:#252a33}
+.maintenance-preflight-progress i{position:absolute;inset:0;width:38%;border-radius:inherit;background:#c8a15b;animation:maintenance-preflight-sweep 1.2s ease-in-out infinite alternate}
+.maintenance-preflight small{color:#626a77;font-size:8px;font-weight:800;letter-spacing:.12em}
+@keyframes maintenance-preflight-sweep{from{transform:translateX(-10%)}to{transform:translateX(180%)}}
+@media(prefers-reduced-motion:reduce){.maintenance-preflight-progress i{animation:none;width:100%;opacity:.55}}
