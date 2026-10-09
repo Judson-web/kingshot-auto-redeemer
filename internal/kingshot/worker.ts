@@ -141,7 +141,11 @@ export interface WorkerResultSummary {
   workerErrors: WorkerErrorDiagnostic[];
 }
 
-interface CodeTelemetryAccumulator extends CodeTelemetrySummary {\n  totalRedemptionLatencyMs: number;\n}\n\nexport function summarizeWorkerResults(results: WorkerResult[]): WorkerResultSummary {
+interface CodeTelemetryAccumulator extends CodeTelemetrySummary {
+  totalRedemptionLatencyMs: number;
+}
+
+export function summarizeWorkerResults(results: WorkerResult[]): WorkerResultSummary {
   const redemptionDiagnostics: Record<string, RedemptionFailureDiagnostic> = {};
   const statusCounts: Record<string, number> = {};
   const workerErrorDiagnostics: Record<string, WorkerErrorDiagnostic> = {};
