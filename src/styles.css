@@ -1507,3 +1507,25 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .maintenance-preflight small{color:#626a77;font-size:8px;font-weight:800;letter-spacing:.12em}
 @keyframes maintenance-preflight-sweep{from{transform:translateX(-10%)}to{transform:translateX(180%)}}
 @media(prefers-reduced-motion:reduce){.maintenance-preflight-progress i{animation:none;width:100%;opacity:.55}}
+
+/* Animated maintenance-mode preflight loader — presentation only */
+.maintenance-preflight-card{animation:maintenance-preflight-enter .55s cubic-bezier(.2,.8,.2,1) both;transition:opacity .28s ease,transform .28s ease}
+.maintenance-loader{position:relative;display:grid;place-items:center;width:76px;height:76px;margin:0 0 2px;isolation:isolate}
+.maintenance-loader::before{content:"";position:absolute;inset:7px;border:1px solid #c8a15b26;border-radius:50%;animation:maintenance-loader-breathe 2.4s ease-in-out infinite}
+.maintenance-loader-orbit{position:absolute;inset:2px;border:2px solid transparent;border-radius:50%;filter:drop-shadow(0 0 7px #c8a15b35)}
+.maintenance-loader-orbit-a{border-top-color:#e1bf79;border-right-color:#e1bf7955;animation:maintenance-loader-spin 1.05s cubic-bezier(.58,.1,.35,.9) infinite}
+.maintenance-loader-orbit-b{inset:11px;border-bottom-color:#9a7be9;border-left-color:#9a7be955;animation:maintenance-loader-spin-reverse 1.65s linear infinite}
+.maintenance-loader-core{position:relative;display:grid;place-items:center;width:24px;height:24px;border:1px solid #c8a15b65;border-radius:8px;background:linear-gradient(145deg,#282014,#15121a);box-shadow:0 0 24px #c8a15b24, inset 0 0 12px #c8a15b12;transform:rotate(45deg);animation:maintenance-loader-core 2.2s ease-in-out infinite}
+.maintenance-loader-core i{display:block;width:6px;height:6px;border-radius:50%;background:#e5c37f;box-shadow:0 0 12px #e5c37f;animation:maintenance-loader-pulse 1.2s ease-in-out infinite}
+.maintenance-preflight h1,.maintenance-preflight p,.maintenance-preflight .maintenance-kicker,.maintenance-preflight small{animation:maintenance-preflight-copy-in .6s .08s both}
+.maintenance-preflight p{animation-delay:.14s}
+.maintenance-preflight-progress{animation:maintenance-preflight-copy-in .6s .2s both}
+.maintenance-preflight small{animation-delay:.24s}
+@keyframes maintenance-preflight-enter{from{opacity:0;transform:translateY(12px) scale(.975);filter:blur(5px)}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
+@keyframes maintenance-preflight-copy-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes maintenance-loader-spin{to{transform:rotate(360deg)}}
+@keyframes maintenance-loader-spin-reverse{to{transform:rotate(-360deg)}}
+@keyframes maintenance-loader-breathe{0%,100%{transform:scale(.92);opacity:.35}50%{transform:scale(1.08);opacity:.9}}
+@keyframes maintenance-loader-core{0%,100%{transform:rotate(45deg) scale(.94)}50%{transform:rotate(135deg) scale(1.08)}}
+@keyframes maintenance-loader-pulse{0%,100%{opacity:.55;transform:scale(.75)}50%{opacity:1;transform:scale(1.25)}}
+@media(prefers-reduced-motion:reduce){.maintenance-preflight-card,.maintenance-loader-orbit-a,.maintenance-loader-orbit-b,.maintenance-loader::before,.maintenance-loader-core,.maintenance-loader-core i,.maintenance-preflight h1,.maintenance-preflight p,.maintenance-preflight .maintenance-kicker,.maintenance-preflight small,.maintenance-preflight-progress{animation:none!important;transition:none!important}.maintenance-preflight-card{opacity:1;transform:none;filter:none}.maintenance-loader-core i{opacity:1;transform:none}}
