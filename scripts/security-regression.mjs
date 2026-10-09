@@ -158,6 +158,29 @@ assertCheck("Admin access-key path delegates verification to the key RPC",
 assertCheck("Discord interaction handler does not embed a Supabase publishable key",
  !/sb_publishable_[A-Za-z0-9_-]+/.test(discordInteractions));
 
+assertCheck(
+ "Discord interactions reject stale signed requests to limit replay",
+ discordInteractions.includes("MAX_TIMESTAMP_AGE_SECONDS = 5 * 60") &&
+ discordInteractions.includes("isFreshTimestamp(timestamp)")
+);
+assertCheck(
+ "Discord interaction bodies are size-limited before JSON parsing",
+ discordInteractions.includes("MAX_BODY_BYTES = 1_000_000") &&
+ discordInteractions.includes("RequestBodyTooLargeError") &&
+ discordInteractions.includes("status(413)")
+);
+assertCheck(
+ "Discord registration callback uses a configured HTTPS origin instead of forwarded host headers",
+ discordInteractions.includes("APP_BASE_URL") &&
+ discordInteractions.includes('target.protocol !== "https:"') &&
+ !discordInteractions.includes("x-forwarded-host") &&
+ !discordInteractions.includes("x-forwarded-proto")
+);
+assertCheck(
+ "Discord interaction command handlers avoid untyped any",
+ !/\\bany\\b/.test(discordInteractions)
+);
+
 const migrationDir=path.join(root,"supabase","migrations");
 const migrations=fs.existsSync(migrationDir)
  ? fs.readdirSync(migrationDir)
