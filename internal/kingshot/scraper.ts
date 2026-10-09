@@ -15,10 +15,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function extractAggregatorCodes(data: unknown): GiftCodeRow[] {
-  const rows = Array.isArray((data as { codes?: unknown[] })?.codes) ? (data as { codes: unknown[] }).codes : [];
-  return rows.map((row): GiftCodeRow | null => {
-    const value = typeof row === "string" ? row : (row as { code?: unknown })?.code;
-    const code = String(value ?? "").trim();
+  if (!isRecord(data) || !Array.isArray(data.codes)) return [];
+
+  return data.codes.map((row): GiftCodeRow | null => {
+    const value = typeof row === "string" ? row : isRecord(row) ? row.code : null;
+    const code = typeof value === "string" ? value.trim() : "";
     if (!isLikelyGiftCode(code)) return null;
     return { code, expiresAt: null, createdAt: 0, source: "whiteout-bot-aggregator" };
   }).filter((row): row is GiftCodeRow => row !== null);
