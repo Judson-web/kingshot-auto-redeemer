@@ -25,6 +25,8 @@ function extractAggregatorCodes(data: unknown): GiftCodeRow[] {
   }).filter((row): row is GiftCodeRow => row !== null);
 }
 
+export type ScraperSourceKind = "api" | "page" | "aggregator" | `public:${string}`;
+
 interface Rpc {
   (name: string, body: Record<string, unknown>): Promise<unknown>;
 }
@@ -62,7 +64,7 @@ async function recordRun(rpc: Rpc, source: string, httpStatus: number | null, co
   }).catch(() => {});
 }
 
-export async function fetchSource(rpc: Rpc, url: string, kind: string): Promise<ScraperResult> {
+export async function fetchSource(rpc: Rpc, url: string, kind: ScraperSourceKind): Promise<ScraperResult> {
   const source = kind === "api" ? "kingshot-api" : kind === "page" ? "kingshot-page" : kind === "aggregator" ? "whiteout-bot-aggregator" : kind.slice(7);
   const apiLike = kind === "api" || kind === "aggregator";
   try {
