@@ -126,9 +126,12 @@ export default async function handler(req,res){
   if(!Number.isInteger(slot)||slot<0||slot>=WORKER_COUNT)return res.status(400).json({error:"Invalid worker slot"});
   let body=req.body;
   if(typeof body==="string"){try{body=JSON.parse(body)}catch{return res.status(400).json({error:"Invalid worker payload"})}}
-  const codes=Array.isArray(body?.codes)?body.codes:[];
+  const requestedCodes=Array.isArray(body?.codes)?body.codes:[];
   const players=Array.isArray(body?.players)?body.players:[];
   try{
+   const adminRows=await rpc("list_kingshot_admin_gift_codes",{});
+   const suppressedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.suppressed===true).map(row=>String(row?.code||"").trim().toUpperCase()).filter(Boolean));
+   const codes=requestedCodes.filter(item=>item&&typeof item.code==="string"&&!suppressedCodes.has(item.code.trim().toUpperCase()));
    const result=await runWorkerShard(slot,codes,players,{rpc,redeemForPlayer},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
    return res.status(200).json({ok:true,...result});
   }catch(error){
@@ -207,14 +210,15 @@ export default async function handler(req,res){
   const apiCodes=apiSource.codes;
   const pageCodes=pageSource.codes;
   const publicCodes=publicSources.flatMap((result,index)=>result.codes.length?result.codes.map(row=>({...row,source:PUBLIC_GIFT_SOURCES[index].name})):[]);
-  const adminCodes=(Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.active!==false).map(row=>({
+  const suppressedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.suppressed===true).map(row=>String(row?.code||"").trim().toUpperCase()).filter(Boolean));
+  const adminCodes=(Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.active!==false&&row?.suppressed!==true).map(row=>({
    code:String(row?.code||"").trim(),
    expiresAt:null,
    createdAt:row?.source_date?Date.parse(String(row.source_date)):Date.parse(String(row?.first_seen_at||"")),
    source:"admin",
    adminAdded:Boolean(row?.admin_added)
   })).filter(row=>row.code&&row.code.length>=6&&row.code.length<=32);
-  let codes=mergeCodes([apiCodes,pageCodes,publicCodes,VERIFIED_FALLBACK_CODES,adminCodes]);
+  let codes=mergeCodes([apiCodes,pageCodes,publicCodes,VERIFIED_FALLBACK_CODES,adminCodes]).filter(item=>!suppressedCodes.has(String(item.code||"").trim().toUpperCase()));
   if(!codes.length)throw Error("Kingshot gift-code sources returned no active codes.");
   const codesDiscoveredAt=Date.now();
   console.log("Kingshot auto feed:",{apiActive:data?.data?.activeCount??null,apiCodes:apiCodes.map(x=>x.code),pageCodes:pageCodes.map(x=>x.code),publicSources:publicCodes.map(x=>({code:x.code,source:x.source})),adminCodes:adminCodes.map(x=>x.code),merged:codes.map(x=>x.code)});

@@ -116,19 +116,21 @@ export default async function handler(req,res){
     return data;
    };
    if(action==="GIFT_CODE_LIST"){
-    const rows=await db("kingshot_gift_codes?select=id,code,active,admin_added,expires_at,first_seen_at,last_seen_at,source_date&order=active.desc,code.asc");
+    const rows=await db("kingshot_gift_codes?select=id,code,active,admin_added,suppressed,expires_at,first_seen_at,last_seen_at,source_date&order=active.desc,code.asc");
     return res.status(200).json({codes:Array.isArray(rows)?rows:[]});
    }
    if(action==="GIFT_CODE_ADD"){
     if(!rateLimit(req,res,"gift-code-write",30,60*1000))return res.status(429).json({error:"Too many changes. Wait a minute."});
     const code=clean(body.code,64);
-    if(!/^[A-Za-z0-9_-]{4,64}$/.test(code))return res.status(400).json({error:"Use 4–64 letters, numbers, underscores or hyphens."});
+    if(body.confirmManual!==true)return res.status(400).json({error:"Confirm that this code was checked against a trusted Kingshot source before adding it."});
+    if(!/^[A-Za-z0-9_-]{6,32}$/.test(code))return res.status(400).json({error:"Use 6–32 letters, numbers, underscores or hyphens."});
+    if(/^(ACTIVE|EXPIRED|CONTINUE|COPYCODE|SIGNINTOREDEEM|SHARELINK|GIFTCODES|REDEEMGIFTCODE|GIFTCODE|LOADING|COMMUNITY|FEATURES|LATEST|CURRENT|POPULAR|PROFILE|PLAYER|KINGDOM|SERVER|MESSAGE|SETTINGS|HEIGHT|GUIDES|MASTERY|QUESTION|ANSWER|ACCOUNT|PENDING|SCREEN|CONTENT|SCHEMA|CHILDREN|REWARDS|VERIFIED|IMPORT|COMPLETE|UPGRADE|ARTICLE|BACKGROUND|BUTTONS|CLIPBOARD|STATIC|ASSETS)$/i.test(code))return res.status(400).json({error:"That text looks like page/UI text, not a gift code."});
     const existing=await db("kingshot_gift_codes?code=eq."+encodeURIComponent(code)+"&select=id,code");
     if(Array.isArray(existing)&&existing.length){
-     const updated=await db("kingshot_gift_codes?code=eq."+encodeURIComponent(code),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({active:true,admin_added:true,expires_at:body.expiresAt||null,last_seen_at:new Date().toISOString()})});
+     const updated=await db("kingshot_gift_codes?code=eq."+encodeURIComponent(code),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({active:true,admin_added:true,suppressed:false,expires_at:body.expiresAt||null,last_seen_at:new Date().toISOString()})});
      return res.status(200).json({ok:true,code:updated?.[0]||{code,active:true},restored:true});
     }
-    const created=await db("kingshot_gift_codes",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({code,active:true,admin_added:true,expires_at:body.expiresAt||null})});
+    const created=await db("kingshot_gift_codes",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({code,active:true,admin_added:true,suppressed:false,expires_at:body.expiresAt||null})});
     return res.status(200).json({ok:true,code:created?.[0]||{code,active:true}});
    }
    if(action==="GIFT_CODE_UPDATE"||action==="GIFT_CODE_DELETE"){
@@ -137,12 +139,13 @@ export default async function handler(req,res){
     if(!/^[A-Za-z0-9_-]{4,64}$/.test(code))return res.status(400).json({error:"Invalid gift code."});
     const query="kingshot_gift_codes?code=eq."+encodeURIComponent(code);
     if(action==="GIFT_CODE_DELETE"){
-     const rows=await db(query,{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({active:false})});
+     const rows=await db(query,{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({active:false,suppressed:true})});
      return res.status(200).json({ok:true,removed:true,code:rows?.[0]||{code,active:false}});
     }
     const active=body.active===true;
     const expiresAt=body.expiresAt===null||body.expiresAt===""?null:String(body.expiresAt);
-    const rows=await db(query,{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({active,expires_at:expiresAt})});
+    const patch={active,expires_at:expiresAt};if(active)patch.suppressed=false;
+    const rows=await db(query,{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify(patch)});
     if(!Array.isArray(rows)||!rows.length)return res.status(404).json({error:"Gift code not found."});
     return res.status(200).json({ok:true,code:rows[0]});
    }
