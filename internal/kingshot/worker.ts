@@ -202,10 +202,16 @@ export function summarizeWorkerResults(results: WorkerResult[]): WorkerResultSum
     }
   }
 
-  for (const value of Object.values(codeTelemetry)) {
-    value.avgRedemptionLatencyMs = value.attempts ? Math.round(value.totalRedemptionLatencyMs / value.attempts) : null;
-    delete value.totalRedemptionLatencyMs;
-  }
+  const summarizedCodeTelemetry: Record<string, CodeTelemetrySummary> = Object.fromEntries(
+    Object.entries(codeTelemetry).map(([code, value]) => [code, {
+      attempts: value.attempts,
+      successes: value.successes,
+      firstResultAt: value.firstResultAt,
+      firstSuccessAt: value.firstSuccessAt,
+      firstResultLatencyMs: value.firstResultLatencyMs,
+      avgRedemptionLatencyMs: value.attempts ? Math.round(value.totalRedemptionLatencyMs / value.attempts) : null,
+    }]),
+  );
 
   return {
     attempted: results.reduce((n, r) => n + (r?.attempted || 0), 0),
@@ -217,7 +223,7 @@ export function summarizeWorkerResults(results: WorkerResult[]): WorkerResultSum
     stale: results.reduce((n, r) => n + (r?.stale ? 1 : 0), 0),
     redemptionStatuses: statusCounts,
     codeCounts,
-    codeTelemetry,
+    codeTelemetry: summarizedCodeTelemetry,
     redemptionFailures: Object.values(redemptionDiagnostics).sort((x, y) => y.count - x.count).slice(0, 8),
     workerErrors: Object.values(workerErrorDiagnostics).sort((a, b) => b.count - a.count).slice(0, 8)
   };
