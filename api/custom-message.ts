@@ -1,7 +1,22 @@
 import crypto from"node:crypto";
-import {rateLimit}from"../lib/request-rate-limit.ts";
+import {rateLimit} from "../lib/request-rate-limit.ts";
+
+interface RequestLike {
+  method?: string;
+  headers: Record<string, string | string[] | undefined>;
+  body?: unknown;
+}
+interface ResponseLike {
+  setHeader(name: string, value: string): unknown;
+  status(code: number): this;
+  json(body: unknown): this;
+}
+type JsonRecord = Record<string, unknown>;
+function asRecord(value: unknown): JsonRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value) ? value as JsonRecord : {};
+}
 const PASS=process.env.CUSTOM_MESSAGE_PASSKEY||"";
-function parseConfiguredDestinations(){
+function parseConfiguredDestinations(): Map<string,string>{
  const entries=String(process.env.CUSTOM_MESSAGE_DESTINATIONS||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>{
   const [key,...name]=x.split(":");
   return [key.trim(),name.join(":").trim()||key.trim()];
@@ -20,7 +35,7 @@ function parseConfiguredDestinations(){
  return map;
 }
 const DESTINATIONS=parseConfiguredDestinations();
-function webhookFor(key){
+function webhookFor(key: unknown): string {
  const k=String(key||"").trim();
  if(!/^[A-Za-z0-9_-]{1,40}$/.test(k)||!DESTINATIONS.has(k))return"";
  if(k==="1494360495694549134")return process.env.DISCORD_KINGSHOT_WEBHOOK_URL||process.env.DISCORD_SCRAPER_WEBHOOK_URL||"";
@@ -30,7 +45,7 @@ const COOKIE="__Host-ks_message_session";
 const TTL=12*60*60*1000;
 function sign(value){return crypto.createHmac("sha256",PASS).update(value).digest("base64url")}
 function token(){const exp=Date.now()+TTL,nonce=crypto.randomBytes(24).toString("base64url"),body=exp+"."+nonce;return body+"."+sign(body)}
-function validSession(req){
+function validSession(req: RequestLike): boolean {
  if(!PASS)return false;
  const raw=String(req.headers.cookie||"").split(";").map(x=>x.trim()).find(x=>x.startsWith(COOKIE+"="));
  if(!raw)return false;
@@ -43,13 +58,13 @@ function validSession(req){
  const expected=sign(body),a=Buffer.from(sig),b=Buffer.from(expected);
  return a.length===b.length&&crypto.timingSafeEqual(a,b);
 }
-function setCookie(res,value,maxAge=TTL){res.setHeader("Set-Cookie",COOKIE+"="+encodeURIComponent(value)+"; Max-Age="+Math.floor(maxAge/1000)+"; Path=/; HttpOnly; Secure; SameSite=Strict")}
-function clearCookie(res){res.setHeader("Set-Cookie",COOKIE+"=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Strict")}
-function clean(v,max){return String(v??"").trim().slice(0,max)}
-function hexColor(v){const s=clean(v,20);return /^#?[0-9a-fA-F]{6}$/.test(s)?parseInt(s.replace("#",""),16):0x5865F2}
-function imageUrl(v){const s=clean(v,2048);if(!s)return"";try{const u=new URL(s);return u.protocol==="https:"?u.toString():""}catch{return""}}
+function setCookie(res: ResponseLike,value: string,maxAge=TTL): void {res.setHeader("Set-Cookie",COOKIE+"="+encodeURIComponent(value)+"; Max-Age="+Math.floor(maxAge/1000)+"; Path=/; HttpOnly; Secure; SameSite=Strict")}
+function clearCookie(res: ResponseLike): void {res.setHeader("Set-Cookie",COOKIE+"=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Strict")}
+function clean(v: unknown,max: number): string {return String(v??"").trim().slice(0,max)}
+function hexColor(v: unknown): number {const s=clean(v,20);return /^#?[0-9a-fA-F]{6}$/.test(s)?parseInt(s.replace("#",""),16):0x5865F2}
+function imageUrl(v: unknown): string {const s=clean(v,2048);if(!s)return"";try{const u=new URL(s);return u.protocol==="https:"?u.toString():""}catch{return""}}
 const ROLE_CACHE=new Map<string,{expires:number;items:Array<{id:string;name:string}>}>();
-async function resolveRoleMentions(message,guildId){
+async function resolveRoleMentions(message: string,guildId: string): Promise<string> {
  const token=process.env.DISCORD_BOT_TOKEN||"";
  if(!token||!/^[0-9]+$/.test(guildId))return message;
  let cached=ROLE_CACHE.get(guildId);
@@ -57,8 +72,12 @@ async function resolveRoleMentions(message,guildId){
   try{
    const r=await fetch("https://discord.com/api/v10/guilds/"+guildId+"/roles",{headers:{Authorization:"Bot "+token},signal:AbortSignal.timeout(5000)});
    if(!r.ok)return message;
-   const data=await r.json();
-   cached={expires:Date.now()+60000,items:Array.isArray(data)?data.filter(x=>x&&x.id&&x.name):[]};
+   const data: unknown=await r.json();
+   const roles=Array.isArray(data)?data.filter((role): role is {id:string;name:string} =>
+    typeof role==="object"&&role!==null&&"id" in role&&"name" in role&&
+    typeof role.id==="string"&&typeof role.name==="string"
+   ):[];
+   cached={expires:Date.now()+60000,items:roles};
    ROLE_CACHE.set(guildId,cached);
   }catch{return message}
  }
@@ -70,7 +89,7 @@ async function resolveRoleMentions(message,guildId){
  }
  return out;
 }
-async function resolveDestinationNames(){
+async function resolveDestinationNames(): Promise<Array<{key:string;name:string}>> {
  const items=[...DESTINATIONS.entries()].map(([key,name])=>({key,name}));
  const token=process.env.DISCORD_BOT_TOKEN||"";
  if(!token)return items;
@@ -79,17 +98,17 @@ async function resolveDestinationNames(){
   try{
    const r=await fetch("https://discord.com/api/v10/guilds/"+item.key,{headers:{Authorization:"Bot "+token},signal:AbortSignal.timeout(5000)});
    if(!r.ok)return;
-   const data=await r.json();
-   if(data?.name)item.name=data.name;
+   const data=asRecord(await r.json().catch(()=>null));
+   if(typeof data.name==="string"&&data.name)item.name=data.name;
   }catch{}
  }));
  return items;
 }
-export default async function handler(req,res){
+export default async function handler(req: RequestLike,res: ResponseLike): Promise<unknown> {
  res.setHeader("Cache-Control","no-store");
  if(req.method!=="POST")return res.status(405).json({error:"Method not allowed"});
  try{
-  const body=req.body||{},action=String(body.action||"").toUpperCase();
+  const body=asRecord(req.body),action=String(body.action||"").toUpperCase();
   if(action==="LOGIN"){
    if(!rateLimit(req,res,"custom-message-login",5,15*60*1000))return res.status(429).json({error:"Too many attempts. Try again later."});
    if(!PASS)return res.status(503).json({error:"Custom message access is not configured."});
@@ -112,7 +131,7 @@ export default async function handler(req,res){
   if(!rateLimit(req,res,"custom-message-send",10,60*1000))return res.status(429).json({error:"Too many messages. Please wait a moment."});
   const rawMessage=clean(body.message,4096);
   if(!rawMessage)return res.status(400).json({error:"Message is required."});
-  const explicitMentions=Array.isArray(body.mentions)?body.mentions:[];
+  const explicitMentions: unknown[]=Array.isArray(body.mentions)?body.mentions:[];
   const hasEveryone=/@everyone/.test(rawMessage)||explicitMentions.includes("everyone");
   const hasHere=/@here/.test(rawMessage)||explicitMentions.includes("here");
   const message=rawMessage;
@@ -130,5 +149,5 @@ export default async function handler(req,res){
    return res.status(502).json({error:"Discord rejected the message ("+wr.status+")."+(retryAfter?" Retry after "+Math.ceil(retryAfter)+"s.":"")+(detail?" "+detail.slice(0,180):"")});
   }
   return res.status(200).json({ok:true});
- }catch(e){return res.status(502).json({error:e?.message||"Custom message service unavailable."})}
+ }catch(e: unknown){return res.status(502).json({error:e instanceof Error ? e.message : "Custom message service unavailable."})}
 }
