@@ -18,7 +18,7 @@ function InfoApp(){
  const closeMenu=()=>{setMenu(false);requestAnimationFrame(()=>menuButtonRef.current?.focus())};
  const goBack=()=>{if(history.length>1)history.back();else location.href="/auto"};
  useEffect(()=>{
-  if(!menu)return;
+  if(!menu)return undefined;
   const onKey=e=>{if(e.key==="Escape"){e.preventDefault();closeMenu()}};
   const onPointer=e=>{if(drawerRef.current&&!drawerRef.current.contains(e.target)&&menuButtonRef.current&&!menuButtonRef.current.contains(e.target))closeMenu()};
   document.addEventListener("keydown",onKey);
