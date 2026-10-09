@@ -8,7 +8,13 @@
     "internal/kingshot/kingdom-validation.ts",
     "internal/kingshot/mightpulse.ts",
     "internal/kingshot/player.ts",
-    "internal/kingshot/scraper.ts"
+    "internal/kingshot/scraper.ts",
+    "internal/kingshot/register.ts",
+    "internal/kingshot/worker.ts",
+    "lib/discord-interactions.ts",
+    "lib/discord-user.ts",
+    "api/discord-user.ts",
+    "api/admin-tools/login.ts"
   ],
   "exclude": [
     "node_modules",
