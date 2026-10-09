@@ -31,8 +31,15 @@ interface Rpc {
   (name: string, body: Record<string, unknown>): Promise<unknown>;
 }
 
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (isRecord(error) && typeof error.message === "string") return error.message;
+  if (typeof error === "string") return error;
+  return "";
+}
+
 export function classifyScraperError(error: unknown): string {
-  const message = String((error as { message?: unknown })?.message || error || "").toLowerCase();
+  const message = (errorMessage(error) || String(error || "")).toLowerCase();
   if (/timeout|timed out|abort/.test(message)) return "TIMEOUT";
   if (/unauthorized|forbidden|401|403/.test(message)) return "AUTH";
   if (/429|rate limit|too frequent/.test(message)) return "RATE_LIMIT";
@@ -48,7 +55,7 @@ async function updateHealth(rpc: Rpc, source: string, codeCount: number, error: 
   try {
     await rpc("record_kingshot_scraper_health", { p_source: source, p_code_count: codeCount, p_error: error });
   } catch (failure) {
-    console.error("Scraper health update failed:", source, (failure as { message?: string })?.message || failure);
+    console.error("Scraper health update failed:", source, errorMessage(failure) || failure);
   }
 }
 
@@ -60,7 +67,7 @@ async function recordRun(rpc: Rpc, source: string, httpStatus: number | null, co
     p_codes: Array.isArray(codes) ? codes.map(x => x.code) : [],
     p_parse_ok: Boolean(parseOk),
     p_error_category: error ? classifyScraperError(error) : null,
-    p_error_message: (error as { message?: unknown })?.message || error || null
+    p_error_message: errorMessage(error) || error || null
   }).catch(() => {});
 }
 
