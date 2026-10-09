@@ -31,7 +31,8 @@ export function extractPublicSourceCodes(html: unknown, sourceName: string): Gif
  const startPatterns=[/^Active Gift Codes:?$/i,/^Active Giftcodes:?$/i,/^All Kingshot codes:?$/i,/^New valid gift codes for Kingshot:?$/i,/^Active Codes:?$/i,/^Kingshot Gift Codes:?$/i,/^Working Gift Codes:?$/i,/^Current Gift Codes:?$/i,/^Latest Gift Codes:?$/i,/^Valid Gift Codes:?$/i,/^Gift Codes:?$/i,/^Working Kingshot Codes are:?$/i,/^Working Kingshot Codes:?$/i,/^Active Kingshot codes:?$/i,/^Active Kingshot Gift Codes and Redeem Tool:?$/i,/^All New Kingshot Codes:?$/i];
  const start=lines.findIndex(line=>startPatterns.some(p=>p.test(line)));
  for(const match of String(html??"").matchAll(/(?:data-(?:gift-)?code|(?:gift_?code|code))\s*[:=]\s*["']([A-Za-z0-9_-]{6,32})["']/gi)) add(match[1]);
- for(const match of String(html??"").matchAll(/(?:copy|redeem)[^<>]{0,80}\b([A-Z][A-Z0-9]{5,31})\b/gi)) add(match[1]);
+ // Do not infer codes from words near generic “copy” or “redeem” text. This
+ // heuristic treated nearby page copy/CTA text as codes and generated false alerts.
  if(start<0)return rows;
  const endPatterns=[/^Expired Kingshot codes:?$/i,/^Expired Gift Codes:?$/i,/^Expired Codes:?$/i,/^Unavailable or Archived Codes:?$/i,/^How to Redeem/i,/^How to claim/i,/^How to use/i];let stop=lines.length;for(let i=start+1;i<lines.length;i++){if(endPatterns.some(p=>p.test(lines[i]))){stop=i;break;}}
  const activeLines=lines.slice(start+1,stop);
