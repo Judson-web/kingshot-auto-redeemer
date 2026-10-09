@@ -23,10 +23,7 @@ async function rpc(name,body){
 }
 
 import {extractPageCodes, extractPublicSourceCodes, mergeCodes, normalizeCodes} from "../internal/kingshot/gift-codes.js";
-
-// Do not hammer the same player/code pair every scheduler cycle for account-level failures.
-// These statuses describe this player’s eligibility/profile, not whether the code is globally invalid.
-const HANDLED_STATUSES=new Set(["SUCCESS","RECEIVED","SAME TYPE EXCHANGE","TIME_ERROR","CDK_NOT_FOUND","USAGE_LIMIT","STOVE_LV ERROR","USER INFO ERROR"]);
+import { getHandledGiftCodes, selectNextOutstandingCode } from "../internal/kingshot/redemption-history.js";
 const WORKER_COUNT=3;
 // Keep aggregate upstream pressure bounded: 3 shards × 2 concurrent redemptions.
 const PLAYER_CONCURRENCY=2;
@@ -77,16 +74,14 @@ const kingdomState=await revalidatePlayer(player,{rpc,notify:sendDiscordEvent});
  if(!kingdomState.player?.kingdom_id)return {attempted:0,success:0,alreadyHandled:0,skipped:1,revalidationError:1,kingdomCheck,kingdomChanged};
  player=kingdomState.player;
  const history=await rpc("list_kingshot_player_redemptions",{p_player_id:player.player_id});
- const handled=new Set((Array.isArray(history)?history:[])
-  .filter(row=>HANDLED_STATUSES.has(String(row?.status||"").toUpperCase()))
-  .map(row=>String(row?.gift_code||"").toUpperCase()));
+ const handled=getHandledGiftCodes(history);
 
  // Process only the newest outstanding code for each player per run.
  // This keeps the request comfortably below pg_net's 5s HTTP timeout and
  // respects Kingshot's per-player TOO FREQUENT rate limit. Older missed
  // active codes are picked up on subsequent runs.
  if(!codes.length)return {attempted:0,success:0,alreadyHandled:0,skipped:1,kingdomCheck,kingdomChanged,handledCodeCounts:{}};
- const item=codes.find(code=>!handled.has(code.code.toUpperCase()));
+ const item=selectNextOutstandingCode(codes,handled);
  if(!item){
   const handledCodeCounts={};
   for(const code of codes)if(handled.has(code.code.toUpperCase()))handledCodeCounts[code.code]=(handledCodeCounts[code.code]||0)+1;

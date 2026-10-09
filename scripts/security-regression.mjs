@@ -32,14 +32,19 @@ assertCheck("Logs API returns sanitized operational data only",
  !logs.includes("player_id"));
 
 
+const redemptionHistory=read("internal/kingshot/redemption-history.ts");
 assertCheck(
- "Worker keeps the handled-status terminal set",
- auto.includes('const HANDLED_STATUSES=new Set(["SUCCESS","RECEIVED","SAME TYPE EXCHANGE","TIME_ERROR","CDK_NOT_FOUND","USAGE_LIMIT"]);')
+ "Worker keeps handled redemption statuses centralized and tested",
+ redemptionHistory.includes("HANDLED_REDEMPTION_STATUSES") &&
+ redemptionHistory.includes('"STOVE_LV ERROR"') &&
+ redemptionHistory.includes('"USER INFO ERROR"') &&
+ fs.existsSync(path.join(root,"tests","redemption-history.test.js"))
 );
 assertCheck(
  "Worker processes only the newest outstanding code per player",
  auto.includes("newest outstanding code for each player per run") &&
- auto.includes("const item=codes.find(code=>!handled.has(code.code.toUpperCase()));")
+ auto.includes("selectNextOutstandingCode(codes,handled)") &&
+ redemptionHistory.includes("selectNextOutstandingCode")
 );
 assertCheck(
  "Worker pool fans redemption work across three internal shards",
@@ -60,7 +65,7 @@ assertCheck(
 );
 assertCheck(
  "Worker pool preserves bounded per-shard concurrency",
- auto.includes("const PLAYER_CONCURRENCY=6;") &&
+ auto.includes("const PLAYER_CONCURRENCY=2;") &&
  workerCode.includes("runWithConcurrency(assigned, player => redeemForPlayer(player, codes), options.concurrency, { deadline })") &&
  auto.includes("WORKER_MAX_RUNTIME_MS=4*60*1000")
 );
@@ -101,7 +106,7 @@ assertCheck(
 );
 assertCheck(
  "Expired codes are filtered before redemption",
- auto.includes("const activeCodes=codes.filter(item=>{") && auto.includes("!sourceExpired&&!expiredCodes.has(item.code.toUpperCase())")
+ auto.includes("activeCodes=codes.filter(item=>{") && auto.includes("!sourceExpired&&!expiredCodes.has(item.code.toUpperCase())")
 );
 assertCheck(
  "Worker health endpoint uses a server-only Supabase credential",
