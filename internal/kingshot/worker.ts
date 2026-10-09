@@ -70,11 +70,50 @@ export function workerBucket(value: unknown, workerCount: number): number {
   return (hash >>> 0) % workerCount;
 }
 
-export function summarizeWorkerResults(results: WorkerResult[]) {
-  const redemptionDiagnostics: Record<string, any> = {};
+export interface RedemptionFailureDiagnostic {
+  count: number;
+  category: string;
+  errCode: string;
+  status: string;
+  message: string | null;
+}
+
+export interface WorkerErrorDiagnostic {
+  count: number;
+  category: string;
+  message: string;
+}
+
+export interface CodeTelemetrySummary {
+  attempts: number;
+  successes: number;
+  firstResultAt: string | null;
+  firstSuccessAt: string | null;
+  firstResultLatencyMs: number | null;
+  avgRedemptionLatencyMs?: number | null;
+  totalRedemptionLatencyMs?: number;
+}
+
+export interface WorkerResultSummary {
+  attempted: number;
+  success: number;
+  alreadyHandled: number;
+  alreadyReceived: number;
+  skipped: number;
+  errors: number;
+  stale: number;
+  redemptionStatuses: Record<string, number>;
+  codeCounts: Record<string, number>;
+  codeTelemetry: Record<string, CodeTelemetrySummary>;
+  redemptionFailures: RedemptionFailureDiagnostic[];
+  workerErrors: WorkerErrorDiagnostic[];
+}
+
+export function summarizeWorkerResults(results: WorkerResult[]): WorkerResultSummary {
+  const redemptionDiagnostics: Record<string, RedemptionFailureDiagnostic> = {};
   const statusCounts: Record<string, number> = {};
-  const workerErrorDiagnostics: Record<string, any> = {};
-  const codeTelemetry: Record<string, any> = {};
+  const workerErrorDiagnostics: Record<string, WorkerErrorDiagnostic> = {};
+  const codeTelemetry: Record<string, CodeTelemetrySummary> = {};
   const codeCounts: Record<string, number> = {};
 
   for (const result of results) {
@@ -160,9 +199,9 @@ export interface WorkerSummary {
   stale: number;
   redemptionStatuses: Record<string, number>;
   codeCounts: Record<string, number>;
-  codeTelemetry: Record<string, any>;
-  redemptionFailures: any[];
-  workerErrors: any[];
+  codeTelemetry: Record<string, CodeTelemetrySummary>;
+  redemptionFailures: RedemptionFailureDiagnostic[];
+  workerErrors: WorkerErrorDiagnostic[];
   deadlineSkipped: number;
 }
 
