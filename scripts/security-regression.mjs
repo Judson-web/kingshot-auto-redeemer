@@ -18,6 +18,8 @@ const support=read("lib/support.ts");
 const adminData=read("lib/admin-data.ts");
 const adminDataRoute=read("api/admin-tools/data.ts");
 const adminLogin=read("api/admin-tools/login.ts");
+const customMessage=read("api/custom-message.ts");
+const requestRateLimit=read("lib/request-rate-limit.ts");
 const mainApp=read("src/main.tsx");
 const discordInteractions=read("lib/discord-interactions.ts");
 const health=read("lib/health.ts");
@@ -145,6 +147,11 @@ assertCheck("Maintenance gate escapes infinite preflight after bounded status fa
 assertCheck("Malformed admin cookies cannot break logout or authentication checks",
  adminLogin.includes("Ignore malformed client cookies") &&
  adminData.includes("try{return decodeURIComponent(part.slice(name.length+1))}catch{return\"\"}"));
+
+assertCheck(
+ "Malformed custom-message session cookies fail closed instead of throwing",
+ customMessage.includes("try{value=decodeURIComponent(raw.slice(COOKIE.length+1))}catch{return false}")
+);
 assertCheck("Admin player listing passes a session token hash",
  adminData.includes('rpc("kingshot_admin_list_players",{p_token_hash:tokenHash})'));
 assertCheck("Admin session cookie is HttpOnly/Secure/Strict",
@@ -157,6 +164,36 @@ assertCheck("Admin access-key path delegates verification to the key RPC",
 
 assertCheck("Discord interaction handler does not embed a Supabase publishable key",
  !/sb_publishable_[A-Za-z0-9_-]+/.test(discordInteractions));
+
+assertCheck(
+ "Discord interactions reject stale signed requests to limit replay",
+ discordInteractions.includes("MAX_TIMESTAMP_AGE_SECONDS = 5 * 60") &&
+ discordInteractions.includes("isFreshTimestamp(timestamp)")
+);
+assertCheck(
+ "Discord interaction bodies are size-limited before JSON parsing",
+ discordInteractions.includes("MAX_BODY_BYTES = 1_000_000") &&
+ discordInteractions.includes("RequestBodyTooLargeError") &&
+ discordInteractions.includes("status(413)")
+);
+assertCheck(
+ "Discord registration callback uses a configured HTTPS origin instead of forwarded host headers",
+ discordInteractions.includes("APP_BASE_URL") &&
+ discordInteractions.includes('target.protocol !== "https:"') &&
+ !discordInteractions.includes("x-forwarded-host") &&
+ !discordInteractions.includes("x-forwarded-proto")
+);
+assertCheck(
+ "Discord interaction command handlers avoid untyped any",
+ !/\\bany\\b/.test(discordInteractions)
+);
+
+assertCheck(
+ "In-process rate limiter bounds memory and fails closed at capacity",
+ requestRateLimit.includes("const MAX_BUCKETS = 5000") &&
+ requestRateLimit.includes("if (buckets.size >= MAX_BUCKETS)") &&
+ requestRateLimit.includes("return false")
+);
 
 const migrationDir=path.join(root,"supabase","migrations");
 const migrations=fs.existsSync(migrationDir)

@@ -52,6 +52,16 @@ test("custom message endpoint rejects unauthenticated sends", async () => {
   assert.equal(res.body?.error,"Unauthorized.");
 });
 
+test("custom message treats a malformed session cookie as unauthenticated", async () => {
+  const {default:handler}=await import("../api/custom-message.ts");
+  const res=response();
+  const request=req("", "POST", {action:"CHECK"});
+  request.headers.cookie="__Host-ks_message_session=%E0%A4%A";
+  await handler(request,res);
+  assert.equal(res.statusCode,401);
+  assert.equal(res.body?.ok,false);
+});
+
 test("admin data treats a malformed session cookie as unauthenticated", async () => {
   const {default:handler}=await import("../api/admin-tools/data.ts");
   const res=response();

@@ -9,7 +9,6 @@ export interface RedemptionTelemetry {
 }
 
 export interface WorkerResult {
-  [key: string]: any;
   attempted?: number; success?: number; alreadyHandled?: number; alreadyReceived?: number; skipped?: number;
   stale?: number; deadlineSkipped?: number; error?: string; errorCategory?: string;
   redemptionStatus?: string; redemptionErrorCategory?: string; redemptionErrCode?: string | number | null;
@@ -124,7 +123,7 @@ export interface CodeTelemetrySummary {
   firstSuccessAt: string | null;
   firstResultLatencyMs: number | null;
   avgRedemptionLatencyMs?: number | null;
-  totalRedemptionLatencyMs?: number;
+
 }
 
 export interface WorkerResultSummary {
@@ -142,11 +141,15 @@ export interface WorkerResultSummary {
   workerErrors: WorkerErrorDiagnostic[];
 }
 
+interface CodeTelemetryAccumulator extends CodeTelemetrySummary {
+  totalRedemptionLatencyMs: number;
+}
+
 export function summarizeWorkerResults(results: WorkerResult[]): WorkerResultSummary {
   const redemptionDiagnostics: Record<string, RedemptionFailureDiagnostic> = {};
   const statusCounts: Record<string, number> = {};
   const workerErrorDiagnostics: Record<string, WorkerErrorDiagnostic> = {};
-  const codeTelemetry: Record<string, CodeTelemetrySummary> = {};
+  const codeTelemetry: Record<string, CodeTelemetryAccumulator> = {};
   const codeCounts: Record<string, number> = {};
 
   for (const result of results) {
@@ -199,10 +202,16 @@ export function summarizeWorkerResults(results: WorkerResult[]): WorkerResultSum
     }
   }
 
-  for (const value of Object.values(codeTelemetry)) {
-    value.avgRedemptionLatencyMs = value.attempts ? Math.round(value.totalRedemptionLatencyMs / value.attempts) : null;
-    delete value.totalRedemptionLatencyMs;
-  }
+  const summarizedCodeTelemetry: Record<string, CodeTelemetrySummary> = Object.fromEntries(
+    Object.entries(codeTelemetry).map(([code, value]) => [code, {
+      attempts: value.attempts,
+      successes: value.successes,
+      firstResultAt: value.firstResultAt,
+      firstSuccessAt: value.firstSuccessAt,
+      firstResultLatencyMs: value.firstResultLatencyMs,
+      avgRedemptionLatencyMs: value.attempts ? Math.round(value.totalRedemptionLatencyMs / value.attempts) : null,
+    }]),
+  );
 
   return {
     attempted: results.reduce((n, r) => n + (r?.attempted || 0), 0),
@@ -214,7 +223,7 @@ export function summarizeWorkerResults(results: WorkerResult[]): WorkerResultSum
     stale: results.reduce((n, r) => n + (r?.stale ? 1 : 0), 0),
     redemptionStatuses: statusCounts,
     codeCounts,
-    codeTelemetry,
+    codeTelemetry: summarizedCodeTelemetry,
     redemptionFailures: Object.values(redemptionDiagnostics).sort((x, y) => y.count - x.count).slice(0, 8),
     workerErrors: Object.values(workerErrorDiagnostics).sort((a, b) => b.count - a.count).slice(0, 8)
   };
@@ -247,7 +256,7 @@ export async function runWorkerShard(
 ): Promise<{ claimed: false; skipped: true; reason: string; slot: number } | ({ claimed: true } & WorkerSummary)> {
   const { rpc, redeemForPlayer } = dependencies;
   const claim = await rpc("claim_kingshot_worker_slot", { p_slot: slot });
-  if (!claim?.claimed) return { slot, claimed: false, skipped: true, reason: claim?.reason || "SLOT_ALREADY_RUNNING" };
+  if (!claim?.claimed || !claim.token) return { slot, claimed: false, skipped: true, reason: claim?.reason || "SLOT_ALREADY_RUNNING" };
 
   const workerToken = claim.token;
   try {
