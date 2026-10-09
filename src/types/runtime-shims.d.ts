@@ -23,6 +23,6 @@ declare module "*.css";
 interface Window { __ksWaitingWorker?: ServiceWorker; }
 declare namespace JSX {
   interface Element {}
-  interface IntrinsicAttributes { key?: any; }
+  interface IntrinsicAttributes { key?: string | number; }
   interface IntrinsicElements { [elementName: string]: any; }
 }
