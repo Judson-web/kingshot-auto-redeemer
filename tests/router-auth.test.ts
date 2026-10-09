@@ -5,7 +5,7 @@ function response() {
   const headers = new Map();
   return {
     statusCode: 200, body: undefined, headers,
-    setHeader(name, value) { headers.set(name, value); },
+    setHeader(name, value) { headers.set(name, value); return this; },
     getHeader(name) { return headers.get(name); },
     status(code) { this.statusCode = code; return this; },
     json(value) { this.body = value; return this; },
@@ -16,7 +16,7 @@ function response() {
 const req = (path, method="GET", body={}) => ({
   method,
   query: { path: Array.isArray(path) ? path : [path] },
-  headers: {},
+  headers: {} as Record<string, string>,
   body
 });
 

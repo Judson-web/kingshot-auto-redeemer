@@ -1,4 +1,4 @@
-import player from"../../internal/kingshot/player.js";import register from"../../internal/kingshot/register.js";
+import player from"../kingshot-player.js";import register from"../kingshot-register.js";
 
 function routePath(req){
  const q=req.query?.path;
