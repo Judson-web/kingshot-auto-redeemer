@@ -123,7 +123,7 @@ export interface CodeTelemetrySummary {
   firstSuccessAt: string | null;
   firstResultLatencyMs: number | null;
   avgRedemptionLatencyMs?: number | null;
-  totalRedemptionLatencyMs?: number;
+
 }
 
 export interface WorkerResultSummary {
@@ -141,11 +141,11 @@ export interface WorkerResultSummary {
   workerErrors: WorkerErrorDiagnostic[];
 }
 
-export function summarizeWorkerResults(results: WorkerResult[]): WorkerResultSummary {
+interface CodeTelemetryAccumulator extends CodeTelemetrySummary {\n  totalRedemptionLatencyMs: number;\n}\n\nexport function summarizeWorkerResults(results: WorkerResult[]): WorkerResultSummary {
   const redemptionDiagnostics: Record<string, RedemptionFailureDiagnostic> = {};
   const statusCounts: Record<string, number> = {};
   const workerErrorDiagnostics: Record<string, WorkerErrorDiagnostic> = {};
-  const codeTelemetry: Record<string, CodeTelemetrySummary> = {};
+  const codeTelemetry: Record<string, CodeTelemetryAccumulator> = {};
   const codeCounts: Record<string, number> = {};
 
   for (const result of results) {
