@@ -24,7 +24,9 @@ async function rpc(name,body){
 
 import {extractPageCodes, extractPublicSourceCodes, mergeCodes, normalizeCodes} from "../internal/kingshot/gift-codes.js";
 
-const HANDLED_STATUSES=new Set(["SUCCESS","RECEIVED","SAME TYPE EXCHANGE","TIME_ERROR","CDK_NOT_FOUND","USAGE_LIMIT"]);
+// Do not hammer the same player/code pair every scheduler cycle for account-level failures.
+// These statuses describe this player’s eligibility/profile, not whether the code is globally invalid.
+const HANDLED_STATUSES=new Set(["SUCCESS","RECEIVED","SAME TYPE EXCHANGE","TIME_ERROR","CDK_NOT_FOUND","USAGE_LIMIT","STOVE_LV ERROR","USER INFO ERROR"]);
 const WORKER_COUNT=3;
 // Keep aggregate upstream pressure bounded: 3 shards × 2 concurrent redemptions.
 const PLAYER_CONCURRENCY=2;
