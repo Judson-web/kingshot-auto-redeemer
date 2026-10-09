@@ -1,4 +1,4 @@
-import { extractPageCodes, extractPublicSourceCodes, normalizeCodes, isLikelyGiftCode, type GiftCodeRow } from "./gift-codes.js";
+import { extractPageCodes, extractPublicSourceCodes, normalizeCodes, isLikelyGiftCode, type GiftCodeApiData, type GiftCodeRow } from "./gift-codes.js";
 
 export interface ScraperResult {
   source: string;
@@ -8,6 +8,10 @@ export interface ScraperResult {
   error: string | null;
   data?: unknown;
   html?: string;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function extractAggregatorCodes(data: unknown): GiftCodeRow[] {
@@ -95,10 +99,14 @@ export async function fetchSource(rpc: Rpc, url: string, kind: string): Promise<
     }
 
     if (apiLike) {
-      let data: any = null;
-      try { data = JSON.parse(body); } catch {}
-      const valid = Boolean(data && (kind === "api" ? data?.status === "success" : Array.isArray(data?.codes)));
-      const codes = valid ? (kind === "api" ? normalizeCodes(data) : extractAggregatorCodes(data)) : [];
+      let data: unknown = null;
+      try { data = JSON.parse(body) as unknown; } catch {}
+      const valid = isRecord(data) && (kind === "api" ? data.status === "success" : Array.isArray(data.codes));
+      const codes = valid
+        ? kind === "api"
+          ? normalizeCodes(data as GiftCodeApiData)
+          : extractAggregatorCodes(data)
+        : [];
       const parseError = valid ? null : Error("Invalid API response");
       await updateHealth(rpc, source, codes.length, parseError?.message || null);
       await recordRun(rpc, source, response.status, codes, valid, parseError);
