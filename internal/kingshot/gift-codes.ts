@@ -4,7 +4,7 @@ const KNOWN_MIXED_CASE_CODES = new Set(["Kingshot888"]);
 export function isLikelyGiftCode(value: unknown): boolean {
  const code=String(value ?? "").trim();
  if(!code || code.length<6 || code.length>32) return false;
- if(!/^[A-Z0-9]+$/.test(code) && !KNOWN_MIXED_CASE_CODES.has(code)) return false;
+ if(!/^[A-Za-z0-9]+$/.test(code) && !KNOWN_MIXED_CASE_CODES.has(code)) return false;
  if(/^u00[0-9a-f]+/i.test(code)) return false;
  const blocked=new Set(["ACTIVE","EXPIRED","CONTINUE","COPYCODE","SIGNINTOREDEEM","SHARELINK","GIFTCODES","REDEEMGIFTCODE","GIFTCODE","LOADING","COMMUNITY","FEATURES","LATEST","CURRENT","POPULAR","PROFILE","PLAYER","KINGDOM","SERVER","MESSAGE","SETTINGS"]);
  return !blocked.has(code.toUpperCase());

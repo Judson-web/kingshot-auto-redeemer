@@ -13,7 +13,7 @@ const PUBLIC_GIFT_SOURCES=[
 ];
 // Verified long-running fallback for codes that have been omitted from the upstream API feed.
 // Revalidated against public Kingshot code listings; the redemption endpoint remains the final authority.
-const VERIFIED_FALLBACK_CODES=[{code:"VIP777",expiresAt:Date.parse("2026-12-31T23:59:59Z"),createdAt:Date.parse("2026-08-03T00:00:00Z")}];
+const VERIFIED_FALLBACK_CODES=[{code:"VIP777",expiresAt:Date.parse("2026-12-31T23:59:59Z"),createdAt:Date.parse("2026-08-03T00:00:00Z")},{code:"Hangul2026",expiresAt:null,createdAt:Date.parse("2026-10-09T00:00:00Z"),source:"verified-manual-fallback"}];
 
 if(!SUPABASE_KEY)throw Error("Supabase service key is not configured on the server.");
 
