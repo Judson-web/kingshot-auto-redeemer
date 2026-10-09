@@ -22,7 +22,7 @@ export default async function handler(
   const pathname = new URL(req.url || "/", "http://localhost").pathname;
   const marker = "/api/admin-tools/";
   const route = pathname.startsWith(marker)
-    ? pathname.slice(marker.length).replace(/^\\/+|\\/+$/g, "")
+    ? pathname.slice(marker.length).replace(/^\/+|\/+$/g, "")
     : "";
 
   if (route === "login") return login(req, res);
