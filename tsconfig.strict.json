@@ -14,7 +14,9 @@
     "lib/discord-interactions.ts",
     "lib/discord-user.ts",
     "api/discord-user.ts",
-    "api/admin-tools/login.ts"
+    "api/admin-tools/login.ts",
+    "api/custom-message.ts",
+    "lib/request-rate-limit.ts"
   ],
   "exclude": [
     "node_modules",
