@@ -18,6 +18,7 @@ const support=read("lib/support.ts");
 const adminData=read("lib/admin-data.ts");
 const adminDataRoute=read("api/admin-tools/data.ts");
 const adminLogin=read("api/admin-tools/login.ts");
+const customMessage=read("api/custom-message.ts");
 const mainApp=read("src/main.tsx");
 const discordInteractions=read("lib/discord-interactions.ts");
 const health=read("lib/health.ts");
@@ -145,6 +146,11 @@ assertCheck("Maintenance gate escapes infinite preflight after bounded status fa
 assertCheck("Malformed admin cookies cannot break logout or authentication checks",
  adminLogin.includes("Ignore malformed client cookies") &&
  adminData.includes("try{return decodeURIComponent(part.slice(name.length+1))}catch{return\"\"}"));
+
+assertCheck(
+ "Malformed custom-message session cookies fail closed instead of throwing",
+ customMessage.includes("try{value=decodeURIComponent(raw.slice(COOKIE.length+1))}catch{return false}")
+);
 assertCheck("Admin player listing passes a session token hash",
  adminData.includes('rpc("kingshot_admin_list_players",{p_token_hash:tokenHash})'));
 assertCheck("Admin session cookie is HttpOnly/Secure/Strict",
