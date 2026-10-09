@@ -15,7 +15,28 @@ export interface WorkerResult {
   redemptionMessage?: string | null; redemptionCode?: string; redemptionTelemetry?: RedemptionTelemetry; handledCodeCounts?: Record<string, number>;
 }
 
-interface Rpc { (name: string, body: Record<string, unknown>): Promise<any>; }
+export interface WorkerSlotClaimResponse {
+  claimed: boolean;
+  reason?: string;
+  slot?: number;
+  token?: string;
+  started_at?: string;
+}
+
+export type WorkerSlotStatus = "COMPLETED" | "COMPLETED_WITH_WARNINGS" | "FAILED";
+
+export interface WorkerSlotFinishPayload {
+  p_slot: number;
+  p_token: string;
+  p_status: WorkerSlotStatus;
+  p_error: string | null;
+  p_summary: object;
+}
+
+interface Rpc {
+  (name: "claim_kingshot_worker_slot", body: { p_slot: number }): Promise<WorkerSlotClaimResponse>;
+  (name: "finish_kingshot_worker_slot", body: WorkerSlotFinishPayload): Promise<boolean>;
+}
 interface Player { player_id?: string | number; [key: string]: unknown; }
 
 export interface WorkerGiftCode {
