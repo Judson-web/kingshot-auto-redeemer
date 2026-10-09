@@ -74,6 +74,14 @@ function asRecord(value: unknown): JsonRecord {
     : {};
 }
 
+function isDiscordInteraction(value: unknown): value is DiscordInteraction {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const record = value as JsonRecord;
+  return typeof record.id === "string" &&
+    typeof record.token === "string" &&
+    typeof record.type === "number";
+}
+
 function getRawBody(req: RequestLike): Promise<string> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
@@ -322,11 +330,10 @@ export default async function handler(req: RequestLike, res: ResponseLike): Prom
   } catch {
     return res.status(400).json({ error: "Invalid JSON" });
   }
-  const interaction = asRecord(parsed) as DiscordInteraction;
+  if (!isDiscordInteraction(parsed)) return res.status(400).json({ error: "Invalid interaction payload" });
+  const interaction = parsed;
   if (interaction.type === 1) return res.status(200).json({ type: 1 });
-  if (interaction.type !== 2 || typeof interaction.id !== "string" || typeof interaction.token !== "string") {
-    return res.status(400).json({ error: "Unsupported interaction" });
-  }
+  if (interaction.type !== 2) return res.status(400).json({ error: "Unsupported interaction" });
 
   try {
     const result = await handleCommand(req, interaction);
