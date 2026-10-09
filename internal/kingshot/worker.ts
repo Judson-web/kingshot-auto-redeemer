@@ -1,4 +1,4 @@
-import { classifyScraperError } from "./scraper.js";
+import { classifyScraperError } from "./scraper.ts";
 
 export interface RedemptionTelemetry {
   code: string;

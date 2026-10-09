@@ -1,4 +1,4 @@
-import { rateLimit } from "../lib/request-rate-limit.js";
+import { rateLimit } from "../lib/request-rate-limit.ts";
 
 interface RequestLike {
   method?: string;

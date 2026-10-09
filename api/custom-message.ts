@@ -1,5 +1,5 @@
 import crypto from"node:crypto";
-import {rateLimit}from"../lib/request-rate-limit.js";
+import {rateLimit}from"../lib/request-rate-limit.ts";
 const PASS=process.env.CUSTOM_MESSAGE_PASSKEY||"";
 function parseConfiguredDestinations(){
  const entries=String(process.env.CUSTOM_MESSAGE_DESTINATIONS||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>{

@@ -1,2 +1,2 @@
-export { redeemKingshot } from "../internal/kingshot/redeem.js";
-export type { RedeemKingshotInput, RedeemKingshotResult } from "../internal/kingshot/redeem.js";
+export { redeemKingshot } from "../internal/kingshot/redeem.ts";
+export type { RedeemKingshotInput, RedeemKingshotResult } from "../internal/kingshot/redeem.ts";

@@ -1,4 +1,4 @@
-import data from "../../lib/admin-data.js";
+import data from "../../lib/admin-data.ts";
 
 interface RequestLike {
   method?: string;

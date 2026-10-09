@@ -1,5 +1,5 @@
-import {redeemKingshot} from"../internal/kingshot/redeem.js";
-import { revalidatePlayer } from "../internal/kingshot/kingdom-validation.js";
+import {redeemKingshot} from"../internal/kingshot/redeem.ts";
+import { revalidatePlayer } from "../internal/kingshot/kingdom-validation.ts";
 
 const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
 const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
@@ -24,7 +24,7 @@ async function rpc(name,body){
  return d;
 }
 
-import {extractPageCodes, extractPublicSourceCodes, mergeCodes, normalizeCodes} from "../internal/kingshot/gift-codes.js";
+import {extractPageCodes, extractPublicSourceCodes, mergeCodes, normalizeCodes} from "../internal/kingshot/gift-codes.ts";
 
 const HANDLED_STATUSES=new Set(["SUCCESS","RECEIVED","SAME TYPE EXCHANGE","TIME_ERROR","CDK_NOT_FOUND","USAGE_LIMIT"]);
 const WORKER_COUNT=3;
@@ -66,8 +66,8 @@ async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
  return false;
 }
 
-import { fetchSource, classifyScraperError } from "../internal/kingshot/scraper.js";
-import { runWithConcurrency, runWorkerShard, workerBucket } from "../internal/kingshot/worker.js";
+import { fetchSource, classifyScraperError } from "../internal/kingshot/scraper.ts";
+import { runWithConcurrency, runWorkerShard, workerBucket } from "../internal/kingshot/worker.ts";
 async function redeemForPlayer(player,codes){
 const kingdomState=await revalidatePlayer(player,{rpc,notify:sendDiscordEvent});
  const kingdomCheck=Boolean(kingdomState.revalidated);

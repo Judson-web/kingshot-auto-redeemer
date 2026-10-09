@@ -1,4 +1,4 @@
-import { redeemKingshot, type RedeemKingshotInput } from "./redeem.js";
+import { redeemKingshot, type RedeemKingshotInput } from "./redeem.ts";
 
 interface RequestLike {
   method?: string;

@@ -130,11 +130,11 @@ assertCheck("Support has request rate limiting",
 assertCheck("Admin login has request rate limiting",
  /rateLimit\(req,\s*res,\s*"admin-login",\s*5,\s*900000\)/.test(adminLogin));
 assertCheck("Admin data is an isolated TypeScript API entrypoint",
- adminDataRoute.includes('from "../../lib/admin-data.js"') &&
+ adminDataRoute.includes('from "../../lib/admin-data.ts"') &&
  !fs.existsSync(path.join(root,"api","admin-tools","[...path].ts")) &&
  !fs.existsSync(path.join(root,"api","admin-tools","[...path].js")));
 assertCheck("Admin login is a direct TypeScript API entrypoint without runtime TypeScript imports",
- adminLogin.includes('from "../../lib/request-rate-limit.js"') &&
+ adminLogin.includes('from "../../lib/request-rate-limit.ts"') &&
  !adminLogin.includes('from "../../lib/admin-login.ts"'));
 assertCheck("Admin data validates an admin session before privileged work",
  adminData.includes("kingshot_admin_validate_session"));
