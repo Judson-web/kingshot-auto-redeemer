@@ -20,6 +20,7 @@ const adminLogin=read("lib/admin-login.ts");
 const discordInteractions=read("lib/discord-interactions.js");
 const health=read("lib/health.ts");
 const logs=read("lib/health.ts");
+const opsRouter=read("api/ops-tools/[...path].ts");
 
 assertCheck("Logs API is GET-only and server-side",
  logs.includes('if(req.method!=="GET")') &&
