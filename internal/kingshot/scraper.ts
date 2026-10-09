@@ -94,7 +94,7 @@ export async function fetchSource(rpc: Rpc, url: string, kind: ScraperSourceKind
     }
 
     if (!response) {
-      const message = (lastError as { message?: string })?.message || "Source request failed";
+      const message = errorMessage(lastError) || "Source request failed";
       await recordRun(rpc, source, null, [], false, lastError || Error(message));
       await updateHealth(rpc, source, 0, message);
       return { source, codes: [], ok: false, httpStatus: null, error: message, ...(apiLike ? { data: null } : { html: "" }) };
@@ -136,7 +136,7 @@ export async function fetchSource(rpc: Rpc, url: string, kind: ScraperSourceKind
       error: parseError?.message || null
     };
   } catch (error) {
-    const message = (error as { message?: string })?.message || "Source request failed";
+    const message = errorMessage(error) || "Source request failed";
     await updateHealth(rpc, source, 0, message);
     await recordRun(rpc, source, null, [], false, error);
     return { source, codes: [], ok: false, httpStatus: null, error: message, ...(apiLike ? { data: null } : { html: "" }) };
