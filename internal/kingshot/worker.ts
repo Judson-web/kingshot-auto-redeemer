@@ -1,10 +1,18 @@
 import { classifyScraperError } from "./scraper.js";
 
+export interface RedemptionTelemetry {
+  code: string;
+  resultAt: string;
+  status: string;
+  redemptionLatencyMs: number;
+  discoveryToResultMs: number | null;
+}
+
 export interface WorkerResult {
   attempted?: number; success?: number; alreadyHandled?: number; alreadyReceived?: number; skipped?: number;
   stale?: number; deadlineSkipped?: number; error?: string; errorCategory?: string;
   redemptionStatus?: string; redemptionErrorCategory?: string; redemptionErrCode?: string | number | null;
-  redemptionMessage?: string | null; redemptionCode?: string; redemptionTelemetry?: any; handledCodeCounts?: Record<string, number>;
+  redemptionMessage?: string | null; redemptionCode?: string; redemptionTelemetry?: RedemptionTelemetry; handledCodeCounts?: Record<string, number>;
 }
 
 interface Rpc { (name: string, body: Record<string, unknown>): Promise<any>; }
