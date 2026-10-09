@@ -21,7 +21,7 @@ const req = (path, method="GET", body={}) => ({
 });
 
 test("admin router rejects unauthenticated data access", async () => {
-  const {default:router}=await import("../api/admin-tools/[...path].js");
+  const {default:router}=await import("../api/admin-tools/[...path].ts");
   const res=response();
   await router(req("data"),res);
   assert.equal(res.statusCode,401);
