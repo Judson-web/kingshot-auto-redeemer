@@ -17,11 +17,22 @@ export interface WorkerResult {
 
 interface Rpc { (name: string, body: Record<string, unknown>): Promise<any>; }
 interface Player { player_id?: string | number; [key: string]: unknown; }
-interface NotifyResult {}
+
+export interface WorkerGiftCode {
+  code: string;
+  discoveredAt?: number;
+  expiresAt?: number | null;
+  createdAt?: number | null;
+  source?: string;
+  sources?: string[];
+  confidence?: number;
+  confidenceTier?: string;
+  adminAdded?: boolean;
+}
 
 export interface WorkerDependencies {
   rpc: Rpc;
-  redeemForPlayer: (player: Player, codes: any[]) => Promise<WorkerResult>;
+  redeemForPlayer: (player: Player, codes: WorkerGiftCode[]) => Promise<WorkerResult>;
 }
 
 export async function runWithConcurrency<T>(
@@ -207,7 +218,7 @@ export interface WorkerSummary {
 
 export async function runWorkerShard(
   slot: number,
-  codes: any[],
+  codes: WorkerGiftCode[],
   players: Player[],
   dependencies: WorkerDependencies,
   options: { workerCount: number; concurrency: number; maxRuntimeMs: number }
