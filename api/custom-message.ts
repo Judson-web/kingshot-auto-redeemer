@@ -34,7 +34,9 @@ function validSession(req){
  if(!PASS)return false;
  const raw=String(req.headers.cookie||"").split(";").map(x=>x.trim()).find(x=>x.startsWith(COOKIE+"="));
  if(!raw)return false;
- const value=decodeURIComponent(raw.slice(COOKIE.length+1)),parts=value.split(".");
+ let value;
+ try{value=decodeURIComponent(raw.slice(COOKIE.length+1))}catch{return false}
+ const parts=value.split(".");
  if(parts.length!==3)return false;
  const [exp,nonce,sig]=parts,body=exp+"."+nonce;
  if(!/^\d+$/.test(exp)||Number(exp)<Date.now())return false;
@@ -115,7 +117,7 @@ export default async function handler(req,res){
   const hasHere=/@here/.test(rawMessage)||explicitMentions.includes("here");
   const message=rawMessage;
   const title=clean(body.title,256),description=clean(message.replace(/@everyone|@here/g," ").replace(/\\s{2,}/g," ").trim(),4096),footer=clean(body.footer,2048),image=imageUrl(body.imageUrl);
-  const embed:Record<string,any>={title,description,color:hexColor(body.color),timestamp:new Date().toISOString(),fields:[],footer:{text:footer||"Kingshot Auto Redeem"}};
+  const embed:Record<string,unknown>={title,description,color:hexColor(body.color),timestamp:new Date().toISOString(),fields:[],footer:{text:footer||"Kingshot Auto Redeem"}};
   if(image)embed.image={url:image};
   if(!title)delete embed.title;
   if(!description)delete embed.description;
