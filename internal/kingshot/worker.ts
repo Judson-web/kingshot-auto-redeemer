@@ -256,7 +256,7 @@ export async function runWorkerShard(
 ): Promise<{ claimed: false; skipped: true; reason: string; slot: number } | ({ claimed: true } & WorkerSummary)> {
   const { rpc, redeemForPlayer } = dependencies;
   const claim = await rpc("claim_kingshot_worker_slot", { p_slot: slot });
-  if (!claim?.claimed) return { slot, claimed: false, skipped: true, reason: claim?.reason || "SLOT_ALREADY_RUNNING" };
+  if (!claim?.claimed || !claim.token) return { slot, claimed: false, skipped: true, reason: claim?.reason || "SLOT_ALREADY_RUNNING" };
 
   const workerToken = claim.token;
   try {
