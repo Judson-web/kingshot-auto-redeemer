@@ -1,4 +1,4 @@
-import type { KingshotPlayer } from "./mightpulse.js";
+import type { KingshotPlayer } from "./mightpulse.ts";
 
 export interface KingdomValidationPlayer {
   player_id: string;

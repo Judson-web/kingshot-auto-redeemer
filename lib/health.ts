@@ -1,4 +1,4 @@
-import {countScraperHistory} from "./scraper-history.js";
+import {countScraperHistory} from "./scraper-history.ts";
 const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
 const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
 
@@ -59,9 +59,9 @@ async function logsResponse(res){
 export default async function handler(req,res){
  if(req.method!=="GET")return res.status(405).json({error:"Method not allowed"});
  if(!SUPABASE_KEY)return res.status(503).json({healthy:false,error:"Health service is not configured."});
+ const logsRequested=new URL(req.url||"/","http://localhost").searchParams.get("logs")==="1";
  try{
   const params=new URL(req.url||"/","http://localhost").searchParams;
-  const logsRequested=params.get("logs")==="1";
   if(params.get("badge")==="1"){
    let maintenance=false;
    try{

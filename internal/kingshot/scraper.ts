@@ -1,4 +1,4 @@
-import { extractPageCodes, extractPublicSourceCodes, normalizeCodes, isLikelyGiftCode, type GiftCodeApiData, type GiftCodeRow } from "./gift-codes.js";
+import { extractPageCodes, extractPublicSourceCodes, normalizeCodes, isLikelyGiftCode, type GiftCodeApiData, type GiftCodeRow } from "./gift-codes.ts";
 
 export interface ScraperResult {
   source: string;

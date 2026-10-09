@@ -1,10 +1,10 @@
-import {redeemKingshot} from"../internal/kingshot/redeem.js";
-import { revalidatePlayer } from "../internal/kingshot/kingdom-validation.js";
+import {redeemKingshot} from"../internal/kingshot/redeem.ts";
+import { revalidatePlayer } from "../internal/kingshot/kingdom-validation.ts";
 
 const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
 const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
 const GIFT_SOURCE_URL="https://kingshot.net/api/gift-codes";
-const PUBLIC_GIFT_SOURCES=[
+const PUBLIC_GIFT_SOURCES: Array<{name:string;url:string}>=[
  {name:"gamesradar",url:"https://www.gamesradar.com/games/strategy/kingshot-codes-gift/"},
  {name:"kingshot-guides",url:"https://kingshotguides.com/guide/active-giftcodes-and-how-to-redeem/"},
  {name:"beebom",url:"https://beebom.com/kingshot-codes/"},
@@ -24,7 +24,7 @@ async function rpc(name,body){
  return d;
 }
 
-import {extractPageCodes, extractPublicSourceCodes, mergeCodes, normalizeCodes} from "../internal/kingshot/gift-codes.js";
+import {extractPageCodes, extractPublicSourceCodes, mergeCodes, normalizeCodes} from "../internal/kingshot/gift-codes.ts";
 
 const HANDLED_STATUSES=new Set(["SUCCESS","RECEIVED","SAME TYPE EXCHANGE","TIME_ERROR","CDK_NOT_FOUND","USAGE_LIMIT"]);
 const WORKER_COUNT=3;
@@ -66,8 +66,8 @@ async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
  return false;
 }
 
-import { fetchSource, classifyScraperError } from "../internal/kingshot/scraper.js";
-import { runWithConcurrency, runWorkerShard, workerBucket } from "../internal/kingshot/worker.js";
+import { fetchSource, classifyScraperError } from "../internal/kingshot/scraper.ts";
+import { runWithConcurrency, runWorkerShard, workerBucket } from "../internal/kingshot/worker.ts";
 async function redeemForPlayer(player,codes){
 const kingdomState=await revalidatePlayer(player,{rpc,notify:sendDiscordEvent});
  const kingdomCheck=Boolean(kingdomState.revalidated);
@@ -104,7 +104,7 @@ const kingdomState=await revalidatePlayer(player,{rpc,notify:sendDiscordEvent});
 
  const discoveryAt=Number.isFinite(item.discoveredAt)?item.discoveredAt:null;
  const redemptionTelemetry={code:item.code,resultAt:new Date(completedAt).toISOString(),status,redemptionLatencyMs:Math.max(0,completedAt-redemptionStartedAt),discoveryToResultMs:discoveryAt==null?null:Math.max(0,completedAt-discoveryAt)};
- return {attempted:1,success:status==="SUCCESS"?1:0,alreadyReceived:status==="RECEIVED"?1:0,alreadyHandled:0,skipped:0,kingdomCheck,kingdomChanged,redemptionCode:item.code,redemptionStatus:status,redemptionErrorCategory:d?.errorCategory||null,redemptionErrCode:d?.errCode??null,redemptionMessage:message?String(message).slice(0,240):null,redemptionTelemetry};
+ return {attempted:1,success:status==="SUCCESS"?1:0,alreadyReceived:status==="RECEIVED"?1:0,alreadyHandled:0,skipped:0,kingdomCheck,kingdomChanged,redemptionCode:item.code,redemptionStatus:status,redemptionErrorCategory:d?.errorCategory||null,redemptionErrCode:typeof d?.errCode === "number" || typeof d?.errCode === "string" ? d.errCode : null,redemptionMessage:message?String(message).slice(0,240):null,redemptionTelemetry};
 }
 
 export default async function handler(req,res){
@@ -201,10 +201,10 @@ export default async function handler(req,res){
   const [apiSource,pageSource,publicSources,adminRows]=await Promise.all([
    fetchSource(rpc,GIFT_SOURCE_URL,"api"),
    fetchSource(rpc,"https://kingshot.net/gift-codes","page"),
-   Promise.all(PUBLIC_GIFT_SOURCES.map(source=>fetchSource(rpc,source.url,"public:"+source.name))),
+   Promise.all(PUBLIC_GIFT_SOURCES.map(source=>fetchSource(rpc,source.url,("public:"+source.name) as `public:${string}`))),
    rpc("list_kingshot_admin_gift_codes",{})
   ]);
-  const data=apiSource.data;
+  const data=apiSource.data as {data?:{activeCount?:number}} | null;
   const apiCodes=apiSource.codes;
   const pageCodes=pageSource.codes;
   const publicCodes=publicSources.flatMap((result,index)=>result.codes.length?result.codes.map(row=>({...row,source:PUBLIC_GIFT_SOURCES[index].name})):[]);
@@ -288,7 +288,7 @@ export default async function handler(req,res){
 
   // Phase 2: only the already-validated players enter the redemption pool.
   const workerUrlBase="https://"+(req.headers["x-forwarded-host"]||req.headers.host||"kingshot-autoredeemer.vercel.app")+"/api/kingshot-auto?mode=worker&slot=";
-  const childHeaders={"content-type":"application/json"};
+  const childHeaders:Record<string,string>={"content-type":"application/json"};
   if(cronSecret)childHeaders.authorization="Bearer "+cronSecret;
   else if(schedulerToken)childHeaders["x-kingshot-scheduler-token"]=String(schedulerToken);
   else throw Error("No internal worker authorization is configured.");
@@ -296,7 +296,7 @@ export default async function handler(req,res){
   const assignments=Array.from({length:WORKER_COUNT},()=>[]);
   for(const player of validPlayers)assignments[workerBucket(player?.player_id,WORKER_COUNT)].push(player);
   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
-  const workerRuns=await Promise.all(assignments.map(async(assigned,workerIndex)=>{
+  const workerRuns:Array<Record<string,any>>=await Promise.all(assignments.map(async(assigned,workerIndex)=>{
    try{
     const response=await fetch(workerUrlBase+workerIndex,{
      method:"POST",
@@ -316,21 +316,22 @@ export default async function handler(req,res){
   const totals=workerRuns.reduce((a,r)=>{
    a.attempted+=(r?.attempted||0);a.success+=(r?.success||0);a.alreadyReceived+=(r?.alreadyReceived||0);a.alreadyHandled+=(r?.alreadyHandled||0);a.skipped+=(r?.skipped||0);a.errors+=(r?.errors||0)+(r?.error?1:0);a.deadlineSkipped+=(r?.deadlineSkipped||0);return a;
   },{attempted:0,success:0,alreadyReceived:0,alreadyHandled:0,skipped:0,errors:0,stale:0,deadlineSkipped:0,kingdomChecks:kingdomSummary.checked,kingdomChanges:kingdomSummary.changed});
-  const topRedemptionFailures=workerRuns.flatMap(result=>Array.isArray(result?.redemptionFailures)?result.redemptionFailures:[]);
+  const topRedemptionFailures:Array<Record<string,any>>=workerRuns.flatMap(result=>Array.isArray(result?.redemptionFailures)?result.redemptionFailures:[]);
   const workerErrorDiagnostics=Object.values(workerRuns.flatMap(result=>Array.isArray(result?.workerErrors)?result.workerErrors:[])
-   .reduce((map,item)=>{
+   .reduce<Record<string,{count:number;category:string;message:string}>>((map,item)=>{
     const key=String(item.category||"UNKNOWN")+" / "+String(item.message||"Player processing failed.");
     const existing=map[key]||{count:0,category:String(item.category||"UNKNOWN"),message:String(item.message||"Player processing failed.")};
     existing.count+=Number(item.count||0);
     map[key]=existing;
     return map;
    },{})).sort((a,b)=>b.count-a.count).slice(0,8);
-  const codeCounts=workerRuns.reduce((map,r)=>{
+  const codeCounts:Record<string,number>=workerRuns.reduce<Record<string,number>>((map,r)=>{
  for(const [key,count] of Object.entries(r?.codeCounts||{}))map[key]=(map[key]||0)+Number(count||0);
  return map;
 },{});
-  const codeTelemetry=workerRuns.reduce((map,r)=>{
-   for(const [code,value] of Object.entries(r?.codeTelemetry||{})){
+  type CodeTelemetry={attempts:number;successes:number;firstResultAt:string|null;firstSuccessAt:string|null;firstResultLatencyMs:number|null;totalRedemptionLatencyMs:number;avgRedemptionLatencyMs?:number|null};
+  const codeTelemetry:Record<string,CodeTelemetry>=workerRuns.reduce<Record<string,CodeTelemetry>>((map,r)=>{
+   for(const [code,rawValue] of Object.entries(r?.codeTelemetry||{})){ const value=rawValue as Partial<CodeTelemetry>;
     const existing=map[code]||{attempts:0,successes:0,firstResultAt:null,firstSuccessAt:null,firstResultLatencyMs:null,totalRedemptionLatencyMs:0};
     existing.attempts+=Number(value?.attempts||0);
     existing.successes+=Number(value?.successes||0);
@@ -347,7 +348,7 @@ export default async function handler(req,res){
   const sourceCount=sourceResults.length;
   const sourceHealthPct=sourceCount?Math.round(healthySources/sourceCount*100):0;
   const cycleDurationMs=Math.max(0,Date.now()-cycleStartedAt);
-  const mergedFailures=Object.values(topRedemptionFailures.reduce((map,item)=>{
+  const mergedFailures=Object.values(topRedemptionFailures.reduce<Record<string,any>>((map,item)=>{
    const key=String(item.category)+"/"+String(item.errCode)+"/"+String(item.status);
    const current=map[key]||{...item,count:0};
    current.count+=Number(item.count||0);
@@ -363,7 +364,7 @@ export default async function handler(req,res){
   if(!activeCodes.length)anomalyReasons.push("no active codes");
   if(sourceHealthPct<50)anomalyReasons.push("scraper source health below 50%");
   if(list.length&&validPlayers.length<Math.floor(list.length*0.7))anomalyReasons.push("over 30% of players failed validation");
-  const statusMap=workerRuns.reduce((map,r)=>{for(const [status,count] of Object.entries(r?.redemptionStatuses||{}))map[status]=(map[status]||0)+count;return map},{});
+  const statusMap=workerRuns.reduce<Record<string,number>>((map,r)=>{for(const [status,count] of Object.entries(r?.redemptionStatuses||{}))map[status]=(map[status]||0)+Number(count||0);return map},{});
   if(anomalyReasons.length)await sendDiscordEvent({title:"🚨 Auto-redeem anomaly detected",description:anomalyReasons.join(" · "),fields:[
    {name:"Reasons",value:anomalyReasons.join("\n"),inline:false},
    {name:"Cycle runtime",value:(cycleDurationMs/1000).toFixed(1)+"s",inline:true},
@@ -371,7 +372,7 @@ export default async function handler(req,res){
    {name:"Validated",value:String(validPlayers.length)+"/"+String(list.length),inline:true},
    {name:"Worker diagnostics",value:workerErrorDiagnostics.length?workerErrorDiagnostics.map(x=>x.category+" · "+x.message+" · x"+x.count).join("\n").slice(0,1024):"None",inline:false}
   ],color:0xED4245});
-  if(totals.attempted||totals.errors||totals.stale||workerFailures.length||newCodes.length)await sendDiscordEvent({title:"📊 Auto-redeem cycle",description:"Scheduled Kingshot worker pool completed a cycle with activity.",fields:[{name:"Players",value:String(list.length),inline:true},{name:"Validated",value:String(validPlayers.length),inline:true},{name:"Workers",value:String(WORKER_COUNT),inline:true},{name:"Codes",value:String(activeCodes.length),inline:true},{name:"Attempts",value:String(totals.attempted),inline:true},{name:"Successes",value:String(totals.success),inline:true},{name:"Already received",value:String(totals.alreadyReceived),inline:true},{name:"Already redeemed/handled",value:String(totals.alreadyHandled),inline:true},{name:"Errors",value:String(totals.errors),inline:true},{name:"Stale",value:String(totals.stale),inline:true},{name:"Worker failures",value:String(workerFailures.length),inline:true},{name:"Deferred by deadline",value:String(totals.deadlineSkipped),inline:true},{name:"Runtime",value:(cycleDurationMs/1000).toFixed(1)+"s",inline:true},{name:"Sources",value:healthySources+"/"+sourceCount+" healthy",inline:true},{name:"Redemption statuses",value:Object.entries(workerRuns.reduce((map,r)=>{for(const [status,count] of Object.entries(r?.redemptionStatuses||{}))map[status]=(map[status]||0)+count;return map},{})).map(([status,count])=>`${status}: ${count}`).join("\n").slice(0,1024)||"None",inline:false},{name:"Code breakdown",value:Object.entries(codeCounts).filter(([k])=>!k.includes("_status_")).map(([code,count])=>`${code}: ${count} handled`).join("\n").slice(0,1024)||"None",inline:false},{name:"Speed telemetry",value:Object.entries(codeTelemetry).filter(([,t])=>Number(t?.attempts||0)>0).map(([code,t])=>code+": first result "+(t.firstResultLatencyMs!=null?(t.firstResultLatencyMs/1000).toFixed(1)+"s":"—")+" · "+(t.avgRedemptionLatencyMs!=null?(t.avgRedemptionLatencyMs/1000).toFixed(1)+"s avg API":"—")+(t.firstSuccessAt?" · first SUCCESS":" · no SUCCESS")).join("\n").slice(0,1024)||"None",inline:false},{name:"Redemption failures",value:mergedFailures.length?mergedFailures.map(x=>`${x.category}/${x.errCode}/${x.status}: ${x.count}`).join("\n").slice(0,1024):"None",inline:false},{name:"Worker diagnostics",value:workerErrorDiagnostics.length?workerErrorDiagnostics.map(x=>x.category+" · "+x.message+" · x"+x.count).join("\n").slice(0,1024):"None",inline:false}],color:totals.errors||totals.stale||workerFailures.length?0xFEE75C:0x57F287});
+  if(totals.attempted||totals.errors||totals.stale||workerFailures.length||newCodes.length)await sendDiscordEvent({title:"📊 Auto-redeem cycle",description:"Scheduled Kingshot worker pool completed a cycle with activity.",fields:[{name:"Players",value:String(list.length),inline:true},{name:"Validated",value:String(validPlayers.length),inline:true},{name:"Workers",value:String(WORKER_COUNT),inline:true},{name:"Codes",value:String(activeCodes.length),inline:true},{name:"Attempts",value:String(totals.attempted),inline:true},{name:"Successes",value:String(totals.success),inline:true},{name:"Already received",value:String(totals.alreadyReceived),inline:true},{name:"Already redeemed/handled",value:String(totals.alreadyHandled),inline:true},{name:"Errors",value:String(totals.errors),inline:true},{name:"Stale",value:String(totals.stale),inline:true},{name:"Worker failures",value:String(workerFailures.length),inline:true},{name:"Deferred by deadline",value:String(totals.deadlineSkipped),inline:true},{name:"Runtime",value:(cycleDurationMs/1000).toFixed(1)+"s",inline:true},{name:"Sources",value:healthySources+"/"+sourceCount+" healthy",inline:true},{name:"Redemption statuses",value:Object.entries(workerRuns.reduce<Record<string,number>>((map,r)=>{for(const [status,count] of Object.entries(r?.redemptionStatuses||{}))map[status]=(map[status]||0)+Number(count||0);return map},{})).map(([status,count])=>`${status}: ${count}`).join("\n").slice(0,1024)||"None",inline:false},{name:"Code breakdown",value:Object.entries(codeCounts).filter(([k])=>!k.includes("_status_")).map(([code,count])=>`${code}: ${count} handled`).join("\n").slice(0,1024)||"None",inline:false},{name:"Speed telemetry",value:Object.entries(codeTelemetry).filter(([,t])=>Number(t?.attempts||0)>0).map(([code,t])=>code+": first result "+(t.firstResultLatencyMs!=null?(t.firstResultLatencyMs/1000).toFixed(1)+"s":"—")+" · "+(t.avgRedemptionLatencyMs!=null?(t.avgRedemptionLatencyMs/1000).toFixed(1)+"s avg API":"—")+(t.firstSuccessAt?" · first SUCCESS":" · no SUCCESS")).join("\n").slice(0,1024)||"None",inline:false},{name:"Redemption failures",value:mergedFailures.length?mergedFailures.map(x=>`${x.category}/${x.errCode}/${x.status}: ${x.count}`).join("\n").slice(0,1024):"None",inline:false},{name:"Worker diagnostics",value:workerErrorDiagnostics.length?workerErrorDiagnostics.map(x=>x.category+" · "+x.message+" · x"+x.count).join("\n").slice(0,1024):"None",inline:false}],color:totals.errors||totals.stale||workerFailures.length?0xFEE75C:0x57F287});
   return res.status(200).json({ok:true,...summary});
  }catch(e){
   console.error("Kingshot auto redeem:",e);

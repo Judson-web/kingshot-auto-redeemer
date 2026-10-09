@@ -1,4 +1,4 @@
-import { verifyKingdom, type KingdomVerification } from "./mightpulse.js";
+import { verifyKingdom, type KingdomVerification } from "./mightpulse.ts";
 
 export interface RegisterPlayerInput { playerId?: unknown; kingdomId?: unknown; playerName?: unknown; avatarUrl?: unknown; }
 export interface RegisterPlayerResult { registered: boolean; alreadyRegistered: boolean; registrationStatus: string; kingdomVerified: boolean; verificationPending?: boolean; stale?: boolean; verifiedKingdomId?: string; player?: unknown; }

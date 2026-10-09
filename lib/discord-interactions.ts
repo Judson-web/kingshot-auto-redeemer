@@ -4,8 +4,8 @@ const DISCORD_API="https://discord.com/api/v10";
 const PUBLIC_KEY=process.env.DISCORD_PUBLIC_KEY||process.env.DISCORD_APPLICATION_PUBLIC_KEY||"";
 const BOT_TOKEN=process.env.DISCORD_BOT_TOKEN||"";
 
-function getRawBody(req){
- return new Promise((resolve,reject)=>{
+function getRawBody(req):Promise<string>{
+ return new Promise<string>((resolve,reject)=>{
   const chunks=[];
   req.on("data",chunk=>chunks.push(Buffer.isBuffer(chunk)?chunk:Buffer.from(chunk)));
   req.on("end",()=>resolve(Buffer.concat(chunks).toString("utf8")));
@@ -32,7 +32,7 @@ function formatPower(value){
  if(n>=1e3)return (n/1e3).toFixed(1)+"K";
  return String(n);
 }
-async function discordRequest(path,method="POST",body){
+async function discordRequest(path,method="POST",body?:unknown){
  return fetch(DISCORD_API+path,{method,headers:{Authorization:"Bot "+BOT_TOKEN,"Content-Type":"application/json"},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(8000)});
 }
 async function interactionCallback(id,token,body){
@@ -86,7 +86,8 @@ function playerEmbed(p,privateView){
  if(privateView)e.fields.unshift(field("Player ID",id,false));
  return e;
 }
-async function handleCommand(req,interaction){
+type InteractionResult = Response | {content?:string;embeds?:unknown[];flags?:number;status?:number;ok?:boolean};
+async function handleCommand(req:any,interaction:any):Promise<InteractionResult>{
  const name=String(interaction.data?.name||"");
  const opts=interaction.data?.options||[];
  if(name==="player"){
@@ -97,7 +98,7 @@ async function handleCommand(req,interaction){
    const p=await fetchPlayer(id);
    if(!p)return followup(interaction.token,{content:"❌ Player not found."});
    return followup(interaction.token,{embeds:[playerEmbed(p,false)]});
-  }catch(e){return followup(interaction.token,{content:"❌ "+safe(e.message,"Player lookup failed.")})}
+  }catch(e){return followup(interaction.token,{content:"❌ "+safe(e instanceof Error ? e.message : e,"Player lookup failed.")})}
  }
  if(name==="register"){
   const id=String(option(opts,"player_id")||"").trim();
@@ -108,7 +109,7 @@ async function handleCommand(req,interaction){
    const kingdom=d.verifiedKingdomId||d.player?.kingdom_id||d.player?.kid;
    const status=d.registrationStatus||"REGISTERED";
    return followup(interaction.token,{content:"✅ **Auto-redeem enabled**\nRegistration: **"+status+"**\nKingdom: **"+safe(kingdom)+"**\n\nEligible gift codes will be processed automatically.",flags:64});
-  }catch(e){return followup(interaction.token,{content:"❌ "+safe(e.message,"Registration failed."),flags:64})}
+  }catch(e){return followup(interaction.token,{content:"❌ "+safe(e instanceof Error ? e.message : e,"Registration failed."),flags:64})}
  }
  return {content:"Unknown command.",flags:64};
 }
@@ -125,12 +126,12 @@ export default async function handler(req,res){
  if(interaction.type!==2)return res.status(400).json({error:"Unsupported interaction"});
  try{
   const result=await handleCommand(req,interaction);
-  if(result?.status){return res.status(200).end()}
+  if(result instanceof Response){return res.status(200).end()}
   if(result?.ok===false)return res.status(500).end();
   if(result?.content||result?.embeds)return res.status(200).json({type:4,data:result});
   return res.status(200).end();
  }catch(e){
-  try{await interactionCallback(interaction.id,interaction.token,{type:4,data:{content:"❌ "+safe(e.message,"Something went wrong."),flags:64}})}catch{}
+  try{await interactionCallback(interaction.id,interaction.token,{type:4,data:{content:"❌ "+safe(e instanceof Error ? e.message : e,"Something went wrong."),flags:64}})}catch{}
   return res.status(200).end();
  }
 }

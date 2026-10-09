@@ -9,19 +9,19 @@ function assertCheck(name,condition,detail=""){
  checks.push({name,ok:Boolean(condition),detail});
 }
 
-const auto=read("api/kingshot-auto.js");
+const auto=read("api/kingshot-auto.ts");
 const worker=read("internal/kingshot/worker.ts");
 const workerCode=auto+"\n"+worker;
 const register=read("internal/kingshot/register.ts");
 const registerHandler=read("api/kingshot-register.ts");
 const support=read("lib/support.ts");
-const adminData=read("lib/admin-data.js");
+const adminData=read("lib/admin-data.ts");
 const adminDataRoute=read("api/admin-tools/data.ts");
 const adminLogin=read("api/admin-tools/login.ts");
-const mainApp=read("src/main.jsx");
-const discordInteractions=read("lib/discord-interactions.js");
-const health=read("lib/health.js");
-const logs=read("lib/health.js");
+const mainApp=read("src/main.tsx");
+const discordInteractions=read("lib/discord-interactions.ts");
+const health=read("lib/health.ts");
+const logs=read("lib/health.ts");
 
 assertCheck("Logs API is GET-only and server-side",
  logs.includes('if(req.method!=="GET")') &&
@@ -130,11 +130,11 @@ assertCheck("Support has request rate limiting",
 assertCheck("Admin login has request rate limiting",
  /rateLimit\(req,\s*res,\s*"admin-login",\s*5,\s*900000\)/.test(adminLogin));
 assertCheck("Admin data is an isolated TypeScript API entrypoint",
- adminDataRoute.includes('from "../../lib/admin-data.js"') &&
+ adminDataRoute.includes('from "../../lib/admin-data.ts"') &&
  !fs.existsSync(path.join(root,"api","admin-tools","[...path].ts")) &&
  !fs.existsSync(path.join(root,"api","admin-tools","[...path].js")));
 assertCheck("Admin login is a direct TypeScript API entrypoint without runtime TypeScript imports",
- adminLogin.includes('from "../../lib/request-rate-limit.js"') &&
+ adminLogin.includes('from "../../lib/request-rate-limit.ts"') &&
  !adminLogin.includes('from "../../lib/admin-login.ts"'));
 assertCheck("Admin data validates an admin session before privileged work",
  adminData.includes("kingshot_admin_validate_session"));

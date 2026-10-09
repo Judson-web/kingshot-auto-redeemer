@@ -1,4 +1,4 @@
-import { classifyScraperError } from "./scraper.js";
+import { classifyScraperError } from "./scraper.ts";
 
 export interface RedemptionTelemetry {
   code: string;
@@ -9,6 +9,7 @@ export interface RedemptionTelemetry {
 }
 
 export interface WorkerResult {
+  [key: string]: any;
   attempted?: number; success?: number; alreadyHandled?: number; alreadyReceived?: number; skipped?: number;
   stale?: number; deadlineSkipped?: number; error?: string; errorCategory?: string;
   redemptionStatus?: string; redemptionErrorCategory?: string; redemptionErrCode?: string | number | null;
@@ -56,13 +57,13 @@ export interface WorkerDependencies {
   redeemForPlayer: (player: Player, codes: WorkerGiftCode[]) => Promise<WorkerResult>;
 }
 
-export async function runWithConcurrency<T>(
+export async function runWithConcurrency<T, R = WorkerResult>(
   items: T[],
-  fn: (item: T) => Promise<WorkerResult>,
+  fn: (item: T) => Promise<R>,
   limit: number,
   options: { deadline?: number } = {}
-): Promise<WorkerResult[]> {
-  const results = new Array<WorkerResult>(items.length);
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
   let next = 0;
   let deadlineSkipped = 0;
   const deadline = options.deadline ?? Infinity;
@@ -73,7 +74,7 @@ export async function runWithConcurrency<T>(
       if (index >= items.length) return;
       if (Date.now() >= deadline) {
         deadlineSkipped++;
-        results[index] = { attempted: 0, success: 0, alreadyHandled: 0, skipped: 1, deadlineSkipped: 1 };
+        results[index] = { attempted: 0, success: 0, alreadyHandled: 0, skipped: 1, deadlineSkipped: 1 } as R;
         continue;
       }
       try {
@@ -82,7 +83,7 @@ export async function runWithConcurrency<T>(
         results[index] = {
           error: error instanceof Error ? error.message : "Player processing failed",
           errorCategory: classifyScraperError(error)
-        };
+        } as R;
       }
     }
   }

@@ -1,4 +1,4 @@
-import { getPlayer, type KingshotPlayer } from "./mightpulse.js";
+import { getPlayer, type KingshotPlayer } from "./mightpulse.ts";
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wocxvtptqapietlteshr.supabase.co";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;

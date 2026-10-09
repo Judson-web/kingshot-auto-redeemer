@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { rateLimit } from "../lib/request-rate-limit.js";
+import { rateLimit } from "../lib/request-rate-limit.ts";
 
 function response() {
   const headers = new Map();

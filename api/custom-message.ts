@@ -1,12 +1,12 @@
 import crypto from"node:crypto";
-import {rateLimit}from"../lib/request-rate-limit.js";
+import {rateLimit}from"../lib/request-rate-limit.ts";
 const PASS=process.env.CUSTOM_MESSAGE_PASSKEY||"";
 function parseConfiguredDestinations(){
  const entries=String(process.env.CUSTOM_MESSAGE_DESTINATIONS||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>{
   const [key,...name]=x.split(":");
   return [key.trim(),name.join(":").trim()||key.trim()];
  });
- const map=new Map(entries);
+ const map=new Map<string,string>(entries as Array<[string,string]>);
  // Fall back to any dedicated webhook env vars so the UI cannot silently lose
  // its server selector when CUSTOM_MESSAGE_DESTINATIONS is missing/stale.
  for(const key of Object.keys(process.env)){
@@ -46,7 +46,7 @@ function clearCookie(res){res.setHeader("Set-Cookie",COOKIE+"=; Max-Age=0; Path=
 function clean(v,max){return String(v??"").trim().slice(0,max)}
 function hexColor(v){const s=clean(v,20);return /^#?[0-9a-fA-F]{6}$/.test(s)?parseInt(s.replace("#",""),16):0x5865F2}
 function imageUrl(v){const s=clean(v,2048);if(!s)return"";try{const u=new URL(s);return u.protocol==="https:"?u.toString():""}catch{return""}}
-const ROLE_CACHE=new Map();
+const ROLE_CACHE=new Map<string,{expires:number;items:Array<{id:string;name:string}>}>();
 async function resolveRoleMentions(message,guildId){
  const token=process.env.DISCORD_BOT_TOKEN||"";
  if(!token||!/^[0-9]+$/.test(guildId))return message;
@@ -62,7 +62,7 @@ async function resolveRoleMentions(message,guildId){
  }
  let out=message;
  for(const role of cached.items){
-  const escaped=RegExp.escape(role.name).replace(/\s+/g,"\\s+");
+  const escaped=String(role.name).replace(/[.*+?^${}()|[\]\\]/g,match=>"\\"+match).replace(/\s+/g,"\\s+");
   if(!escaped)continue;
   out=out.replace(new RegExp("@"+escaped,"gi"),"<@&"+role.id+">");
  }
@@ -115,7 +115,7 @@ export default async function handler(req,res){
   const hasHere=/@here/.test(rawMessage)||explicitMentions.includes("here");
   const message=rawMessage;
   const title=clean(body.title,256),description=clean(message.replace(/@everyone|@here/g," ").replace(/\\s{2,}/g," ").trim(),4096),footer=clean(body.footer,2048),image=imageUrl(body.imageUrl);
-  const embed={title,description,color:hexColor(body.color),timestamp:new Date().toISOString(),fields:[],footer:{text:footer||"Kingshot Auto Redeem"}};
+  const embed:Record<string,any>={title,description,color:hexColor(body.color),timestamp:new Date().toISOString(),fields:[],footer:{text:footer||"Kingshot Auto Redeem"}};
   if(image)embed.image={url:image};
   if(!title)delete embed.title;
   if(!description)delete embed.description;
