@@ -14,6 +14,11 @@ const configuredHeaders=vercelConfig.headers?.flatMap(rule=>rule.headers||[])||[
 const cspHeader=configuredHeaders.find(header=>header.key.toLowerCase()==="content-security-policy");
 assertCheck("Deployment defines a baseline Content Security Policy", Boolean(cspHeader));
 if(cspHeader){
+ assertCheck("CSP limits outbound connections to first-party and required service origins",
+  cspHeader.value.includes("connect-src 'self' https://*.supabase.co wss://*.supabase.co https://discord.com https://discordapp.com") &&
+  !cspHeader.value.includes("connect-src 'self' https: wss:"));
+}
+if(cspHeader){
  const csp=cspHeader.value;
  for(const directive of ["default-src 'self'","base-uri 'self'","object-src 'none'","frame-ancestors 'none'","form-action 'self'","script-src 'self'","style-src 'self'","connect-src 'self'","worker-src 'self'","upgrade-insecure-requests"]){
   assertCheck(`CSP includes ${directive}`, csp.includes(directive));
