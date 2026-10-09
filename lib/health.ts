@@ -79,9 +79,10 @@ async function logsResponse(res: ResponseLike): Promise<unknown> {
 export default async function handler(req: RequestLike, res: ResponseLike): Promise<unknown> {
  if(req.method!=="GET")return res.status(405).json({error:"Method not allowed"});
  if(!SUPABASE_KEY)return res.status(503).json({healthy:false,error:"Health service is not configured."});
+ let logsRequested = false;
  try{
   const params=new URL(req.url||"/","http://localhost").searchParams;
-  const logsRequested=params.get("logs")==="1";
+  logsRequested=params.get("logs")==="1";
   if(params.get("badge")==="1"){
    let maintenance=false;
    try{
