@@ -1469,3 +1469,28 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 
 /* Live status — mobile-safe detail panel */
 @media(max-width:520px){.site-status-popover{position:fixed;top:calc(env(safe-area-inset-top) + 72px);right:12px;left:auto;width:min(320px,calc(100vw - 24px));max-height:calc(100dvh - 96px);overflow:auto;overscroll-behavior:contain;box-sizing:border-box;-webkit-overflow-scrolling:touch}.site-status-popover-head{position:sticky;top:0;padding-bottom:9px;background:#0d1016;z-index:1}.site-status-popover p{font-size:8.5px}.site-status-grid b,.site-status-maintenance b{font-size:7.5px}}
+
+/* Status popover polish: clear dismissal and reliable small-screen placement */
+.site-status-head-actions{display:flex;align-items:center;gap:7px;flex:none}
+.site-status-close{display:grid;place-items:center;width:27px;height:27px;border:1px solid #292e38;border-radius:8px;background:#12161d;color:#818996;cursor:pointer}
+.site-status-close:hover,.site-status-close:focus-visible{border-color:#454c59;background:#1a1f29;color:#e1e4ea}
+.site-status-backdrop{position:fixed;inset:0;z-index:118;background:transparent}
+.site-status-popover{z-index:119}
+.site-status-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:9px;border-top:1px solid #20252e;color:#59616e;font-size:7px;line-height:1.4}
+.site-status-foot a{display:inline-flex;align-items:center;gap:4px;flex:none;color:#a9b0bd;text-decoration:none}
+.site-status-foot a:hover{color:#d9c08f}
+.site-status-trigger:focus-visible{outline:2px solid #c8a15b;outline-offset:3px}
+.site-status-popover{box-sizing:border-box;overflow-wrap:anywhere}
+@media(max-width:520px){
+ .site-status-popover{top:calc(env(safe-area-inset-top) + 76px);right:12px;left:auto;width:min(340px,calc(100vw - 24px));max-height:calc(100dvh - env(safe-area-inset-top) - 92px);padding:14px;overflow-y:auto}
+ .site-status-popover-head{align-items:center}
+ .site-status-kicker{font-size:6px}
+ .site-status-popover-head b{font-size:12px}
+ .site-status-popover p{font-size:9px;line-height:1.6}
+ .site-status-grid,.site-status-maintenance{gap:7px}
+ .site-status-grid span,.site-status-maintenance span{padding:9px}
+ .site-status-grid small,.site-status-maintenance small{font-size:5.5px}
+ .site-status-grid b,.site-status-maintenance b{font-size:8px;white-space:normal;overflow-wrap:anywhere}
+ .site-status-foot{font-size:7.5px}
+}
+@media(prefers-reduced-motion:reduce){.site-status-close{transition:none}}
