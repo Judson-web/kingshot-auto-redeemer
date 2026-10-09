@@ -1529,3 +1529,79 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @keyframes maintenance-loader-core{0%,100%{transform:rotate(45deg) scale(.94)}50%{transform:rotate(135deg) scale(1.08)}}
 @keyframes maintenance-loader-pulse{0%,100%{opacity:.55;transform:scale(.75)}50%{opacity:1;transform:scale(1.25)}}
 @media(prefers-reduced-motion:reduce){.maintenance-preflight-card,.maintenance-loader-orbit-a,.maintenance-loader-orbit-b,.maintenance-loader::before,.maintenance-loader-core,.maintenance-loader-core i,.maintenance-preflight h1,.maintenance-preflight p,.maintenance-preflight .maintenance-kicker,.maintenance-preflight small,.maintenance-preflight-progress{animation:none!important;transition:none!important}.maintenance-preflight-card{opacity:1;transform:none;filter:none}.maintenance-loader-core i{opacity:1;transform:none}}
+
+/* Maintenance screen — polished service-status layout */
+.maintenance-app{isolation:isolate;background:radial-gradient(ellipse at 50% 0%,#29213f 0%,transparent 48%),radial-gradient(ellipse at 0% 100%,#151426 0%,transparent 44%),#08090c}
+.maintenance-noise{position:absolute;inset:0;pointer-events:none;opacity:.12;background-image:radial-gradient(#b8a7ed 0.55px,transparent .55px);background-size:7px 7px;mask-image:linear-gradient(to bottom,black,transparent 85%)}
+.maintenance-shell{width:min(620px,100%);animation:maintenance-screen-enter .65s cubic-bezier(.2,.8,.2,1) both}
+.maintenance-brand{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 auto 22px;text-align:left}
+.maintenance-brand-mark{display:grid;place-items:center;width:36px;height:36px;border:1px solid #393149;border-radius:12px;background:linear-gradient(145deg,#1c1928,#11121a);color:#d7bb7c;box-shadow:0 8px 24px #0004}
+.maintenance-brand>span:last-child{display:flex;flex-direction:column;gap:4px}
+.maintenance-brand b{color:#e8e3f0;font-size:9px;font-weight:900;letter-spacing:.15em}
+.maintenance-brand small{color:#686778;font-size:7px;font-weight:800;letter-spacing:.19em}
+.maintenance-card{overflow:hidden;padding:34px 42px 28px;border-color:#302d3c;border-radius:26px;background:linear-gradient(150deg,rgba(19,19,29,.97),rgba(10,11,16,.98));box-shadow:0 34px 100px #0008,inset 0 1px 0 #ffffff0a}
+.maintenance-card::before{content:"";position:absolute;top:0;left:12%;right:12%;height:1px;background:linear-gradient(90deg,transparent,#b9a2ff77,#d8bb7b88,transparent)}
+.maintenance-topline{margin-bottom:27px}
+.maintenance-live{display:inline-flex;align-items:center;gap:6px}
+.maintenance-live i{width:5px;height:5px;border-radius:50%;background:#d7bb7c;box-shadow:0 0 9px #d7bb7c88;animation:maintenance-live-pulse 1.8s ease-in-out infinite}
+.maintenance-visual{position:relative;display:grid;place-items:center;width:104px;height:104px;margin:0 auto 23px}
+.maintenance-visual-ring{position:absolute;inset:5px;border:1px solid #b9a2ff2c;border-radius:50%}
+.maintenance-visual-ring-a{border-top-color:#cbb7ff;border-right-color:#cbb7ff99;animation:maintenance-visual-spin 8s linear infinite}
+.maintenance-visual-ring-b{inset:15px;border-style:dashed;border-color:#d7bb7b44;border-bottom-color:#d7bb7b;animation:maintenance-visual-spin-reverse 14s linear infinite}
+.maintenance-visual .maintenance-icon{position:relative;width:58px;height:58px;margin:0;border-radius:19px;border-color:#48402f;background:linear-gradient(145deg,#282116,#17131b);color:#e0c17d;box-shadow:0 0 35px #c5a76815,inset 0 1px 0 #ffffff0a;animation:maintenance-icon-float 3.5s ease-in-out infinite}
+.maintenance-visual-spark{position:absolute;width:4px;height:4px;border-radius:50%;background:#c8b5ff;box-shadow:0 0 10px #b9a2ff;animation:maintenance-spark 2.8s ease-in-out infinite}
+.maintenance-visual-spark-a{top:12px;right:17px}
+.maintenance-visual-spark-b{bottom:16px;left:13px;background:#dfc17d;box-shadow:0 0 10px #dfc17d;animation-delay:-1.3s}
+.maintenance-card .maintenance-kicker{display:block;color:#a895d4;font-size:8px;line-height:1.6}
+.maintenance-card h1{margin:14px 0 16px;font-size:clamp(42px,6.5vw,58px);line-height:1;letter-spacing:-.07em}
+.maintenance-card h1 em{background:linear-gradient(100deg,#c4b2ff 8%,#9c8bdc 52%,#e0c17d 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.maintenance-message{font-size:12px;line-height:1.8}
+.maintenance-countdown-label{margin-top:27px;color:#858192}
+.maintenance-countdown-label b{color:#d2c5ed;font-size:9px}
+.maintenance-countdown{gap:9px;margin-top:10px}
+.maintenance-time{padding:16px 8px 13px;border-color:#2e2d3a;border-radius:13px;background:linear-gradient(155deg,#15151f,#0c0d13);transition:transform .25s ease,border-color .25s ease}
+.maintenance-time:hover{transform:translateY(-2px);border-color:#5a4b76}
+.maintenance-time b{font-size:clamp(21px,4vw,27px)}
+.maintenance-time span{color:#777387;font-size:7px}
+.maintenance-progress{margin-top:14px;background:#252331}
+.maintenance-progress span{background:linear-gradient(90deg,#8e7ad4,#c0adff,#ddbd78)}
+.maintenance-note{max-width:390px;margin:20px auto 0;color:#777789;font-size:9px;line-height:1.7}
+.maintenance-note svg{color:#b5a2e8}
+.maintenance-footer{margin-top:17px;font-size:8px;color:#555463}
+@keyframes maintenance-screen-enter{from{opacity:0;transform:translateY(12px) scale(.985);filter:blur(5px)}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
+@keyframes maintenance-visual-spin{to{transform:rotate(360deg)}}
+@keyframes maintenance-visual-spin-reverse{to{transform:rotate(-360deg)}}
+@keyframes maintenance-icon-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes maintenance-spark{0%,100%{opacity:.35;transform:scale(.7)}50%{opacity:1;transform:scale(1.35)}}
+@keyframes maintenance-live-pulse{0%,100%{opacity:.5}50%{opacity:1}}
+@media(max-width:640px){
+ .maintenance-app{padding:18px 14px}
+ .maintenance-shell{width:min(100%,460px)}
+ .maintenance-brand{margin-bottom:16px}
+ .maintenance-card{padding:25px 19px 22px;border-radius:22px}
+ .maintenance-topline{margin-bottom:23px}
+ .maintenance-visual{width:88px;height:88px;margin-bottom:20px}
+ .maintenance-visual-ring-a{inset:3px}
+ .maintenance-visual-ring-b{inset:12px}
+ .maintenance-visual .maintenance-icon{width:50px;height:50px;border-radius:16px}
+ .maintenance-card h1{font-size:clamp(37px,10.5vw,48px)}
+ .maintenance-message{font-size:11px}
+ .maintenance-countdown-label{align-items:flex-start;flex-direction:column;gap:6px;margin-top:23px}
+ .maintenance-countdown{gap:6px}
+ .maintenance-time{padding:14px 3px 11px}
+ .maintenance-time b{font-size:clamp(18px,5.2vw,23px)}
+ .maintenance-time span{font-size:6px;letter-spacing:.12em}
+ .maintenance-note{font-size:8px}
+}
+@media(max-width:360px){
+ .maintenance-app{padding:12px}
+ .maintenance-card{padding:22px 13px 19px}
+ .maintenance-topline{margin-bottom:18px}
+ .maintenance-status{font-size:6px}
+ .maintenance-live{font-size:5.5px}
+ .maintenance-card h1{font-size:36px}
+ .maintenance-countdown{gap:4px}
+ .maintenance-time{padding:12px 2px 10px}
+ .maintenance-time b{font-size:17px}
+}
+@media(prefers-reduced-motion:reduce){.maintenance-shell,.maintenance-visual-ring-a,.maintenance-visual-ring-b,.maintenance-visual .maintenance-icon,.maintenance-visual-spark,.maintenance-live i{animation:none!important}.maintenance-time{transition:none}}
