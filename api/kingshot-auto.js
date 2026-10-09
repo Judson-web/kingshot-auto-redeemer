@@ -5,7 +5,7 @@ const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supab
 const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
 const GIFT_SOURCE_URL="https://kingshot.net/api/gift-codes";
 const PUBLIC_GIFT_SOURCES=[
- {name:"gamesradar",url:"https://www.gamesradar.com/games/strategy/kingshot-codes-gift/"},
+ // Disabled: source repeatedly returned HTTP 200 but no parseable active codes.
  {name:"kingshot-guides",url:"https://kingshotguides.com/guide/active-giftcodes-and-how-to-redeem/"},
  {name:"beebom",url:"https://beebom.com/kingshot-codes/"},
  {name:"kingshotmastery",url:"https://kingshotmastery.com/gift-codes"},
