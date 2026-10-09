@@ -55,6 +55,10 @@
     {
       "source": "/message",
       "destination": "/index.html"
+    },
+    {
+      "source": "/gift-codes",
+      "destination": "/index.html"
     }
   ],
   "headers": [

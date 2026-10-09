@@ -104,6 +104,69 @@ export default async function handler(req,res){
    return res.status(200).json({destinations:await resolveDestinationNames()});
   }
   if(!validSession(req))return res.status(401).json({error:"Unauthorized."});
+
+  if(action.startsWith("GIFT_CODE_")||action==="TRIGGER_KINGDOM_VALIDATION"||action==="WAKE_REDEEM_WORKERS"){
+   const base=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
+   const key=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
+   if(!key)return res.status(503).json({error:"Gift-code administration is not configured."});
+   const db=async(path,options={})=>{
+    const response=await fetch(base+"/rest/v1/"+path,{...options,headers:{"apikey":key,"authorization":"Bearer "+key,"content-type":"application/json",...(options.headers||{})},signal:AbortSignal.timeout(12000)});
+    const data=await response.json().catch(()=>null);
+    if(!response.ok)throw Error(data?.message||"Database request failed ("+response.status+").");
+    return data;
+   };
+   if(action==="GIFT_CODE_LIST"){
+    const rows=await db("kingshot_gift_codes?select=id,code,active,admin_added,expires_at,first_seen_at,last_seen_at,source_date&order=active.desc,code.asc");
+    return res.status(200).json({codes:Array.isArray(rows)?rows:[]});
+   }
+   if(action==="GIFT_CODE_ADD"){
+    if(!rateLimit(req,res,"gift-code-write",30,60*1000))return res.status(429).json({error:"Too many changes. Wait a minute."});
+    const code=clean(body.code,64);
+    if(!/^[A-Za-z0-9_-]{4,64}$/.test(code))return res.status(400).json({error:"Use 4–64 letters, numbers, underscores or hyphens."});
+    const existing=await db("kingshot_gift_codes?code=eq."+encodeURIComponent(code)+"&select=id,code");
+    if(Array.isArray(existing)&&existing.length){
+     const updated=await db("kingshot_gift_codes?code=eq."+encodeURIComponent(code),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({active:true,admin_added:true,expires_at:body.expiresAt||null,last_seen_at:new Date().toISOString()})});
+     return res.status(200).json({ok:true,code:updated?.[0]||{code,active:true},restored:true});
+    }
+    const created=await db("kingshot_gift_codes",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({code,active:true,admin_added:true,expires_at:body.expiresAt||null})});
+    return res.status(200).json({ok:true,code:created?.[0]||{code,active:true}});
+   }
+   if(action==="GIFT_CODE_UPDATE"||action==="GIFT_CODE_DELETE"){
+    if(!rateLimit(req,res,"gift-code-write",30,60*1000))return res.status(429).json({error:"Too many changes. Wait a minute."});
+    const code=clean(body.code,64);
+    if(!/^[A-Za-z0-9_-]{4,64}$/.test(code))return res.status(400).json({error:"Invalid gift code."});
+    const query="kingshot_gift_codes?code=eq."+encodeURIComponent(code);
+    if(action==="GIFT_CODE_DELETE"){
+     const rows=await db(query,{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({active:false})});
+     return res.status(200).json({ok:true,removed:true,code:rows?.[0]||{code,active:false}});
+    }
+    const active=body.active===true;
+    const expiresAt=body.expiresAt===null||body.expiresAt===""?null:String(body.expiresAt);
+    const rows=await db(query,{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({active,expires_at:expiresAt})});
+    if(!Array.isArray(rows)||!rows.length)return res.status(404).json({error:"Gift code not found."});
+    return res.status(200).json({ok:true,code:rows[0]});
+   }
+   if(action==="TRIGGER_KINGDOM_VALIDATION"||action==="WAKE_REDEEM_WORKERS"){
+    if(!rateLimit(req,res,"gift-code-trigger",3,5*60*1000))return res.status(429).json({error:"A manual run was triggered recently. Wait five minutes."});
+    const cronSecret=process.env.CRON_SECRET;
+    if(!cronSecret)return res.status(503).json({error:"Worker trigger is not configured (CRON_SECRET missing)."});
+    const origin=String(req.headers.origin||"").match(/^https:\/\/(?:www\.)?ks-rewards\.com$/i)?String(req.headers.origin):"https://ks-rewards.com";
+    const mode=action==="TRIGGER_KINGDOM_VALIDATION"?"kingdom-check":"worker";
+    const url=mode==="worker"?origin+"/api/kingshot-auto":origin+"/api/kingshot-auto?mode=kingdom-check";
+    if(mode==="worker"){
+     // The coordinator owns the global lock and safely claims/releases worker slots.
+     const response=await fetch(url,{method:"POST",headers:{authorization:"Bearer "+cronSecret,"content-type":"application/json"},body:"{}",signal:AbortSignal.timeout(240000)});
+     const data=await response.json().catch(()=>({}));
+     if(!response.ok)return res.status(502).json({error:data.error||"Worker run failed.",details:data});
+     return res.status(200).json({ok:true,mode:"redeem",result:data});
+    }
+    const response=await fetch(url,{method:"POST",headers:{authorization:"Bearer "+cronSecret,"content-type":"application/json"},body:"{}",signal:AbortSignal.timeout(240000)});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok)return res.status(502).json({error:data.error||"Kingdom validation failed.",details:data});
+    return res.status(200).json({ok:true,mode:"kingdom-check",result:data});
+   }
+   return res.status(400).json({error:"Invalid gift-code action."});
+  }
   if(action!=="SEND")return res.status(400).json({error:"Invalid action."});
   const target=String(body.target||"").trim(),WEBHOOK=webhookFor(target);
   if(!WEBHOOK)return res.status(503).json({error:"That custom-message destination is not configured."});

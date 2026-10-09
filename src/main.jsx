@@ -5,6 +5,7 @@ import"./styles.css";
 import LegalApp from"./LegalApp.jsx";
 import InfoApp from"./InfoApp.jsx";
 import CustomMessageApp from"./CustomMessageApp.jsx";
+import GiftCodesApp from"./GiftCodesApp.jsx";
 
 
 const imageUrl=(user,size=1024,format=user.format)=>"/api/discord-avatar?id="+encodeURIComponent(user.id)+"&hash="+encodeURIComponent(user.avatar)+"&format="+encodeURIComponent(format)+"&size="+encodeURIComponent(size);
@@ -90,7 +91,7 @@ function InstallAppPrompt(){const [installEvent,setInstallEvent]=useState(null),
 function AnnouncementCard({item}){if(!item)return null;const C=announcementIcon(item.type||"info");return <aside className={"site-announcement site-announcement-"+(item.type||"info")}><div className="site-announcement-icon"><C size={17}/></div><div className="site-announcement-content"><b>{item.title||"Announcement title"}</b><p>{item.message||"Your announcement message will appear here."}</p>{item.link_url&&<a href={item.link_url} target="_blank" rel="noopener noreferrer">{item.link_label||"Learn more"} <ExternalLink size={11}/></a>}</div></aside>}
 function PublicAnnouncements({children}){const[state,setState]=useState(null);useEffect(()=>{fetch("/api/kingshot-admin-data?public=announcements").then(r=>r.ok?r.json():null).then(d=>setState(d?.announcements||[])).catch(()=>setState([]))},[]);return <>{state?.[0]&&<div style={{maxWidth:"1180px",margin:"0 auto",padding:"14px 20px 0"}}><AnnouncementCard item={state[0]}/></div>}{children}</>}
 function PublicMaintenance({children}){const [state,setState]=useState(null);useEffect(()=>{let live=true;fetch("/api/kingshot-admin-data?public=maintenance",{credentials:"same-origin",cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(live)setState(d||{maintenanceEnabled:false})}).catch(()=>{if(live)setState({maintenanceEnabled:false})});return()=>{live=false}},[]);return state?.maintenanceEnabled?<MaintenanceScreen/>:children}
-const publicPage=location.pathname==="/auto"||location.pathname==="/" ? <AutoRedeemApp/>:location.pathname==="/manual"||location.pathname==="/redeem" ? <KingshotApp/>:location.pathname==="/info"?<InfoApp/>:location.pathname==="/message"?<CustomMessageApp/>:location.pathname==="/terms"?<LegalApp type="terms"/>:location.pathname==="/privacy"?<LegalApp type="privacy"/>:<AutoRedeemApp/>; function registerAppServiceWorker(){
+const publicPage=location.pathname==="/auto"||location.pathname==="/" ? <AutoRedeemApp/>:location.pathname==="/manual"||location.pathname==="/redeem" ? <KingshotApp/>:location.pathname==="/info"?<InfoApp/>:location.pathname==="/message"?<CustomMessageApp/>:location.pathname==="/gift-codes"?<GiftCodesApp/>:location.pathname==="/terms"?<LegalApp type="terms"/>:location.pathname==="/privacy"?<LegalApp type="privacy"/>:<AutoRedeemApp/>; function registerAppServiceWorker(){
  if(!("serviceWorker" in navigator))return;
  const showUpdate=()=>{
   if(document.getElementById("ks-update-toast"))return;
