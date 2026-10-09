@@ -1,27 +1,264 @@
-import React,{useCallback,useEffect,useState}from"react";
-import{Activity,AlertTriangle,CheckCircle,Clock,Gift,LogOut,Plus,RefreshCw,RotateCcw,ShieldCheck,Trash2,LoaderCircle,Search,Copy,Hourglass,X,CalendarClock}from"lucide-react";
-const api=(body)=>fetch("/api/custom-message",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:JSON.stringify(body),cache:"no-store"}).then(async r=>{const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||"Request failed.");return d});
-const date=v=>v?new Date(v).toLocaleString(): "—";
-export default function GiftCodesApp(){
- const[passkey,setPasskey]=useState(""),[confirmManual,setConfirmManual]=useState(false),[authed,setAuthed]=useState(false),[checking,setChecking]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState(""),[codes,setCodes]=useState([]),[code,setCode]=useState(""),[expires,setExpires]=useState(""),[filter,setFilter]=useState("all"),[search,setSearch]=useState(""),[refreshedAt,setRefreshedAt]=useState(null),[operationDetails,setOperationDetails]=useState("");
- const load=useCallback(async()=>{setBusy(true);setError("");try{const d=await api({action:"GIFT_CODE_LIST"});setCodes(d.codes||[]);setRefreshedAt(new Date())}catch(e){setError(e.message)}finally{setBusy(false)}},[]);
- useEffect(()=>{let live=true;api({action:"CHECK"}).then(()=>{if(live){setAuthed(true);return load()}}).catch(()=>{}).finally(()=>{if(live)setChecking(false)});return()=>{live=false}},[load]);
- const run=async(action,extra={})=>{setBusy(true);setError("");setNotice("");setOperationDetails("");try{const d=await api({action,...extra});if(action==="LOGOUT"){setAuthed(false);setPasskey("");setCodes([])}else if(action==="GIFT_CODE_ADD"){setCode("");setExpires("");setConfirmManual(false);setNotice(d.restored?"Code restored and queued for player verification.":"Code added and queued for player verification.");await load()}else if(action==="GIFT_CODE_UPDATE"){setNotice(extra.active===false?"Code removed from the active pool.":"Code queued for player re-verification.");await load()}else if(action==="GIFT_CODE_DELETE"){setNotice("Code blocked. Scraper updates will not reactivate it.");await load()}else if(action==="GIFT_CODE_LIST"){setCodes(d.codes||[]);setRefreshedAt(new Date());setNotice("Gift-code inventory refreshed.")}else if(action==="TRIGGER_KINGDOM_VALIDATION"){const r=d.result||{};setNotice(r.skipped?"Kingdom validation skipped: another worker run is already active.":`Kingdom check finished: ${r.checked??0} checked, ${r.changed??0} kingdom changes, ${r.errors??0} errors, ${r.stale??0} stale.`);setOperationDetails(JSON.stringify(r,null,2));}else if(action==="WAKE_REDEEM_WORKERS"){const r=d.result||{};setNotice(r.skipped?`Auto-redeem skipped: ${r.reason||"another worker run is active"}.`:`Auto-redeem finished: ${r.success??0} successes, ${r.alreadyReceived??0} already received, ${r.attempted??0} attempts, ${r.errors??0} errors, ${r.codes??0} verified codes.`);setOperationDetails(JSON.stringify(r,null,2));await load()}else{setNotice("Action completed.")}}catch(e){setError(e.message)}finally{setBusy(false)}};
- const login=async e=>{e.preventDefault();setBusy(true);setError("");try{await api({action:"LOGIN",passkey});setAuthed(true);setPasskey("");await load()}catch(e){setError(e.message)}finally{setBusy(false)}};
- const visible=codes.filter(c=>{const expired=Boolean(c.expires_at&&Date.parse(c.expires_at)<=Date.now()),effective=Boolean(c.active&&!expired&&c.validation_status==="verified"&&!c.suppressed),status=c.suppressed?"blocked":c.validation_status==="pending"?"pending":c.validation_status==="invalid"?"invalid":c.validation_status==="usage_limit"?"usage_limit":c.validation_status==="indeterminate"?"indeterminate":c.validation_status==="expired"||expired?"expired":effective?"active":"inactive",q=search.trim().toLowerCase();return (filter==="all"||filter===status||(filter==="inactive"&&!effective&&!c.suppressed&&status!=="pending"&&status!=="invalid"&&status!=="expired"&&status!=="usage_limit"&&status!=="indeterminate"))&&(!q||String(c.code||"").toLowerCase().includes(q)||String(c.validation_message||"").toLowerCase().includes(q));});
- const activeCount=codes.filter(c=>c.active&&c.validation_status==="verified"&&!c.suppressed&&(!c.expires_at||Date.parse(c.expires_at)>Date.now())).length;const pendingCount=codes.filter(c=>c.validation_status==="pending").length;const blockedCount=codes.filter(c=>c.suppressed).length;const rejectedCount=codes.filter(c=>["invalid","expired","usage_limit"].includes(c.validation_status)).length;
- const shell={minHeight:"100vh",background:"#090b10",color:"#e9eaf0",fontFamily:"system-ui,sans-serif",padding:"clamp(16px,4vw,36px)",boxSizing:"border-box"};
- const panel={background:"#10131a",border:"1px solid #272c37",borderRadius:16,padding:18};
- const btn={display:"inline-flex",alignItems:"center",justifyContent:"center",gap:7,minHeight:38,padding:"9px 12px",border:"1px solid #303744",borderRadius:9,background:"#171c25",color:"#d9dde7",fontWeight:750,fontSize:12,cursor:"pointer"};
- const field={width:"100%",boxSizing:"border-box",padding:"11px 12px",border:"1px solid #303744",borderRadius:9,background:"#0b0e14",color:"#f0f1f5",fontSize:13};
- if(checking)return <main style={{...shell,display:"grid",placeItems:"center"}}>Checking admin session…</main>;
- if(!authed)return <main style={{...shell,display:"grid",placeItems:"center"}}><form onSubmit={login} style={{...panel,width:"min(100%,380px)",boxSizing:"border-box"}}><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:18}}><span style={{display:"grid",placeItems:"center",width:42,height:42,borderRadius:12,background:"#242036",color:"#c6b5ff"}}><ShieldCheck size={22}/></span><div><small style={{color:"#9d8bd6",fontWeight:800,letterSpacing:".12em"}}>ADMIN ACCESS</small><h1 style={{fontSize:22,margin:"3px 0 0"}}>Gift code control</h1></div></div><p style={{color:"#8e95a4",fontSize:12,lineHeight:1.6}}>Use the same admin passkey as the Discord custom-message page.</p><label style={{display:"block",fontSize:11,color:"#aeb4c0",margin:"14px 0 6px"}}>ADMIN PASSKEY</label><input autoComplete="current-password" type="password" required value={passkey} onChange={e=>setPasskey(e.target.value)} style={field}/>{error&&<p role="alert" style={{color:"#e99ba4",fontSize:12}}>{error}</p>}<button disabled={busy} style={{...btn,width:"100%",marginTop:12,background:"#d8c49a",color:"#17140e",borderColor:"#d8c49a"}}>{busy?<LoaderCircle size={15}/>:<ShieldCheck size={15}/>} Sign in</button><a href="/message" style={{display:"block",marginTop:16,color:"#858d9d",fontSize:11}}>← Discord custom message</a></form></main>;
- return <main style={shell}><div style={{maxWidth:1120,margin:"0 auto"}}><header style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap",marginBottom:24}}><div style={{display:"flex",gap:12,alignItems:"center"}}><span style={{display:"grid",placeItems:"center",width:44,height:44,borderRadius:13,background:"#242036",color:"#c6b5ff"}}><Gift size={22}/></span><div><small style={{color:"#9d8bd6",fontWeight:850,letterSpacing:".13em"}}>KINGSHOT OPERATIONS</small><h1 style={{fontSize:"clamp(23px,4vw,32px)",letterSpacing:"-.04em",margin:"3px 0"}}>Gift code control</h1><p style={{margin:0,color:"#7f8795",fontSize:12}}>Active pool, manual corrections and worker controls</p></div></div><div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>{refreshedAt&&<span style={{fontSize:10,color:"#7f8795"}}><CalendarClock size={12} style={{verticalAlign:"middle",marginRight:4}}/>Updated {refreshedAt.toLocaleTimeString()}</span>}<button style={btn} disabled={busy} onClick={()=>run("GIFT_CODE_LIST")}><RefreshCw size={14}/> Refresh</button><button style={btn} disabled={busy} onClick={()=>run("LOGOUT")}><LogOut size={14}/> Sign out</button></div></header>
- {error&&<div role="alert" style={{...panel,borderColor:"#6b343e",color:"#f0a5ad",marginBottom:12,display:"flex",alignItems:"flex-start",gap:9}}><AlertTriangle size={16} style={{flexShrink:0,marginTop:1}}/><div style={{flex:1,fontSize:12,lineHeight:1.55}}><b>Action needs attention</b><div>{error}</div></div><button aria-label="Dismiss error" style={{...btn,minHeight:28,padding:5}} onClick={()=>setError("")}><X size={14}/></button></div>}{notice&&<div role="status" style={{...panel,borderColor:"#315440",color:"#a5d5b1",marginBottom:12,overflowWrap:"anywhere",display:"flex",alignItems:"flex-start",gap:9}}><CheckCircle size={16} style={{flexShrink:0,marginTop:1}}/><div style={{flex:1,fontSize:12,lineHeight:1.55}}>{notice}{operationDetails&&<details style={{marginTop:8,color:"#aeb7c6"}}><summary style={{cursor:"pointer",fontWeight:750}}>View run diagnostics</summary><pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere",fontSize:10,lineHeight:1.5,maxHeight:280,overflow:"auto",background:"#0b0e14",padding:10,borderRadius:8}}>{operationDetails}</pre></details>}</div><button aria-label="Dismiss notification" style={{...btn,minHeight:28,padding:5}} onClick={()=>{setNotice("");setOperationDetails("")}}><X size={14}/></button></div>}
- <section style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(145px,1fr))",gap:10,marginBottom:16}}><div style={panel}><small style={{color:"#7c8493"}}>TOTAL STORED</small><div style={{fontSize:27,fontWeight:850,marginTop:5}}>{codes.length}</div></div><div style={panel}><small style={{color:"#7c8493"}}>ACTIVE & UNEXPIRED</small><div style={{fontSize:27,fontWeight:850,color:"#91cda1",marginTop:5}}>{activeCount}</div></div><div style={panel}><small style={{color:"#7c8493"}}>AWAITING VERIFICATION</small><div style={{fontSize:27,fontWeight:850,color:"#e7c27b",marginTop:5}}>{pendingCount}</div></div><div style={panel}><small style={{color:"#7c8493"}}>BLOCKED / REJECTED</small><div style={{fontSize:27,fontWeight:850,color:"#e99ba4",marginTop:5}}>{blockedCount+rejectedCount}</div></div></section>
- <section style={{...panel,marginBottom:16}}><h2 style={{fontSize:15,margin:"0 0 13px",display:"flex",alignItems:"center",gap:8}}><Plus size={16}/> Add or restore a code</h2><form onSubmit={e=>{e.preventDefault();run("GIFT_CODE_ADD",{code,expiresAt:expires?new Date(expires).toISOString():null,confirmManual})}} style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:10,alignItems:"end"}}><label style={{fontSize:11,color:"#aeb4c0"}}>Gift code<input required minLength={6} maxLength={32} pattern="[A-Za-z0-9_-]{6,32}" value={code} onChange={e=>setCode(e.target.value.trim())} placeholder="e.g. Hangul2026" autoCapitalize="none" autoComplete="off" style={{...field,display:"block",marginTop:6}}/></label><label style={{display:"flex",gap:8,alignItems:"flex-start",fontSize:10,color:"#aeb4c0",gridColumn:"1 / -1"}}><input type="checkbox" required checked={confirmManual} onChange={e=>setConfirmManual(e.target.checked)}/>I checked this code against a trusted Kingshot source. Manual entry is an override, not proof that Kingshot will accept it.</label><label style={{fontSize:11,color:"#aeb4c0"}}>Expiry (optional)<input type="datetime-local" value={expires} onChange={e=>setExpires(e.target.value)} style={{...field,display:"block",marginTop:6}}/></label><button disabled={busy} style={{...btn,background:"#d8c49a",color:"#17140e",borderColor:"#d8c49a"}}><Plus size={14}/> Add / reactivate</button></form><p style={{fontSize:10,color:"#727a89",lineHeight:1.5,margin:"10px 0 0"}}>Only add codes you have verified against a trusted source. A removed code stays blocked until you explicitly add/reactivate it again.</p></section>
- <section style={{...panel,marginBottom:16}}><h2 style={{fontSize:15,margin:"0 0 12px"}}>Manual operations</h2><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><button style={btn} disabled={busy} onClick={()=>run("TRIGGER_KINGDOM_VALIDATION")}><Activity size={14}/> Validate all kingdoms</button><button style={{...btn,borderColor:"#7663a0",background:"#29243b"}} disabled={busy} onClick={()=>{if(window.confirm("Run the real auto-redeem coordinator now? Eligible players may receive rewards and this will make live redemption requests."))run("WAKE_REDEEM_WORKERS")}}><RotateCcw size={14}/> Run auto-redeem now</button></div><p style={{fontSize:10,color:"#727a89",lineHeight:1.5,margin:"10px 0 0"}}>Kingdom validation uses a global worker lock and never redeems codes. Auto-redeem makes live redemption requests; confirmation is required. Results and diagnostics appear above.</p></section>
- <section style={panel}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap",marginBottom:12}}><div><h2 style={{fontSize:15,margin:"0 0 4px"}}>Gift code inventory</h2><p style={{fontSize:11,color:"#7f8795",margin:0}}>Only verified, active and unblocked codes reach the worker pool.</p></div><span style={{fontSize:11,color:"#8f97a6"}}>{visible.length} shown · {codes.length} total</span></div><label style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,border:"1px solid #303744",borderRadius:10,padding:"0 11px",background:"#0b0e14",color:"#858d9d"}}><Search size={15}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search codes or validation result…" aria-label="Search gift codes" style={{...field,border:0,background:"transparent",padding:"12px 0",outline:"none"}}/></label><div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>{[["all","All"],["active","Verified & active"],["pending","Pending"],["invalid","Invalid"],["usage_limit","Usage limit"],["indeterminate","Needs retry"],["expired","Expired"],["blocked","Blocked"],["inactive","Inactive"]].map(([v,label])=><button key={v} onClick={()=>setFilter(v)} style={{...btn,minHeight:32,padding:"6px 10px",fontSize:10,background:filter===v?"#29243b":"#11151c",borderColor:filter===v?"#7663a0":"#303744"}}>{label}{v==="pending"?" · "+pendingCount:""}</button>)}</div>
- {busy&&!codes.length?<p style={{color:"#8b93a2"}}>Loading gift codes…</p>:!visible.length?<p style={{color:"#858d9b",fontSize:12}}>No codes in this view.</p>:<div style={{display:"grid",gap:8}}>{visible.map(item=>{const expired=Boolean(item.expires_at&&Date.parse(item.expires_at)<=Date.now()),effective=Boolean(item.active&&!expired&&item.validation_status==="verified"&&!item.suppressed),status=item.suppressed?"BLOCKED":item.validation_status==="pending"?"PENDING VERIFY":item.validation_status==="invalid"?"INVALID CODE":item.validation_status==="usage_limit"?"USAGE LIMIT":item.validation_status==="indeterminate"?"NEEDS RETRY":item.validation_status==="expired"||expired?"EXPIRED":effective?"VERIFIED · ACTIVE":"INACTIVE";return <article key={item.id||item.code} style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) auto",gap:10,alignItems:"center",padding:"12px 0",borderTop:"1px solid #252a34"}}><div style={{minWidth:0}}><div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><b style={{fontSize:13,overflowWrap:"anywhere"}}>{item.code}</b><span style={{fontSize:9,fontWeight:850,padding:"4px 6px",borderRadius:999,background:effective?"#12261b":item.suppressed||item.validation_status==="invalid"?"#321c22":item.validation_status==="pending"?"#302714":"#242832",color:effective?"#91cda1":item.suppressed||item.validation_status==="invalid"?"#f0a5ad":item.validation_status==="pending"?"#e7c27b":"#aeb5c3"}}>{status}</span>{item.admin_added&&<span style={{fontSize:9,color:"#b5a1ec"}}>MANUAL</span>}</div><div style={{fontSize:10,color:"#737b89",marginTop:5}}>Expires: {date(item.expires_at)} · Seen: {date(item.last_seen_at||item.first_seen_at)}{item.validated_at?" · Checked: "+date(item.validated_at):""}{item.validation_player_id?" · Player: "+item.validation_player_id:""}{item.validation_message?" · "+item.validation_message:""}</div></div><div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"flex-end"}}><button title={"Copy "+item.code} aria-label={"Copy "+item.code} style={btn} disabled={busy} onClick={()=>{if(!navigator.clipboard?.writeText){setError("Clipboard access is unavailable.");return;}navigator.clipboard.writeText(item.code).then(()=>setNotice("Copied "+item.code+"."),()=>setError("Clipboard access was unavailable."));}}><Copy size={13}/></button><button title={item.suppressed?"Blocked codes can only be restored through the trusted-source confirmation form.":expired?"Expired codes must be given a new expiry in the Add / restore form.":item.validation_status==="pending"?"Waiting for the next verification cycle.":effective?"Mark inactive":"Queue player verification"} aria-label={item.suppressed?"Blocked code":expired?"Expired code":effective?"Mark inactive":"Queue player verification"} style={{...btn,opacity:item.suppressed||expired||item.validation_status==="pending" ? 0.5 : 1}} disabled={busy||item.suppressed||expired||item.validation_status==="pending"} onClick={()=>run("GIFT_CODE_UPDATE",{code:item.code,active:!effective,expiresAt:effective?new Date().toISOString():item.expires_at||null})}>{effective?<Clock size={13}/>:item.validation_status==="pending"?<Hourglass size={13}/>:<CheckCircle size={13}/>}<span style={{fontSize:10}}>{item.suppressed?"Blocked":expired?"Expired":item.validation_status==="pending"?"Pending":effective?"Mark expired":"Re-verify"}</span></button><button title="Permanently block until manually restored" aria-label={"Block "+item.code} style={{...btn,color:"#e99ba4"}} disabled={busy||item.suppressed} onClick={()=>{if(window.confirm("Block "+item.code+" from the active redemption pool and prevent scraper/worker reactivation?"))run("GIFT_CODE_DELETE",{code:item.code})}}><Trash2 size={13}/></button></div></article>})}</div>}</section>
- <footer style={{display:"flex",justifyContent:"space-between",gap:10,flexWrap:"wrap",marginTop:18,color:"#555d6b",fontSize:10}}><span><ShieldCheck size={12} style={{verticalAlign:"middle",marginRight:5}}/>Admin actions are server-authenticated and rate-limited.</span><a href="/message" style={{color:"#9d8bd6"}}>Discord custom message ↗</a></footer></div></main>;
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { AlertTriangle, Check, CheckCircle, Clock3, Copy, Gift, LoaderCircle, LogOut, Plus, RefreshCw, Search, ShieldCheck, Trash2, X } from "lucide-react";
+
+const api = (body) => fetch("/api/custom-message", {
+  method: "POST",
+  credentials: "same-origin",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify(body),
+  cache: "no-store",
+}).then(async (response) => {
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw Error(data.error || "Request failed.");
+  return data;
+});
+const formatDate = (value) => value ? new Date(value).toLocaleString() : "—";
+const isExpired = (item) => Boolean(item.expires_at && Date.parse(item.expires_at) <= Date.now());
+const isEffective = (item) => Boolean(item.active && !isExpired(item) && item.validation_status === "verified" && !item.suppressed);
+const statusOf = (item) => {
+  if (item.suppressed) return "blocked";
+  if (item.validation_status === "pending") return "pending";
+  if (item.validation_status === "invalid") return "invalid";
+  if (item.validation_status === "usage_limit") return "usage_limit";
+  if (item.validation_status === "indeterminate") return "indeterminate";
+  if (item.validation_status === "expired" || isExpired(item)) return "expired";
+  return isEffective(item) ? "active" : "inactive";
+};
+const statusLabels = {
+  active: "Verified & active", pending: "Pending verification", invalid: "Invalid",
+  usage_limit: "Usage limit", indeterminate: "Needs retry", expired: "Expired",
+  blocked: "Blocked", inactive: "Inactive",
+};
+const statusColors = {
+  active: { bg: "#163124", fg: "#a7e4bd", border: "#28563d" },
+  pending: { bg: "#352b18", fg: "#f2d18c", border: "#65502a" },
+  blocked: { bg: "#351f27", fg: "#f0aab5", border: "#633642" },
+  invalid: { bg: "#351f27", fg: "#f0aab5", border: "#633642" },
+  expired: { bg: "#2b2d34", fg: "#b8bdc9", border: "#424652" },
+  inactive: { bg: "#252834", fg: "#c3c8d4", border: "#414655" },
+  usage_limit: { bg: "#30271b", fg: "#e8c797", border: "#5a472c" },
+  indeterminate: { bg: "#29243b", fg: "#d0c1ff", border: "#4d416e" },
+};
+const base = {
+  color: "#e9edf5", fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, sans-serif",
+};
+const button = {
+  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
+  minHeight: 38, padding: "9px 12px", border: "1px solid #343b4b",
+  borderRadius: 10, background: "#171c26", color: "#e4e8f0",
+  fontSize: 12, fontWeight: 700, cursor: "pointer",
+};
+const input = {
+  width: "100%", minWidth: 0, boxSizing: "border-box", padding: "11px 12px",
+  border: "1px solid #343b4b", borderRadius: 10, background: "#0c1018",
+  color: "#f1f4fa", fontSize: 13, outlineOffset: 2,
+};
+const panel = { background: "#11151e", border: "1px solid #252c39", borderRadius: 16 };
+
+export default function GiftCodesApp() {
+  const [passkey, setPasskey] = useState("");
+  const [confirmManual, setConfirmManual] = useState(false);
+  const [authed, setAuthed] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [codes, setCodes] = useState([]);
+  const [code, setCode] = useState("");
+  const [expires, setExpires] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [refreshedAt, setRefreshedAt] = useState(null);
+
+  const load = useCallback(async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const data = await api({ action: "GIFT_CODE_LIST" });
+      setCodes(Array.isArray(data.codes) ? data.codes : []);
+      setRefreshedAt(new Date());
+    } catch (err) {
+      setError(err.message || "Could not load the gift-code inventory.");
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let live = true;
+    api({ action: "CHECK" })
+      .then(() => { if (live) { setAuthed(true); return load(); } })
+      .catch(() => {})
+      .finally(() => { if (live) setChecking(false); });
+    return () => { live = false; };
+  }, [load]);
+
+  const run = async (action, extra = {}) => {
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const data = await api({ action, ...extra });
+      if (action === "LOGOUT") {
+        setAuthed(false); setPasskey(""); setCodes([]);
+      } else if (action === "GIFT_CODE_ADD") {
+        setCode(""); setExpires(""); setConfirmManual(false);
+        setNotice(data.restored ? "Code restored and queued for player verification." : "Code added and queued for player verification.");
+        await load();
+      } else if (action === "GIFT_CODE_UPDATE") {
+        setNotice(extra.active === false ? "Code removed from the active pool." : "Code queued for player re-verification.");
+        await load();
+      } else if (action === "GIFT_CODE_DELETE") {
+        setNotice("Code blocked. Scraper updates will not reactivate it.");
+        await load();
+      } else if (action === "GIFT_CODE_LIST") {
+        setCodes(Array.isArray(data.codes) ? data.codes : []);
+        setRefreshedAt(new Date());
+        setNotice("Gift-code inventory refreshed.");
+      }
+    } catch (err) {
+      setError(err.message || "The action could not be completed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const login = async (event) => {
+    event.preventDefault();
+    setBusy(true); setError("");
+    try {
+      await api({ action: "LOGIN", passkey });
+      setAuthed(true); setPasskey("");
+      await load();
+    } catch (err) {
+      setError(err.message || "Sign-in failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const counts = useMemo(() => ({
+    total: codes.length,
+    active: codes.filter(isEffective).length,
+    pending: codes.filter((item) => item.validation_status === "pending").length,
+    attention: codes.filter((item) => item.suppressed || ["invalid", "expired", "usage_limit"].includes(statusOf(item))).length,
+  }), [codes]);
+
+  const visible = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return codes.filter((item) => {
+      const status = statusOf(item);
+      const matchesFilter = filter === "all" || filter === status ||
+        (filter === "inactive" && status === "inactive");
+      const matchesQuery = !query ||
+        String(item.code || "").toLowerCase().includes(query) ||
+        String(item.validation_message || "").toLowerCase().includes(query);
+      return matchesFilter && matchesQuery;
+    });
+  }, [codes, filter, search]);
+
+  const shell = {
+    ...base, minHeight: "100vh", boxSizing: "border-box", padding: "clamp(16px, 4vw, 36px)",
+    background: "radial-gradient(ellipse at 15% -15%, #252044 0, transparent 42%), #090c12",
+  };
+
+  if (checking) return <main style={{ ...shell, display: "grid", placeItems: "center" }}><p style={{ color: "#9aa4b6" }}>Checking admin session…</p></main>;
+
+  if (!authed) return (
+    <main style={{ ...shell, display: "grid", placeItems: "center" }}>
+      <form onSubmit={login} style={{ ...panel, width: "min(100%, 390px)", padding: 24, boxSizing: "border-box" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+          <span style={{ display: "grid", placeItems: "center", width: 44, height: 44, borderRadius: 13, background: "#292442", color: "#c8b8ff" }}><ShieldCheck size={22}/></span>
+          <div><div style={{ color: "#a99be0", fontSize: 10, fontWeight: 800, letterSpacing: ".14em" }}>KINGSHOT OPERATIONS</div><h1 style={{ margin: "4px 0 0", fontSize: 23 }}>Gift codes</h1></div>
+        </div>
+        <p style={{ color: "#9aa4b6", fontSize: 13, lineHeight: 1.6 }}>Sign in to manage the trusted gift-code inventory.</p>
+        <label htmlFor="gift-admin-passkey" style={{ display: "block", margin: "18px 0 7px", fontSize: 12, fontWeight: 700 }}>Admin passkey</label>
+        <input id="gift-admin-passkey" autoComplete="current-password" type="password" required value={passkey} onChange={(event) => setPasskey(event.target.value)} style={input}/>
+        {error && <p role="alert" style={{ color: "#f0aab5", fontSize: 12 }}>{error}</p>}
+        <button disabled={busy} style={{ ...button, width: "100%", marginTop: 14, background: "#d8c49a", borderColor: "#d8c49a", color: "#17140e" }}>{busy ? <LoaderCircle size={15}/> : <ShieldCheck size={15}/>} Sign in</button>
+        <a href="/message" style={{ display: "inline-block", marginTop: 18, color: "#a99be0", fontSize: 12, textDecoration: "none" }}>← Discord custom message</a>
+      </form>
+    </main>
+  );
+
+  return (
+    <main style={shell}>
+      <div style={{ maxWidth: 1120, margin: "0 auto" }}>
+        <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap", marginBottom: 26 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
+            <span style={{ display: "grid", placeItems: "center", width: 46, height: 46, borderRadius: 14, background: "#292442", color: "#c8b8ff" }}><Gift size={23}/></span>
+            <div><div style={{ color: "#a99be0", fontSize: 10, fontWeight: 850, letterSpacing: ".15em" }}>KINGSHOT OPERATIONS</div><h1 style={{ fontSize: "clamp(24px, 4vw, 32px)", letterSpacing: "-.04em", margin: "4px 0" }}>Gift codes</h1><p style={{ margin: 0, color: "#8b95a7", fontSize: 12 }}>Manage codes, review status, and keep the active pool clean.</p></div>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            {refreshedAt && <span style={{ color: "#818b9e", fontSize: 11 }}>Updated {refreshedAt.toLocaleTimeString()}</span>}
+            <button type="button" style={button} disabled={busy} onClick={() => run("GIFT_CODE_LIST")}><RefreshCw size={14}/> Refresh</button>
+            <button type="button" style={button} disabled={busy} onClick={() => run("LOGOUT")}><LogOut size={14}/> Sign out</button>
+          </div>
+        </header>
+
+        {error && <div role="alert" style={{ ...panel, display: "flex", alignItems: "flex-start", gap: 10, padding: 14, marginBottom: 14, borderColor: "#633642", color: "#f0aab5" }}><AlertTriangle size={17} style={{ flexShrink: 0, marginTop: 1 }}/><div style={{ flex: 1, fontSize: 12, lineHeight: 1.5 }}><b>Something needs attention</b><div>{error}</div></div><button type="button" aria-label="Dismiss error" style={{ ...button, minHeight: 28, padding: 5 }} onClick={() => setError("")}><X size={14}/></button></div>}
+        {notice && <div role="status" style={{ ...panel, display: "flex", alignItems: "center", gap: 10, padding: 14, marginBottom: 14, borderColor: "#28563d", color: "#a7e4bd" }}><CheckCircle size={17} style={{ flexShrink: 0 }}/><span style={{ flex: 1, fontSize: 12, lineHeight: 1.5 }}>{notice}</span><button type="button" aria-label="Dismiss notification" style={{ ...button, minHeight: 28, padding: 5 }} onClick={() => setNotice("")}><X size={14}/></button></div>}
+
+        <section aria-label="Inventory summary" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 16 }}>
+          {[
+            { label: "TOTAL CODES", value: counts.total, color: "#eef1f8" },
+            { label: "VERIFIED & ACTIVE", value: counts.active, color: "#a7e4bd" },
+            { label: "PENDING REVIEW", value: counts.pending, color: "#f2d18c" },
+            { label: "BLOCKED / REJECTED", value: counts.attention, color: "#f0aab5" },
+          ].map((item) => <div key={item.label} style={{ ...panel, padding: "16px 18px" }}><div style={{ color: "#8b95a7", fontSize: 10, fontWeight: 800, letterSpacing: ".07em" }}>{item.label}</div><div style={{ color: item.color, fontSize: 29, fontWeight: 850, letterSpacing: "-.04em", marginTop: 7 }}>{item.value}</div></div>)}
+        </section>
+
+        <section aria-labelledby="add-code-heading" style={{ ...panel, padding: "clamp(16px, 3vw, 22px)", marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}><span style={{ display: "grid", placeItems: "center", width: 34, height: 34, borderRadius: 10, background: "#292442", color: "#c8b8ff" }}><Plus size={18}/></span><div><h2 id="add-code-heading" style={{ fontSize: 16, margin: 0 }}>Add a gift code</h2><p style={{ fontSize: 12, color: "#8b95a7", margin: "4px 0 0" }}>Manually add or restore a code from a trusted source.</p></div></div>
+          <form onSubmit={(event) => { event.preventDefault(); run("GIFT_CODE_ADD", { code, expiresAt: expires ? new Date(expires).toISOString() : null, confirmManual }); }} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: 12, alignItems: "end" }}>
+            <label style={{ color: "#c4cad6", fontSize: 12, fontWeight: 700 }}>Gift code<input required minLength={6} maxLength={32} pattern="[A-Za-z0-9_-]{6,32}" value={code} onChange={(event) => setCode(event.target.value.trim())} placeholder="e.g. Hangul2026" autoCapitalize="none" autoComplete="off" style={{ ...input, display: "block", marginTop: 7 }}/></label>
+            <label style={{ color: "#c4cad6", fontSize: 12, fontWeight: 700 }}>Expiry date <span style={{ color: "#818b9e", fontWeight: 400 }}>(optional)</span><input type="datetime-local" value={expires} onChange={(event) => setExpires(event.target.value)} style={{ ...input, display: "block", marginTop: 7 }}/></label>
+            <button type="submit" disabled={busy || !confirmManual} style={{ ...button, minHeight: 42, background: "#d8c49a", borderColor: "#d8c49a", color: "#17140e", opacity: busy || !confirmManual ? .55 : 1 }}><Plus size={15}/> Add code</button>
+            <label style={{ gridColumn: "1 / -1", display: "flex", alignItems: "flex-start", gap: 9, padding: 12, borderRadius: 10, background: "#0c1018", color: "#9da7b8", fontSize: 11, lineHeight: 1.5 }}><input type="checkbox" required checked={confirmManual} onChange={(event) => setConfirmManual(event.target.checked)} style={{ marginTop: 2, accentColor: "#b7a3f0" }}/><span><b style={{ color: "#d9deea" }}>Trusted-source confirmation</b><br/>I checked this code against a trusted Kingshot source. Manual entry does not guarantee that Kingshot will accept it.</span></label>
+          </form>
+        </section>
+
+        <section aria-labelledby="inventory-heading" style={{ ...panel, padding: "clamp(16px, 3vw, 22px)" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+            <div><h2 id="inventory-heading" style={{ fontSize: 17, margin: 0 }}>Code inventory</h2><p style={{ color: "#8b95a7", fontSize: 12, lineHeight: 1.5, margin: "5px 0 0" }}>Only verified, active, unexpired codes enter the worker pool.</p></div>
+            <span style={{ color: "#aeb7c7", fontSize: 11, padding: "6px 9px", borderRadius: 8, background: "#0c1018" }}>{visible.length} of {codes.length}</span>
+          </div>
+          <label style={{ display: "flex", alignItems: "center", gap: 9, padding: "0 12px", marginBottom: 12, border: "1px solid #343b4b", borderRadius: 11, background: "#0c1018", color: "#8b95a7" }}><Search size={16}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by code or validation message…" aria-label="Search gift codes" style={{ ...input, border: 0, background: "transparent", padding: "12px 0" }}/>{search && <button type="button" aria-label="Clear search" onClick={() => setSearch("")} style={{ ...button, minHeight: 28, padding: 5 }}><X size={13}/></button>}</label>
+          <div role="group" aria-label="Filter codes by status" style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 14 }}>
+            {[["all", "All codes"], ["active", "Active"], ["pending", "Pending"], ["invalid", "Invalid"], ["usage_limit", "Usage limit"], ["indeterminate", "Needs retry"], ["expired", "Expired"], ["blocked", "Blocked"], ["inactive", "Inactive"]].map(([value, label]) => <button key={value} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)} style={{ ...button, minHeight: 32, padding: "6px 10px", fontSize: 11, background: filter === value ? "#292442" : "#0c1018", borderColor: filter === value ? "#7563a6" : "#303747", color: filter === value ? "#e3d9ff" : "#aeb7c7" }}>{label}{value === "pending" && counts.pending ? ` · ${counts.pending}` : ""}</button>)}
+          </div>
+
+          {busy && !codes.length ? <p style={{ color: "#9aa4b6", fontSize: 13 }}>Loading inventory…</p> : !visible.length ? <div style={{ padding: "34px 14px", textAlign: "center", border: "1px dashed #343b4b", borderRadius: 12 }}><Gift size={24} style={{ color: "#6f7890", marginBottom: 8 }}/><p style={{ color: "#c5ccda", fontSize: 13, margin: 0 }}>{codes.length ? "No codes match these filters." : "Your inventory is empty."}</p><p style={{ color: "#818b9e", fontSize: 11, margin: "6px 0 0" }}>{codes.length ? "Try another status or clear the search." : "Add a trusted code above to get started."}</p></div> : <div style={{ display: "grid", gap: 9 }}>
+            {visible.map((item) => {
+              const status = statusOf(item);
+              const effective = isEffective(item);
+              const colors = statusColors[status] || statusColors.inactive;
+              return <article key={item.id || item.code} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: 12, alignItems: "center", padding: "14px", border: "1px solid #292f3c", borderRadius: 12, background: "#0d1119" }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                    <b style={{ fontSize: 14, overflowWrap: "anywhere", letterSpacing: ".01em" }}>{item.code}</b>
+                    <span style={{ display: "inline-flex", alignItems: "center", padding: "4px 7px", borderRadius: 7, border: `1px solid ${colors.border}`, background: colors.bg, color: colors.fg, fontSize: 10, fontWeight: 800 }}>{statusLabels[status] || status}</span>
+                    {item.admin_added && <span style={{ color: "#bba9f4", fontSize: 10, fontWeight: 700 }}>MANUAL</span>}
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", marginTop: 8, color: "#818b9e", fontSize: 10, lineHeight: 1.5 }}>
+                    <span>Expires: {formatDate(item.expires_at)}</span><span>Last seen: {formatDate(item.last_seen_at || item.first_seen_at)}</span>
+                    {item.validated_at && <span>Checked: {formatDate(item.validated_at)}</span>}
+                    {item.validation_player_id && <span>Player: {item.validation_player_id}</span>}
+                  </div>
+                  {item.validation_message && <p style={{ color: "#9aa4b6", fontSize: 11, lineHeight: 1.45, margin: "7px 0 0", overflowWrap: "anywhere" }}>{item.validation_message}</p>}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6, flexWrap: "wrap" }}>
+                  <button type="button" title={`Copy ${item.code}`} aria-label={`Copy ${item.code}`} style={{ ...button, minHeight: 34, padding: "8px 10px" }} disabled={busy} onClick={() => { if (!navigator.clipboard?.writeText) { setError("Clipboard access is unavailable."); return; } navigator.clipboard.writeText(item.code).then(() => setNotice(`Copied ${item.code}.`), () => setError("Clipboard access was unavailable.")); }}><Copy size={14}/></button>
+                  <button type="button" title={effective ? "Remove from active pool" : "Queue player verification"} aria-label={effective ? "Mark inactive" : "Queue player verification"} style={{ ...button, minHeight: 34, padding: "8px 10px", opacity: item.suppressed || isExpired(item) || item.validation_status === "pending" ? .5 : 1 }} disabled={busy || item.suppressed || isExpired(item) || item.validation_status === "pending"} onClick={() => run("GIFT_CODE_UPDATE", { code: item.code, active: !effective, expiresAt: effective ? new Date().toISOString() : item.expires_at || null })}>{effective ? <Clock3 size={14}/> : <Check size={14}/>}<span>{effective ? "Deactivate" : "Re-verify"}</span></button>
+                  <button type="button" title="Block this code until manually restored" aria-label={`Block ${item.code}`} style={{ ...button, minHeight: 34, padding: "8px 10px", color: "#f0aab5", borderColor: "#56303a" }} disabled={busy || item.suppressed} onClick={() => { if (window.confirm(`Block ${item.code} from the active pool and prevent scraper reactivation?`)) run("GIFT_CODE_DELETE", { code: item.code }); }}><Trash2 size={14}/></button>
+                </div>
+              </article>;
+            })}
+          </div>}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#818b9e", fontSize: 10, lineHeight: 1.5, marginTop: 15 }}><ShieldCheck size={14}/><span>Changes are server-authenticated. Blocked codes stay blocked until explicitly restored.</span></div>
+        </section>
+        <footer style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginTop: 18, color: "#667084", fontSize: 11 }}><span>Gift-code inventory · Admin tools</span><a href="/message" style={{ color: "#a99be0", textDecoration: "none" }}>Discord custom message ↗</a></footer>
+      </div>
+    </main>
+  );
 }
