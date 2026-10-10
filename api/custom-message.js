@@ -99,6 +99,19 @@ export default async function handler(req,res){
   }
   if(action==="LOGOUT"){clearCookie(res);return res.status(200).json({ok:true})}
   if(action==="CHECK")return res.status(validSession(req)?200:401).json({ok:validSession(req)});
+  if(action==="PUSH_STATUS"){
+   if(!validSession(req))return res.status(401).json({error:"Unauthorized. Sign in to the private console first."});
+   const {pushIsConfigured}=await import("../internal/push-notifications.js");
+   if(!pushIsConfigured())return res.status(503).json({error:"Push notifications are not configured."});
+   const base=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
+   const key=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
+   if(!key)return res.status(503).json({error:"Push storage is not configured."});
+   const response=await fetch(base+"/rest/v1/kingshot_push_subscriptions?select=id&limit=1",{method:"HEAD",headers:{apikey:key,authorization:"Bearer "+key,Prefer:"count=exact"},signal:AbortSignal.timeout(10000)});
+   if(!response.ok)return res.status(502).json({error:"Could not load push audience size ("+response.status+")."});
+   const range=response.headers.get("content-range")||"";
+   const match=range.match(/\/(\d+|\*)$/);
+   return res.status(200).json({ok:true,subscribedDevices:match&&match[1]!=="*"?Number(match[1]):null,configured:true});
+  }
   if(action==="PUSH_SEND"){
    if(!validSession(req))return res.status(401).json({error:"Unauthorized. Sign in to the private console first."});
    if(!rateLimit(req,res,"push-send",5,60*1000))return res.status(429).json({error:"Too many push notifications. Wait a minute before sending again."});

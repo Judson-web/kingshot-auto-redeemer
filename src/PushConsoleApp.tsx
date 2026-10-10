@@ -14,6 +14,8 @@ export default function PushConsoleApp() {
   const [imagePreviewError, setImagePreviewError] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [audienceCount, setAudienceCount] = useState<number | null>(null);
+  const [audienceLoading, setAudienceLoading] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -23,6 +25,17 @@ export default function PushConsoleApp() {
       .finally(() => { if (alive) setChecking(false); });
     return () => { alive = false; };
   }, []);
+
+  useEffect(() => {
+    if (!authed) { setAudienceCount(null); return; }
+    let alive = true;
+    setAudienceLoading(true);
+    fetch("/api/custom-message", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "PUSH_STATUS" }), credentials: "same-origin", cache: "no-store" })
+      .then(async response => { const data = await response.json().catch(() => ({})); if (!response.ok) throw Error(data.error || "Audience count unavailable."); if (alive) setAudienceCount(typeof data.subscribedDevices === "number" ? data.subscribedDevices : null); })
+      .catch(() => { if (alive) setAudienceCount(null); })
+      .finally(() => { if (alive) setAudienceLoading(false); });
+    return () => { alive = false; };
+  }, [authed]);
 
   const login = async event => {
     event.preventDefault(); setBusy(true); setError("");
@@ -37,7 +50,8 @@ export default function PushConsoleApp() {
 
   const send = async event => {
     event.preventDefault();
-    if (!window.confirm("Send this push notification to every subscribed device? This cannot be undone.")) return;
+    const audience = audienceCount === null ? "the current subscribed audience (count unavailable)" : audienceCount + " subscribed device(s)";
+    if (!window.confirm("Send this push notification to " + audience + "? This cannot be undone.")) return;
     setBusy(true); setError(""); setResult(null);
     const trimmedImage = imageUrl.trim();
     if (trimmedImage) {
@@ -81,6 +95,7 @@ export default function PushConsoleApp() {
         <form onSubmit={login}><label style={label}>ACCESS PASSKEY<div style={{ position: "relative" }}><input style={{ ...input, paddingRight: 48 }} type={showPass ? "text" : "password"} value={passkey} onChange={e => setPasskey(e.target.value)} autoComplete="off" autoFocus placeholder="Enter your passkey" required/><button type="button" onClick={() => setShowPass(v => !v)} aria-label={showPass ? "Hide passkey" : "Show passkey"} style={{ position: "absolute", right: 8, top: 12, border: 0, background: "transparent", color: "inherit", padding: 7 }}>{showPass ? <EyeOff size={17}/> : <Eye size={17}/>}</button></div></label><button style={button} disabled={busy || !passkey}>{busy ? <LoaderCircle className="spin" size={17}/> : <ShieldCheck size={17}/>} Unlock console</button></form>
       </> : <><p style={{ color: "var(--muted, #a8afbf)", lineHeight: 1.6, marginTop: 0 }}>Send a push notification to all subscribed devices. This does not post to Discord.</p>
         <div style={{ display: "grid", gap: 10, padding: 14, borderRadius: 12, background: "#ffffff07", border: "1px solid #ffffff12", marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, fontSize: 12 }}><span style={{ color: "var(--muted, #a8afbf)" }}>Subscribed devices</span><strong aria-live="polite">{audienceLoading ? "Checking…" : audienceCount === null ? "Unavailable" : audienceCount.toLocaleString()}</strong></div>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}><Gift size={17} color="#aeb7ff"/><span style={{ fontSize: 12, lineHeight: 1.5 }}>Gift-code alerts are sent automatically after a code is verified.</span></div>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}><MessageSquareText size={17} color="#aeb7ff"/><span style={{ fontSize: 12, lineHeight: 1.5 }}>Use this page for manual developer announcements and important updates.</span></div>
         </div>
