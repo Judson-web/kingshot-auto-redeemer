@@ -36,6 +36,7 @@
 | 🗄️ **Archive** | Keeps scraper history in a separate private archive |
 | 🛡️ **Disaster recovery** | Maintains verified, encrypted recovery material |
 | 🔐 **Security** | Uses server-side credentials, rate-aware behavior, and regression checks |
+| 🔔 **Web push** | Optional browser notifications for verified new gift codes and authorized developer announcements, with optional HTTPS images |
 
 ## ✦ What it does
 
@@ -49,6 +50,8 @@ The service can:
 - automatically redeem codes for authorized Player IDs
 - backfill eligible codes that were missed
 - provide manual redemption through the website
+- send optional web push alerts for verified new gift codes and authorized developer announcements
+- support an optional publicly hosted HTTPS image in manual push announcements, with a preview in the private console
 - revalidate player and kingdom information when required
 - coordinate concurrent workers using durable database state
 - retain a privacy-conscious scraper archive
@@ -218,6 +221,16 @@ They include:
 
 The goal is simple: **a green build should mean more than “the frontend compiled.”**
 
+## ✦ Web push notifications
+
+Web push is optional. Visitors can choose whether to enable notifications through the browser permission prompt; the site does not repeatedly prompt after a user dismisses the setup panel. Notifications can include alerts for verified new gift codes and manually composed announcements sent by an authorized operator.
+
+The private push console is available at `/push` and requires its configured server-side passkey. An announcement can include an optional image URL. Images must already be hosted at a publicly accessible **HTTPS** URL; the console previews the image and the server validates the URL before sending. The service does not upload or store image files. Whether an image is shown depends on the recipient's browser, operating system, and notification surface; text and the notification title remain the fallback.
+
+Push subscriptions are stored in the existing Supabase application database and are used to deliver notifications. A browser can revoke permission or unsubscribe at any time. Invalid or expired subscriptions are removed when the push provider reports them as no longer valid. Notification delivery is best-effort and is not guaranteed for every device.
+
+Do not include secrets, personal data, or content you do not have permission to distribute in notification text or linked images. See the [Privacy notice](https://kingshot-autoredeemer.vercel.app/privacy?service=kingshot-auto) and [Terms](https://kingshot-autoredeemer.vercel.app/terms?service=kingshot-auto).
+
 ## ✦ Website
 
 | Route | Purpose |
@@ -226,6 +239,7 @@ The goal is simple: **a green build should mean more than “the frontend compil
 | `/auto` | Automatic redemption |
 | `/manual` | Manual redemption |
 | `/info` | Service documentation |
+| `/push` | Private developer push-notification console (passkey required) |
 | `/terms` | Terms of service |
 | `/privacy` | Privacy information |
 

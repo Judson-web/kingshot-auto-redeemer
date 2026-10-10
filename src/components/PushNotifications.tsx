@@ -2,9 +2,12 @@ import React, { useEffect, useState } from "react";
 import { Bell, BellRing, Check, CheckCircle2, ChevronDown, Gift, LoaderCircle, MessageSquareText, ShieldCheck, X } from "lucide-react";
 
 type PushState = "checking" | "unsupported" | "denied" | "off" | "on" | "busy" | "error";
-function encodeKey(value: string): Uint8Array {
+function encodeKey(value: string): ArrayBuffer {
   const padded = value.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - value.length % 4) % 4);
-  return Uint8Array.from(atob(padded), c => c.charCodeAt(0));
+  const bytes = Uint8Array.from(atob(padded), c => c.charCodeAt(0));
+  const buffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buffer).set(bytes);
+  return buffer;
 }
 
 const panelStyle: React.CSSProperties = {

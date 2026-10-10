@@ -1,6 +1,5 @@
 import crypto from"node:crypto";
 import {rateLimit}from"../lib/request-rate-limit.js";
-import { broadcastPush } from "../internal/push-notifications.js";
 const PASS=process.env.CUSTOM_MESSAGE_PASSKEY||"";
 function parseConfiguredDestinations(){
  const entries=String(process.env.CUSTOM_MESSAGE_DESTINATIONS||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>{
@@ -104,10 +103,12 @@ export default async function handler(req,res){
    if(!validSession(req))return res.status(401).json({error:"Unauthorized. Sign in to the private console first."});
    if(!rateLimit(req,res,"push-send",5,60*1000))return res.status(429).json({error:"Too many push notifications. Wait a minute before sending again."});
    const title=clean(body.title,100),message=clean(body.message,220),rawUrl=clean(body.url||"/",500);
+   const rawImage=clean(body.imageUrl,2048),image=rawImage?imageUrl(rawImage):"";
+   if(rawImage&&!image)return res.status(400).json({error:"Image URL must be a valid, publicly accessible HTTPS URL."});
    if(!title)return res.status(400).json({error:"A notification title is required."});
    if(!message)return res.status(400).json({error:"A notification message is required."});
    let url="/";try{const parsed=new URL(rawUrl,"https://ks-rewards.com");if(parsed.origin==="https://ks-rewards.com"&&parsed.pathname.startsWith("/")&&!parsed.pathname.startsWith("//"))url=parsed.pathname+parsed.search+parsed.hash;}catch{}
-   try{const result=await broadcastPush({title,body:message,url,tag:"developer-push-"+crypto.randomUUID()});return res.status(200).json({ok:true,...result})}
+   try{const {broadcastPush}=await import("../internal/push-notifications.js");const result=await broadcastPush({title,body:message,url,image,tag:"developer-push-"+crypto.randomUUID()});return res.status(200).json({ok:true,...result})}
    catch(error){return res.status(502).json({error:error instanceof Error?error.message:"Could not send push notification."})}
   }
   if(action==="PUSH_PUBLIC_KEY"){const {getPushPublicKey,pushIsConfigured}=await import("../internal/push-notifications.js");if(!pushIsConfigured())return res.status(503).json({error:"Push notifications are not configured."});return res.status(200).json({publicKey:getPushPublicKey()})}
