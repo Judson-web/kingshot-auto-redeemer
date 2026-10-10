@@ -10,6 +10,7 @@ export default function PushConsoleApp() {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [url, setUrl] = useState("/gift-codes");
+  const [imageUrl, setImageUrl] = useState("");
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
 
@@ -36,7 +37,7 @@ export default function PushConsoleApp() {
   const send = async event => {
     event.preventDefault(); setBusy(true); setError(""); setResult(null);
     try {
-      const response = await fetch("/api/custom-message", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "PUSH_SEND", title, message, url }), credentials: "same-origin" });
+      const response = await fetch("/api/custom-message", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "PUSH_SEND", title, message, url, imageUrl }), credentials: "same-origin" });
       const data = await response.json().catch(() => ({}));
       if (response.status === 401) { setAuthed(false); throw Error("Your session expired. Sign in again."); }
       if (!response.ok) throw Error(data.error || "Could not send notification.");
@@ -50,11 +51,11 @@ export default function PushConsoleApp() {
     setAuthed(false);
   };
 
-  const shell = { minHeight: "100vh", padding: "32px 16px", boxSizing: "border-box", background: "var(--bg, #0b0d12)", color: "var(--text, #f4f6fb)", fontFamily: "inherit" };
-  const card = { width: "min(100%, 640px)", margin: "0 auto", border: "1px solid var(--border, #303642)", borderRadius: 18, background: "var(--panel, #151922)", padding: "clamp(18px, 4vw, 28px)", boxSizing: "border-box" };
-  const input = { display: "block", width: "100%", boxSizing: "border-box", marginTop: 8, padding: "12px 13px", borderRadius: 10, border: "1px solid var(--border, #303642)", background: "var(--bg, #0b0d12)", color: "inherit", font: "inherit", outlineOffset: 2 };
-  const label = { display: "block", marginTop: 18, fontSize: 11, fontWeight: 750, letterSpacing: ".08em", color: "var(--muted, #a8afbf)" };
-  const button = { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", marginTop: 20, padding: "13px 15px", border: 0, borderRadius: 11, background: "#6679ff", color: "white", font: "inherit", fontWeight: 750, cursor: busy ? "wait" : "pointer", opacity: busy ? .7 : 1 };
+  const shell: React.CSSProperties = { minHeight: "100vh", padding: "32px 16px", boxSizing: "border-box", background: "var(--bg, #0b0d12)", color: "var(--text, #f4f6fb)", fontFamily: "inherit" };
+  const card: React.CSSProperties = { width: "min(100%, 640px)", margin: "0 auto", border: "1px solid var(--border, #303642)", borderRadius: 18, background: "var(--panel, #151922)", padding: "clamp(18px, 4vw, 28px)", boxSizing: "border-box" };
+  const input: React.CSSProperties = { display: "block", width: "100%", boxSizing: "border-box", marginTop: 8, padding: "12px 13px", borderRadius: 10, border: "1px solid var(--border, #303642)", background: "var(--bg, #0b0d12)", color: "inherit", font: "inherit", outlineOffset: 2 };
+  const label: React.CSSProperties = { display: "block", marginTop: 18, fontSize: 11, fontWeight: 750, letterSpacing: ".08em", color: "var(--muted, #a8afbf)" };
+  const button: React.CSSProperties = { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", marginTop: 20, padding: "13px 15px", border: 0, borderRadius: 11, background: "#6679ff", color: "white", font: "inherit", fontWeight: 750, cursor: busy ? "wait" : "pointer", opacity: busy ? .7 : 1 };
   if (checking) return <main style={shell}><section style={{ ...card, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}><LoaderCircle className="spin" size={20}/> Checking secure session…</section></main>;
 
   return <main style={shell}>
@@ -74,6 +75,9 @@ export default function PushConsoleApp() {
         <form onSubmit={send}>
           <label style={label}>NOTIFICATION TITLE <span style={{ float: "right", fontWeight: 500 }}>{title.length}/100</span><input style={input} value={title} onChange={e => { setTitle(e.target.value.slice(0, 100)); setResult(null); }} maxLength={100} required placeholder="e.g. Important site update"/></label>
           <label style={label}>MESSAGE <span style={{ float: "right", fontWeight: 500 }}>{message.length}/220</span><textarea style={{ ...input, resize: "vertical", minHeight: 105, lineHeight: 1.5 }} value={message} onChange={e => { setMessage(e.target.value.slice(0, 220)); setResult(null); }} maxLength={220} required placeholder="Write a short message users will see on their device…"/></label>
+          <label style={label}>IMAGE URL (OPTIONAL)<input style={input} type="url" inputMode="url" autoComplete="url" value={imageUrl} onChange={e => { setImageUrl(e.target.value.slice(0, 2048)); setResult(null); }} maxLength={2048} placeholder="https://example.com/announcement.jpg" aria-describedby="push-image-help"/></label>
+          <small id="push-image-help" style={{ display: "block", marginTop: 6, color: "var(--muted, #a8afbf)", lineHeight: 1.5 }}>Use a publicly accessible HTTPS image URL. The image is attached to the push notification; no image is uploaded or stored by this site.</small>
+          {/^https:\/\//i.test(imageUrl.trim()) && <div style={{ marginTop: 12, padding: 10, borderRadius: 10, border: "1px solid var(--border, #303642)", background: "#ffffff07" }}><img src={imageUrl.trim()} alt="Notification image preview" loading="lazy" referrerPolicy="no-referrer" onError={e => { e.currentTarget.style.display = "none"; }} style={{ display: "block", width: "100%", maxHeight: 220, objectFit: "contain", borderRadius: 8 }} /><small style={{ display: "block", marginTop: 7, color: "var(--muted, #a8afbf)" }}>Image preview · appearance depends on the recipient's device and browser.</small></div>}
           <label style={label}>OPEN THIS PAGE WHEN TAPPED<select style={input} value={url} onChange={e => setUrl(e.target.value)}><option value="/gift-codes">Gift codes</option><option value="/">Auto redeem home</option><option value="/manual">Manual redeem</option><option value="/info">Information</option></select></label>
           <div style={{ marginTop: 14, padding: 14, borderRadius: 12, background: "#ffffff07", border: "1px solid #ffffff12" }}><div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", color: "#aeb7ff", marginBottom: 10 }}>PREVIEW</div><strong style={{ display: "block", fontSize: 15 }}>{title || "Your notification title"}</strong><p style={{ margin: "5px 0 0", lineHeight: 1.5, color: "var(--muted, #a8afbf)", overflowWrap: "anywhere" }}>{message || "Your notification message will appear here."}</p><small style={{ display: "block", marginTop: 10, color: "var(--muted, #a8afbf)" }}>Kingshot Redeemer · just now</small></div>
           <button style={button} disabled={busy || !title.trim() || !message.trim()}>{busy ? <LoaderCircle className="spin" size={17}/> : <Send size={17}/>} Send push notification</button>

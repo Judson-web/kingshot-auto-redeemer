@@ -5,11 +5,12 @@ export function getPushPublicKey():string{return PUBLIC_KEY}
 async function db(path:string,init:RequestInit={}):Promise<Response>{if(!KEY)throw Error("Push storage is not configured.");return fetch(BASE+"/rest/v1/"+path,{...init,headers:{apikey:KEY,authorization:"Bearer "+KEY,"content-type":"application/json",...(init.headers||{})},signal:AbortSignal.timeout(10000)})}
 let vapidReady=false;
 function configureVapid():void{if(!pushIsConfigured())throw Error("Web Push VAPID keys are not configured.");if(!vapidReady){webpush.setVapidDetails(SUBJECT,PUBLIC_KEY,PRIVATE_KEY);vapidReady=true}}
-export interface PushPayload{title:string;body:string;url?:string;tag:string}
+export interface PushPayload{title:string;body:string;url?:string;image?:string;tag:string}
 export async function broadcastPush(payload:PushPayload):Promise<{sent:number;removed:number;failed:number}>{
  configureVapid();const response=await db("kingshot_push_subscriptions?select=id,endpoint,p256dh,auth");if(!response.ok)throw Error("Could not load push subscriptions ("+response.status+").");
  const rows=await response.json() as Array<{id:number;endpoint:string;p256dh:string;auth:string}>;let sent=0,removed=0,failed=0;
- const notification=JSON.stringify({title:String(payload.title).slice(0,100),body:String(payload.body).slice(0,220),url:payload.url&&payload.url.startsWith("/")&&!payload.url.startsWith("//")?payload.url:"/",tag:String(payload.tag).slice(0,100)});
+ const image=String(payload.image||"").trim();let safeImage="";if(image){try{const parsed=new URL(image);if(parsed.protocol==="https:"&&image.length<=2048)safeImage=parsed.toString()}catch{}}
+ const notification=JSON.stringify({title:String(payload.title).slice(0,100),body:String(payload.body).slice(0,220),url:payload.url&&payload.url.startsWith("/")&&!payload.url.startsWith("//")?payload.url:"/",...(safeImage?{image:safeImage}:{}),tag:String(payload.tag).slice(0,100)});
  for(const row of rows){try{await webpush.sendNotification({endpoint:row.endpoint,keys:{p256dh:row.p256dh,auth:row.auth}},notification,{TTL:86400});sent++}catch(error){const status=Number((error as {statusCode?:number})?.statusCode||0);if(status===404||status===410){const deleted=await db("kingshot_push_subscriptions?id=eq."+encodeURIComponent(String(row.id)),{method:"DELETE"});if(deleted.ok)removed++;else failed++}else failed++}}
  return{sent,removed,failed}
 }
