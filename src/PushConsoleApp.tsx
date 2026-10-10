@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { BellRing, CheckCircle2, LogOut, Send, ShieldCheck, LoaderCircle, AlertTriangle, Eye, EyeOff, Gift, MessageSquareText } from "lucide-react";
+import { BellRing, CheckCircle2, LogOut, Send, ShieldCheck, LoaderCircle, AlertTriangle, Eye, EyeOff, Gift, MessageSquareText, Image as ImageIcon, X } from "lucide-react";
 
 export default function PushConsoleApp() {
   const [passkey, setPasskey] = useState("");
@@ -11,6 +11,7 @@ export default function PushConsoleApp() {
   const [message, setMessage] = useState("");
   const [url, setUrl] = useState("/gift-codes");
   const [imageUrl, setImageUrl] = useState("");
+  const [imagePreviewError, setImagePreviewError] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
 
@@ -36,8 +37,17 @@ export default function PushConsoleApp() {
 
   const send = async event => {
     event.preventDefault(); setBusy(true); setError(""); setResult(null);
+    const trimmedImage = imageUrl.trim();
+    if (trimmedImage) {
+      try {
+        const parsedImage = new URL(trimmedImage);
+        if (parsedImage.protocol !== "https:") throw new Error();
+      } catch {
+        setError("Use a valid HTTPS image URL, or clear the image field."); setBusy(false); return;
+      }
+    }
     try {
-      const response = await fetch("/api/custom-message", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "PUSH_SEND", title, message, url, imageUrl }), credentials: "same-origin" });
+      const response = await fetch("/api/custom-message", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "PUSH_SEND", title, message, url, imageUrl: trimmedImage }), credentials: "same-origin" });
       const data = await response.json().catch(() => ({}));
       if (response.status === 401) { setAuthed(false); throw Error("Your session expired. Sign in again."); }
       if (!response.ok) throw Error(data.error || "Could not send notification.");
@@ -75,11 +85,11 @@ export default function PushConsoleApp() {
         <form onSubmit={send}>
           <label style={label}>NOTIFICATION TITLE <span style={{ float: "right", fontWeight: 500 }}>{title.length}/100</span><input style={input} value={title} onChange={e => { setTitle(e.target.value.slice(0, 100)); setResult(null); }} maxLength={100} required placeholder="e.g. Important site update"/></label>
           <label style={label}>MESSAGE <span style={{ float: "right", fontWeight: 500 }}>{message.length}/220</span><textarea style={{ ...input, resize: "vertical", minHeight: 105, lineHeight: 1.5 }} value={message} onChange={e => { setMessage(e.target.value.slice(0, 220)); setResult(null); }} maxLength={220} required placeholder="Write a short message users will see on their device…"/></label>
-          <label style={label}>IMAGE URL (OPTIONAL)<input style={input} type="url" inputMode="url" autoComplete="url" value={imageUrl} onChange={e => { setImageUrl(e.target.value.slice(0, 2048)); setResult(null); }} maxLength={2048} placeholder="https://example.com/announcement.jpg" aria-describedby="push-image-help"/></label>
+          <label style={label}>IMAGE URL (OPTIONAL)<input style={input} type="url" inputMode="url" autoComplete="url" value={imageUrl} onChange={e => { setImageUrl(e.target.value.slice(0, 2048)); setImagePreviewError(false); setResult(null); }} maxLength={2048} placeholder="https://example.com/announcement.jpg" aria-describedby="push-image-help"/></label>
           <small id="push-image-help" style={{ display: "block", marginTop: 6, color: "var(--muted, #a8afbf)", lineHeight: 1.5 }}>Use a publicly accessible HTTPS image URL. The image is attached to the push notification; no image is uploaded or stored by this site.</small>
-          {/^https:\/\//i.test(imageUrl.trim()) && <div style={{ marginTop: 12, padding: 10, borderRadius: 10, border: "1px solid var(--border, #303642)", background: "#ffffff07" }}><img src={imageUrl.trim()} alt="Notification image preview" loading="lazy" referrerPolicy="no-referrer" onError={e => { e.currentTarget.style.display = "none"; }} style={{ display: "block", width: "100%", maxHeight: 220, objectFit: "contain", borderRadius: 8 }} /><small style={{ display: "block", marginTop: 7, color: "var(--muted, #a8afbf)" }}>Image preview · appearance depends on the recipient's device and browser.</small></div>}
+          {/^https:\/\//i.test(imageUrl.trim()) && <div style={{ marginTop: 12, padding: 10, borderRadius: 10, border: "1px solid var(--border, #303642)", background: "#ffffff07" }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8 }}><small style={{ color: "var(--muted, #a8afbf)" }}>Image preview</small><button type="button" onClick={() => { setImageUrl(""); setImagePreviewError(false); setResult(null); }} aria-label="Remove notification image" title="Remove image" style={{ display: "inline-flex", alignItems: "center", gap: 4, border: 0, background: "transparent", color: "var(--muted, #a8afbf)", cursor: "pointer" }}><X size={14}/> Remove</button></div><img src={imageUrl.trim()} alt="Notification image preview" loading="lazy" referrerPolicy="no-referrer" onError={() => setImagePreviewError(true)} onLoad={() => setImagePreviewError(false)} style={{ display: imagePreviewError ? "none" : "block", width: "100%", maxHeight: 220, objectFit: "contain", borderRadius: 8 }} />{imagePreviewError && <p role="status" style={{ margin: 0, color: "#ffb0b0", fontSize: 12 }}>This image could not be previewed. Check that the URL is public and points directly to an image.</p>}<small style={{ display: "block", marginTop: 7, color: "var(--muted, #a8afbf)", lineHeight: 1.5 }}>A valid preview does not guarantee the recipient's browser supports large notification images.</small></div>}
           <label style={label}>OPEN THIS PAGE WHEN TAPPED<select style={input} value={url} onChange={e => setUrl(e.target.value)}><option value="/gift-codes">Gift codes</option><option value="/">Auto redeem home</option><option value="/manual">Manual redeem</option><option value="/info">Information</option></select></label>
-          <div style={{ marginTop: 14, padding: 14, borderRadius: 12, background: "#ffffff07", border: "1px solid #ffffff12" }}><div style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".1em", color: "#aeb7ff", marginBottom: 10 }}>PREVIEW</div><strong style={{ display: "block", fontSize: 15 }}>{title || "Your notification title"}</strong><p style={{ margin: "5px 0 0", lineHeight: 1.5, color: "var(--muted, #a8afbf)", overflowWrap: "anywhere" }}>{message || "Your notification message will appear here."}</p><small style={{ display: "block", marginTop: 10, color: "var(--muted, #a8afbf)" }}>Kingshot Redeemer · just now</small></div>
+          <div style={{ marginTop: 14, padding: 14, borderRadius: 12, background: "#ffffff07", border: "1px solid #ffffff12" }}><div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10, fontWeight: 800, letterSpacing: ".1em", color: "#aeb7ff", marginBottom: 10 }}><ImageIcon size={14}/> LIVE NOTIFICATION PREVIEW</div><strong style={{ display: "block", fontSize: 15 }}>{title || "Your notification title"}</strong><p style={{ margin: "5px 0 0", lineHeight: 1.5, color: "var(--muted, #a8afbf)", overflowWrap: "anywhere" }}>{message || "Your notification message will appear here."}</p>{/^https:\/\//i.test(imageUrl.trim()) && !imagePreviewError && <img src={imageUrl.trim()} alt="Large image as it will be included in the notification" loading="lazy" referrerPolicy="no-referrer" onError={() => setImagePreviewError(true)} style={{ display: "block", width: "100%", maxHeight: 180, objectFit: "cover", borderRadius: 8, marginTop: 12 }} />}{imagePreviewError && imageUrl.trim() && <small style={{ display: "block", marginTop: 8, color: "#ffb0b0" }}>Image preview unavailable; the push can still be sent without an image.</small>}<small style={{ display: "block", marginTop: 10, color: "var(--muted, #a8afbf)" }}>Kingshot Redeemer · just now</small></div>
           <button style={button} disabled={busy || !title.trim() || !message.trim()}>{busy ? <LoaderCircle className="spin" size={17}/> : <Send size={17}/>} Send push notification</button>
         </form>
         {result && <div role="status" style={{ display: "flex", gap: 9, marginTop: 16, padding: 13, borderRadius: 11, background: "#56d6a00d", border: "1px solid #56d6a033", color: "#a9efcd", lineHeight: 1.5 }}><CheckCircle2 size={18} style={{ flexShrink: 0 }}/><span>Push sent. Accepted by {result.sent || 0} subscription(s). {result.failed ? result.failed + " failed." : ""} {result.removed ? result.removed + " expired subscription(s) removed." : ""}</span></div>}
