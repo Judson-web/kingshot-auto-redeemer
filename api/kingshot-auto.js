@@ -284,7 +284,7 @@ export default async function handler(req,res){
    for(const player of validPlayers){
     try{
      const history=await rpc("list_kingshot_player_redemptions",{p_player_id:player.player_id});
-     const handled=new Set((Array.isArray(history)?history:[]).filter(r=>HANDLED_STATUSES.has(String(r?.status||"").toUpperCase())).map(r=>String(r?.gift_code||"").toUpperCase()));
+     const handled=getHandledGiftCodes(history);
      if(handled.has(canaryCandidate.code.toUpperCase()))continue;
      const claim=await rpc("claim_kingshot_redemption",{p_player_id:player.player_id,p_code:canaryCandidate.code});if(!claim)continue;
      const result=await redeemKingshot({playerId:player.player_id,code:canaryCandidate.code,kid:player.kingdom_id});
