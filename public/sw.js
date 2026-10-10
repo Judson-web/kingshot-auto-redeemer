@@ -1,4 +1,4 @@
-const CACHE = "kingshot-shell-v3";
+const CACHE = "kingshot-shell-v4";
 const SHELL = ["/", "/auto", "/manual", "/redeem", "/info", "/site.webmanifest", "/favicon.svg", "/icons/icon-192.svg", "/icons/icon-512.svg"];
 
 self.addEventListener("install", event => {
@@ -60,4 +60,37 @@ self.addEventListener("fetch", event => {
 
 self.addEventListener("message", event => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+});
+
+self.addEventListener("push", event => {
+  event.waitUntil((async () => {
+    let payload = {};
+    try { payload = event.data ? event.data.json() : {}; }
+    catch { payload = { body: event.data ? event.data.text() : "" }; }
+    const title = String(payload.title || "Kingshot Auto Redeem").slice(0, 120);
+    const body = String(payload.body || "").slice(0, 240);
+    await self.registration.showNotification(title, {
+      body,
+      icon: "/icons/icon-192.svg",
+      badge: "/icons/icon-192.svg",
+      tag: String(payload.tag || "kingshot-announcement").slice(0, 100),
+      data: { url: typeof payload.url === "string" && payload.url.startsWith("/") && !payload.url.startsWith("//") ? payload.url : "/" },
+      renotify: false
+    });
+  })());
+});
+
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || "/", self.location.origin).href;
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of windows) {
+      if (client.url.startsWith(self.location.origin) && "focus" in client) {
+        await client.navigate(target);
+        return client.focus();
+      }
+    }
+    return self.clients.openWindow(target);
+  })());
 });
