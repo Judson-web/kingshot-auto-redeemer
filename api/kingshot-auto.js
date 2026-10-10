@@ -1,3 +1,4 @@
+import { sendPushToSubscribers } from "../internal/push-notifications.js";
 import {redeemKingshot} from"../internal/kingshot/redeem.js";
 import { revalidatePlayer } from "../internal/kingshot/kingdom-validation.js";
 
@@ -255,6 +256,11 @@ export default async function handler(req,res){
   });
   const newCodes=activeCodes.filter(item=>!knownCodes.has(String(item.code).toUpperCase()));
   for(const item of newCodes)await sendDiscordEvent({title:"🎁 New Kingshot gift code",description:"A candidate gift code was discovered by the multi-source scraper and is awaiting player verification.",fields:[{name:"Gift code",value:String(item.code),inline:true},{name:"Sources",value:String((item.sources||[item.source||"merged"]).join(", ")),inline:true},{name:"Confidence",value:Math.round(Number(item.confidence||0)*100)+"% "+String(item.confidenceTier||"unverified"),inline:true},{name:"Expires",value:item.expiresAt&&!Number.isNaN(item.expiresAt)?new Date(item.expiresAt).toISOString():"Not specified",inline:true}]});
+  if(newCodes.length){
+   const preview=newCodes.slice(0,4).map(item=>String(item.code)).join(", ");
+   const extra=newCodes.length>4?" and "+(newCodes.length-4)+" more":"";
+   await sendPushToSubscribers({title:"New Kingshot gift code",body:"New code"+(newCodes.length===1?"":"s")+" discovered: "+preview+extra+". Check current verification status on the gift-code page.",url:"/gift-codes",tag:"new-gift-code"}).catch(error=>console.warn("New-code push delivery skipped:",error?.message||error));
+  }
   const players=await rpc("list_kingshot_autoredeem_players",{});
   const list=Array.isArray(players)?players:[];
 
