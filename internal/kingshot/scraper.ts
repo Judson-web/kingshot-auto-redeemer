@@ -86,6 +86,9 @@ async function fetchSourceUncached(rpc: Rpc, url: string, kind: string, source: 
     const error = Error("HTTP 429 cooldown active; retry in " + waitSeconds + "s");
     await recordRun(rpc, source, 429, [], false, error);
     await updateHealth(rpc, source, 0, error.message);
+    if (stale && Date.now() - stale.expiresAt <= STALE_IF_THROTTLED_MS) {
+      return { ...stale.result, codes: [...stale.result.codes], error: "Upstream cooldown active; serving bounded stale cache", ok: true };
+    }
     return emptyResult(source, apiLike, 429, error.message);
   }
 
