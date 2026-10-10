@@ -18,7 +18,7 @@ const quietButton: React.CSSProperties = { display: "grid", placeItems: "center"
 
 export default function PushNotifications() {
   const [state, setState] = useState<PushState>("checking");
-  const [hidden, setHidden] = useState(false);
+  const [hidden, setHidden] = useState(() => { try { return localStorage.getItem("ks-push-panel-dismissed") === "1"; } catch { return false; } });
   const [message, setMessage] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
 
@@ -123,7 +123,7 @@ export default function PushNotifications() {
               {enabled ? "You're all set on this device." : "Get the important Kingshot updates without keeping the site open."}
             </p>
           </div>
-          <button type="button" onClick={() => setHidden(true)} aria-label="Dismiss notification settings" style={quietButton}><X size={16} /></button>
+          <button type="button" onClick={() => { setHidden(true); try { localStorage.setItem("ks-push-panel-dismissed", "1"); } catch {} }} aria-label="Dismiss notification settings" style={quietButton}><X size={16} /></button>
         </div>
       </div>
 
