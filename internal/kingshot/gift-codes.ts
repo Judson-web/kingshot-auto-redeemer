@@ -56,4 +56,23 @@ export function extractPublicSourceCodes(html: unknown, sourceName: string): Gif
  }
  return rows;
 }
-export function mergeCodes(sources: GiftCodeRow[][]): GiftCodeRow[] { const map=new Map<string,GiftCodeRow>(); for(const row of sources.flat()){const key=row.code.toUpperCase();const existing=map.get(key);if(existing){const sourceSet=new Set([...(existing.sources||[existing.source||"unknown"]),row.source||"unknown"]);map.set(key,{...existing,expiresAt:existing.expiresAt||row.expiresAt,createdAt:existing.createdAt||row.createdAt,source:sourceSet.size>1?"multiple":existing.source,sources:[...sourceSet]});}else map.set(key,{...row,sources:[row.source||"unknown"]});} return [...map.values()].filter(row=>!row.expiresAt||Number.isNaN(row.expiresAt)||row.expiresAt>Date.now()).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); }
+export function mergeCodes(sources: GiftCodeRow[][]): GiftCodeRow[] {
+ const map=new Map<string,GiftCodeRow>();
+ const sourceWeights:Record<string,number>={"kingshot-api":0.8,"page":0.55,"beebom":0.65,"pocketgamer":0.65,"whiteout-bot-aggregator":0.7,"verified-manual-fallback":0.8,"admin":1};
+ for(const row of sources.flat()){
+  const key=row.code.toUpperCase();const source=row.source||"unknown";const existing=map.get(key);
+  if(existing){
+   const sourceSet=new Set([...(existing.sources||[existing.source||"unknown"]),source]);
+   const sourcesList=[...sourceSet];
+   // Confidence is evidence-based: independent sources increase confidence,
+   // but repeated rows from the same source do not.
+   const confidence=Number(Math.min(0.99,1-sourcesList.reduce((remaining,name)=>remaining*(1-(sourceWeights[name]??0.35)),1)).toFixed(2));
+   const confidenceTier=confidence>=0.8?"high":confidence>=0.55?"medium":"low";
+   map.set(key,{...existing,expiresAt:existing.expiresAt||row.expiresAt,createdAt:existing.createdAt||row.createdAt,source:sourcesList.length>1?"multiple":existing.source,sources:sourcesList,confidence,confidenceTier});
+  }else{
+   const confidence=sourceWeights[source]??0.35;
+   map.set(key,{...row,sources:[source],confidence,confidenceTier:confidence>=0.8?"high":confidence>=0.55?"medium":"low"});
+  }
+ }
+ return [...map.values()].filter(row=>!row.expiresAt||Number.isNaN(row.expiresAt)||row.expiresAt>Date.now()).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+}
