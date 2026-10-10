@@ -80,7 +80,18 @@ async function recordRun(rpc: Rpc, source: string, httpStatus: number | null, co
 }
 
 async function fetchSourceUncached(rpc: Rpc, url: string, kind: string, source: string, apiLike: boolean, stale: CachedResult | undefined): Promise<ScraperResult> {
-  const cooldownUntil = sourceCooldowns.get(url) || 0;
+  // The process-local map is fast, while Supabase coordinates cooldowns across
+  // separate serverless instances and scheduled invocations.
+  let cooldownUntil = sourceCooldowns.get(url) || 0;
+  try {
+    const sharedUntil = await rpc("kingshot_get_source_cooldown", { p_source_url: url });
+    const parsed = Date.parse(String(sharedUntil || ""));
+    if (Number.isFinite(parsed) && parsed > cooldownUntil) cooldownUntil = parsed;
+    if (cooldownUntil > Date.now()) sourceCooldowns.set(url, cooldownUntil);
+  } catch (error) {
+    // Keep the gateway operational during migration rollout or temporary RPC issues.
+    console.warn("Shared source cooldown lookup unavailable:", source, (error as { message?: string })?.message || error);
+  }
   if (cooldownUntil > Date.now()) {
     const waitSeconds = Math.ceil((cooldownUntil - Date.now()) / 1000);
     const error = Error("HTTP 429 cooldown active; retry in " + waitSeconds + "s");
@@ -107,7 +118,15 @@ async function fetchSourceUncached(rpc: Rpc, url: string, kind: string, source: 
           const requestedWait = retryAfterMs(response);
           // When no Retry-After is supplied, apply a conservative local cooldown.
           const cooldownMs = requestedWait ?? 60_000;
+          const cooldownSeconds = Math.max(1, Math.ceil(cooldownMs / 1000));
           sourceCooldowns.set(url, Date.now() + cooldownMs);
+          // Persist the provider's requested wait so another serverless instance
+          // cannot immediately hit the same throttled source.
+          await rpc("kingshot_set_source_cooldown", {
+            p_source_url: url,
+            p_cooldown_seconds: cooldownSeconds,
+            p_http_status: 429
+          }).catch(error => console.warn("Shared source cooldown write failed:", source, (error as { message?: string })?.message || error));
           break; // Never immediately retry a rate-limited upstream.
         }
         if (response.ok || ![408, 425, 500, 502, 503, 504].includes(response.status)) break;
