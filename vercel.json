@@ -59,6 +59,14 @@
     {
       "source": "/gift-codes",
       "destination": "/index.html"
+    },
+    {
+      "source": "/push",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/push/",
+      "destination": "/index.html"
     }
   ],
   "headers": [
