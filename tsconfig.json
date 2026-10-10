@@ -11,6 +11,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
+    "allowJs": true,
     "types": [
       "node"
     ],
@@ -19,6 +20,7 @@
   "include": [
     "src/**/*",
     "api/**/*.ts",
+    "api/**/*.js",
     "internal/**/*.ts",
     "lib/**/*.ts",
     "scripts/**/*.ts",
