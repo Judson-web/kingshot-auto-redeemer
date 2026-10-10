@@ -100,6 +100,16 @@ export default async function handler(req,res){
   }
   if(action==="LOGOUT"){clearCookie(res);return res.status(200).json({ok:true})}
   if(action==="CHECK")return res.status(validSession(req)?200:401).json({ok:validSession(req)});
+  if(action==="PUSH_SEND"){
+   if(!validSession(req))return res.status(401).json({error:"Unauthorized. Sign in to the private console first."});
+   if(!rateLimit(req,res,"push-send",5,60*1000))return res.status(429).json({error:"Too many push notifications. Wait a minute before sending again."});
+   const title=clean(body.title,100),message=clean(body.message,220),rawUrl=clean(body.url||"/",500);
+   if(!title)return res.status(400).json({error:"A notification title is required."});
+   if(!message)return res.status(400).json({error:"A notification message is required."});
+   let url="/";try{const parsed=new URL(rawUrl,"https://ks-rewards.com");if(parsed.origin==="https://ks-rewards.com"&&parsed.pathname.startsWith("/")&&!parsed.pathname.startsWith("//"))url=parsed.pathname+parsed.search+parsed.hash;}catch{}
+   try{const result=await broadcastPush({title,body:message,url,tag:"developer-push-"+crypto.randomUUID()});return res.status(200).json({ok:true,...result})}
+   catch(error){return res.status(502).json({error:error instanceof Error?error.message:"Could not send push notification."})}
+  }
   if(action==="PUSH_PUBLIC_KEY"){const {getPushPublicKey,pushIsConfigured}=await import("../internal/push-notifications.js");if(!pushIsConfigured())return res.status(503).json({error:"Push notifications are not configured."});return res.status(200).json({publicKey:getPushPublicKey()})}
   if(action==="PUSH_SUBSCRIBE"||action==="PUSH_UNSUBSCRIBE"){
    if(!rateLimit(req,res,"push-subscriptions",12,60000))return;
