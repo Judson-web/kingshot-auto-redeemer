@@ -30,15 +30,14 @@ const sourceInFlight = new Map<string, Promise<ScraperResult>>();
 const sourceCooldowns = new Map<string, number>();
 const SOURCE_CACHE_TTL_MS = 90_000;
 const PAGE_CACHE_TTL_MS = 180_000;
-const MAX_RETRY_AFTER_MS = 15 * 60_000;
 
 function retryAfterMs(response: Response): number | null {
   const raw = response.headers.get("retry-after");
   if (!raw) return null;
   const seconds = Number(raw);
-  if (Number.isFinite(seconds) && seconds >= 0) return Math.min(MAX_RETRY_AFTER_MS, seconds * 1000);
+  if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1000;
   const date = Date.parse(raw);
-  if (!Number.isNaN(date)) return Math.min(MAX_RETRY_AFTER_MS, Math.max(0, date - Date.now()));
+  if (!Number.isNaN(date)) return Math.max(0, date - Date.now());
   return null;
 }
 
