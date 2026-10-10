@@ -209,11 +209,18 @@ export default async function handler(req,res){
    await new Promise(resolve=>setTimeout(resolve,250));
    publicSources.push(await fetchSource(rpc,source.url,"public:"+source.name));
   }
+  // Opt-in community aggregator: never guess an endpoint or make unauthenticated calls.
+  const aggregatorUrl=String(process.env.KINGSHOT_AGGREGATOR_URL||"").trim();
+  const aggregatorKey=String(process.env.KINGSHOT_AGGREGATOR_API_KEY||"").trim();
+  if(aggregatorUrl&&aggregatorKey){
+   await new Promise(resolve=>setTimeout(resolve,250));
+   publicSources.push(await fetchSource(rpc,aggregatorUrl,"aggregator"));
+  }
   const adminRows=await rpc("list_kingshot_admin_gift_codes",{});
   const data=apiSource.data;
   const apiCodes=apiSource.codes;
   const pageCodes=pageSource.codes;
-  const publicCodes=publicSources.flatMap((result,index)=>result.codes.length?result.codes.map(row=>({...row,source:PUBLIC_GIFT_SOURCES[index].name})):[]);
+  const publicCodes=publicSources.flatMap(result=>result.codes.length?result.codes.map(row=>({...row,source:row.source||result.source})):[]);
   const suppressedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.suppressed===true).map(row=>String(row?.code||"").trim().toUpperCase()).filter(Boolean));
   const adminCodes=(Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.active!==false&&row?.suppressed!==true).map(row=>({
    code:String(row?.code||"").trim(),
