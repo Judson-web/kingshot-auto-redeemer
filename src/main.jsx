@@ -6,6 +6,7 @@ import LegalApp from"./LegalApp.jsx";
 import InfoApp from"./InfoApp.jsx";
 import CustomMessageApp from"./CustomMessageApp.jsx";
 import GiftCodesApp from"./GiftCodesApp.jsx";
+import PushNotifications from "./PushNotifications.tsx";
 
 
 const imageUrl=(user,size=1024,format=user.format)=>"/api/discord-avatar?id="+encodeURIComponent(user.id)+"&hash="+encodeURIComponent(user.avatar)+"&format="+encodeURIComponent(format)+"&size="+encodeURIComponent(size);
@@ -124,4 +125,4 @@ const publicPage=location.pathname==="/auto"||location.pathname==="/" ? <AutoRed
 }
 registerAppServiceWorker();
 
-createRoot(document.getElementById("root")).render(<MaintenanceGate><PublicAnnouncements>{publicPage}</PublicAnnouncements><InstallAppPrompt/></MaintenanceGate>);
+createRoot(document.getElementById("root")).render(<MaintenanceGate><PublicAnnouncements>{publicPage}</PublicAnnouncements><InstallAppPrompt/><PushNotifications/></MaintenanceGate>);
