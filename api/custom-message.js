@@ -1,5 +1,6 @@
 import crypto from"node:crypto";
 import {rateLimit}from"../lib/request-rate-limit.js";
+import { broadcastPush } from "../internal/push-notifications.js";
 const PASS=process.env.CUSTOM_MESSAGE_PASSKEY||"";
 function parseConfiguredDestinations(){
  const entries=String(process.env.CUSTOM_MESSAGE_DESTINATIONS||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>{
@@ -99,6 +100,13 @@ export default async function handler(req,res){
   }
   if(action==="LOGOUT"){clearCookie(res);return res.status(200).json({ok:true})}
   if(action==="CHECK")return res.status(validSession(req)?200:401).json({ok:validSession(req)});
+  if(action==="PUSH_PUBLIC_KEY"){const {getPushPublicKey,pushIsConfigured}=await import("../internal/push-notifications.js");if(!pushIsConfigured())return res.status(503).json({error:"Push notifications are not configured."});return res.status(200).json({publicKey:getPushPublicKey()})}
+  if(action==="PUSH_SUBSCRIBE"||action==="PUSH_UNSUBSCRIBE"){
+   if(!rateLimit(req,res,"push-subscriptions",12,60000))return;
+   const {pushIsConfigured,savePushSubscription,removePushSubscription}=await import("../internal/push-notifications.js");
+   if(!pushIsConfigured())return res.status(503).json({error:"Push notifications are not configured."});
+   try{if(action==="PUSH_SUBSCRIBE")await savePushSubscription(body.subscription);else await removePushSubscription(body.subscription);return res.status(200).json({ok:true})}catch(error){return res.status(400).json({error:error instanceof Error?error.message:"Push subscription failed."})}
+  }
   if(action==="DESTINATIONS"){
    if(!validSession(req))return res.status(401).json({error:"Unauthorized."});
    return res.status(200).json({destinations:await resolveDestinationNames()});
@@ -198,6 +206,7 @@ export default async function handler(req,res){
    const retryAfter=Number(wr.headers.get("retry-after")||"0"),detail=await wr.text().catch(()=>"");
    return res.status(502).json({error:"Discord rejected the message ("+wr.status+")."+(retryAfter?" Retry after "+Math.ceil(retryAfter)+"s.":"")+(detail?" "+detail.slice(0,180):"")});
   }
+  try { await broadcastPush({title:title||"Message from the Kingshot team",body:description||"Open Kingshot Auto Redeemer to read the latest message.",url:"/",tag:"developer-message-"+crypto.randomUUID()}); } catch(error) { console.error("Developer push notification failed:",error instanceof Error?error.message:error); }
   return res.status(200).json({ok:true});
  }catch(e){return res.status(502).json({error:e?.message||"Custom message service unavailable."})}
 }

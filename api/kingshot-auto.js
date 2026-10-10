@@ -1,5 +1,6 @@
 import {redeemKingshot} from"../internal/kingshot/redeem.js";
 import { revalidatePlayer } from "../internal/kingshot/kingdom-validation.js";
+import { broadcastPush } from "../internal/push-notifications.js";
 
 const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
 const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
@@ -299,6 +300,8 @@ export default async function handler(req,res){
   const latestCodeRows=await rpc("list_kingshot_admin_gift_codes",{});
   const verifiedCodeSet=new Set((Array.isArray(latestCodeRows)?latestCodeRows:[]).filter(r=>r?.validation_status==="verified"&&r?.active!==false&&r?.suppressed!==true).map(r=>String(r?.code||"").trim().toUpperCase()));
   activeCodes=activeCodes.filter(c=>verifiedCodeSet.has(c.code.toUpperCase()));
+  const newlyAvailableCodes=newCodes.filter(item=>activeCodes.some(active=>active.code.toUpperCase()===item.code.toUpperCase()));
+  if(newlyAvailableCodes.length){const listed=newlyAvailableCodes.map(item=>item.code).slice(0,5),extra=newlyAvailableCodes.length-listed.length;try{await broadcastPush({title:listed.length===1?"New Kingshot gift code":"New Kingshot gift codes",body:listed.join(", ")+(extra>0?" and "+extra+" more":"")+" — open the site to view available codes.",url:"/",tag:"new-gift-codes-"+[...listed].sort().join("-").slice(0,60)})}catch(error){console.error("New gift-code push notification failed:",error instanceof Error?error.message:error)}}
   console.log("Kingshot code validation gate:",{pending:pendingCandidates.length,verificationAttempt,verifiedForWorkers:activeCodes.map(c=>c.code)});
 
 
