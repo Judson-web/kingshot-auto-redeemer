@@ -1,3 +1,4 @@
+import { sendPushToSubscribers } from "../internal/push-notifications.js";
 import crypto from"node:crypto";
 import {rateLimit}from"../lib/request-rate-limit.js";
 const PASS=process.env.CUSTOM_MESSAGE_PASSKEY||"";
@@ -198,6 +199,11 @@ export default async function handler(req,res){
    const retryAfter=Number(wr.headers.get("retry-after")||"0"),detail=await wr.text().catch(()=>"");
    return res.status(502).json({error:"Discord rejected the message ("+wr.status+")."+(retryAfter?" Retry after "+Math.ceil(retryAfter)+"s.":"")+(detail?" "+detail.slice(0,180):"")});
   }
-  return res.status(200).json({ok:true});
+  let push=null;
+  if(body.pushToUsers===true){
+   try{push=await sendPushToSubscribers({title:title||"Developer announcement",body:rawMessage,url:"/",tag:"developer-announcement"});}
+   catch(error){console.error("Custom-message push delivery failed:",error?.message||error);push={sent:0,failed:0,error:"Push delivery is not configured or is temporarily unavailable."};}
+  }
+  return res.status(200).json({ok:true,push});
  }catch(e){return res.status(502).json({error:e?.message||"Custom message service unavailable."})}
 }
