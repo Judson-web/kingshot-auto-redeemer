@@ -133,7 +133,7 @@ export default function PushNotifications() {
     }
   };
 
-  if (["unsupported", "denied", "checking"].includes(state) || hidden) return null;
+  if (["unsupported", "checking"].includes(state) || hidden) return null;
   const enabled = state === "on";
   const busy = state === "busy";
 
@@ -148,12 +148,12 @@ export default function PushNotifications() {
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <strong style={{ display: "block", fontSize: 15, lineHeight: 1.35 }}>
-            {enabled ? "Notifications are on" : "Never miss a new gift code"}
+            {enabled ? "Notifications are on" : state === "denied" ? "Notifications are blocked" : "Never miss a new gift code"}
           </strong>
           <p style={{ margin: "5px 0 0", color: "var(--muted, #a8afbf)", fontSize: 12, lineHeight: 1.5 }}>
             {enabled
               ? "Get alerts for new gift codes and important site updates."
-              : "Get alerts for new Kingshot gift codes and important site updates."}
+              : state === "denied" ? "Allow notifications in your browser’s site settings, then retry here." : "Get alerts for new Kingshot gift codes and important site updates."}
           </p>
         </div>
         <button
@@ -167,7 +167,7 @@ export default function PushNotifications() {
       </div>
 
       <div style={{ display: "flex", gap: 10, padding: "0 16px 16px" }}>
-        {!enabled && (
+        {!enabled && state !== "denied" && (
           <button
             type="button"
             onClick={dismiss}
@@ -195,7 +195,7 @@ export default function PushNotifications() {
           }}
         >
           {busy ? <LoaderCircle size={16} className="spin" /> : enabled ? <CheckCircle2 size={16} /> : <Bell size={16} />}
-          {busy ? "Please wait…" : enabled ? "Turn off" : "Enable notifications"}
+          {busy ? "Please wait…" : enabled ? "Turn off" : state === "denied" ? "Retry after allowing" : "Enable notifications"}
         </button>
       </div>
 

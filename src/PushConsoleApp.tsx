@@ -36,7 +36,9 @@ export default function PushConsoleApp() {
   };
 
   const send = async event => {
-    event.preventDefault(); setBusy(true); setError(""); setResult(null);
+    event.preventDefault();
+    if (!window.confirm("Send this push notification to every subscribed device? This cannot be undone.")) return;
+    setBusy(true); setError(""); setResult(null);
     const trimmedImage = imageUrl.trim();
     if (trimmedImage) {
       try {
@@ -92,7 +94,7 @@ export default function PushConsoleApp() {
           <div style={{ marginTop: 14, padding: 14, borderRadius: 12, background: "#ffffff07", border: "1px solid #ffffff12" }}><div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10, fontWeight: 800, letterSpacing: ".1em", color: "#aeb7ff", marginBottom: 10 }}><ImageIcon size={14}/> LIVE NOTIFICATION PREVIEW</div><strong style={{ display: "block", fontSize: 15 }}>{title || "Your notification title"}</strong><p style={{ margin: "5px 0 0", lineHeight: 1.5, color: "var(--muted, #a8afbf)", overflowWrap: "anywhere" }}>{message || "Your notification message will appear here."}</p>{/^https:\/\//i.test(imageUrl.trim()) && !imagePreviewError && <img src={imageUrl.trim()} alt="Large image as it will be included in the notification" loading="lazy" referrerPolicy="no-referrer" onError={() => setImagePreviewError(true)} style={{ display: "block", width: "100%", maxHeight: 180, objectFit: "cover", borderRadius: 8, marginTop: 12 }} />}{imagePreviewError && imageUrl.trim() && <small style={{ display: "block", marginTop: 8, color: "#ffb0b0" }}>Image preview unavailable; the push can still be sent without an image.</small>}<small style={{ display: "block", marginTop: 10, color: "var(--muted, #a8afbf)" }}>Kingshot Redeemer · just now</small></div>
           <button style={button} disabled={busy || !title.trim() || !message.trim()}>{busy ? <LoaderCircle className="spin" size={17}/> : <Send size={17}/>} Send push notification</button>
         </form>
-        {result && <div role="status" style={{ display: "flex", gap: 9, marginTop: 16, padding: 13, borderRadius: 11, background: "#56d6a00d", border: "1px solid #56d6a033", color: "#a9efcd", lineHeight: 1.5 }}><CheckCircle2 size={18} style={{ flexShrink: 0 }}/><span>Push sent. Accepted by {result.sent || 0} subscription(s). {result.failed ? result.failed + " failed." : ""} {result.removed ? result.removed + " expired subscription(s) removed." : ""}</span></div>}
+        {result && <div role="status" style={{ display: "flex", gap: 9, marginTop: 16, padding: 13, borderRadius: 11, background: "#56d6a00d", border: "1px solid #56d6a033", color: "#a9efcd", lineHeight: 1.5 }}><CheckCircle2 size={18} style={{ flexShrink: 0 }}/><span>Push service accepted {result.sent || 0} delivery request(s). This does not guarantee the device displayed them. {result.failed ? result.failed + " failed." : ""} {result.removed ? result.removed + " expired subscription(s) removed." : ""}</span></div>}
       </>}
       {error && <div role="alert" style={{ display: "flex", gap: 9, marginTop: 16, padding: 13, borderRadius: 11, background: "#ef646310", border: "1px solid #ef646433", color: "#ffb0b0", lineHeight: 1.5 }}><AlertTriangle size={17} style={{ flexShrink: 0 }}/><span>{error}</span></div>}
       <footer style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid #ffffff12", display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", color: "var(--muted, #a8afbf)", fontSize: 11 }}><span>Private access · Authorized use only</span><a href="/message" style={{ color: "inherit" }}>Open Discord message console ↗</a></footer>
