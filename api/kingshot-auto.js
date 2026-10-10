@@ -198,12 +198,17 @@ export default async function handler(req,res){
   if(!lock?.claimed)return res.status(200).json({ok:true,skipped:true,reason:"WORKER_ALREADY_RUNNING"});
   workerToken=lock.token;
   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
-  const [apiSource,pageSource,publicSources,adminRows]=await Promise.all([
-   fetchSource(rpc,GIFT_SOURCE_URL,"api"),
-   fetchSource(rpc,"https://kingshot.net/gift-codes","page"),
-   Promise.all(PUBLIC_GIFT_SOURCES.map(source=>fetchSource(rpc,source.url,"public:"+source.name))),
-   rpc("list_kingshot_admin_gift_codes",{})
-  ]);
+  // Keep community-source requests sequential instead of bursting all providers at once.
+  // This reduces 429 risk without rotating identities or bypassing upstream quotas.
+  const apiSource=await fetchSource(rpc,GIFT_SOURCE_URL,"api");
+  await new Promise(resolve=>setTimeout(resolve,250));
+  const pageSource=await fetchSource(rpc,"https://kingshot.net/gift-codes","page");
+  const publicSources=[];
+  for(const source of PUBLIC_GIFT_SOURCES){
+   await new Promise(resolve=>setTimeout(resolve,250));
+   publicSources.push(await fetchSource(rpc,source.url,"public:"+source.name));
+  }
+  const adminRows=await rpc("list_kingshot_admin_gift_codes",{});
   const data=apiSource.data;
   const apiCodes=apiSource.codes;
   const pageCodes=pageSource.codes;
