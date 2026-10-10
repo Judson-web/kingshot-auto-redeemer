@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Bell, BellRing, Check, CheckCircle2, ChevronDown, Gift, LoaderCircle, MessageSquareText, ShieldCheck, X } from "lucide-react";
+import { Bell, BellRing, CheckCircle2, LoaderCircle, X } from "lucide-react";
 
 type PushState = "checking" | "unsupported" | "denied" | "off" | "on" | "busy" | "error";
+
 function encodeKey(value: string): ArrayBuffer {
   const padded = value.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - value.length % 4) % 4);
   const bytes = Uint8Array.from(atob(padded), c => c.charCodeAt(0));
@@ -11,19 +12,35 @@ function encodeKey(value: string): ArrayBuffer {
 }
 
 const panelStyle: React.CSSProperties = {
-  position: "fixed", zIndex: 30, right: 16, bottom: "max(16px, env(safe-area-inset-bottom))",
-  width: "min(360px, calc(100vw - 32px))", overflow: "hidden",
-  border: "1px solid var(--border, #303642)", borderRadius: 18,
-  background: "var(--panel, #151922)", color: "var(--text, #f4f6fb)",
-  boxShadow: "0 18px 50px #0007", fontSize: 14,
+  position: "fixed",
+  zIndex: 30,
+  right: 16,
+  bottom: "max(16px, env(safe-area-inset-bottom))",
+  width: "min(420px, calc(100vw - 32px))",
+  boxSizing: "border-box",
+  border: "1px solid var(--border, #303642)",
+  borderRadius: 16,
+  background: "var(--panel, #151922)",
+  color: "var(--text, #f4f6fb)",
+  boxShadow: "0 14px 40px #0006",
+  fontSize: 14,
 };
-const quietButton: React.CSSProperties = { display: "grid", placeItems: "center", width: 32, height: 32, border: 0, borderRadius: 9, background: "transparent", color: "inherit", cursor: "pointer" };
+
+const buttonStyle: React.CSSProperties = {
+  minHeight: 42,
+  padding: "10px 14px",
+  borderRadius: 10,
+  fontSize: 13,
+  fontWeight: 700,
+  cursor: "pointer",
+};
 
 export default function PushNotifications() {
   const [state, setState] = useState<PushState>("checking");
-  const [hidden, setHidden] = useState(() => { try { return localStorage.getItem("ks-push-panel-dismissed") === "1"; } catch { return false; } });
+  const [hidden, setHidden] = useState(() => {
+    try { return localStorage.getItem("ks-push-panel-dismissed") === "1"; } catch { return false; }
+  });
   const [message, setMessage] = useState("");
-  const [detailsOpen, setDetailsOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -48,6 +65,11 @@ export default function PushNotifications() {
     return () => { alive = false; };
   }, []);
 
+  const dismiss = () => {
+    setHidden(true);
+    try { localStorage.setItem("ks-push-panel-dismissed", "1"); } catch {}
+  };
+
   const toggle = async () => {
     setState("busy");
     setMessage("");
@@ -59,8 +81,10 @@ export default function PushNotifications() {
       const existing = await reg.pushManager.getSubscription();
       if (existing) {
         const response = await fetch("/api/custom-message", {
-          method: "POST", headers: { "content-type": "application/json" },
-          body: JSON.stringify({ action: "PUSH_UNSUBSCRIBE", subscription: existing.toJSON() }), credentials: "same-origin",
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "PUSH_UNSUBSCRIBE", subscription: existing.toJSON() }),
+          credentials: "same-origin",
         });
         if (!response.ok) throw Error((await response.json().catch(() => ({}))).error || "We couldn't turn notifications off. Please try again.");
         await existing.unsubscribe();
@@ -78,25 +102,31 @@ export default function PushNotifications() {
       }
 
       const keyResponse = await fetch("/api/custom-message", {
-        method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "PUSH_PUBLIC_KEY" }), credentials: "same-origin", cache: "no-store",
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "PUSH_PUBLIC_KEY" }),
+        credentials: "same-origin",
+        cache: "no-store",
       });
       const keyData = await keyResponse.json().catch(() => ({}));
       if (!keyResponse.ok || !keyData.publicKey) throw Error(keyData.error || "Push notifications aren't configured yet.");
 
       const subscription = await reg.pushManager.subscribe({
-        userVisibleOnly: true, applicationServerKey: encodeKey(keyData.publicKey),
+        userVisibleOnly: true,
+        applicationServerKey: encodeKey(keyData.publicKey),
       });
       const saveResponse = await fetch("/api/custom-message", {
-        method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "PUSH_SUBSCRIBE", subscription: subscription.toJSON() }), credentials: "same-origin",
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "PUSH_SUBSCRIBE", subscription: subscription.toJSON() }),
+        credentials: "same-origin",
       });
       if (!saveResponse.ok) {
         await subscription.unsubscribe().catch(() => {});
         throw Error((await saveResponse.json().catch(() => ({}))).error || "We couldn't save this device. Please try again.");
       }
       setState("on");
-      setMessage("This device is subscribed. You'll be notified when verified gift codes become available or the developer sends a message.");
+      setMessage("Notifications are enabled on this device.");
     } catch (error) {
       setState(current => current === "denied" ? "denied" : "error");
       setMessage(error instanceof Error ? error.message : "We couldn't update notification settings. Please try again.");
@@ -108,57 +138,84 @@ export default function PushNotifications() {
   const busy = state === "busy";
 
   return (
-    <aside style={panelStyle} aria-label="Push notification settings">
-      <div style={{ padding: "16px 16px 14px", background: enabled ? "linear-gradient(120deg, #153d32, #17251f)" : "linear-gradient(120deg, #242b46, #191e2e)", borderBottom: "1px solid #ffffff12" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-          <div style={{ display: "grid", placeItems: "center", flex: "0 0 42px", width: 42, height: 42, borderRadius: 13, background: enabled ? "#2a8060" : "#5969c9", color: "white" }}>
-            {enabled ? <BellRing size={21} /> : <Bell size={21} />}
-          </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-              <strong style={{ fontSize: 15, letterSpacing: "-.2px" }}>Stay in the loop</strong>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 7px", borderRadius: 999, background: enabled ? "#b6f2d51b" : "#ffffff12", color: enabled ? "#a9efcd" : "#c7caff", fontSize: 10, fontWeight: 750, letterSpacing: ".6px" }}>
-                {enabled ? <Check size={11} /> : <span style={{ width: 5, height: 5, borderRadius: 99, background: "#aab4ff" }} />}
-                {enabled ? "ENABLED" : "OPTIONAL"}
-              </span>
-            </div>
-            <p style={{ margin: "5px 0 0", color: "var(--muted, #a8afbf)", lineHeight: 1.45, fontSize: 12 }}>
-              {enabled ? "You're all set on this device." : "Get the important Kingshot updates without keeping the site open."}
-            </p>
-          </div>
-          <button type="button" onClick={() => { setHidden(true); try { localStorage.setItem("ks-push-panel-dismissed", "1"); } catch {} }} aria-label="Dismiss notification settings" style={quietButton}><X size={16} /></button>
+    <aside style={panelStyle} aria-label="Notification opt-in">
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "16px 16px 12px" }}>
+        <div style={{
+          display: "grid", placeItems: "center", flex: "0 0 42px", width: 42, height: 42,
+          borderRadius: 12, background: enabled ? "#176b50" : "#167fc0", color: "#fff",
+        }}>
+          {enabled ? <BellRing size={21} /> : <Bell size={21} />}
         </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <strong style={{ display: "block", fontSize: 15, lineHeight: 1.35 }}>
+            {enabled ? "Notifications are on" : "Never miss a new gift code"}
+          </strong>
+          <p style={{ margin: "5px 0 0", color: "var(--muted, #a8afbf)", fontSize: 12, lineHeight: 1.5 }}>
+            {enabled
+              ? "Get alerts for new gift codes and important site updates."
+              : "Get alerts for new Kingshot gift codes and important site updates."}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={dismiss}
+          aria-label="Not now; dismiss notification prompt"
+          style={{ display: "grid", placeItems: "center", flex: "0 0 30px", width: 30, height: 30, padding: 0, border: 0, borderRadius: 8, background: "transparent", color: "var(--muted, #a8afbf)", cursor: "pointer" }}
+        >
+          <X size={17} />
+        </button>
       </div>
 
-      <div style={{ padding: 16 }}>
-        <div style={{ display: "grid", gap: 12 }}>
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-            <span style={{ display: "grid", placeItems: "center", width: 30, height: 30, flex: "0 0 30px", borderRadius: 9, background: "#6f7cff18", color: "#aeb7ff" }}><Gift size={16} /></span>
-            <div><strong style={{ display: "block", fontSize: 13 }}>Verified gift codes</strong><span style={{ display: "block", marginTop: 3, color: "var(--muted, #a8afbf)", fontSize: 12, lineHeight: 1.45 }}>Get an alert when a newly available code is verified and ready to use.</span></div>
-          </div>
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-            <span style={{ display: "grid", placeItems: "center", width: 30, height: 30, flex: "0 0 30px", borderRadius: 9, background: "#6f7cff18", color: "#aeb7ff" }}><MessageSquareText size={16} /></span>
-            <div><strong style={{ display: "block", fontSize: 13 }}>Developer messages</strong><span style={{ display: "block", marginTop: 3, color: "var(--muted, #a8afbf)", fontSize: 12, lineHeight: 1.45 }}>Receive custom announcements from the site developer.</span></div>
-          </div>
-        </div>
-
-        <button type="button" onClick={() => setDetailsOpen(value => !value)} aria-expanded={detailsOpen} style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 14, padding: "5px 0", border: 0, background: "transparent", color: "var(--muted, #a8afbf)", fontSize: 11, cursor: "pointer" }}>
-          <ShieldCheck size={13} /> Your choice, your device <ChevronDown size={13} style={{ transform: detailsOpen ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
-        </button>
-        {detailsOpen && <p style={{ margin: "4px 0 0", padding: 10, borderRadius: 10, background: "#ffffff08", color: "var(--muted, #a8afbf)", fontSize: 11, lineHeight: 1.55 }}>
-          Notifications are optional and can be turned off here at any time. We only send verified new gift-code alerts and custom developer messages—never redemption or account alerts.
-        </p>}
-
-        <button type="button" disabled={busy} onClick={() => void toggle()} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", marginTop: 14, padding: "12px 14px", borderRadius: 11, border: enabled ? "1px solid #ffffff20" : 0, background: enabled ? "#ffffff0b" : "#6679ff", color: "white", fontWeight: 750, fontSize: 13, cursor: busy ? "wait" : "pointer", opacity: busy ? .7 : 1 }}>
+      <div style={{ display: "flex", gap: 10, padding: "0 16px 16px" }}>
+        {!enabled && (
+          <button
+            type="button"
+            onClick={dismiss}
+            style={{ ...buttonStyle, flex: "1 1 0", border: "1px solid var(--border, #303642)", background: "transparent", color: "var(--text, #f4f6fb)" }}
+          >
+            Not now
+          </button>
+        )}
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void toggle()}
+          style={{
+            ...buttonStyle,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            flex: "1 1 0",
+            border: 0,
+            background: enabled ? "#ffffff12" : "#168bd2",
+            color: "#fff",
+            opacity: busy ? 0.7 : 1,
+            cursor: busy ? "wait" : "pointer",
+          }}
+        >
           {busy ? <LoaderCircle size={16} className="spin" /> : enabled ? <CheckCircle2 size={16} /> : <Bell size={16} />}
-          {busy ? (enabled ? "Updating settings…" : "Enabling notifications…") : enabled ? "Turn notifications off" : "Enable notifications"}
+          {busy ? "Please wait…" : enabled ? "Turn off" : "Enable notifications"}
         </button>
-
-        {message && <div role={state === "error" ? "alert" : "status"} aria-live={state === "error" ? "assertive" : "polite"} style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 12, padding: 11, borderRadius: 10, border: "1px solid " + (state === "error" ? "#ef646433" : enabled ? "#56d6a033" : "#ffffff14"), background: state === "error" ? "#ef646310" : enabled ? "#56d6a00d" : "#ffffff08", color: state === "error" ? "#ffb0b0" : enabled ? "#a9efcd" : "var(--muted, #a8afbf)", fontSize: 12, lineHeight: 1.5 }}>
-          {state === "error" ? <X size={15} style={{ flex: "0 0 auto", marginTop: 1 }} /> : enabled ? <CheckCircle2 size={15} style={{ flex: "0 0 auto", marginTop: 1 }} /> : <Bell size={15} style={{ flex: "0 0 auto", marginTop: 1 }} />}
-          <span>{message}</span>
-        </div>}
       </div>
+
+      {message && (
+        <div
+          role={state === "error" ? "alert" : "status"}
+          aria-live={state === "error" ? "assertive" : "polite"}
+          style={{
+            margin: "0 16px 16px",
+            padding: 10,
+            borderRadius: 9,
+            background: state === "error" ? "#ef646310" : "#56d6a00d",
+            color: state === "error" ? "#ffb0b0" : "#a9efcd",
+            fontSize: 12,
+            lineHeight: 1.5,
+          }}
+        >
+          {message}
+        </div>
+      )}
     </aside>
   );
 }
