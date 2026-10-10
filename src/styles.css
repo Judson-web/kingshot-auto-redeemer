@@ -1609,7 +1609,7 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 
 /* Opt-in browser push preferences */
 .ks-push-widget{position:fixed;right:16px;bottom:18px;z-index:8000;font-family:inherit}
-.ks-push-trigger,.ks-push-action,.ks-push-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;cursor:pointer;font:600 12px/1.2 inherit;transition:background .15s,border-color .15s,transform .15s}
+.ks-push-trigger,.ks-push-action,.ks-push-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;cursor:pointer;font:inherit;font-size:12px;font-weight:600;line-height:1.2;transition:background .15s,border-color .15s,transform .15s}
 .ks-push-trigger{padding:11px 15px;background:#171a22;color:#f4f4f5;border:1px solid #414653;box-shadow:0 8px 30px #0005}
 .ks-push-trigger:hover,.ks-push-action:hover{transform:translateY(-1px)}
 .ks-push-panel{width:min(320px,calc(100vw - 32px));margin-bottom:10px;padding:16px;background:#11141b;color:#f3f4f6;border:1px solid #343a46;border-radius:18px;box-shadow:0 16px 50px #0008}
@@ -1628,3 +1628,9 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @keyframes ks-push-rotate{to{transform:rotate(360deg)}}
 @media(max-width:520px){.ks-push-widget{right:12px;bottom:12px}.ks-push-trigger{padding:10px 12px}}
 @media(prefers-reduced-motion:reduce){.ks-push-spin{animation:none}.ks-push-trigger,.ks-push-action{transition:none}}
+
+.message-push-optin{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid #343b49;border-radius:12px;background:#171b24;color:#e8ebf2;cursor:pointer}
+.message-push-optin input{width:16px;height:16px;margin:2px 0 0;accent-color:#5865f2;flex:0 0 auto}
+.message-push-optin span{display:grid;gap:4px}
+.message-push-optin b{font-size:12px}
+.message-push-optin small{font-size:11px;line-height:1.5;color:#9da6b5}
