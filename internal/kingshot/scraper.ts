@@ -30,6 +30,7 @@ const sourceInFlight = new Map<string, Promise<ScraperResult>>();
 const sourceCooldowns = new Map<string, number>();
 const SOURCE_CACHE_TTL_MS = 90_000;
 const PAGE_CACHE_TTL_MS = 180_000;
+const STALE_IF_THROTTLED_MS = 6 * 60 * 60_000;
 
 function retryAfterMs(response: Response): number | null {
   const raw = response.headers.get("retry-after");
@@ -78,7 +79,7 @@ async function recordRun(rpc: Rpc, source: string, httpStatus: number | null, co
   }).catch(() => {});
 }
 
-async function fetchSourceUncached(rpc: Rpc, url: string, kind: string, source: string, apiLike: boolean): Promise<ScraperResult> {
+async function fetchSourceUncached(rpc: Rpc, url: string, kind: string, source: string, apiLike: boolean, stale: CachedResult | undefined): Promise<ScraperResult> {
   const cooldownUntil = sourceCooldowns.get(url) || 0;
   if (cooldownUntil > Date.now()) {
     const waitSeconds = Math.ceil((cooldownUntil - Date.now()) / 1000);
@@ -128,6 +129,10 @@ async function fetchSourceUncached(rpc: Rpc, url: string, kind: string, source: 
       const error = Error("HTTP 429; upstream cooldown applied");
       await recordRun(rpc, source, 429, [], false, error);
       await updateHealth(rpc, source, 0, error.message);
+      // Preserve service continuity with a bounded stale snapshot, but never relabel it as a fresh fetch.
+      if (stale && Date.now() - stale.expiresAt <= STALE_IF_THROTTLED_MS) {
+        return { ...stale.result, codes: [...stale.result.codes], error: "Upstream rate-limited; serving bounded stale cache", ok: true };
+      }
       return emptyResult(source, apiLike, 429, error.message);
     }
 
@@ -181,13 +186,12 @@ export async function fetchSource(rpc: Rpc, url: string, kind: string): Promise<
   const apiLike = kind === "api" || kind === "aggregator";
   const cached = sourceCache.get(url);
   if (cached && cached.expiresAt > Date.now()) return { ...cached.result, codes: [...cached.result.codes] };
-  if (cached) sourceCache.delete(url);
 
   // Concurrent callers in one warm serverless instance share one upstream request.
   const existing = sourceInFlight.get(url);
   if (existing) return existing.then(result => ({ ...result, codes: [...result.codes] }));
 
-  const pending = fetchSourceUncached(rpc, url, kind, source, apiLike);
+  const pending = fetchSourceUncached(rpc, url, kind, source, apiLike, cached);
   sourceInFlight.set(url, pending);
   try {
     return await pending;
