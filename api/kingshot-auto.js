@@ -19,7 +19,14 @@ if(!SUPABASE_KEY)throw Error("Supabase service key is not configured on the serv
 async function rpc(name,body){
  const r=await fetch(SUPABASE_URL+"/rest/v1/rpc/"+name,{method:"POST",headers:{"apikey":SUPABASE_KEY,"authorization":"Bearer "+SUPABASE_KEY,"content-type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(10000)});
  const d=await r.json().catch(()=>null);
- if(!r.ok)throw Error(d?.message||"Supabase request failed");
+ if(!r.ok){
+  const code=typeof d?.code==="string"?d.code.slice(0,40):null;
+  const message=String(d?.message||d?.error_description||"Supabase request failed").replace(/\\s+/g," ").trim().slice(0,240);
+  // Keep operation, HTTP status, and PostgreSQL/PostgREST code for diagnosis.
+  // Do not log request bodies, player identifiers, codes, or authorization headers.
+  console.error("Supabase RPC failed:",{operation:name,status:r.status,code,message});
+  throw Error("Supabase RPC "+name+" failed (HTTP "+r.status+(code?", code "+code:"")+"): "+message);
+ }
  return d;
 }
 
@@ -354,6 +361,14 @@ export default async function handler(req,res){
    }
   }));
   const workerFailures=workerRuns.filter(result=>result?.error||result?.claimed===false&&result?.reason!=="SLOT_ALREADY_RUNNING");
+  // Keep coordinator/shard failures visible separately from per-player errors.
+  // These failures were previously counted but omitted from worker diagnostics.
+  const shardFailureDiagnostics=workerFailures.map(result=>({
+   slot:Number.isInteger(result?.slot)?result.slot:null,
+   category:String(result?.errorCategory||"WORKER_SHARD"),
+   message:String(result?.error||result?.reason||"Worker shard failed.").replace(/\\s+/g," ").trim().slice(0,240),
+   players:Number.isFinite(result?.players)?result.players:null
+  }));
   const totals=workerRuns.reduce((a,r)=>{
    a.attempted+=(r?.attempted||0);a.success+=(r?.success||0);a.alreadyReceived+=(r?.alreadyReceived||0);a.alreadyHandled+=(r?.alreadyHandled||0);a.skipped+=(r?.skipped||0);a.errors+=(r?.errors||0)+(r?.error?1:0);a.deadlineSkipped+=(r?.deadlineSkipped||0);return a;
   },{attempted:0,success:0,alreadyReceived:0,alreadyHandled:0,skipped:0,errors:0,stale:0,deadlineSkipped:0,kingdomChecks:kingdomSummary.checked,kingdomChanges:kingdomSummary.changed});
@@ -396,7 +411,7 @@ export default async function handler(req,res){
    return map;
   },{})).sort((x,y)=>y.count-x.count).slice(0,8);
   console.log("Kingshot auto worker pool:",{workers:WORKER_COUNT,assignments:assignments.map(x=>x.length),workerFailures:workerFailures.length,attempted:totals.attempted,success:totals.success,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures});
-  const summary={source:"multi-source",sources:sourceResults.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,verificationAttempt,...totals,workerFailures:workerFailures.length,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures,codeTelemetry};
+  const summary={source:"multi-source",sources:sourceResults.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,verificationAttempt,...totals,workerFailures:workerFailures.length,shardFailureDiagnostics,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures,codeTelemetry};
   await rpc("finish_kingshot_worker_run",{p_token:workerToken,p_status:totals.errors||totals.stale?"COMPLETED_WITH_WARNINGS":"COMPLETED",p_error:null,p_summary:summary}).catch(error=>console.error("Worker state update failed:",error?.message||error));
   const anomalyReasons=[];
   if(totals.errors||workerFailures.length)anomalyReasons.push("worker errors");
@@ -410,9 +425,15 @@ export default async function handler(req,res){
    {name:"Cycle runtime",value:(cycleDurationMs/1000).toFixed(1)+"s",inline:true},
    {name:"Source health",value:healthySources+"/"+sourceCount+" healthy",inline:true},
    {name:"Validated",value:String(validPlayers.length)+"/"+String(list.length),inline:true},
-   {name:"Worker diagnostics",value:workerErrorDiagnostics.length?workerErrorDiagnostics.map(x=>x.category+" · "+x.message+" · x"+x.count).join("\n").slice(0,1024):"None",inline:false}
+   {name:"Worker diagnostics",value:[
+    ...workerErrorDiagnostics.map(x=>x.category+" · "+x.message+" · x"+x.count),
+    ...shardFailureDiagnostics.map(x=>"SHARD "+(x.slot??"?")+" · "+x.category+" · "+x.message+(x.players!=null?" · "+x.players+" players":""))
+   ].join("\n").slice(0,1024)||"None",inline:false}
   ],color:0xED4245});
-  if(totals.attempted||totals.errors||totals.stale||workerFailures.length||newCodes.length)await sendDiscordEvent({title:"📊 Auto-redeem cycle",description:"Scheduled Kingshot worker pool completed a cycle with activity.",fields:[{name:"Players",value:String(list.length),inline:true},{name:"Validated",value:String(validPlayers.length),inline:true},{name:"Workers",value:String(WORKER_COUNT),inline:true},{name:"Codes",value:String(activeCodes.length),inline:true},{name:"Attempts",value:String(totals.attempted),inline:true},{name:"Successes",value:String(totals.success),inline:true},{name:"Already received",value:String(totals.alreadyReceived),inline:true},{name:"Already redeemed/handled",value:String(totals.alreadyHandled),inline:true},{name:"Errors",value:String(totals.errors),inline:true},{name:"Stale",value:String(totals.stale),inline:true},{name:"Worker failures",value:String(workerFailures.length),inline:true},{name:"Deferred by deadline",value:String(totals.deadlineSkipped),inline:true},{name:"Runtime",value:(cycleDurationMs/1000).toFixed(1)+"s",inline:true},{name:"Sources",value:healthySources+"/"+sourceCount+" healthy",inline:true},{name:"Redemption statuses",value:Object.entries(workerRuns.reduce((map,r)=>{for(const [status,count] of Object.entries(r?.redemptionStatuses||{}))map[status]=(map[status]||0)+count;return map},{})).map(([status,count])=>`${status}: ${count}`).join("\n").slice(0,1024)||"None",inline:false},{name:"Code breakdown",value:Object.entries(codeCounts).filter(([k])=>!k.includes("_status_")).map(([code,count])=>`${code}: ${count} handled`).join("\n").slice(0,1024)||"None",inline:false},{name:"Speed telemetry",value:Object.entries(codeTelemetry).filter(([,t])=>Number(t?.attempts||0)>0).map(([code,t])=>code+": first result "+(t.firstResultLatencyMs!=null?(t.firstResultLatencyMs/1000).toFixed(1)+"s":"—")+" · "+(t.avgRedemptionLatencyMs!=null?(t.avgRedemptionLatencyMs/1000).toFixed(1)+"s avg API":"—")+(t.firstSuccessAt?" · first SUCCESS":" · no SUCCESS")).join("\n").slice(0,1024)||"None",inline:false},{name:"Redemption failures",value:mergedFailures.length?mergedFailures.map(x=>`${x.category}/${x.errCode}/${x.status}: ${x.count}`).join("\n").slice(0,1024):"None",inline:false},{name:"Worker diagnostics",value:workerErrorDiagnostics.length?workerErrorDiagnostics.map(x=>x.category+" · "+x.message+" · x"+x.count).join("\n").slice(0,1024):"None",inline:false}],color:totals.errors||totals.stale||workerFailures.length?0xFEE75C:0x57F287});
+  if(totals.attempted||totals.errors||totals.stale||workerFailures.length||newCodes.length)await sendDiscordEvent({title:"📊 Auto-redeem cycle",description:"Scheduled Kingshot worker pool completed a cycle with activity.",fields:[{name:"Players",value:String(list.length),inline:true},{name:"Validated",value:String(validPlayers.length),inline:true},{name:"Workers",value:String(WORKER_COUNT),inline:true},{name:"Codes",value:String(activeCodes.length),inline:true},{name:"Attempts",value:String(totals.attempted),inline:true},{name:"Successes",value:String(totals.success),inline:true},{name:"Already received",value:String(totals.alreadyReceived),inline:true},{name:"Already redeemed/handled",value:String(totals.alreadyHandled),inline:true},{name:"Errors",value:String(totals.errors),inline:true},{name:"Stale",value:String(totals.stale),inline:true},{name:"Worker failures",value:String(workerFailures.length),inline:true},{name:"Deferred by deadline",value:String(totals.deadlineSkipped),inline:true},{name:"Runtime",value:(cycleDurationMs/1000).toFixed(1)+"s",inline:true},{name:"Sources",value:healthySources+"/"+sourceCount+" healthy",inline:true},{name:"Redemption statuses",value:Object.entries(workerRuns.reduce((map,r)=>{for(const [status,count] of Object.entries(r?.redemptionStatuses||{}))map[status]=(map[status]||0)+count;return map},{})).map(([status,count])=>`${status}: ${count}`).join("\n").slice(0,1024)||"None",inline:false},{name:"Code breakdown",value:Object.entries(codeCounts).filter(([k])=>!k.includes("_status_")).map(([code,count])=>`${code}: ${count} handled`).join("\n").slice(0,1024)||"None",inline:false},{name:"Speed telemetry",value:Object.entries(codeTelemetry).filter(([,t])=>Number(t?.attempts||0)>0).map(([code,t])=>code+": first result "+(t.firstResultLatencyMs!=null?(t.firstResultLatencyMs/1000).toFixed(1)+"s":"—")+" · "+(t.avgRedemptionLatencyMs!=null?(t.avgRedemptionLatencyMs/1000).toFixed(1)+"s avg API":"—")+(t.firstSuccessAt?" · first SUCCESS":" · no SUCCESS")).join("\n").slice(0,1024)||"None",inline:false},{name:"Redemption failures",value:mergedFailures.length?mergedFailures.map(x=>`${x.category}/${x.errCode}/${x.status}: ${x.count}`).join("\n").slice(0,1024):"None",inline:false},{name:"Worker diagnostics",value:[
+    ...workerErrorDiagnostics.map(x=>x.category+" · "+x.message+" · x"+x.count),
+    ...shardFailureDiagnostics.map(x=>"SHARD "+(x.slot??"?")+" · "+x.category+" · "+x.message+(x.players!=null?" · "+x.players+" players":""))
+   ].join("\n").slice(0,1024)||"None",inline:false}],color:totals.errors||totals.stale||workerFailures.length?0xFEE75C:0x57F287});
   return res.status(200).json({ok:true,...summary});
  }catch(e){
   console.error("Kingshot auto redeem:",e);
