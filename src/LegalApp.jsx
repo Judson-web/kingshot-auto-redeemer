@@ -19,7 +19,7 @@ export default function LegalApp({type}){
         <div className="eyebrow"><span/>{privacy?"PRIVACY NOTICE":"TERMS OF USE"}</div>
         <h1>{privacy?"Privacy, made clear.":"Terms, without the clutter."}</h1>
         <p className="hero-copy">{service.summary}</p>
-        <div className="legal-meta"><span>Updated October 10, 2026</span><span>Independent community service</span><span>No game password required</span></div><div className="legal-tabs"><a className={!privacy?"active":""} href={"/terms?service="+serviceKey}>Terms</a><a className={privacy?"active":""} href={"/privacy?service="+serviceKey}>Privacy</a></div>
+        <div className="legal-meta"><span>Updated October 14, 2026</span><span>Independent community service</span><span>No game password required</span></div><div className="legal-tabs"><a className={!privacy?"active":""} href={"/terms?service="+serviceKey}>Terms</a><a className={privacy?"active":""} href={"/privacy?service="+serviceKey}>Privacy</a></div>
       </section>
       <section className="legal-body">
         <h2>Accessibility</h2>
@@ -36,8 +36,9 @@ export default function LegalApp({type}){
           <p>If you submit a request to remove an Auto Redeem registration, the Player ID and reason you provide are processed so an administrator can review the request. Do not include passwords, payment details, authentication codes, or other sensitive information.</p>
           <h2>Advertising</h2>
           <p>The public service does not require advertising to provide its redemption features. If sponsored content or third-party promotional links are introduced later, they may have their own privacy practices and those practices will be identified or linked from the relevant experience.</p>
-          <h2>Technical information</h2>
-          <p>Requests may be processed by hosting, database, security, content-delivery, and other infrastructure providers needed to operate the service. Technical information such as IP address, request metadata, device or browser information, and timestamps may be available to those systems for security, reliability, rate limiting, and abuse prevention.</p>
+          <h2>Technical information and website analytics</h2>
+          <p>When a page is viewed, this site sends a small first-party telemetry event to its server. The event may include the request IP address, country, region, city and timezone when provided by the hosting platform; page path (without query-string parameters); referring website hostname; user-agent; inferred browser, operating system and device category; accepted language; approximate screen-size category; and timestamp. These records help understand site usage, diagnose reliability issues, protect against abuse, and improve the service. The site does not intentionally collect form contents, game credentials, precise GPS location, or cross-site browser fingerprints through this telemetry.</p>
+          <p>Detailed visitor records are stored in the private application database, are not exposed through a public API, and are automatically scheduled for deletion after 30 days. Hosting and infrastructure providers may separately process request metadata under their own terms. Browser telemetry is sent at most once per page path per tab session; browser restrictions, network failures, and blocking tools may prevent collection. Country and location fields may be unavailable or approximate.</p>
           <h2>Retention and removal</h2>
           <p>Information is retained for as long as reasonably needed to operate the feature, prevent duplicate work, maintain security, resolve support issues, troubleshoot failures, or preserve necessary service records. Removing an Auto Redeem registration stops future scheduled processing for that registration. It does not automatically mean that every related redemption, support, security, or operational record is immediately erased; some records may remain where needed for service integrity, abuse prevention, auditing, troubleshooting, or legal obligations. Verified scraper history is maintained separately as operational archive data and does not contain Player IDs or registration identifiers. Private registered-player recovery snapshots are a separate disaster-recovery copy and may contain the minimal Player ID and registration-state fields described above. Use the removal request form on the Auto Redeem page to request registration removal.</p>
           <h2>Third-party services</h2>
@@ -77,7 +78,7 @@ export default function LegalApp({type}){
         </>}
         <h2>Questions and requests</h2><p>For registration removal or service questions, use the support form on the Auto Redeem page. Do not send passwords, authentication codes, payment details, or other sensitive information through support. Requests are reviewed through the service’s normal operational process.</p><h2>No affiliation</h2>
         <p>This project is independent and should not be represented as an official Century Games, Kingshot, or Discord service. Product names, logos, and trademarks remain the property of their respective owners.</p>
-        <p className="legal-note">This notice describes the current operation of this independent community service and is not legal advice. Effective: October 10, 2026.</p>
+        <p className="legal-note">This notice describes the current operation of this independent community service and is not legal advice. Effective: October 14, 2026.</p>
       </section>
     </main>
     <footer><a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={KINGSHOT_ICON} alt="Kingshot"/></span><span>Kingshot Redeemer</span></a><span>© 2026 Judson · Independent community service</span><span><a href={"/terms?service="+serviceKey}>Terms</a> · <a href={"/privacy?service="+serviceKey}>Privacy</a></span></footer>
