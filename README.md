@@ -32,7 +32,7 @@
 | ⚙️ **Automatic redemption** | Processes registered Player IDs through coordinated workers |
 | 🔁 **Backfill** | Catches eligible codes missed while a player was offline or unavailable |
 | 👤 **Player validation** | Revalidates player and kingdom data when required |
-| 📊 **Telemetry** | Tracks discovery, parsing, redemption, operational outcomes, and short-retention website visit metadata |
+| 📊 **Telemetry** | Tracks discovery, parsing, redemption, and operational outcomes; aggregate website analytics are archived separately |
 | 🗄️ **Archive** | Keeps scraper history in a separate private archive |
 | 🛡️ **Disaster recovery** | Maintains verified, encrypted recovery material |
 | 🔐 **Security** | Uses server-side credentials, rate-aware behavior, and regression checks |
