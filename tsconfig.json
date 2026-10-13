@@ -15,7 +15,8 @@
     "types": [
       "node"
     ],
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "checkJs": true
   },
   "include": [
     "src/**/*",
