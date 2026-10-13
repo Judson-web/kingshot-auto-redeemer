@@ -37,20 +37,12 @@
       "destination": "/api/admin-tools/login"
     },
     {
-      "source": "/api/kingshot-visitor-analytics",
-      "destination": "/api/admin-tools/visitor-analytics"
-    },
-    {
       "source": "/api/kingshot-health",
       "destination": "/api/ops-tools/health"
     },
     {
       "source": "/api/kingshot-support",
       "destination": "/api/ops-tools/support"
-    },
-    {
-      "source": "/analytics",
-      "destination": "/index.html"
     },
     {
       "source": "/terms",
