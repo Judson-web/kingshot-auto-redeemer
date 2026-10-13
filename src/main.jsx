@@ -1,5 +1,4 @@
 import React,{useEffect,useRef,useState}from"react";
-import{Analytics}from"@vercel/analytics/react";
 import{createRoot}from"react-dom/client";
 import{ExternalLink,Gift,Menu,Search,ShieldCheck,X,CheckCircle,LoaderCircle,AlertTriangle,Info,OctagonAlert,ArrowRight,Copy,Activity,Wrench,WifiOff}from"lucide-react";
 import"./styles.css";
@@ -127,4 +126,4 @@ const publicPage=location.pathname==="/auto"||location.pathname==="/" ? <AutoRed
 }
 registerAppServiceWorker();
 
-createRoot(document.getElementById("root")).render(<><MaintenanceGate><PublicAnnouncements>{publicPage}</PublicAnnouncements><InstallAppPrompt/><PushNotifications/></MaintenanceGate><Analytics/></>);
+createRoot(document.getElementById("root")).render(<MaintenanceGate><PublicAnnouncements>{publicPage}</PublicAnnouncements><InstallAppPrompt/><PushNotifications/></MaintenanceGate>);
