@@ -32,7 +32,7 @@
 | ⚙️ **Automatic redemption** | Processes registered Player IDs through coordinated workers |
 | 🔁 **Backfill** | Catches eligible codes missed while a player was offline or unavailable |
 | 👤 **Player validation** | Revalidates player and kingdom data when required |
-| 📊 **Telemetry** | Tracks discovery, parsing, redemption, and operational outcomes |
+| 📊 **Telemetry** | Tracks discovery, parsing, redemption, operational outcomes, and short-retention website visit metadata |
 | 🗄️ **Archive** | Keeps scraper history in a separate private archive |
 | 🛡️ **Disaster recovery** | Maintains verified, encrypted recovery material |
 | 🔐 **Security** | Uses server-side credentials, rate-aware behavior, and regression checks |
@@ -220,6 +220,14 @@ They include:
 - disaster-recovery verification
 
 The goal is simple: **a green build should mean more than “the frontend compiled.”**
+
+## ✦ Website visitor telemetry
+
+The public site records a minimal first-party page-view event through the existing operations catch-all route (no separate Vercel function configuration). It stores the request IP when available, Vercel-provided country/region/city/timezone, path without query parameters, referrer hostname, user-agent, inferred browser/OS/device category, accepted language, approximate screen-size class, and timestamp.
+
+Visitor events are stored in the private `kingshot_visitor_events` table with row-level security enabled and no anonymous/authenticated client access. Only server-side service-role access is granted. A daily PostgreSQL cron job deletes records after 30 days. Collection is best-effort and is rate-limited; client-side collection runs at most once per page path per tab session. It does not collect form values, game credentials, precise GPS, or a cross-site fingerprint. Hosting providers may independently process request metadata.
+
+This is intentionally separate from the existing health endpoint, which is polled repeatedly by the site and monitoring tools. Do not archive raw IPs or detailed visitor rows in Git history or the long-term scraper/DR archives. See the [Privacy notice](https://kingshot-autoredeemer.vercel.app/privacy?service=kingshot-auto).
 
 ## ✦ Web push notifications
 
