@@ -222,6 +222,14 @@ They include:
 The goal is simple: **a green build should mean more than “the frontend compiled.”**
 
 
+## ✦ Website visitor telemetry
+
+The public site records a minimal first-party page-view event through the existing operations catch-all route. It stores the request IP when available, Vercel-provided country/region/city/timezone, path without query parameters, referrer hostname, user-agent, inferred browser/OS/device category, accepted language, approximate screen-size class, and timestamp.
+
+Visitor events are stored in the private `kingshot_visitor_events` table with row-level security enabled and no anonymous/authenticated client access. Only server-side service-role access is granted. A daily PostgreSQL cron job deletes records after 30 days. Collection is best-effort and rate-limited; client-side collection runs at most once per page path per tab session. It does not collect form values, game credentials, precise GPS, or a cross-site fingerprint. Hosting providers may independently process request metadata.
+
+This tracker is separate from the public aggregate-only analytics visualized in the [archive README](https://github.com/Judson-web/Kingshot-auto-redeemer-archive#live-website-analytics). Raw IPs and detailed visitor rows are not copied into the long-term archive. See the [Privacy notice](https://kingshot-autoredeemer.vercel.app/privacy?service=kingshot-auto).
+
 ## ✦ Web push notifications
 
 Web push is optional. Visitors can choose whether to enable notifications through the browser permission prompt; the site does not repeatedly prompt after a user dismisses the setup panel. Notifications can include alerts for verified new gift codes and manually composed announcements sent by an authorized operator.
