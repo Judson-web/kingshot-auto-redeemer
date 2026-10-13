@@ -124,6 +124,21 @@ const publicPage=location.pathname==="/auto"||location.pathname==="/" ? <AutoRed
   navigator.serviceWorker.addEventListener("controllerchange",()=>location.reload());
  });
 }
+function recordVisitorPageView(){
+ try{
+  if(!window.fetch||!window.sessionStorage)return;
+  const path=location.pathname;
+  if(!path||path.startsWith("/api/"))return;
+  const key="ks_telemetry_seen:"+path;
+  if(sessionStorage.getItem(key))return;
+  sessionStorage.setItem(key,"1");
+  const referrerHost=(()=>{try{return document.referrer?new URL(document.referrer).hostname:""}catch{return""}})();
+  const width=window.innerWidth||0;
+  const screenClass=width<600?"small":width<1024?"medium":width>=1024?"large":"unknown";
+  fetch("/api/ops-tools/visitor",{method:"POST",credentials:"same-origin",keepalive:true,headers:{"Content-Type":"application/json"},body:JSON.stringify({path,referrerHost,screenClass})}).catch(()=>{});
+ }catch{}
+}
+if(typeof window!=="undefined")window.addEventListener("load",recordVisitorPageView,{once:true});
 registerAppServiceWorker();
 
 createRoot(document.getElementById("root")).render(<MaintenanceGate><PublicAnnouncements>{publicPage}</PublicAnnouncements><InstallAppPrompt/><PushNotifications/></MaintenanceGate>);
