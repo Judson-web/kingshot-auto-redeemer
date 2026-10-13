@@ -221,11 +221,6 @@ They include:
 
 The goal is simple: **a green build should mean more than “the frontend compiled.”**
 
-## ✦ Website analytics dashboard
-
-The private first-party analytics dashboard is available at `/analytics` and uses the existing admin access-key session. It provides date filters (7/14/30 days), page-view and approximate unique-IP KPIs, daily traffic charts, country/page/referrer/device/browser breakdowns, recent visit records, and CSV export of the latest 100 events. Treat IP addresses and user-agent strings as sensitive data. The dashboard is not linked from public navigation and excludes its own page from visitor collection.
-
-The existing Vercel Web Analytics workflow remains a second, aggregate-only source. It archives daily totals and breakdowns in the private [analytics archive](https://github.com/Judson-web/Kingshot-auto-redeemer-archive/tree/main/analytics); those snapshots intentionally do not include raw IP addresses and are not mixed into first-party visitor rows. The sources are complementary rather than interchangeable.
 
 ## ✦ Website visitor telemetry
 
