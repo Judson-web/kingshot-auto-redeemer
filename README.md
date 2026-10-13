@@ -222,14 +222,6 @@ They include:
 The goal is simple: **a green build should mean more than “the frontend compiled.”**
 
 
-## ✦ Website visitor telemetry
-
-The public site records a minimal first-party page-view event through the existing operations catch-all route (no separate Vercel function configuration). It stores the request IP when available, Vercel-provided country/region/city/timezone, path without query parameters, referrer hostname, user-agent, inferred browser/OS/device category, accepted language, approximate screen-size class, and timestamp.
-
-Visitor events are stored in the private `kingshot_visitor_events` table with row-level security enabled and no anonymous/authenticated client access. Only server-side service-role access is granted. A daily PostgreSQL cron job deletes records after 30 days. Collection is best-effort and is rate-limited; client-side collection runs at most once per page path per tab session. It does not collect form values, game credentials, precise GPS, or a cross-site fingerprint. Hosting providers may independently process request metadata.
-
-This is intentionally separate from the existing health endpoint, which is polled repeatedly by the site and monitoring tools. Do not archive raw IPs or detailed visitor rows in Git history or the long-term scraper/DR archives. See the [Privacy notice](https://kingshot-autoredeemer.vercel.app/privacy?service=kingshot-auto).
-
 ## ✦ Web push notifications
 
 Web push is optional. Visitors can choose whether to enable notifications through the browser permission prompt; the site does not repeatedly prompt after a user dismisses the setup panel. Notifications can include alerts for verified new gift codes and manually composed announcements sent by an authorized operator.
@@ -249,7 +241,6 @@ Do not include secrets, personal data, or content you do not have permission to 
 | `/manual` | Manual redemption |
 | `/info` | Service documentation |
 | `/push` | Private developer push-notification console (passkey required) |
-| `/analytics` | Private first-party visitor analytics dashboard (admin access key required) |
 | `/terms` | Terms of service |
 | `/privacy` | Privacy information |
 
