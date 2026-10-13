@@ -1,4 +1,4 @@
-name: Verify
+name: Verify and Production Guardrails
 
 on:
   pull_request:
@@ -6,19 +6,22 @@ on:
   push:
     branches: [main, "ci/verify-tests-typecheck-build", "test/archive-date-filtering"]
   workflow_dispatch:
+  schedule:
+    - cron: "*/15 * * * *"
 
 permissions:
   contents: read
 
 concurrency:
-  group: verify-${{ github.workflow }}-${{ github.ref }}
+  group: verify-guardrails-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  verify:
-    name: Tests, TypeScript, and production build
+  regression:
+    name: Security regression, tests, typecheck, and build
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,11 +34,52 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Security regression checks
+        run: node scripts/security-regression.mjs
+
       - name: Run tests
         run: npm test
 
-      - name: TypeScript check
+      - name: TypeScript and JavaScript check
         run: npm run typecheck
 
       - name: Production build
         run: npm run build
+
+  smoke:
+    name: Production smoke test
+    if: github.event_name != 'schedule'
+    needs: regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Wait for production deployment
+        run: sleep 30
+
+      - name: Smoke test production
+        run: node scripts/production-smoke.mjs
+
+  watchdog:
+    name: Worker watchdog
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Check worker health
+        run: node scripts/worker-watchdog.mjs
