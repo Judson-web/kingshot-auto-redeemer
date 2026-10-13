@@ -35,6 +35,24 @@ as $function$
         group by 1
       ) c on c.bucket = b.bucket
     ),
+    'daily', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'date', to_char(d.day_utc, 'YYYY-MM-DD'),
+        'pageviews', coalesce(c.pageviews, 0)
+      ) order by d.day_utc), '[]'::jsonb)
+      from generate_series(
+        date_trunc('day', now() at time zone 'UTC') - interval '6 days',
+        date_trunc('day', now() at time zone 'UTC'),
+        interval '1 day'
+      ) as d(day_utc)
+      left join (
+        select date_trunc('day', occurred_at at time zone 'UTC') as day_utc, count(*) as pageviews
+        from public.kingshot_visitor_events
+        where occurred_at >= (date_trunc('day', now() at time zone 'UTC') - interval '6 days') at time zone 'UTC'
+          and occurred_at < (date_trunc('day', now() at time zone 'UTC') + interval '1 day') at time zone 'UTC'
+        group by 1
+      ) c on c.day_utc = d.day_utc
+    ),
     'pages', (
       select coalesce(jsonb_agg(jsonb_build_object('label', label, 'pageviews', pageviews) order by pageviews desc, label), '[]'::jsonb)
       from (
