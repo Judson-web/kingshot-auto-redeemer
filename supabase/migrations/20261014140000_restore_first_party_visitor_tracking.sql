@@ -35,7 +35,7 @@ begin
     select jobid into job_id from cron.job where jobname = 'purge-kingshot-visitor-telemetry' limit 1;
     if job_id is not null then perform cron.unschedule(job_id); end if;
     perform cron.schedule('purge-kingshot-visitor-telemetry','17 3 * * *',
-      $$delete from public.kingshot_visitor_events where expires_at <= now()$$);
+      $job$delete from public.kingshot_visitor_events where expires_at <= now()$job$);
   end if;
 end
 $$;
