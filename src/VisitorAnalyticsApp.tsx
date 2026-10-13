@@ -3,10 +3,11 @@ import { Activity, ArrowDownToLine, BarChart3, Globe2, LockKeyhole, LogOut, Refr
 
 type Breakdown = { name: string; value: number };
 type DayRow = { day: string; views: number; visitors: number };
+type VercelSnapshot = { dateUtc: string; collectedAt: string; sha256: string; data: Record<string, unknown> };
 type Visit = { occurredAt: string; ipAddress: string | null; country: string | null; region: string | null; city: string | null; path: string; referrerHost: string | null; browser: string | null; operatingSystem: string | null; deviceType: string | null; userAgent: string | null };
-type Analytics = { periodDays: number; generatedAt: string; views: number; uniqueIps: number; countriesCount: number; pagesCount: number; daily: DayRow[]; countries: Breakdown[]; pages: Breakdown[]; referrers: Breakdown[]; devices: Breakdown[]; browsers: Breakdown[]; recent: Visit[] };
+type Analytics = { periodDays: number; generatedAt: string; views: number; uniqueIps: number; countriesCount: number; pagesCount: number; daily: DayRow[]; countries: Breakdown[]; pages: Breakdown[]; referrers: Breakdown[]; devices: Breakdown[]; browsers: Breakdown[]; recent: Visit[]; vercelDaily: VercelSnapshot[] };
 
-const empty: Analytics = { periodDays: 7, generatedAt: "", views: 0, uniqueIps: 0, countriesCount: 0, pagesCount: 0, daily: [], countries: [], pages: [], referrers: [], devices: [], browsers: [], recent: [] };
+const empty: Analytics = { periodDays: 7, generatedAt: "", views: 0, uniqueIps: 0, countriesCount: 0, pagesCount: 0, daily: [], countries: [], pages: [], referrers: [], devices: [], browsers: [], recent: [], vercelDaily: [] };
 const shell: React.CSSProperties = { minHeight: "100vh", background: "var(--bg, #0b0d12)", color: "var(--text, #f4f6fb)", padding: "clamp(16px,3vw,32px)", boxSizing: "border-box", fontFamily: "inherit" };
 const panel: React.CSSProperties = { border: "1px solid var(--border, #303642)", borderRadius: 16, background: "var(--panel, #151922)", padding: 18, minWidth: 0 };
 const muted: React.CSSProperties = { color: "var(--muted, #9ba4b5)" };
@@ -115,6 +116,17 @@ export default function VisitorAnalyticsApp() {
         <BreakdownPanel title="Devices" icon={<Activity size={16}/>} items={data.devices}/>
         <BreakdownPanel title="Browsers" icon={<Globe2 size={16}/>} items={data.browsers}/>
       </div>
+      <section style={panel}>
+        <div style={{ display:"flex", flexWrap:"wrap", alignItems:"center", justifyContent:"space-between", gap:12, marginBottom:14 }}>
+          <div><div style={{ display:"flex", alignItems:"center", gap:9 }}><BarChart3 size={17}/><h2 style={{ fontSize:15, margin:0 }}>Vercel Web Analytics archive</h2></div><p style={{ ...muted, fontSize:11, margin:"6px 0 0" }}>Independent aggregate-only source · no raw IP addresses in these snapshots</p></div>
+          <a href="https://github.com/Judson-web/Kingshot-auto-redeemer-archive/tree/main/analytics" target="_blank" rel="noreferrer" style={{ ...button, textDecoration:"none" }}>Open archive <ExternalLink size={13}/></a>
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,200px),1fr))", gap:10, marginBottom:14 }}>
+          <div style={{ border:"1px solid var(--border, #303642)", borderRadius:12, padding:13 }}><div style={{ ...muted, fontSize:11 }}>Snapshots in selected period</div><div style={{ fontSize:24, fontWeight:800, marginTop:7 }}>{fmt(data.vercelDaily.length)}</div></div>
+          <div style={{ border:"1px solid var(--border, #303642)", borderRadius:12, padding:13 }}><div style={{ ...muted, fontSize:11 }}>Most recent snapshot</div><div style={{ fontSize:18, fontWeight:750, marginTop:7 }}>{data.vercelDaily[0]?.dateUtc || "Not synced yet"}</div><div style={{ ...muted, fontSize:10, marginTop:4 }}>{data.vercelDaily[0] ? "Collected " + time(data.vercelDaily[0].collectedAt) : "Archive workflow sync is pending"}</div></div>
+        </div>
+        {data.vercelDaily.length ? <div style={{ display:"grid", gap:8 }}>{data.vercelDaily.map(snapshot => <details key={snapshot.dateUtc} style={{ border:"1px solid var(--border, #303642)", borderRadius:10, padding:"10px 12px" }}><summary style={{ cursor:"pointer", fontSize:12, fontWeight:700 }}>{snapshot.dateUtc} <span style={{ ...muted, fontWeight:400 }}>· Aggregate snapshot · SHA-256 verified</span></summary><pre style={{ overflowX:"auto", fontSize:11, lineHeight:1.5, whiteSpace:"pre-wrap", overflowWrap:"anywhere", color:"var(--muted, #9ba4b5)" }}>{JSON.stringify(snapshot.data, null, 2)}</pre><div style={{ ...muted, fontSize:10 }}>SHA-256: {snapshot.sha256}</div></details>)}</div> : <p style={{ ...muted, fontSize:12 }}>No aggregate snapshots have been synced to this dashboard for the selected period yet. The archive stays intact; the feed starts after the archive workflow integration is merged and runs.</p>}
+      </section>
       <section style={panel}>
         <div style={{ display:"flex", flexWrap:"wrap", alignItems:"center", justifyContent:"space-between", gap:10, marginBottom:15 }}><div><h2 style={{ fontSize:15, margin:"0 0 5px" }}>Recent visits</h2><p style={{ ...muted, fontSize:11, margin:0 }}>Up to 100 latest events in the selected period. IPs and user-agent strings are sensitive.</p></div><span style={{ ...muted, fontSize:11 }}>{data.recent.length} records</span></div>
         <div style={{ overflowX:"auto" }}><table style={{ width:"100%", minWidth:900, borderCollapse:"collapse", fontSize:12, textAlign:"left" }}><thead><tr>{["Time","IP address","Location","Page","Referrer","Browser / OS","Device"].map(h=><th key={h} style={{ padding:"10px 9px", borderBottom:"1px solid var(--border, #303642)", ...muted, fontWeight:700, whiteSpace:"nowrap" }}>{h}</th>)}</tr></thead><tbody>
