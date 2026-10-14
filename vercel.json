@@ -13,6 +13,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/dev",
+      "destination": "/index.html"
+    },
+    {
       "source": "/info",
       "destination": "/index.html"
     },
