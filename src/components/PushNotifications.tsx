@@ -89,7 +89,7 @@ export default function PushNotifications() {
       }
       const reg = await navigator.serviceWorker.ready;
       const existing = await reg.pushManager.getSubscription();
-      if (existing) {
+      if (existing && Notification.permission === "granted") {
         const response = await fetch("/api/custom-message", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -101,6 +101,17 @@ export default function PushNotifications() {
         setState("off");
         setMessage("Notifications are off on this device.");
         return;
+      }
+      // A subscription can outlive a browser permission reset. Remove that stale
+      // subscription before asking for permission and creating a fresh one.
+      if (existing && Notification.permission !== "granted") {
+        await fetch("/api/custom-message", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "PUSH_UNSUBSCRIBE", subscription: existing.toJSON() }),
+          credentials: "same-origin",
+        }).catch(() => {});
+        await existing.unsubscribe().catch(() => {});
       }
 
       const permission = Notification.permission === "default" ? await Notification.requestPermission() : Notification.permission;
