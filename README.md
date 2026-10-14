@@ -249,8 +249,13 @@ Do not include secrets, personal data, or content you do not have permission to 
 | `/manual` | Manual redemption |
 | `/info` | Service documentation |
 | `/push` | Private developer push-notification console (passkey required) |
+| `/developer` | Developer portal, admin passkey, API key management, and player lookup |
 | `/terms` | Terms of service |
 | `/privacy` | Privacy information |
+
+## ✦ Developer API
+
+The `/developer` portal uses the existing admin passkey/session to create and revoke developer API keys. Key material is shown once and stored only as a SHA-256 hash in private database tables. An IP address can be issued at most two keys for its lifetime; revoking a key does not reset that cap. The read-only player lookup is available at `GET /api/v1/player?id=PLAYER_ID` with `Authorization: Bearer ks_live_…`. Limits are 60 requests/minute and 1,000 requests/day per key, plus 120 requests/minute per IP. Usage counters and issuance caps are database-backed so they remain consistent across serverless instances. The developer API is routed through the existing Kingshot catch-all function to stay within the Vercel Hobby deployment function-count limit.
 
 ## ✦ Technology
 

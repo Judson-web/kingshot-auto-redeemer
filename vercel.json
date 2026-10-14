@@ -1,8 +1,16 @@
 {
   "rewrites": [
     {
+      "source": "/api/v1/:path*",
+      "destination": "/api/kingshot-tools/developer/:path*"
+    },
+    {
       "source": "/auto",
       "destination": "/auto.html"
+    },
+    {
+      "source": "/developer",
+      "destination": "/index.html"
     },
     {
       "source": "/info",
