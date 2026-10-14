@@ -18,7 +18,7 @@ export default async function handler(req: RequestLike, res: ResponseLike): Prom
  if (!rateLimit(req, res, "player-lookup", 30, 60000)) return void sendError(res, 429, "rate_limit_exceeded", "Too many player lookups. Retry after the indicated delay.", requestId);
  const id = normalizePlayerId(new URL(req.url || "/", "http://localhost").searchParams.get("id"));
  if (!isValidPlayerId(id)) return void sendError(res, 400, "invalid_player_id", "Player ID must contain 5–20 digits.", requestId);
- try { const player = await lookupPlayer(id); res.status(200).json({ data: { player }, meta: { requestId, timestamp: new Date().toISOString(), fetchedAt: new Date().toISOString(), source: "mightpulse", stale: false } }); }
+ try { const player = await lookupPlayer(id); res.status(200).json({ player, data: { player }, meta: { requestId, timestamp: new Date().toISOString(), fetchedAt: new Date().toISOString(), source: "mightpulse", stale: false } }); }
  catch (error) { const typed = error as PlayerLookupError;
   if (typed.status === 404) return void sendError(res, 404, "player_not_found", "MightPulse could not find this player.", requestId);
   if (/timed out|abort/i.test(typed.message || "")) return void sendError(res, 504, "upstream_timeout", "MightPulse request timed out.", requestId);
