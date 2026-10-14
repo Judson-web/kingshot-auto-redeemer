@@ -1,87 +1,71 @@
-import React, { useEffect, useState } from "react";
-import { Activity, AlertTriangle, CheckCircle2, Copy, ExternalLink, KeyRound, LoaderCircle, LockKeyhole, Plus, Search, ShieldCheck, Trash2, UserRound, X } from "lucide-react";
+import React, { useState } from "react";
+import { Activity, BookOpen, Check, ChevronRight, Code2, Copy, ExternalLink, Gauge, KeyRound, ShieldCheck, Terminal } from "lucide-react";
 
-type DeveloperKey = { id: string; key_prefix: string; label: string; created_at: string; last_used_at: string | null; revoked_at: string | null; requests_today: number; daily_limit: number; minute_limit: number };
-type PlayerResult = { playerId: string; name: string; kingdomId: string; power: number | string | null; townCenterLevel: number | string | null; avatarUrl: string | null };
-async function request(path: string, init?: RequestInit) {
-  const response = await fetch(path, { credentials: "same-origin", cache: "no-store", ...init, headers: { "content-type": "application/json", ...(init?.headers || {}) } });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || "Request failed.");
-  return data;
+const ORIGIN = "https://kingshot-autoredeemer.vercel.app";
+const endpoint = ORIGIN + "/api/v1/player?id=43180889";
+const curlExample = 'curl "' + endpoint + '" \\\n  -H "Authorization: Bearer YOUR_API_KEY"';
+
+function CopyButton({ value, label = "Copy" }: { value: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+  return <button type="button" onClick={() => navigator.clipboard.writeText(value).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1600); }).catch(() => setCopied(false))} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, border: "1px solid #343e4d", borderRadius: 9, padding: "8px 11px", background: "#202633", color: "#e8ebf5", font: "inherit", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}><Copy size={14}/>{copied ? "Copied" : label}</button>;
 }
+
 export default function DeveloperApp() {
-  const [passkey, setPasskey] = useState("");
-  const [authenticated, setAuthenticated] = useState(false);
-  const [checking, setChecking] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [showKey, setShowKey] = useState(false);
-  const [label, setLabel] = useState("My integration");
-  const [keys, setKeys] = useState<DeveloperKey[]>([]);
-  const [newKey, setNewKey] = useState("");
-  const [playerId, setPlayerId] = useState("");
-  const [player, setPlayer] = useState<PlayerResult | null>(null);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const loadKeys = async () => {
-    try { const data = await request("/api/kingshot-player?developer=keys"); setKeys(Array.isArray(data.keys) ? data.keys : []); setAuthenticated(true); }
-    catch (e) { if (e instanceof Error && /session expired|unauthorized/i.test(e.message)) setAuthenticated(false); else setError(e instanceof Error ? e.message : "Could not load API keys."); }
-  };
-  useEffect(() => {
-    let live = true;
-    request("/api/kingshot-player?developer=keys").then(data => { if (live) { setKeys(Array.isArray(data.keys) ? data.keys : []); setAuthenticated(true); } }).catch(() => { if (live) setAuthenticated(false); }).finally(() => { if (live) setChecking(false); });
-    return () => { live = false; };
-  }, []);
-  const login = async (event: React.FormEvent) => {
-    event.preventDefault(); setBusy(true); setError(""); setNotice("");
-    try { await request("/api/kingshot-developer-login", { method: "POST", body: JSON.stringify({ accessKey: passkey }) }); setPasskey(""); setAuthenticated(true); await loadKeys(); setNotice("Developer access verified."); }
-    catch (e) { setError(e instanceof Error ? e.message : "Could not verify passkey."); }
-    finally { setBusy(false); }
-  };
-  const createKey = async (event: React.FormEvent) => {
-    event.preventDefault(); setBusy(true); setError(""); setNotice(""); setNewKey("");
-    try { const data = await request("/api/kingshot-player?developer=keys", { method: "POST", body: JSON.stringify({ label }) }); setNewKey(data.key); await loadKeys(); setNotice("API key created. Copy it now; it will not be shown again."); }
-    catch (e) { setError(e instanceof Error ? e.message : "Could not create API key."); }
-    finally { setBusy(false); }
-  };
-  const revokeKey = async (key: DeveloperKey) => {
-    if (!window.confirm("Revoke " + key.key_prefix + "? Any integration using it will stop working immediately.")) return;
-    setBusy(true); setError(""); setNotice(""); setNewKey("");
-    try { await request("/api/kingshot-player?developer=keys/" + key.id, { method: "DELETE" }); await loadKeys(); setNotice("API key revoked."); }
-    catch (e) { setError(e instanceof Error ? e.message : "Could not revoke API key."); }
-    finally { setBusy(false); }
-  };
-  const lookup = async (event: React.FormEvent) => {
-    event.preventDefault(); setBusy(true); setError(""); setNotice(""); setPlayer(null);
-    try {
-      const data = await request("/api/kingshot-player?developer=admin-player&id=" + encodeURIComponent(playerId.trim()));
-      const p = data.player || data;
-      setPlayer({ playerId: String(p.governor_id || p.fid || p.id || playerId), name: String(p.nick_name || p.name || p.nickname || "Kingshot Player"), kingdomId: String(p.kid ?? p.kingdom_id ?? ""), power: p.power ?? null, townCenterLevel: p.town_center_level ?? p.tc_level ?? null, avatarUrl: p.avatar_url || p.avatar || p.avatarUrl || null });
-    } catch (e) { setError(e instanceof Error ? e.message : "Player lookup failed."); }
-    finally { setBusy(false); }
-  };
-  const logout = async () => { try { await request("/api/kingshot-developer-login", { method: "DELETE" }); } catch {} setAuthenticated(false); setKeys([]); setNewKey(""); setNotice("Signed out."); };
-  const card: React.CSSProperties = { background: "#131821", border: "1px solid #2b3442", borderRadius: 18, padding: "clamp(18px, 4vw, 26px)", boxSizing: "border-box" };
-  const input: React.CSSProperties = { width: "100%", boxSizing: "border-box", marginTop: 7, padding: "12px 13px", borderRadius: 10, border: "1px solid #343e4d", background: "#0b0e14", color: "#f2f5fb", font: "inherit", outlineOffset: 2 };
-  const button: React.CSSProperties = { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, border: 0, borderRadius: 10, padding: "11px 14px", background: "#7b82ff", color: "#fff", font: "inherit", fontWeight: 750, cursor: busy ? "wait" : "pointer", opacity: busy ? .65 : 1 };
-  const labelStyle: React.CSSProperties = { display: "block", marginTop: 16, color: "#aeb8ca", fontSize: 11, letterSpacing: ".08em", fontWeight: 800 };
-  const shell: React.CSSProperties = { minHeight: "100vh", background: "#0b0e14", color: "#f2f5fb", padding: "26px 16px 48px", fontFamily: "inherit" };
-  if (checking) return <main style={shell}><div style={{ ...card, maxWidth: 720, margin: "12vh auto", display: "flex", gap: 10, alignItems: "center" }}><LoaderCircle className="spin" size={18}/> Checking developer access…</div></main>;
-  return <main style={shell}><div style={{ maxWidth: 960, margin: "0 auto" }}>
-    <header style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 25 }}><div style={{ width: 46, height: 46, display: "grid", placeItems: "center", borderRadius: 14, background: "#7b82ff22", color: "#b8bdff" }}><KeyRound size={23}/></div><div style={{ flex: 1 }}><div style={{ color: "#b8bdff", fontSize: 10, fontWeight: 850, letterSpacing: ".13em" }}>KINGSHOT REDEEMER · API V1</div><h1 style={{ fontSize: "clamp(27px, 5vw, 38px)", letterSpacing: "-.045em", margin: "4px 0 0" }}>Developer portal</h1></div><a href="/" style={{ color: "#c1c9d8", textDecoration: "none", fontSize: 12 }}>← Home</a></header>
-    <p style={{ color: "#aeb8ca", lineHeight: 1.7, maxWidth: 760 }}>Create and manage developer keys, try a player lookup, and integrate the read-only player endpoint into your own tools. API secrets are stored only as hashes and shown once when created.</p>
-    {error && <div role="alert" style={{ ...card, borderColor: "#8b3e4b", color: "#ffb6c0", display: "flex", gap: 9, alignItems: "flex-start", margin: "16px 0" }}><AlertTriangle size={17}/><span>{error}</span><button onClick={() => setError("")} aria-label="Dismiss error" style={{ marginLeft: "auto", background: "transparent", color: "inherit", border: 0 }}><X size={15}/></button></div>}
-    {notice && <div role="status" style={{ ...card, borderColor: "#27634b", color: "#9ce9c2", display: "flex", gap: 9, alignItems: "center", margin: "16px 0" }}><CheckCircle2 size={17}/>{notice}</div>}
-    {!authenticated ? <section style={{ ...card, maxWidth: 620, marginTop: 20 }}><div style={{ display: "flex", gap: 10, alignItems: "center" }}><LockKeyhole size={20} color="#b8bdff"/><h2 style={{ fontSize: 19, margin: 0 }}>Developer access</h2></div><p style={{ color: "#aeb8ca", lineHeight: 1.6 }}>Sign in with your separate developer passkey. Developer access has its own session and is independent of the site admin account.</p><form onSubmit={login}><label style={labelStyle}>DEVELOPER PASSKEY<input style={input} type={showKey ? "text" : "password"} value={passkey} onChange={e => setPasskey(e.target.value)} autoComplete="current-password" required/></label><button type="button" onClick={() => setShowKey(v => !v)} style={{ marginTop: 8, background: "transparent", border: 0, color: "#aeb8ca", cursor: "pointer" }}>{showKey ? "Hide passkey" : "Show passkey"}</button><button style={{ ...button, width: "100%", marginTop: 18 }} disabled={busy || !passkey}>{busy ? <LoaderCircle className="spin" size={16}/> : <ShieldCheck size={16}/>} Unlock developer portal</button></form></section> : <>
-      <section style={{ ...card, marginTop: 20 }}><div style={{ display: "flex", alignItems: "center", gap: 10 }}><ShieldCheck size={19} color="#9ce9c2"/><h2 style={{ fontSize: 19, margin: 0, flex: 1 }}>Developer account · API key management</h2><button onClick={logout} style={{ ...button, background: "#252c38", padding: "8px 10px", fontSize: 12 }}>Sign out</button></div><p style={{ color: "#aeb8ca", lineHeight: 1.6 }}>At most two keys can ever be issued from one IP address. Revoking a key does not reset that IP's issuance allowance.</p>
-        <form onSubmit={createKey} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", alignItems: "end", gap: 12 }}><label style={{ ...labelStyle, marginTop: 0 }}>KEY LABEL<input style={input} maxLength={80} value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. Discord bot"/></label><button style={button} disabled={busy || !label.trim()}><Plus size={16}/> Create key</button></form>
-        {newKey && <div style={{ marginTop: 16, padding: 14, borderRadius: 12, border: "1px solid #7b82ff66", background: "#7b82ff0e" }}><b style={{ display: "block", marginBottom: 8 }}>Copy your new API key now</b><code style={{ display: "block", overflowWrap: "anywhere", lineHeight: 1.6, color: "#d5d8ff" }}>{newKey}</code><button onClick={() => navigator.clipboard.writeText(newKey).then(() => setNotice("API key copied to clipboard.")).catch(() => setError("Clipboard access failed; copy the key manually."))} style={{ ...button, marginTop: 10, background: "#353d67" }}><Copy size={15}/> Copy key</button></div>}
-        <div style={{ marginTop: 20, display: "grid", gap: 10 }}>{keys.length ? keys.map(key => <article key={key.id} style={{ padding: 13, borderRadius: 12, border: "1px solid #2b3442", background: "#0b0e14", display: "flex", gap: 12, alignItems: "center" }}><KeyRound size={18} color={key.revoked_at ? "#697385" : "#b8bdff"}/><div style={{ flex: 1, minWidth: 0 }}><b>{key.label}</b><div style={{ color: "#aeb8ca", fontSize: 12, marginTop: 5, overflowWrap: "anywhere" }}>{key.key_prefix}… · {key.requests_today}/{key.daily_limit} daily requests · {key.minute_limit}/min</div><small style={{ color: key.revoked_at ? "#ffb6c0" : "#91dcb7" }}>{key.revoked_at ? "REVOKED" : "ACTIVE"} · created {new Date(key.created_at).toLocaleString()} · last used {key.last_used_at ? new Date(key.last_used_at).toLocaleString() : "never"}</small></div>{!key.revoked_at && <button title="Revoke API key" aria-label={"Revoke " + key.label} onClick={() => revokeKey(key)} disabled={busy} style={{ ...button, background: "#3a2027", padding: 10 }}><Trash2 size={15}/></button>}</article>) : <p style={{ color: "#aeb8ca" }}>No developer keys yet.</p>}</div>
+  const [tab, setTab] = useState<"curl" | "javascript">("curl");
+  const [expanded, setExpanded] = useState("authentication");
+  const code = tab === "curl" ? curlExample : `const response = await fetch("${endpoint}", {
+  headers: {
+    Authorization: "Bearer YOUR_API_KEY",
+  },
+});
+
+if (!response.ok) {
+  throw new Error(`API request failed: ${response.status}`);
+}
+
+const result = await response.json();
+console.log(result.data.playerId, result.data.name);`;
+  const card: React.CSSProperties = { background: "#131821", border: "1px solid #2b3442", borderRadius: 16, padding: "clamp(17px, 4vw, 24px)", boxSizing: "border-box" };
+  const heading: React.CSSProperties = { margin: "0 0 10px", fontSize: 19, letterSpacing: "-.02em" };
+  const paragraph: React.CSSProperties = { color: "#aeb8ca", lineHeight: 1.7, margin: "8px 0 0", fontSize: 14 };
+  const codeStyle: React.CSSProperties = { margin: 0, overflowX: "auto", padding: 15, borderRadius: 11, background: "#080a0f", color: "#d5d8ff", fontSize: 12, lineHeight: 1.75, whiteSpace: "pre" };
+  const accordion = (id: string, title: string, body: React.ReactNode) => <section style={{ ...card, padding: 0, overflow: "hidden" }}><button type="button" onClick={() => setExpanded(expanded === id ? "" : id)} aria-expanded={expanded === id} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: 17, textAlign: "left", background: "transparent", color: "#f2f5fb", border: 0, font: "inherit", cursor: "pointer" }}><ChevronRight size={16} style={{ transform: expanded === id ? "rotate(90deg)" : "none", transition: "transform .15s" }}/><b style={{ flex: 1 }}>{title}</b></button>{expanded === id && <div style={{ padding: "0 18px 18px" }}>{body}</div>}</section>;
+  return <main style={{ minHeight: "100vh", background: "#0b0e14", color: "#f2f5fb", padding: "26px 16px 48px", fontFamily: "inherit" }}>
+    <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+      <header style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 26 }}>
+        <div style={{ width: 46, height: 46, display: "grid", placeItems: "center", borderRadius: 14, background: "#7b82ff22", color: "#b8bdff" }}><Code2 size={24}/></div>
+        <div style={{ flex: 1 }}><div style={{ color: "#b8bdff", fontSize: 10, fontWeight: 850, letterSpacing: ".13em" }}>KINGSHOT REDEEMER · API V1</div><h1 style={{ fontSize: "clamp(27px, 5vw, 38px)", letterSpacing: "-.045em", margin: "4px 0 0" }}>Developer documentation</h1></div>
+        <a href="/" style={{ color: "#c1c9d8", textDecoration: "none", fontSize: 12 }}>← Home</a>
+      </header>
+      <section style={{ ...card, background: "linear-gradient(135deg, #171b2a, #131821 65%)", marginBottom: 17 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 7, color: "#9ce9c2", fontSize: 11, fontWeight: 800, letterSpacing: ".08em" }}><span style={{ width: 7, height: 7, borderRadius: 10, background: "#6ee7a8" }}/> READ-ONLY REST API</span>
+        <h2 style={{ fontSize: "clamp(22px, 4vw, 31px)", letterSpacing: "-.035em", lineHeight: 1.2, margin: "13px 0 0" }}>Integrate Kingshot player data into your tools.</h2>
+        <p style={{ ...paragraph, maxWidth: 720 }}>A small, versioned API for read-only player lookups. This documentation is public; account login and self-service API key issuance are not enabled yet. Existing valid API keys continue to use the endpoint.</p>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 17 }}><span style={{ border: "1px solid #343e4d", borderRadius: 999, padding: "6px 10px", fontSize: 11, color: "#cbd3e2" }}>Version 1</span><span style={{ border: "1px solid #343e4d", borderRadius: 999, padding: "6px 10px", fontSize: 11, color: "#cbd3e2" }}>HTTPS</span><span style={{ border: "1px solid #343e4d", borderRadius: 999, padding: "6px 10px", fontSize: 11, color: "#cbd3e2" }}>Bearer authentication</span></div>
       </section>
-      <section style={{ ...card, marginTop: 18 }}><div style={{ display: "flex", alignItems: "center", gap: 10 }}><UserRound size={19} color="#b8bdff"/><h2 style={{ fontSize: 19, margin: 0 }}>Player lookup</h2></div><p style={{ color: "#aeb8ca", lineHeight: 1.6 }}>Test the existing player lookup service. This does not redeem a code or register the player.</p><form onSubmit={lookup} style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><input style={{ ...input, flex: "1 1 220px", marginTop: 0 }} value={playerId} onChange={e => setPlayerId(e.target.value.replace(/\D/g, "").slice(0, 20))} inputMode="numeric" autoComplete="off" placeholder="Kingshot Player ID" aria-label="Kingshot Player ID" required/><button style={button} disabled={busy || !/^\d{5,20}$/.test(playerId)}><Search size={16}/> Look up</button></form>
-        {player && <div style={{ marginTop: 15, display: "flex", gap: 12, alignItems: "center", padding: 14, borderRadius: 12, background: "#0b0e14", border: "1px solid #2b3442" }}>{player.avatarUrl ? <img src={player.avatarUrl} alt="" style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 13 }}/> : <UserRound size={34}/>}<div style={{ flex: 1 }}><b>{player.name || "Kingshot Player"}</b><div style={{ color: "#aeb8ca", fontSize: 12, marginTop: 5 }}>ID {player.playerId} · Kingdom {player.kingdomId || "—"} · TC {player.townCenterLevel ?? "—"}</div><div style={{ color: "#aeb8ca", fontSize: 12 }}>Power {player.power == null ? "—" : String(player.power)}</div></div></div>}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 205px), 1fr))", gap: 12, marginBottom: 17 }}>
+        {[{icon:BookOpen,title:"One endpoint",value:"GET /api/v1/player",detail:"Read-only player profile"},{icon:Gauge,title:"Per-key limits",value:"60/min · 1,000/day",detail:"Requests per API key"},{icon:ShieldCheck,title:"IP protection",value:"120 requests/min",detail:"Additional IP-level limit"}].map(item => <article key={item.title} style={card}><item.icon size={19} color="#b8bdff"/><div style={{ color: "#aeb8ca", fontSize: 11, marginTop: 13 }}>{item.title}</div><b style={{ display: "block", marginTop: 5, fontSize: 16 }}>{item.value}</b><div style={{ color: "#8f9aab", fontSize: 11, marginTop: 5 }}>{item.detail}</div></article>)}
+      </div>
+      <section style={{ ...card, marginBottom: 17 }}>
+        <div style={{ display: "flex", gap: 9, alignItems: "center" }}><Terminal size={19} color="#b8bdff"/><h2 style={heading}>Quick start</h2></div>
+        <p style={paragraph}>Use your API key in the Authorization header. Never put API secrets in frontend code, public repositories, URLs, or client-side apps shipped to users.</p>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginTop: 17, marginBottom: 10 }}><div style={{ display: "flex", gap: 6 }}><button onClick={() => setTab("curl")} style={{ border: "1px solid #343e4d", borderRadius: 8, padding: "7px 10px", background: tab === "curl" ? "#30365b" : "transparent", color: "#f2f5fb", cursor: "pointer" }}>cURL</button><button onClick={() => setTab("javascript")} style={{ border: "1px solid #343e4d", borderRadius: 8, padding: "7px 10px", background: tab === "javascript" ? "#30365b" : "transparent", color: "#f2f5fb", cursor: "pointer" }}>JavaScript</button></div><CopyButton value={code} label="Copy example"/></div>
+        <pre style={codeStyle}><code>{code}</code></pre>
       </section>
-      <section style={{ ...card, marginTop: 18 }}><div style={{ display: "flex", gap: 10, alignItems: "center" }}><Activity size={19} color="#b8bdff"/><h2 style={{ fontSize: 19, margin: 0 }}>Quick start</h2></div><p style={{ color: "#aeb8ca", lineHeight: 1.6 }}>Use your API key in the Authorization header. The player lookup is read-only and returns a limited public profile.</p><pre style={{ overflowX: "auto", padding: 14, borderRadius: 10, background: "#080a0f", color: "#d5d8ff", fontSize: 12, lineHeight: 1.6 }}><code>{'curl "https://kingshot-autoredeemer.vercel.app/api/v1/player?id=43180889" \\\n  -H "Authorization: Bearer YOUR_API_KEY"'}</code></pre><p style={{ color: "#aeb8ca", lineHeight: 1.6, fontSize: 12 }}>Rate limits: 60 requests/minute and 1,000/day per key; 120 requests/minute per IP. Requests require a valid API key. Use only Player IDs you are authorized to look up.</p><a href="https://github.com/Judson-web/kingshot-auto-redeemer" target="_blank" rel="noreferrer" style={{ color: "#b8bdff", display: "inline-flex", gap: 6, alignItems: "center", fontSize: 12 }}>Source and changelog <ExternalLink size={13}/></a></section>
-    </>}
-    <footer style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginTop: 22, paddingTop: 15, borderTop: "1px solid #252c38", color: "#8f9aab", fontSize: 11 }}><span>API v1 · Read-only player data</span><a href="/privacy?service=kingshot-auto" style={{ color: "inherit" }}>Privacy</a></footer>
-  </div></main>;
+      <section style={{ ...card, marginBottom: 17 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9 }}><Activity size={19} color="#b8bdff"/><h2 style={heading}>Endpoint reference</h2></div>
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 9, marginTop: 15 }}><span style={{ background: "#164b39", color: "#9ce9c2", borderRadius: 6, padding: "5px 8px", fontSize: 11, fontWeight: 900 }}>GET</span><code style={{ overflowWrap: "anywhere", fontSize: 13 }}>/api/v1/player?id=PLAYER_ID</code><CopyButton value="/api/v1/player?id=PLAYER_ID" label="Copy path"/></div>
+        <p style={paragraph}>Required query parameter: <code>id</code>, a Kingshot Player ID containing 5–20 digits. Requires a valid, active API key.</p>
+        <h3 style={{ fontSize: 13, margin: "19px 0 8px" }}>Successful response</h3>
+        <pre style={codeStyle}><code>{JSON.stringify({data:{playerId:"43180889",name:"Example Player",kingdomId:"1125",power:123456789,townCenterLevel:30,avatarUrl:null},meta:{requestId:"server-generated-id",remaining:59,dailyRemaining:999}},null,2)}</code></pre>
+        <p style={paragraph}>Example values are illustrative, not live player data. Fields can be null when the upstream source does not provide them.</p>
+      </section>
+      {accordion("authentication","Authentication and key safety",<><p style={paragraph}>Send the key as <code>Authorization: Bearer YOUR_API_KEY</code> over HTTPS. Keys are secrets: store them in server-side environment variables or a secrets manager, and never commit them to source control.</p><p style={paragraph}>A revoked or invalid key receives <code>401</code>. Do not share keys between unrelated applications. Rotate a key immediately if it may have leaked.</p></>)}
+      <div style={{ height: 10 }}/>
+      {accordion("limits","Rate limits and response codes",<><p style={paragraph}>Current limits: 60 requests per minute and 1,000 requests per day per key, plus 120 requests per minute per IP. Responses include rate-limit headers when available. On <code>429</code>, honor <code>Retry-After</code> and use exponential backoff.</p><div style={{ display: "grid", gap: 8, marginTop: 13 }}>{[["200","Lookup succeeded"],["400","Missing or invalid Player ID"],["401","Missing, invalid, or revoked API key"],["404","Player not found"],["429","Rate limit or quota exceeded"],["502","Upstream player provider unavailable"]].map(([status,desc])=><div key={status} style={{ display: "flex", gap: 12, borderBottom: "1px solid #252c38", padding: "7px 0" }}><code style={{ width: 38, color: status === "200" ? "#9ce9c2" : "#b8bdff" }}>{status}</code><span style={{ color: "#aeb8ca", fontSize: 13 }}>{desc}</span></div>)}</div></>)}
+      <div style={{ height: 10 }}/>
+      {accordion("lifecycle","API key lifecycle and availability",<><p style={paragraph}>The endpoint supports immediate server-side revocation; revoked keys stop authorizing requests. Public self-service key creation and a customer key-management dashboard are intentionally not available until proper account authentication is implemented.</p><p style={paragraph}>For key issuance, revocation requests, or access questions, contact the project maintainer through the repository. Do not send existing secrets in support messages.</p></>)}
+      <footer style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginTop: 24, paddingTop: 16, borderTop: "1px solid #252c38", color: "#8f9aab", fontSize: 11 }}><span>API v1 · Read-only player data</span><a href="https://github.com/Judson-web/kingshot-auto-redeemer" target="_blank" rel="noreferrer" style={{ color: "#b8bdff", display: "inline-flex", alignItems: "center", gap: 5 }}>Source and changelog <ExternalLink size={12}/></a><a href="/privacy?service=kingshot-auto" style={{ color: "inherit" }}>Privacy</a></footer>
+    </div>
+  </main>;
 }
