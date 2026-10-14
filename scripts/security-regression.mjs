@@ -167,7 +167,7 @@ const developerUi = read("src/DeveloperApp.tsx");
 const developerAccountUi = read("src/DeveloperAccountPanel.tsx");
 const developerAuth = read("lib/developer-auth.ts");
 const developerAccountApi = read("lib/developer-account.ts");
-const accountMigration = read("supabase/migrations/20261014160000_developer_email_accounts.sql");
+const accountMigration = read("supabase/migrations/20261014105114_developer_email_accounts.sql");
 const developerMigration = read("supabase/migrations/20261014091531_developer_api_v2.sql");
 assertCheck("Developer API is routed through an existing serverless function", playerFunction.includes('import developerApi from "../lib/developer-api.js"') && playerFunction.includes("if (developerPath) return developerApi(req, res, developerPath)") && !fs.existsSync(path.join(root, "api", "v1", "player.ts")));
 assertCheck("Developer keys are generated with cryptographic randomness and stored hashed", developerApi.includes("randomBytes(32)") && developerApi.includes("sha256(secret)") && !developerApi.includes("key_plain"));
