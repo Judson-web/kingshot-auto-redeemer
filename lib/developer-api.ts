@@ -31,7 +31,7 @@ async function rpc<T>(name: string, body: Record<string, unknown>): Promise<T> {
   return data as T;
 }
 function requestId(res: ResponseLike): string { const id = crypto.randomUUID(); res.setHeader("X-Request-Id", id); return id; }
-function apiError(res: ResponseLike, status: number, code: string, message: string, requestIdValue = crypto.randomUUID(), extra: Record<string, unknown> = {}): void { res.setHeader("X-Request-Id", requestIdValue); res.status(status).json({ error: message, code, meta: { requestId: requestIdValue, timestamp: new Date().toISOString() }, ...extra }); }
+function apiError(res: ResponseLike, status: number, code: string, message: string, requestIdValue: string = crypto.randomUUID(), extra: Record<string, unknown> = {}): void { res.setHeader("X-Request-Id", requestIdValue); res.status(status).json({ error: message, code, meta: { requestId: requestIdValue, timestamp: new Date().toISOString() }, ...extra }); }
 function respondError(res: ResponseLike, error: unknown): void {
   const id = requestId(res);
   const message = error instanceof Error ? error.message : "Request failed.";
