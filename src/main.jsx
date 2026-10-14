@@ -156,4 +156,4 @@ if(typeof window!=="undefined")window.addEventListener("load",recordVisitorPageV
 
 registerAppServiceWorker();
 
-createRoot(document.getElementById("root")).render(<MaintenanceGate><PublicAnnouncements>{publicPage}</PublicAnnouncements><InstallAppPrompt/><PushNotifications/><SupportWidget/></MaintenanceGate>);
+createRoot(document.getElementById("root")).render(<MaintenanceGate><PublicAnnouncements>{publicPage}</PublicAnnouncements><InstallAppPrompt/><PushNotifications/>{location.pathname!=="/devsupport"&&<SupportWidget/>}</MaintenanceGate>);
