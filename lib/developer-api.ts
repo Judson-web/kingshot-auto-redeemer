@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { getPlayer } from "../internal/kingshot/mightpulse.js";
+import { redeemKingshot } from "../internal/kingshot/redeem.js";
 
 type HeaderValue = string | string[] | undefined;
 interface RequestLike { method?: string; url?: string; headers: Record<string, HeaderValue>; body?: Record<string, unknown>; query?: Record<string, unknown>; }
@@ -103,6 +104,32 @@ export default async function developerApi(req: RequestLike, res: ResponseLike, 
       if (status === 404) { res.status(404).json({ error: "Player not found." }); return; }
       respondError(res, error);
     }
+    return;
+  }
+
+  if (path === "redeem" && req.method === "POST") {
+    const rawKey = keyFromRequest(req);
+    if (!rawKey) { res.setHeader("WWW-Authenticate", "Bearer"); apiError(res, 401, "missing_api_key", "A valid developer API key is required.", rid); return; }
+    const ip = clientIp(req);
+    if (!ip) { apiError(res, 503, "client_ip_unavailable", "The trusted client IP is unavailable.", rid); return; }
+    try {
+      const authorization = await rpc<Record<string, unknown>>("kingshot_developer_authorize_key", { p_key_hash: sha256(rawKey), p_ip_hash: sha256(ip) });
+      setRateHeaders(res, authorization);
+      if (authorization.allowed !== true) {
+        const invalid = String(authorization.reason || "") === "invalid_api_key";
+        apiError(res, invalid ? 401 : 429, invalid ? "invalid_api_key" : "rate_limit_exceeded", invalid ? "Invalid or revoked developer API key." : "API rate limit or quota exceeded.", rid, { reason: authorization.reason || "quota_exceeded" });
+        return;
+      }
+      const playerId = String(req.body?.playerId || "").trim();
+      const code = String(req.body?.code || "").trim();
+      const kid = String(req.body?.kid || "").trim();
+      if (!/^\\d{5,20}$/.test(playerId) || !/^[A-Za-z0-9_-]{1,64}$/.test(code) || !/^\\d{1,10}$/.test(kid)) {
+        apiError(res, 400, "invalid_redemption_input", "Provide playerId (5–20 digits), code (1–64 safe characters), and kid (1–10 digits).", rid); return;
+      }
+      const result = await redeemKingshot({ playerId, code, kid });
+      const status = result.httpStatus >= 500 ? 502 : result.httpStatus;
+      res.status(status).json({ data: { ok: Boolean(result.ok), status: result.status || "ERROR", statusLabel: result.statusLabel || null, message: result.message || result.error || "Redemption request completed.", errorCategory: result.errorCategory || null, errCode: result.errCode ?? null }, meta: { requestId: rid, timestamp: new Date().toISOString(), remaining: authorization.remaining, dailyRemaining: authorization.daily_remaining } });
+    } catch (error) { console.error("[developer-api] redemption request failed", error instanceof Error ? error.message : "unknown error"); apiError(res, 502, "redemption_unavailable", "Redemption provider is temporarily unavailable.", rid); }
     return;
   }
 
