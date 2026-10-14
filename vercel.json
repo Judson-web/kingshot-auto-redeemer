@@ -1,10 +1,6 @@
 {
   "rewrites": [
     {
-      "source": "/api/kingshot-support-chat",
-      "destination": "/api/kingshot-support-chat.js"
-    },
-    {
       "source": "/api/v1/player",
       "destination": "/api/kingshot-player?developer=player"
     },
