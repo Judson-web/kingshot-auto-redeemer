@@ -17,6 +17,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/profile",
+      "destination": "/index.html"
+    },
+    {
       "source": "/dev",
       "destination": "/index.html"
     },
