@@ -163,7 +163,7 @@ assertCheck("Admin access-key path delegates verification to the key RPC",
 const developerApi = read("lib/developer-api.ts");
 const developerRouter = read("api/kingshot-tools/[...path].js");
 const developerUi = read("src/DeveloperApp.tsx");
-const developerMigration = read("supabase/migrations/20261014160000_create_developer_api_v2.sql");
+const developerMigration = read("supabase/migrations/20261014091531_developer_api_v2.sql");
 assertCheck("Developer API is mounted through the existing Kingshot catch-all", developerRouter.includes("developerApi(req, res") && !fs.existsSync(path.join(root, "api", "v1", "player.ts")));
 assertCheck("Developer keys are generated with cryptographic randomness and stored hashed", developerApi.includes("randomBytes(32)") && developerApi.includes("sha256(secret)") && !developerApi.includes("key_plain"));
 assertCheck("Developer endpoints require admin sessions for key management", developerApi.includes("kingshot_developer_list_keys") && developerApi.includes("kingshot_developer_create_key") && developerApi.includes("kingshot_developer_revoke_key"));
