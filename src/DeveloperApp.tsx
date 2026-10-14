@@ -20,7 +20,7 @@ export default function DeveloperApp() {
 });
 
 if (!response.ok) {
-  throw new Error(`API request failed: ${response.status}`);
+  throw new Error("API request failed: " + response.status);
 }
 
 const result = await response.json();
