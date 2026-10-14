@@ -164,13 +164,13 @@ const developerApi = read("lib/developer-api.ts");
 const developerRouter = read("api/kingshot-tools/[...path].js");
 const developerUi = read("src/DeveloperApp.tsx");
 const developerMigration = read("supabase/migrations/20261014091531_developer_api_v2.sql");
-assertCheck("Developer API is mounted through the existing Kingshot catch-all", developerRouter.includes("developerApi(req, res") && !fs.existsSync(path.join(root, "api", "v1", "player.ts")));
+assertCheck("Developer API is mounted through the existing Kingshot catch-all", developerApi.includes('path === "player" && req.method === "GET"') && !fs.existsSync(path.join(root, "api", "v1", "player.ts")));
 assertCheck("Developer keys are generated with cryptographic randomness and stored hashed", developerApi.includes("randomBytes(32)") && developerApi.includes("sha256(secret)") && !developerApi.includes("key_plain"));
 assertCheck("Developer endpoints require admin sessions for key management", developerApi.includes("kingshot_developer_list_keys") && developerApi.includes("kingshot_developer_create_key") && developerApi.includes("kingshot_developer_revoke_key"));
 assertCheck("Developer API has a database-backed per-IP issuance cap and quotas", developerMigration.includes("lifetime limit of two API keys") && developerMigration.includes("kingshot_developer_authorize_key") && developerMigration.includes("request_count"));
-assertCheck("Developer portal route and API v1 rewrites are connected", vercelConfig.rewrites.some(item => item.source === "/developer" && item.destination === "/index.html") && vercelConfig.rewrites.some(item => item.source === "/api/v1/:path*" && item.destination === "/api/kingshot-tools/developer/:path*") && developerUi.includes("/api/v1/player?id="));
+assertCheck("Developer portal route and API v1 rewrites are connected", vercelConfig.rewrites.some(item => item.source === "/developer" && item.destination === "/index.html") && vercelConfig.rewrites.some(item => item.source === "/api/v1/player" && item.destination === "/api/kingshot-player?developer=player") && developerUi.includes("/api/v1/player?id="));
 assertCheck("Developer portal uses the existing admin passkey login", developerUi.includes("/api/kingshot-admin-login") && developerUi.includes("accessKey: passkey"));
-assertCheck("Developer portal player lookup is admin-session protected", developerApi.includes('path === "admin-player"') && developerApi.includes('kingshot_developer_list_keys', developerApi.indexOf('path === "admin-player"')) && developerUi.includes("/api/kingshot-tools/developer/admin-player?id="));
+assertCheck("Developer portal player lookup is admin-session protected", developerApi.includes('path === "admin-player"') && developerApi.includes('kingshot_developer_list_keys', developerApi.indexOf('path === "admin-player"')) && developerUi.includes("/api/kingshot-player?developer=admin-player&id="));
 
 assertCheck("Discord interaction handler does not embed a Supabase publishable key",
  !/sb_publishable_[A-Za-z0-9_-]+/.test(discordInteractions));

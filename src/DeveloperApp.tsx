@@ -23,12 +23,12 @@ export default function DeveloperApp() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const loadKeys = async () => {
-    try { const data = await request("/api/kingshot-tools/developer/keys"); setKeys(Array.isArray(data.keys) ? data.keys : []); setAuthenticated(true); }
+    try { const data = await request("/api/kingshot-player?developer=keys"); setKeys(Array.isArray(data.keys) ? data.keys : []); setAuthenticated(true); }
     catch (e) { if (e instanceof Error && /session expired|unauthorized/i.test(e.message)) setAuthenticated(false); else setError(e instanceof Error ? e.message : "Could not load API keys."); }
   };
   useEffect(() => {
     let live = true;
-    request("/api/kingshot-tools/developer/keys").then(data => { if (live) { setKeys(Array.isArray(data.keys) ? data.keys : []); setAuthenticated(true); } }).catch(() => { if (live) setAuthenticated(false); }).finally(() => { if (live) setChecking(false); });
+    request("/api/kingshot-player?developer=keys").then(data => { if (live) { setKeys(Array.isArray(data.keys) ? data.keys : []); setAuthenticated(true); } }).catch(() => { if (live) setAuthenticated(false); }).finally(() => { if (live) setChecking(false); });
     return () => { live = false; };
   }, []);
   const login = async (event: React.FormEvent) => {
@@ -39,21 +39,21 @@ export default function DeveloperApp() {
   };
   const createKey = async (event: React.FormEvent) => {
     event.preventDefault(); setBusy(true); setError(""); setNotice(""); setNewKey("");
-    try { const data = await request("/api/kingshot-tools/developer/keys", { method: "POST", body: JSON.stringify({ label }) }); setNewKey(data.key); await loadKeys(); setNotice("API key created. Copy it now; it will not be shown again."); }
+    try { const data = await request("/api/kingshot-player?developer=keys", { method: "POST", body: JSON.stringify({ label }) }); setNewKey(data.key); await loadKeys(); setNotice("API key created. Copy it now; it will not be shown again."); }
     catch (e) { setError(e instanceof Error ? e.message : "Could not create API key."); }
     finally { setBusy(false); }
   };
   const revokeKey = async (key: DeveloperKey) => {
     if (!window.confirm("Revoke " + key.key_prefix + "? Any integration using it will stop working immediately.")) return;
     setBusy(true); setError(""); setNotice(""); setNewKey("");
-    try { await request("/api/kingshot-tools/developer/keys/" + key.id, { method: "DELETE" }); await loadKeys(); setNotice("API key revoked."); }
+    try { await request("/api/kingshot-player?developer=keys/" + key.id, { method: "DELETE" }); await loadKeys(); setNotice("API key revoked."); }
     catch (e) { setError(e instanceof Error ? e.message : "Could not revoke API key."); }
     finally { setBusy(false); }
   };
   const lookup = async (event: React.FormEvent) => {
     event.preventDefault(); setBusy(true); setError(""); setNotice(""); setPlayer(null);
     try {
-      const data = await request("/api/kingshot-tools/developer/admin-player?id=" + encodeURIComponent(playerId.trim()));
+      const data = await request("/api/kingshot-player?developer=admin-player&id=" + encodeURIComponent(playerId.trim()));
       const p = data.player || data;
       setPlayer({ playerId: String(p.governor_id || p.fid || p.id || playerId), name: String(p.nick_name || p.name || p.nickname || "Kingshot Player"), kingdomId: String(p.kid ?? p.kingdom_id ?? ""), power: p.power ?? null, townCenterLevel: p.town_center_level ?? p.tc_level ?? null, avatarUrl: p.avatar_url || p.avatar || p.avatarUrl || null });
     } catch (e) { setError(e instanceof Error ? e.message : "Player lookup failed."); }

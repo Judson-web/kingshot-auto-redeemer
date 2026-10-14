@@ -1,8 +1,8 @@
 {
   "rewrites": [
     {
-      "source": "/api/v1/:path*",
-      "destination": "/api/kingshot-tools/developer/:path*"
+      "source": "/api/v1/player",
+      "destination": "/api/kingshot-player?developer=player"
     },
     {
       "source": "/auto",
