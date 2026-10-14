@@ -136,7 +136,7 @@ export default async function handler(req,res){
    return res.status(200).json({ok:true,subscribedDevices:match&&match[1]!=="*"?Number(match[1]):null,configured:true});
   }
   if(action==="PUSH_SEND"){
-   if(!validSession(req))return res.status(401).json({error:"Unauthorized. Sign in to the private console first."});
+   if(!(await validSession(req)))return res.status(401).json({error:"Unauthorized. Sign in to the private console first."});
    if(!rateLimit(req,res,"push-send",5,60*1000))return res.status(429).json({error:"Too many push notifications. Wait a minute before sending again."});
    const title=clean(body.title,100),message=clean(body.message,220),rawUrl=clean(body.url||"/",500);
    const rawImage=clean(body.imageUrl,2048),image=rawImage?imageUrl(rawImage):"";
@@ -155,10 +155,10 @@ export default async function handler(req,res){
    try{if(action==="PUSH_SUBSCRIBE")await savePushSubscription(body.subscription);else await removePushSubscription(body.subscription);return res.status(200).json({ok:true})}catch(error){return res.status(400).json({error:error instanceof Error?error.message:"Push subscription failed."})}
   }
   if(action==="DESTINATIONS"){
-   if(!validSession(req))return res.status(401).json({error:"Unauthorized."});
+   if(!(await validSession(req)))return res.status(401).json({error:"Unauthorized."});
    return res.status(200).json({destinations:await resolveDestinationNames()});
   }
-  if(!validSession(req))return res.status(401).json({error:"Unauthorized."});
+  if(!(await validSession(req)))return res.status(401).json({error:"Unauthorized."});
 
   if(action.startsWith("GIFT_CODE_")||action==="TRIGGER_KINGDOM_VALIDATION"||action==="WAKE_REDEEM_WORKERS"){
    const base=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
