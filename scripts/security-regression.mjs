@@ -164,14 +164,22 @@ const developerApi = read("lib/developer-api.ts");
 const developerRouter = read("api/kingshot-tools/[...path].js");
 const playerFunction = read("api/kingshot-player.ts");
 const developerUi = read("src/DeveloperApp.tsx");
+const developerAccountUi = read("src/DeveloperAccountPanel.tsx");
+const developerAuth = read("lib/developer-auth.ts");
+const developerAccountApi = read("lib/developer-account.ts");
+const accountMigration = read("supabase/migrations/20261014105114_developer_email_accounts.sql");
 const developerMigration = read("supabase/migrations/20261014091531_developer_api_v2.sql");
 assertCheck("Developer API is routed through an existing serverless function", playerFunction.includes('import developerApi from "../lib/developer-api.js"') && playerFunction.includes("if (developerPath) return developerApi(req, res, developerPath)") && !fs.existsSync(path.join(root, "api", "v1", "player.ts")));
 assertCheck("Developer keys are generated with cryptographic randomness and stored hashed", developerApi.includes("randomBytes(32)") && developerApi.includes("sha256(secret)") && !developerApi.includes("key_plain"));
-assertCheck("Developer endpoints require admin sessions for key management", developerApi.includes("kingshot_developer_list_keys") && developerApi.includes("kingshot_developer_create_key") && developerApi.includes("kingshot_developer_revoke_key"));
+assertCheck("Legacy developer endpoints remain admin-session protected", developerApi.includes("kingshot_developer_list_keys") && developerApi.includes("kingshot_developer_create_key") && developerApi.includes("kingshot_developer_revoke_key"));
+assertCheck("Email-verified developer accounts have isolated key ownership", developerAuth.includes("email_confirmed_at") && developerAccountApi.includes("kingshot_developer_account_create_key") && accountMigration.includes("owner_user_id") && accountMigration.includes("p_session_hash"));
+assertCheck("Developer account sessions use secure HttpOnly cookies", developerAuth.includes("HttpOnly; Secure; SameSite=Strict") && developerAuth.includes("randomBytes(32)"));
+assertCheck("Account dashboard supports signup, login, key creation and revocation", developerAccountUi.includes("Create account") && developerAccountUi.includes("Sign in") && developerAccountUi.includes("Create API key") && developerAccountUi.includes("Revoke"));
 assertCheck("Developer API has a database-backed per-IP issuance cap and quotas", developerMigration.includes("lifetime limit of two API keys") && developerMigration.includes("kingshot_developer_authorize_key") && developerMigration.includes("request_count"));
 assertCheck("Developer portal route and API v1 rewrites are connected", vercelConfig.rewrites.some(item => item.source === "/developer" && item.destination === "/index.html") && vercelConfig.rewrites.some(item => item.source === "/api/v1/player" && item.destination === "/api/kingshot-player?developer=player") && developerUi.includes("/api/v1/player?id="));
-assertCheck("Developer portal uses the existing admin passkey login", developerUi.includes("/api/kingshot-admin-login") && developerUi.includes("accessKey: passkey"));
-assertCheck("Developer portal player lookup is admin-session protected", developerApi.includes('path === "admin-player"') && developerApi.includes('kingshot_developer_list_keys', developerApi.indexOf('path === "admin-player"')) && developerUi.includes("/api/kingshot-player?developer=admin-player&id="));
+assertCheck("Account auth and key APIs share the existing player serverless function", playerFunction.includes("developerAuth(req, res)") && playerFunction.includes("developerAccount(req, res)") && !fs.existsSync(path.join(root, "api", "developer-auth.ts")) && !fs.existsSync(path.join(root, "api", "developer-account.ts")));
+assertCheck("Developer portal embeds account dashboard while keeping admin auth separate", developerUi.includes("DeveloperAccountPanel") && developerAccountUi.includes("/api/kingshot-player?developer=account-auth") && !developerAccountUi.includes("/api/kingshot-admin-login"));
+assertCheck("Developer portal player lookup is admin-session protected", developerApi.includes('path === "admin-player"') && developerApi.includes('kingshot_developer_list_keys', developerApi.indexOf('path === "admin-player"')) && developerUi.includes("/api/v1/player?id="));
 
 assertCheck("Discord interaction handler does not embed a Supabase publishable key",
  !/sb_publishable_[A-Za-z0-9_-]+/.test(discordInteractions));

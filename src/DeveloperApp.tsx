@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import DeveloperAccountPanel from "./DeveloperAccountPanel";
 import { Activity, BookOpen, Check, ChevronRight, Code2, Copy, ExternalLink, Gauge, KeyRound, ShieldCheck, Terminal } from "lucide-react";
 
 const ORIGIN = "https://kingshot-autoredeemer.vercel.app";
@@ -37,10 +38,11 @@ console.log(result.data.playerId, result.data.name);`;
         <div style={{ flex: 1 }}><div style={{ color: "#b8bdff", fontSize: 10, fontWeight: 850, letterSpacing: ".13em" }}>KINGSHOT REDEEMER · API V1</div><h1 style={{ fontSize: "clamp(27px, 5vw, 38px)", letterSpacing: "-.045em", margin: "4px 0 0" }}>Developer documentation</h1></div>
         <a href="/" style={{ color: "#c1c9d8", textDecoration: "none", fontSize: 12 }}>← Home</a>
       </header>
+      <DeveloperAccountPanel />
       <section style={{ ...card, background: "linear-gradient(135deg, #171b2a, #131821 65%)", marginBottom: 17 }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 7, color: "#9ce9c2", fontSize: 11, fontWeight: 800, letterSpacing: ".08em" }}><span style={{ width: 7, height: 7, borderRadius: 10, background: "#6ee7a8" }}/> READ-ONLY REST API</span>
         <h2 style={{ fontSize: "clamp(22px, 4vw, 31px)", letterSpacing: "-.035em", lineHeight: 1.2, margin: "13px 0 0" }}>Integrate Kingshot player data into your tools.</h2>
-        <p style={{ ...paragraph, maxWidth: 720 }}>A small, versioned API for read-only player lookups. This documentation is public; account login and self-service API key issuance are not enabled yet. Existing valid API keys continue to use the endpoint.</p>
+        <p style={{ ...paragraph, maxWidth: 720 }}>A versioned, read-only API for player lookups. Create an email-verified developer account below to manage your own API keys. Existing valid API keys continue to work.</p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 17 }}><span style={{ border: "1px solid #343e4d", borderRadius: 999, padding: "6px 10px", fontSize: 11, color: "#cbd3e2" }}>Version 1</span><span style={{ border: "1px solid #343e4d", borderRadius: 999, padding: "6px 10px", fontSize: 11, color: "#cbd3e2" }}>HTTPS</span><span style={{ border: "1px solid #343e4d", borderRadius: 999, padding: "6px 10px", fontSize: 11, color: "#cbd3e2" }}>Bearer authentication</span></div>
       </section>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 205px), 1fr))", gap: 12, marginBottom: 17 }}>
