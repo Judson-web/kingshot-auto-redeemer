@@ -5,6 +5,7 @@ type Req = { method?: string; headers: Record<string,string|string[]|undefined>;
 type Res = { status(n:number):Res; json(v:unknown):Res; setHeader(k:string,v:string):void };
 const URL = process.env.SUPABASE_URL || "https://wocxvtptqapietlteshr.supabase.co";
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
+const AUTH_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || KEY;
 const COOKIE = "__Host-ks_developer_session";
 const sha = (v:string) => crypto.createHash("sha256").update(v).digest("hex");
 const random = () => crypto.randomBytes(32).toString("hex");
@@ -13,7 +14,7 @@ function session(req:Req){const raw=String(get(req,"cookie")||"");const p=raw.sp
 function setCookie(res:Res,v:string,age:number){res.setHeader("Set-Cookie",COOKIE+"="+encodeURIComponent(v)+"; Max-Age="+age+"; Path=/; HttpOnly; Secure; SameSite=Strict")}
 function clearCookie(res:Res){res.setHeader("Set-Cookie",COOKIE+"=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Strict")}
 async function rpc(name:string,body:Record<string,unknown>){if(!KEY)throw new Error("Auth service is not configured");const r=await fetch(URL+"/rest/v1/rpc/"+name,{method:"POST",headers:{apikey:KEY,authorization:"Bearer "+KEY,"content-type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(8000)});const d:any=await r.json().catch(()=>null);if(!r.ok)throw new Error(d?.message||"Account service unavailable");return d}
-async function authRequest(path:string,body:Record<string,unknown>){const r=await fetch(URL+"/auth/v1/"+path,{method:"POST",headers:{apikey:KEY||"", "content-type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(8000)});const d:any=await r.json().catch(()=>null);if(!r.ok){const e=new Error(d?.msg||d?.message||d?.error_description||"Authentication failed") as Error&{status?:number};e.status=r.status;throw e}return d}
+async function authRequest(path:string,body:Record<string,unknown>){const r=await fetch(URL+"/auth/v1/"+path,{method:"POST",headers:{apikey:AUTH_KEY||"", "content-type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(8000)});const d:any=await r.json().catch(()=>null);if(!r.ok){const e=new Error(d?.msg||d?.message||d?.error_description||"Authentication failed") as Error&{status?:number};e.status=r.status;throw e}return d}
 export default async function handler(req:Req,res:Res){res.setHeader("Cache-Control","private, no-store");res.setHeader("X-Content-Type-Options","nosniff");if(!["GET","POST","DELETE"].includes(String(req.method))){res.status(405).json({error:"Method not allowed"});return}try{
  if(req.method==="GET"){const token=session(req);if(!token){res.status(200).json({authenticated:false});return}const user=await rpc("kingshot_developer_account_session_get",{p_token_hash:sha(token)});if(!user){clearCookie(res);res.status(200).json({authenticated:false});return}res.status(200).json({authenticated:true});return}
  if(req.method==="DELETE"){const token=session(req);if(token)await rpc("kingshot_developer_account_session_delete",{p_token_hash:sha(token)}).catch(()=>{});clearCookie(res);res.status(200).json({ok:true});return}
