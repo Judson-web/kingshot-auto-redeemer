@@ -1,89 +1,49 @@
 import React from "react";
 
 const KINGSHOT_ICON="https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/ee/d2/22/eed22297-9313-d8b0-52c8-95f42a2795b2/AppIcon-0-0-1x_U007emarketing-0-8-0-85-220.png/0x0ss-85.png";
-
 const services={
-  "kingshot-manual":{label:"Kingshot Manual Redeemer",summary:"Manual gift-code redemption for a Kingshot Player ID."},
-  "kingshot-auto":{label:"Kingshot Auto Redeem",summary:"Registration and automatic processing of active Kingshot gift codes."},
+ "kingshot-manual":{label:"Manual Redeemer",summary:"Submit a gift code for an individual player."},
+ "kingshot-auto":{label:"Auto Redeem",summary:"Register a player for scheduled gift-code processing."}
 };
-
 export default function LegalApp({type}){
-  const key=new URLSearchParams(location.search).get("service");
-  const service=services[key]||services["kingshot-manual"];
-  const privacy=type==="privacy";
-  const serviceKey=key||"kingshot-manual";
-  return <div className="app legal-app">
-    <header><a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={KINGSHOT_ICON} alt="Kingshot"/></span><span>{privacy?"Privacy":"Terms"} · {service.label}</span></a><div className="header-right"><a className="legal-back" href="/">← Back</a></div></header>
-    <main>
-      <section className="legal-hero">
-        <div className="eyebrow"><span/>{privacy?"PRIVACY NOTICE":"TERMS OF USE"}</div>
-        <h1>{privacy?"Privacy, made clear.":"Terms, without the clutter."}</h1>
-        <p className="hero-copy">{service.summary}</p>
-        <div className="legal-meta"><span>Effective October 14, 2026</span><span>Independent community service</span><span>Plain-language notice</span></div><div className="legal-tabs"><a className={!privacy?"active":""} href={"/terms?service="+serviceKey}>Terms</a><a className={privacy?"active":""} href={"/privacy?service="+serviceKey}>Privacy</a></div>
-      </section>
-      <section className="legal-body">
-        <h2>Accessibility</h2>
-        <p>We aim to make this site usable with keyboard navigation, readable text, clear labels, responsive layouts, and reduced-motion preferences where practical. Some features depend on third-party services or browser capabilities. If you encounter an accessibility barrier, contact the site operator with the page and feature involved so it can be reviewed.</p>
-        <h2>About this service</h2>
-        <p>This is an independent community project created and operated by Judson. It is not operated, sponsored, endorsed, or affiliated with Century Games, Kingshot, Discord, or any other platform referenced by the service.</p>
-        {privacy?<>
-          <h2>Information we process</h2>
-          <p>The service processes the information needed to provide the feature you use. This can include Player ID, kingdom ID, player name, avatar URL, submitted gift codes, redemption results, timestamps, and support requests. Auto Redeem stores registration state and processing history so scheduled runs can operate after you leave the site, prevent duplicate redemption attempts, and maintain operational records. Player IDs and related registration data are not used to request or store your Kingshot password. Input fields use client-side checks for convenience, while the server performs its own validation.</p>
-          <h2>Data and archive boundary</h2>
-          <p>Player registration and redemption data remain in the live application database and are separate from the scraper archive. The scraper archive contains only scraper telemetry and discovered-code history from <code>kingshot_scraper_runs</code>, including source, timestamps, HTTP/parse results, code counts, discovered codes, and error information. It does not contain Player IDs, Discord IDs, account IDs, or registration IDs. The archive is kept private because it is operational and historical information, not because it is a user-identity database.</p>
-          <p>Verified scraper history may be retained in private infrastructure, including private Supabase Storage and an independent private GitHub cold backup. Registered-player recovery snapshots may also be retained in the private GitHub archive for disaster recovery. These archive systems are downstream of the live application and are not used by the Auto Redeem worker to select players or perform redemptions.</p>
-          <h2>Support requests</h2>
-          <p>If you submit a request to remove an Auto Redeem registration, the Player ID and reason you provide are processed so an administrator can review the request. Do not include passwords, payment details, authentication codes, or other sensitive information.</p>
-          <h2>Advertising</h2>
-          <p>The public service does not require advertising to provide its redemption features. If sponsored content or third-party promotional links are introduced later, they may have their own privacy practices and those practices will be identified or linked from the relevant experience.</p>
-          <h2>Technical information and analytics</h2>
-          <p>The hosting provider may process ordinary request metadata to deliver and secure the site. The service uses first-party, short-retention page-view telemetry to understand visits. This may include IP address when available, approximate country/region/city and timezone from hosting headers, page path without query parameters, referrer hostname, browser/operating-system/device category, language, approximate screen-size class, and timestamp. It does not collect form values, game credentials, precise GPS, or cross-site fingerprints. Raw visitor records are stored privately and scheduled for deletion after 30 days.</p><p>The public analytics summary is calculated from this service’s own first-party tracker, not from Vercel Web Analytics. The archive README publishes aggregate page-view totals for the last 24 hours, 7 days, and 30 days, plus grouped page, country, referrer, device, and browser counts. The archive workflow checks for updates approximately every five minutes, but GitHub scheduling and publication are best-effort rather than real-time. Small breakdown groups are suppressed. Public files contain aggregate counts only: no raw IP addresses, precise locations, user agents, or individual event records. Page-view events are not represented as unique visitors or sessions.</p>
-          <h2>Retention, deletion and requests</h2>
-          <p>Information is retained for as long as reasonably needed to operate the feature, prevent duplicate work, maintain security, resolve support issues, troubleshoot failures, or preserve necessary service records. Removing an Auto Redeem registration stops future scheduled processing for that registration. It does not automatically mean that every related redemption, support, security, or operational record is immediately erased; some records may remain where needed for service integrity, abuse prevention, auditing, troubleshooting, or legal obligations. Verified scraper history is maintained separately as operational archive data and does not contain Player IDs or registration identifiers. Private registered-player recovery snapshots are a separate disaster-recovery copy and may contain the minimal Player ID and registration-state fields described above. Use the removal request form on the Auto Redeem page to request registration removal.</p>
-          <h2>Service providers and external services</h2>
-          <p>The service may interact with third-party services and APIs, including Kingshot-related game endpoints, hosting infrastructure, databases, content delivery networks, Discord-related services, and external links. For example, support requests may be forwarded to an operational Discord notification channel so they can be reviewed. Information sent to a third party is handled under that provider’s own terms and privacy notice. We do not control third-party data practices.</p>
-          {serviceKey==="kingshot-auto"&&<><h2>Optional web push notifications</h2>
-          <p>If you opt in to browser notifications, the browser creates a push subscription containing a delivery endpoint and cryptographic subscription keys. The service stores that subscription in its existing application database so it can deliver verified new gift-code alerts and authorized developer announcements. The browser and its push-delivery provider process the subscription and notification delivery; delivery endpoints and related technical metadata may therefore be handled by those providers under their own terms and privacy notices. Subscription keys are used for push delivery and are not displayed publicly.</p>
-          <p>Notification text may be visible on a device's lock screen or to anyone able to view that device's notifications. You control the browser permission and can disable notifications in the browser or device settings; where available, you can also unsubscribe through the site's notification controls. Expired subscriptions are removed when the push provider reports them as invalid. Delivery is best-effort, and browser or operating-system support for rich images varies.</p>
-          <p>Developer announcements may include an optional image supplied as a publicly accessible HTTPS URL. The service does not upload or store the image itself; the URL is included in the notification payload and the browser, operating system, or push infrastructure may request the remote image to display it. The remote host may receive ordinary request metadata such as IP address and user-agent information. Only enable notifications if you are comfortable receiving these messages on your device.</p></>}
-          <h2>What we do not do</h2>
-          <p>We do not ask for your Kingshot password, payment details, authentication codes, or private game credentials. We do not need those credentials for normal redemption. We do not sell Player IDs or redemption records to third parties. Do not place sensitive information in a Player ID, gift-code field, or support request.</p>
-          <h2>Privacy framework</h2>
-          <p>This notice is written with U.S. consumer-privacy principles in mind. The United States does not have one comprehensive federal consumer privacy statute that applies to every business and every type of personal information. Depending on the circumstances, federal consumer-protection rules and state privacy laws may apply. For example, the California Consumer Privacy Act, as amended by the California Privacy Rights Act, gives covered California residents certain rights to know, delete, correct, and opt out of specified sale or sharing of personal information, subject to eligibility rules and exceptions. Other state laws differ in scope, definitions, thresholds, and available rights. We will assess and respond to requests according to the law applicable to the request and the service; this notice does not promise statutory rights where the law does not provide them. Depending on where you are, other data-protection laws may apply to you as well. This notice does not claim that only U.S. law applies, and nothing here waives rights you have under the law that applies to you.</p>
-          <h2>Your choices and privacy requests</h2>
-          <p>You may request information about, correction of, or removal of information associated with your registration by using the support or removal form on the service. Please identify the relevant Player ID and describe the request, but do not include passwords or other secrets. We may ask for proportionate information to verify that a request relates to a registration you are authorized to manage. We will review requests under the rules applicable to the service and explain if we cannot fulfil a request in full, including where limited retention is needed for security, abuse prevention, dispute handling, or legal obligations. This notice does not promise that every record can be erased immediately from every system or backup.</p>
-          <h2>Changes to this notice</h2>
-          <p>We review this notice when the service, its data practices, third-party providers, or applicable requirements materially change. The published effective date identifies the latest revision. Where a change materially affects how information is handled, we will update the notice and use an appropriate in-service notice where reasonably practicable.</p>
-        </>:<>
-          <h2>Use of the service</h2>
-          <p>Use the service only for lawful and legitimate personal or community purposes. You are responsible for the Player IDs, codes, URLs, and other information you submit. Do not submit passwords, payment information, authentication codes, or private credentials.</p>
-          <h2>Kingshot redemption</h2>
-          <p>Gift codes are controlled by the underlying game service. Codes can expire, reach usage limits, be region or account restricted, or be rejected without notice. We do not guarantee that a submitted code will work or that an automatic redemption attempt will succeed.</p>
-          <h2>Auto Redeem</h2>
-          <p>When you register a Player ID, you authorize the service to periodically process eligible gift codes for that registered player using the information required by the redemption workflow. Automation is intended for ordinary, authorized redemption and does not bypass the game’s normal redemption rules.</p>
-          <h2>Auto Redeem rules</h2>
-          <p>You may use Auto Redeem for a Player ID you are authorized to operate. Do not register another person’s Player ID without permission, bypass rate limits or cooldowns, rotate identities or keys to evade restrictions, flood the redemption system, manipulate results, probe protected endpoints, harvest private data, or interfere with the service or upstream systems.</p>
-          <p>Do not use the service for malware, credential theft, phishing, fraud, harassment, denial-of-service activity, unauthorized account automation, or attempts to obtain rewards outside the normal redemption process. Kingshot and third-party eligibility, availability, and technical restrictions continue to apply.</p>
-          <p>We may throttle, suspend, revoke, or block registrations or access when reasonably necessary to prevent abuse, protect users, respond to security incidents, or enforce these rules. A normal personal or community integration that periodically redeems eligible public gift codes for an authorized Player ID is permitted.</p>
-          {serviceKey==="kingshot-auto"&&<><h2>Optional web push notifications</h2>
-          <p>Browser push notifications are optional and require your browser's permission. Notifications may appear on your device outside the website, including on a lock screen depending on your settings. You can revoke permission through your browser or device settings. Notification delivery depends on your browser, operating system, network, and third-party push provider; no delivery guarantee is made.</p>
-          <p>Only authorized operators may send manual developer announcements. An announcement may include an image URL, which must use HTTPS and be publicly accessible. The service validates the URL but does not host or upload the image. You must not submit notification text or image links that are unlawful, abusive, deceptive, infringe another person's rights, expose private information, or contain malicious content. The remote image host may process requests when recipients' devices attempt to display the image.</p></>}
-          <h2>Removal</h2>
-          <p>You can request removal of an Auto Redeem registration through the support form. You are responsible for ensuring that you have the right to use the Player ID you submit. Removing a registration stops future scheduled processing. It does not promise immediate or universal deletion of historical redemption, support, security, audit, or other operational records that the service may need to retain.</p>
-          <h2>Availability and service changes</h2>
-          <p>The service is provided on an as-available basis. Features, APIs, gift-code sources, and integrations may change, be interrupted, or be removed without notice. We do not guarantee uninterrupted access, accuracy of third-party data, or successful redemption.</p>
-          <h2>Third-party platforms</h2>
-          <p>Kingshot, Century Games, Discord, and other referenced platforms remain the property of their respective owners. This project does not claim official status or authorization from those owners.</p>
-          <h2>Acceptable use</h2>
-          <p>Do not abuse, overload, probe, bypass security controls, interfere with other users, attempt unauthorized access, or use the service to distribute malicious or unlawful content.</p>
-          <h2>Changes to these terms</h2>
-          <p>These terms may be revised to reflect changes to the service, security requirements, or applicable law. The effective date will be updated when a revision is published. Where a change materially affects users, we will provide an appropriate notice where reasonably practicable. If you do not agree with revised terms, stop using the service and request removal of your registration if applicable.</p>
-        </>}
-        <h2>Questions, privacy requests and complaints</h2><p>Use the support or registration-removal form on the Auto Redeem page to contact the operator about service questions, data access or correction requests, registration removal, or privacy concerns. Include only the information needed to locate the relevant registration. Never send passwords, authentication codes, payment details, or private credentials. Requests are reviewed through the service’s normal operational process; this notice does not replace any rights or remedies available under applicable law.</p><h2>No affiliation</h2>
-        <p>This project is independent and should not be represented as an official Century Games, Kingshot, or Discord service. Product names, logos, and trademarks remain the property of their respective owners.</p>
-        <p className="legal-note">This document describes the service’s current practices as of October 14, 2026. It is general information, not legal advice, a certification, or a representation that the service complies with every law in every jurisdiction. U.S. privacy law is a combination of federal laws, sector-specific rules, Federal Trade Commission enforcement authority, and state laws. Where applicable to the operator and the relevant processing, this includes the California Consumer Privacy Act, as amended by the California Privacy Rights Act, and other applicable state consumer privacy statutes. Applicability depends on factors such as jurisdiction, business activities, and statutory thresholds; this notice does not claim that every U.S. law applies to this service. Mandatory laws in other jurisdictions may also apply. Effective: October 14, 2026.</p>
-      </section>
-    </main>
-    <footer><a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={KINGSHOT_ICON} alt="Kingshot"/></span><span>Kingshot Redeemer</span></a><span>© 2026 Judson · Independent community service</span><span><a href={"/terms?service="+serviceKey}>Terms</a> · <a href={"/privacy?service="+serviceKey}>Privacy</a></span></footer>
-  </div>
+ const key=new URLSearchParams(location.search).get("service"),service=services[key]||services["kingshot-manual"],privacy=type==="privacy",serviceKey=key||"kingshot-manual";
+ return <div className="app legal-app">
+  <header><a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={KINGSHOT_ICON} alt="Kingshot"/></span><span>{privacy?"Privacy":"Terms"} · {service.label}</span></a><div className="header-right"><a className="legal-back" href="/">← Back</a></div></header>
+  <main>
+   <section className="legal-hero"><div className="eyebrow"><span/>{privacy?"PRIVACY NOTICE":"TERMS OF USE"}</div><h1>{privacy?"Your data, explained.":"Use the service responsibly."}</h1><p className="hero-copy">{service.summary}</p><div className="legal-meta"><span>Updated October 15, 2026</span><span>Independent community project</span></div><div className="legal-tabs"><a className={!privacy?"active":""} href={"/terms?service="+serviceKey}>Terms</a><a className={privacy?"active":""} href={"/privacy?service="+serviceKey}>Privacy</a></div></section>
+   <section className="legal-body">
+   {privacy?<>
+    <h2>Information used to provide the service</h2>
+    <p>Depending on the features you use, we may process your Kingshot Player ID and kingdom, player details returned by the game service, gift codes you submit, redemption outcomes, Auto Redeem registration settings, and messages you send to support. If you create a profile or use developer features, the information needed to manage that account and its API keys is also processed. Do not send passwords, payment details, authentication codes, or other secrets through the site.</p>
+    <h2>Service operation and security</h2>
+    <p>We process limited technical information such as request timestamps, page visits, browser and device categories, and error or security records to operate the site, prevent abuse, troubleshoot problems, and understand general usage. Hosting and infrastructure providers may process standard connection information when you use the service. We do not use the site to collect precise GPS location or your Kingshot password.</p>
+    <h2>Support messages and removal requests</h2>
+    <p>Support chat messages are stored so you and the support team can read the conversation and reply. A Player ID is optional in general support chat. Registration-removal requests use a separate process and may require a Player ID and reason so the request can be reviewed. Please share only information relevant to your request.</p>
+    <h2>Third-party services</h2>
+    <p>The service relies on hosting, database, game-related and optional sign-in or notification providers. When you use features connected to those providers, the information needed for that feature may be processed by them under their own terms and privacy notices. External links are governed by the destination site's policies.</p>
+    <h2>Retention and requests</h2>
+    <p>We keep information for as long as reasonably needed to operate the features you use, maintain security, respond to support requests, and resolve technical or abuse issues. Removing an Auto Redeem registration stops future scheduled processing, but does not automatically erase every historical, security, support, or backup record. You can contact support to ask about information associated with your use of the service; we may need to verify the request and may retain limited records where appropriate.</p>
+    <h2>Your choices</h2>
+    <p>You can choose whether to use optional account, developer, and browser-notification features. You can manage notification permission through your browser or device settings. You can stop using the service and request removal of an Auto Redeem registration through its dedicated removal form.</p>
+    <h2>Changes to this notice</h2>
+    <p>This notice may be updated when the service or its data practices change. The date above identifies the latest revision. Questions can be sent through the site's support chat.</p>
+   </>:<>
+    <h2>Use the service only with authorization</h2>
+    <p>You must be authorized to use the Player ID you submit and any account you connect. You are responsible for the information and codes you provide. Do not impersonate another person, submit someone else's information without permission, or use the service to harass others.</p>
+    <h2>Gift-code redemption</h2>
+    <p>Gift codes are controlled by the game and may expire, be limited, or be rejected. We cannot guarantee that a code will work, that an automated attempt will succeed, or that the service will always be available. Auto Redeem processes eligible codes on a scheduled basis; timing and results can vary.</p>
+    <h2>Fair use and security</h2>
+    <p>Do not bypass rate limits or access controls, overload the service, probe protected systems, interfere with other users, attempt unauthorized access, or use the service for fraud, phishing, malware, or other unlawful activity. We may limit or suspend access when reasonably necessary to protect the service, users, or connected systems.</p>
+    <h2>Accounts and support</h2>
+    <p>You are responsible for keeping your sign-in methods and API keys secure. Do not share API keys or put secrets into support messages. Support chat is for questions and troubleshooting; registration-removal requests must be submitted through the separate removal process. We may be unable to respond immediately.</p>
+    <h2>Independent service</h2>
+    <p>This is an independent community project and is not operated, sponsored, or endorsed by Century Games or the Kingshot game team. Third-party names and marks belong to their respective owners.</p>
+    <h2>Changes and availability</h2>
+    <p>Features may change, be interrupted, or be discontinued. These terms may be updated as the service evolves. Stop using the service if you do not agree with the current terms. Nothing in these terms removes rights that cannot be excluded under applicable law.</p>
+   </>}
+   <p className="legal-note">This page is a plain-language summary of the service's current practices and rules, not legal advice. Applicable legal rights and obligations depend on the circumstances and the laws that apply to you.</p>
+   </section>
+  </main>
+  <footer><a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={KINGSHOT_ICON} alt="Kingshot"/></span><span>Kingshot Redeemer</span></a><span>Independent community service</span><span><a href={"/terms?service="+serviceKey}>Terms</a> · <a href={"/privacy?service="+serviceKey}>Privacy</a></span></footer>
+ </div>
 }
