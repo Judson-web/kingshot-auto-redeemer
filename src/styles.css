@@ -1837,3 +1837,13 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .support-float-panel .support-float-body>form>label>span{color:#858fa2;font-weight:400}
 @media(max-width:780px){.ds-shell{width:calc(100% - 22px)}.ds-top{align-items:flex-start;flex-direction:column}.ds-top-actions{width:100%;justify-content:space-between}.ds-layout{grid-template-columns:minmax(0,1fr);min-height:0}.ds-list{max-height:360px;overflow:auto}.ds-chat{min-height:430px}.ds-messages{max-height:45vh}}
 @media(max-width:480px){.ds-stats{gap:7px}.ds-stats>div{padding:11px 9px;flex-direction:column;align-items:flex-start;gap:7px}.ds-stats span{font-size:10px}.ds-chat-head{align-items:flex-start;flex-direction:column}.ds-chat-head select{max-width:100%}.ds-reply>div{align-items:flex-start;flex-direction:column}.ds-message{max-width:100%}.support-float-panel{width:min(360px,calc(100vw - 24px));right:0}.support-chat-toolbar{gap:5px;padding:8px}.support-chat-toolbar button{font-size:9px;padding:6px}}
+
+
+/* Compact header health tracker: keep the live indicator visible without competing with navigation. */
+.ks-app>header .site-status-trigger{width:27px;height:27px;min-height:27px;padding:0;justify-content:center;gap:3px;border-radius:50%;position:relative}
+.ks-app>header .site-status-trigger>svg{width:11px;height:11px}
+.ks-app>header .site-status-trigger>i{width:5px;height:5px;position:absolute;right:2px;top:2px;box-shadow:0 0 0 2px #08090c}
+.ks-app>header .site-status-label,.ks-app>header .site-status-chevron{display:none}
+.ks-app>header .header-right{gap:8px}
+.site-account-logout{display:none!important}
+@media(max-width:780px){.ks-app>header .site-status-trigger{width:25px;height:25px;min-height:25px}}
