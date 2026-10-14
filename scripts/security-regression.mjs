@@ -164,10 +164,11 @@ const developerApi = read("lib/developer-api.ts");
 const developerRouter = read("api/kingshot-tools/[...path].js");
 const developerUi = read("src/DeveloperApp.tsx");
 const vercelConfig = JSON.parse(read("vercel.json"));
+const developerMigration = read("supabase/migrations/20261014160000_create_developer_api_v2.sql");
 assertCheck("Developer API is mounted through the existing Kingshot catch-all", developerRouter.includes("developerApi(req, res") && !fs.existsSync(path.join(root, "api", "v1", "player.ts")));
 assertCheck("Developer keys are generated with cryptographic randomness and stored hashed", developerApi.includes("randomBytes(32)") && developerApi.includes("sha256(secret)") && !developerApi.includes("key_plain"));
 assertCheck("Developer endpoints require admin sessions for key management", developerApi.includes("kingshot_developer_list_keys") && developerApi.includes("kingshot_developer_create_key") && developerApi.includes("kingshot_developer_revoke_key"));
-assertCheck("Developer API has a database-backed per-IP issuance cap and quotas", migrations.includes("lifetime limit of two API keys") && migrations.includes("kingshot_developer_authorize_key") && migrations.includes("request_count"));
+assertCheck("Developer API has a database-backed per-IP issuance cap and quotas", developerMigration.includes("lifetime limit of two API keys") && developerMigration.includes("kingshot_developer_authorize_key") && developerMigration.includes("request_count"));
 assertCheck("Developer portal route and API v1 rewrites are connected", vercelConfig.rewrites.some(item => item.source === "/developer" && item.destination === "/index.html") && vercelConfig.rewrites.some(item => item.source === "/api/v1/:path*" && item.destination === "/api/kingshot-tools/developer/:path*") && developerUi.includes("/api/v1/player?id="));
 assertCheck("Developer portal uses the existing admin passkey login", developerUi.includes("/api/kingshot-admin-login") && developerUi.includes("accessKey: passkey"));
 
