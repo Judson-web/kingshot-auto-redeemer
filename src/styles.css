@@ -1628,3 +1628,74 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .site-account-logout:hover{border-color:#6875ef;color:#fff}
 .site-login-error{position:absolute;z-index:20;top:calc(100% + 8px);right:0;width:min(240px,70vw);padding:9px 11px;border:1px solid #6b353e;border-radius:9px;background:#201419;color:#ffc4cb;font-size:11px;white-space:normal;box-shadow:0 8px 28px #0006}
 @media(max-width:680px){.site-login-chip,.site-account-chip{gap:6px;min-height:36px;padding-right:8px;font-size:11px}.site-account-chip-copy{max-width:72px}.site-account-chip-copy b{font-size:10px}.site-account-chip-copy small{font-size:7px}.site-account-avatar-frame{width:29px;height:29px;flex-basis:29px}.site-account-logout{width:23px;height:23px}}
+
+
+/* Public profile and role badges */
+.site-account-user{border-color:#343e4d;background:linear-gradient(135deg,#171b23,#101116)}
+.site-account-user .site-account-avatar-frame{background:linear-gradient(135deg,#c2cad7,#7f8ca0,#465166)}
+.site-account-user .site-account-frame-mark{background:#d6dde8;color:#30394a}
+.site-account-user .site-account-chip-copy small{color:#c2cad7}
+.profile-page{min-height:calc(100vh - 80px);display:grid;place-items:center;padding:28px 16px 60px;background:radial-gradient(750px 440px at 50% 0%,#252653 0%,transparent 65%),#08090c;color:#f3f5fa}
+.profile-card{width:min(100%,560px);padding:clamp(20px,5vw,38px);border:1px solid #2a3040;border-radius:24px;background:linear-gradient(155deg,#151925,#101219 75%);box-shadow:0 24px 70px #0006}
+.profile-back{display:inline-flex;margin-bottom:28px;color:#b7c1d7;text-decoration:none;font-size:12px}
+.profile-emblem{display:grid;place-items:center;width:48px;height:48px;margin-bottom:20px;border-radius:15px;background:#737cff1f;border:1px solid #7b83ff38;color:#b9beff}
+.profile-kicker{font-size:10px;letter-spacing:.17em;font-weight:800;color:#aeb5ff}
+.profile-card h1{font-size:clamp(29px,7vw,40px);letter-spacing:-.05em;line-height:1.08;margin:9px 0 12px}
+.profile-lead{font-size:14px;line-height:1.75;color:#aeb8ca;margin:0 0 24px}
+.profile-login-stack{display:grid;gap:10px}
+.profile-primary,.profile-secondary{display:flex;align-items:center;justify-content:center;gap:9px;min-height:47px;width:100%;border-radius:11px;padding:12px 15px;font:inherit;font-size:13px;font-weight:750;cursor:pointer}
+.profile-primary{border:1px solid #777fff;background:#666ff0;color:#fff}
+.profile-primary:hover{background:#777fff}
+.profile-secondary{border:1px solid #3a4354;background:#202633;color:#f3f5fa}
+.profile-secondary:hover{border-color:#8d98ff}
+.profile-primary:disabled,.profile-secondary:disabled{opacity:.65;cursor:wait}
+.profile-login-stack>small{font-size:11px;line-height:1.6;color:#9da8bb;text-align:center;margin-top:4px}
+.profile-user-card{display:flex;align-items:center;gap:12px;min-width:0;padding:14px;border:1px solid #303747;border-radius:15px;background:#0d1017}
+.profile-user-frame{width:48px;height:48px;flex:0 0 48px;padding:3px;border-radius:50%;background:linear-gradient(135deg,#d3dbe9,#66748d);box-sizing:border-box}
+.profile-user-frame img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.profile-user-meta{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.profile-user-meta b{font-size:13px;overflow-wrap:anywhere}
+.profile-user-meta span{font-size:11px;color:#9ea9bd;overflow-wrap:anywhere}
+.profile-user-meta small{font-size:9px;letter-spacing:.1em;color:#bfc8da}
+.profile-user-badge{display:inline-flex;align-items:center;gap:5px;padding:6px 8px;border:1px solid #47546a;border-radius:999px;background:#252d3a;color:#d5dce9;font-size:9px;font-weight:850;letter-spacing:.08em}
+.profile-note{display:flex;gap:10px;margin:14px 0 18px;padding:12px;border:1px solid #34314e;border-radius:12px;background:#19182a;color:#c3c7ff;font-size:12px;line-height:1.65}
+.profile-note svg{flex:0 0 17px;margin-top:2px}
+.profile-note a{color:#d8d9ff}
+.profile-signout{margin-top:4px;background:#252b37;border-color:#394355}
+.profile-message,.profile-success,.profile-error{display:flex;align-items:center;gap:8px;margin-top:14px;padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.5}
+.profile-message,.profile-success{background:#14251f;color:#a9e6c9}
+.profile-error{background:#29171b;color:#ffb8c0}
+.profile-bottom{display:flex;justify-content:space-between;gap:15px;margin-top:26px;padding-top:16px;border-top:1px solid #2a3040}
+.profile-bottom a{display:inline-flex;align-items:center;gap:5px;color:#aeb8ca;text-decoration:none;font-size:11px}
+.profile-bottom a:hover{color:#fff}
+.profile-spin{animation:profile-spin 1s linear infinite}@keyframes profile-spin{to{transform:rotate(360deg)}}
+
+/* Floating support chat launcher and ticket panel */
+.support-float-root{position:fixed;right:max(18px,env(safe-area-inset-right));bottom:max(20px,env(safe-area-inset-bottom));z-index:1000;display:flex;align-items:flex-end;flex-direction:column;gap:12px}
+.support-float-trigger{position:relative;display:grid;place-items:center;width:50px;height:50px;border:1px solid #9ba2ff;border-radius:50%;background:linear-gradient(145deg,#747cff,#555ee0);color:white;box-shadow:0 8px 30px #0008,0 0 0 4px #747cff22;transition:transform .18s ease,box-shadow .18s ease}
+.support-float-trigger:hover{transform:translateY(-2px);box-shadow:0 12px 34px #0009,0 0 0 5px #747cff30}
+.support-float-trigger.is-open{background:#242a38;border-color:#444d61}
+.support-float-ping{position:absolute;right:2px;top:2px;width:9px;height:9px;border:2px solid #5e67ee;border-radius:50%;background:#9be4bd}
+.support-float-panel{width:min(370px,calc(100vw - 28px));max-height:min(650px,calc(100dvh - 100px));overflow:auto;border:1px solid #343b4d;border-radius:19px;background:#11151e;color:#f4f5fb;box-shadow:0 20px 70px #000a;animation:support-float-in .18s ease-out}
+@keyframes support-float-in{from{opacity:0;transform:translateY(7px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+.support-float-head{position:sticky;top:0;display:flex;align-items:center;gap:10px;padding:14px;border-bottom:1px solid #2b3240;background:#151a25;z-index:1}
+.support-float-icon{display:grid;place-items:center;width:37px;height:37px;border-radius:12px;background:#747cff22;color:#b7bcff}
+.support-float-head>div{display:flex;flex:1;flex-direction:column;gap:4px;min-width:0}
+.support-float-head b{font-size:13px}.support-float-head small{font-size:8px;letter-spacing:.13em;color:#a8b1c4}
+.support-float-head button{display:grid;place-items:center;width:29px;height:29px;border:1px solid #343b4a;border-radius:8px;background:#202633;color:#cbd2e1}
+.support-float-body{padding:15px}
+.support-float-body>p{margin:0 0 15px;font-size:12px;line-height:1.65;color:#aeb8ca}
+.support-float-body form{display:grid;gap:12px}
+.support-float-body label{display:grid;gap:6px;color:#aeb8ca;font-size:9px;letter-spacing:.11em;font-weight:800}
+.support-float-body input,.support-float-body textarea{width:100%;box-sizing:border-box;border:1px solid #343e4d;border-radius:9px;background:#090c12;color:#f3f5fa;padding:11px 12px;font:inherit;font-size:12px;letter-spacing:normal;resize:vertical}
+.support-float-body input:focus,.support-float-body textarea:focus{outline:2px solid #747cff55;border-color:#747cff}
+.support-float-body label small{font-size:10px;color:#8994a9;text-align:right;letter-spacing:normal}
+.support-float-submit{display:flex;align-items:center;justify-content:center;gap:8px;min-height:42px;border:1px solid #777fff;border-radius:10px;background:#666ff0;color:#fff;font-size:12px;font-weight:750}
+.support-float-submit:disabled{opacity:.65}
+.support-float-foot{padding:10px 14px;border-top:1px solid #282f3c;color:#8792a6;font-size:10px;line-height:1.5}
+.support-float-success{display:grid;justify-items:start;gap:9px;padding:14px;border:1px solid #315642;border-radius:12px;background:#14241c;color:#a7e7c7;font-size:12px}
+.support-float-success div{display:grid;gap:5px}.support-float-success span{line-height:1.6;color:#b4c8bc}
+.support-float-success button{border:0;background:transparent;color:#bfc4ff;padding:5px 0;font-size:11px}
+.support-float-error{padding:10px;border:1px solid #67343e;border-radius:9px;background:#28171c;color:#ffb9c0;font-size:11px;line-height:1.5}
+.support-float-spin{animation:profile-spin 1s linear infinite}
+@media(max-width:520px){.support-float-root{right:14px;bottom:max(14px,env(safe-area-inset-bottom))}.support-float-trigger{width:48px;height:48px}.support-float-panel{width:calc(100vw - 28px)}.profile-user-card{flex-wrap:wrap}.profile-user-badge{margin-left:auto}}
