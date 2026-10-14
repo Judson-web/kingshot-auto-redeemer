@@ -27,19 +27,42 @@ function webhookFor(key){
  return process.env["CUSTOM_MESSAGE_WEBHOOK_"+k.toUpperCase()+"_URL"]||"";
 }
 const COOKIE="__Host-ks_message_session";
+const ADMIN_COOKIE="__Host-ks_admin_session";
+const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
+const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
 const TTL=12*60*60*1000;
 function sign(value){return crypto.createHmac("sha256",PASS).update(value).digest("base64url")}
 function token(){const exp=Date.now()+TTL,nonce=crypto.randomBytes(24).toString("base64url"),body=exp+"."+nonce;return body+"."+sign(body)}
-function validSession(req){
- if(!PASS)return false;
- const raw=String(req.headers.cookie||"").split(";").map(x=>x.trim()).find(x=>x.startsWith(COOKIE+"="));
- if(!raw)return false;
- const value=decodeURIComponent(raw.slice(COOKIE.length+1)),parts=value.split(".");
- if(parts.length!==3)return false;
- const [exp,nonce,sig]=parts,body=exp+"."+nonce;
- if(!/^\d+$/.test(exp)||Number(exp)<Date.now())return false;
- const expected=sign(body),a=Buffer.from(sig),b=Buffer.from(expected);
- return a.length===b.length&&crypto.timingSafeEqual(a,b);
+async function validSession(req){
+ const cookies=String(req.headers.cookie||"").split(";").map(x=>x.trim());
+ const raw=cookies.find(x=>x.startsWith(COOKIE+"="));
+ if(PASS&&raw){
+  try{
+   const value=decodeURIComponent(raw.slice(COOKIE.length+1)),parts=value.split(".");
+   if(parts.length===3){
+    const [exp,nonce,sig]=parts,body=exp+"."+nonce;
+    if(/^\d+$/.test(exp)&&Number(exp)>=Date.now()){
+     const expected=sign(body),a=Buffer.from(sig),b=Buffer.from(expected);
+     if(a.length===b.length&&crypto.timingSafeEqual(a,b))return true;
+    }
+   }
+  }catch{}
+ }
+ // Reuse the site's existing admin session across private tools. Only the
+ // server validates this HttpOnly cookie against the authoritative session RPC.
+ const adminRaw=cookies.find(x=>x.startsWith(ADMIN_COOKIE+"="));
+ if(!adminRaw||!SUPABASE_KEY)return false;
+ try{
+  const token=decodeURIComponent(adminRaw.slice(ADMIN_COOKIE.length+1));
+  if(!token||token.length>256)return false;
+  const tokenHash=crypto.createHash("sha256").update(token).digest("hex");
+  const response=await fetch(SUPABASE_URL+"/rest/v1/rpc/kingshot_admin_validate_session",{
+   method:"POST",headers:{apikey:SUPABASE_KEY,"content-type":"application/json"},
+   body:JSON.stringify({p_token_hash:tokenHash}),signal:AbortSignal.timeout(5000)
+  });
+  if(!response.ok)return false;
+  return (await response.json())===true;
+ }catch{return false}
 }
 function setCookie(res,value,maxAge=TTL){res.setHeader("Set-Cookie",COOKIE+"="+encodeURIComponent(value)+"; Max-Age="+Math.floor(maxAge/1000)+"; Path=/; HttpOnly; Secure; SameSite=Strict")}
 function clearCookie(res){res.setHeader("Set-Cookie",COOKIE+"=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Strict")}
@@ -98,9 +121,9 @@ export default async function handler(req,res){
    return res.status(200).json({ok:true,expiresIn:TTL});
   }
   if(action==="LOGOUT"){clearCookie(res);return res.status(200).json({ok:true})}
-  if(action==="CHECK")return res.status(validSession(req)?200:401).json({ok:validSession(req)});
+  if(action==="CHECK"){const valid=await validSession(req);return res.status(valid?200:401).json({ok:valid})}
   if(action==="PUSH_STATUS"){
-   if(!validSession(req))return res.status(401).json({error:"Unauthorized. Sign in to the private console first."});
+   if(!(await validSession(req)))return res.status(401).json({error:"Unauthorized. Sign in to the private console first."});
    const {pushIsConfigured}=await import("../internal/push-notifications.js");
    if(!pushIsConfigured())return res.status(503).json({error:"Push notifications are not configured."});
    const base=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
