@@ -91,6 +91,10 @@
     {
       "source": "/push/",
       "destination": "/index.html"
+    },
+    {
+      "source": "/devsupport",
+      "destination": "/index.html"
     }
   ],
   "headers": [
