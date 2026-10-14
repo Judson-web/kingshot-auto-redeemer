@@ -1,7 +1,7 @@
 import React,{useEffect,useMemo,useState} from "react";
 import {Github,LockKeyhole,LogOut,Search,ExternalLink,ChevronRight,ShieldCheck,Code2,BookOpen,KeyRound,Activity,Copy,MessageCircle} from "lucide-react";
 const ORIGIN="https://kingshot-autoredeemer.vercel.app";
-const OWNER="Judson-web",EMAIL="sajijudsa@gmail.com";
+const OWNER="Judson-web";
 const pages=[
 {path:"/",group:"Public pages",desc:"Automatic redemption landing page"},
 {path:"/auto",group:"Public pages",desc:"Automatic redemption experience"},
@@ -28,7 +28,7 @@ const apis=[
 ];
 export default function PrivateDevApp(){
  const [user,setUser]=useState(null),[loading,setLoading]=useState(true),[error,setError]=useState(""),[query,setQuery]=useState(""),[group,setGroup]=useState("All"),[tab,setTab]=useState("routes"),[expanded,setExpanded]=useState("/api/v1/redeem"),[copied,setCopied]=useState("");
- const allowed=useMemo(()=>user&&(String(user.email||"").toLowerCase()===EMAIL||String(user.user_name||user.preferred_username||"").toLowerCase()===OWNER.toLowerCase()),[user]);
+ const allowed=useMemo(()=>user&&String(user.user_name||user.preferred_username||"").toLowerCase()===OWNER.toLowerCase(),[user]);
  async function request(url:string,init:RequestInit={}){const r=await fetch(url,{...init,credentials:"same-origin",headers:{"content-type":"application/json",...(init.headers as Record<string,string>|undefined||{})}});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||"Request failed");return d}
  useEffect(()=>{let live=true;async function init(){try{const params=new URLSearchParams(location.hash.slice(1));const token=params.get("access_token");if(token){history.replaceState(null,"",location.pathname+location.search);const d=await request("/api/kingshot-player?developer=account-auth",{method:"POST",body:JSON.stringify({action:"dev-verify",access_token:token})});if(live)setUser(d.user);return}const d=await request("/api/kingshot-player?developer=account-auth",{method:"POST",body:JSON.stringify({action:"dev-check"})});if(live&&d.authenticated)setUser(d.user||{email:EMAIL,user_name:OWNER})}catch(e){if(live)setError(e.message||"Sign-in failed")}finally{if(live)setLoading(false)}}init();return()=>{live=false}},[]);
  async function signIn(provider:"github"|"discord"="github"){setLoading(true);setError("");try{const action=provider==="discord"?"dev-discord-oauth-url":"dev-oauth-url";const d=await request("/api/kingshot-player?developer=account-auth",{method:"POST",body:JSON.stringify({action})});if(!d.url||!d.url.startsWith("https://wocxvtptqapietlteshr.supabase.co/auth/v1/authorize?"))throw Error("Invalid sign-in URL");location.assign(d.url)}catch(e){setError(e.message||"Could not start sign-in");setLoading(false)}}
