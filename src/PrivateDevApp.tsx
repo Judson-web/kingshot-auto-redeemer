@@ -12,6 +12,7 @@ const pages=[
 {path:"/push",group:"Tools",desc:"Push notification console"},
 {path:"/developer",group:"Developer",desc:"Public API documentation and API key management"},
 {path:"/dev",group:"Private",desc:"This owner-only navigation and development hub"},
+{path:"/devsupport",group:"Private",desc:"Admin-only two-way support inbox, separate from removal tickets"},
 {path:"/terms",group:"Legal",desc:"Terms of service"},
 {path:"/privacy",group:"Legal",desc:"Privacy policy"}
 ];
