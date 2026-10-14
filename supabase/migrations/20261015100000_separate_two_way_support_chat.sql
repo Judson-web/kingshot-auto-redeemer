@@ -26,3 +26,4 @@ revoke all on public.kingshot_chat_conversations from public,anon,authenticated;
 revoke all on public.kingshot_chat_messages from public,anon,authenticated;
 grant all on public.kingshot_chat_conversations to service_role;
 grant all on public.kingshot_chat_messages to service_role;
+grant usage, select on sequence public.kingshot_chat_messages_id_seq to service_role;
