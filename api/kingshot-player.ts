@@ -5,7 +5,7 @@ interface RequestLike { url?: string; method?: string; query?: Record<string, un
 interface ResponseLike { status(code: number): ResponseLike; json(body: unknown): ResponseLike; setHeader(name: string, value: string): void; }
 export default async function handler(req: RequestLike, res: ResponseLike): Promise<void> {
  const requestUrl = new URL(req.url || "/", "http://localhost");
- const developerPath = String(req.query?.developerPath || requestUrl.searchParams.get("developerPath") || req.query?.developer || requestUrl.searchParams.get("developer") || "").replace(/^\\/+|\\/+$/g, "");
+ const developerPath = String(req.query?.developerPath || requestUrl.searchParams.get("developerPath") || req.query?.developer || requestUrl.searchParams.get("developer") || "").replace(/^\/+|\/+$/g, "");
  if (developerPath) return developerApi(req, res, developerPath);
  if (req.method !== "GET") return void res.status(405).json({ error: "Method not allowed" });
  if (!rateLimit(req, res, "player-lookup", 30, 60000)) return;
