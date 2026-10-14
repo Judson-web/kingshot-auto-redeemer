@@ -5,11 +5,19 @@
       "destination": "/api/kingshot-player?developer=player"
     },
     {
+      "source": "/api/v1/redeem",
+      "destination": "/api/kingshot-player?developer=redeem"
+    },
+    {
       "source": "/auto",
       "destination": "/auto.html"
     },
     {
       "source": "/developer",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/dev",
       "destination": "/index.html"
     },
     {
