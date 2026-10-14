@@ -71,7 +71,7 @@ console.log(result.data.playerId, result.data.name);`;
     `}</style>
     <div className="dev-topbar"><div className="dev-shell dev-topbar-inner">
       <div className="dev-brand-mark"><Code2 size={20}/></div>
-      <div className="dev-brand-copy" style={{minWidth:0,flex:1}}><div style={{fontSize:13,fontWeight:800,letterSpacing:"-.02em"}}>Kingshot <span style={{color:"#aeb4ff"}}>Developers</span></div><div style={{fontSize:10,color:"#8f9aab",marginTop:2}}>Read-only Player API</div></div>
+      <div className="dev-brand-copy" style={{minWidth:0,flex:1}}><div style={{fontSize:13,fontWeight:800,letterSpacing:"-.02em"}}>Kingshot <span style={{color:"#aeb4ff"}}>Developers</span></div><div style={{fontSize:10,color:"#8f9aab",marginTop:2}}>Player lookup · manual redeem · auto enrollment</div></div>
       <nav className="dev-top-nav" aria-label="Developer navigation" style={{display:"flex",alignItems:"center",gap:5}}>
         <a className="dev-nav-link" href="#quickstart">Quick start</a><a className="dev-nav-link" href="#api-reference">API reference</a><a className="dev-nav-link" href="/" style={{display:"inline-flex",alignItems:"center",gap:5}}><ExternalLink size={12}/> Home</a>
       </nav>
@@ -86,14 +86,14 @@ console.log(result.data.playerId, result.data.name);`;
         <article className="dev-stat"><div className="dev-stat-label">Per-key quota</div><div className="dev-stat-value">60 / min</div><div className="dev-stat-detail">Up to 1,000 requests per day</div></article>
         <article className="dev-stat"><div className="dev-stat-label">Additional protection</div><div className="dev-stat-value">120 / min / IP</div><div className="dev-stat-detail">Shared IP-level rate limit</div></article>
       </div>
-      <div className="dev-section-nav" aria-label="Documentation sections"><a href="#quickstart"><Terminal size={13}/> Quick start</a><a href="#api-reference"><Activity size={13}/> Endpoint reference</a><a href="#limits"><Gauge size={13}/> Limits &amp; errors</a><a href="#authentication"><ShieldCheck size={13}/> Security</a></div><div className="dev-layout">
+      <div className="dev-section-nav" aria-label="Documentation sections"><a href="#quickstart"><Terminal size={13}/> Quick start</a><a href="#api-reference"><Activity size={13}/> Player lookup</a><a href="#manual-redemption"><Code2 size={13}/> Manual redeem</a><a href="#auto-redemption"><Gauge size={13}/> Auto redeem</a><a href="#limits"><Activity size={13}/> Limits &amp; errors</a><a href="#authentication"><ShieldCheck size={13}/> Security</a></div><div className="dev-layout">
         <aside className="dev-sidebar" aria-label="Account and API keys"><DeveloperAccountPanel/></aside>
         <div className="dev-content"><div className="dev-doc-grid">
           <section className="dev-card dev-feature-card">
-            <div className="dev-section-kicker" style={{display:"flex",alignItems:"center",gap:7}}><ShieldCheck size={14}/> Read-only REST API</div>
-            <h2 style={{fontSize:"clamp(21px,3vw,28px)",letterSpacing:"-.035em",lineHeight:1.25,margin:"10px 0 8px"}}>Your player data. Ready to integrate.</h2>
-            <p className="dev-muted" style={{maxWidth:620}}>Use a personal API key to query player profiles from your backend. Existing valid API keys continue to work. Keep secrets out of browser code, public repositories, and URLs.</p>
-            <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:15}}>{["Versioned endpoint","JSON responses","Bearer authentication"].map(tag=><span key={tag} style={{border:"1px solid #343e4d",borderRadius:7,padding:"5px 8px",fontSize:10,color:"#cbd3e2"}}>{tag}</span>)}</div>
+            <div className="dev-section-kicker" style={{display:"flex",alignItems:"center",gap:7}}><ShieldCheck size={14}/> Kingshot REST API</div>
+            <h2 style={{fontSize:"clamp(21px,3vw,28px)",letterSpacing:"-.035em",lineHeight:1.25,margin:"10px 0 8px"}}>Look up players. Redeem codes. Enroll for auto-redeem.</h2>
+            <p className="dev-muted" style={{maxWidth:620}}>Use a developer key for versioned player lookup and manual redemption. The existing automatic-redemption registration flow is documented separately below. Keep keys and signing secrets out of browser code, public repositories, and URLs.</p>
+            <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:15}}>{["Player lookup","Manual redemption","Auto-redeem enrollment","JSON responses","Bearer authentication"].map(tag=><span key={tag} style={{border:"1px solid #343e4d",borderRadius:7,padding:"5px 8px",fontSize:10,color:"#cbd3e2"}}>{tag}</span>)}</div>
           </section>
           <section className="dev-card" id="quickstart">
             <div className="dev-card-head"><Terminal size={18} color="#b8bdff"/><h2 className="dev-card-title">Quick start</h2></div>
@@ -112,6 +112,23 @@ console.log(result.data.playerId, result.data.name);`;
             <h3 style={{fontSize:13,margin:"19px 0 9px"}}>Example response</h3>
             <pre className="dev-code"><code>{JSON.stringify({data:{playerId:"43180889",name:"Example Player",kingdomId:"1125",power:123456789,townCenterLevel:30,avatarUrl:null},meta:{requestId:"server-generated-id",remaining:59,dailyRemaining:999}},null,2)}</code></pre>
             <p className="dev-muted" style={{fontSize:11,marginTop:9}}>Illustrative values only. Some fields may be null when the upstream provider has no value.</p>
+          </section>
+          <section className="dev-card" id="manual-redemption">
+            <div className="dev-card-head"><KeyRound size={18} color="#b8bdff"/><h2 className="dev-card-title">Manual redemption</h2></div>
+            <div className="dev-endpoint"><span style={{background:"#4a3216",color:"#ffd28a",borderRadius:6,padding:"5px 8px",fontSize:10,fontWeight:900}}>POST</span><code style={{fontSize:12,overflowWrap:"anywhere",flex:"1 1 170px"}}>/api/v1/redeem</code><CopyButton value="/api/v1/redeem" label="Copy path"/></div>
+            <p className="dev-muted" style={{marginTop:11}}>Requires a developer Bearer key. Submit one Player ID, gift code, and kingdom ID per request.</p>
+            <pre className="dev-code"><code>{`curl -X POST "${ORIGIN}/api/v1/redeem" \\\n  -H "Authorization: Bearer $KINGSHOT_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"playerId":"43180889","code":"EXAMPLECODE","kid":"1125"}'`}</code></pre>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8,marginTop:12}}>{[["playerId","5–20 digits"],["code","1–64 safe characters"],["kid","1–10 digit kingdom ID"]].map(([name,desc])=><div key={name} style={{border:"1px solid #2b3442",background:"#0d1118",borderRadius:9,padding:10}}><code style={{fontSize:12}}>{name}</code><p className="dev-muted" style={{fontSize:11,marginTop:4}}>{desc}</p></div>)}</div>
+            <p className="dev-muted" style={{marginTop:12}}>Check <code>data.ok</code>, <code>data.status</code>, <code>data.message</code>, and <code>data.errorCategory</code>. HTTP success alone does not guarantee rewards were granted.</p>
+          </section>
+          <section className="dev-card" id="auto-redemption">
+            <div className="dev-card-head"><Gauge size={18} color="#b8bdff"/><h2 className="dev-card-title">Automatic redemption enrollment</h2></div>
+            <div className="dev-endpoint"><span style={{background:"#164b39",color:"#9ce9c2",borderRadius:6,padding:"5px 8px",fontSize:10,fontWeight:900}}>POST</span><code style={{fontSize:12,overflowWrap:"anywhere",flex:"1 1 170px"}}>/api/kingshot-register</code><CopyButton value="/api/kingshot-register" label="Copy path"/></div>
+            <p className="dev-muted" style={{marginTop:11}}>Enrolls a player in the existing scheduled auto-redeem workflow. One player per request. This public website route is rate limited and does not use a developer API key; the worker itself remains private.</p>
+            <pre className="dev-code"><code>{`curl -X POST "${ORIGIN}/api/kingshot-register" \\\n  -H "Content-Type: application/json" \\\n  -d '{"playerId":"43180889","kingdomId":"1125","playerName":"Example Player"}'`}</code></pre>
+            <p className="dev-muted" style={{marginTop:12}}>Required: <code>playerId</code>. Optional: <code>kingdomId</code>, <code>playerName</code>, <code>avatarUrl</code>. The response reports <code>registered</code>, <code>alreadyRegistered</code>, <code>registrationStatus</code>, and kingdom verification state.</p>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:13}}><a href="/auto" style={{display:"inline-flex",alignItems:"center",gap:7,border:"1px solid #343e4d",borderRadius:9,padding:"9px 12px",color:"#d5d8ff",textDecoration:"none",fontSize:12}}>Open Auto Redeem page <ExternalLink size={13}/></a><a href="/manual" style={{display:"inline-flex",alignItems:"center",gap:7,border:"1px solid #343e4d",borderRadius:9,padding:"9px 12px",color:"#d5d8ff",textDecoration:"none",fontSize:12}}>Open Manual Redeem page <ExternalLink size={13}/></a></div>
+            <p className="dev-muted" style={{fontSize:11,marginTop:12}}>Enrollment does not start/stop the worker, force an individual redemption, or guarantee a code is valid. Never call the internal <code>/api/kingshot-auto</code> scheduler endpoint from clients.</p>
           </section>
           {accordion("authentication","Authentication and key safety",<><p style={paragraph}>Send the key as <code>Authorization: Bearer YOUR_API_KEY</code> over HTTPS. Keys are secrets: store them in server-side environment variables or a secrets manager, and never commit them to source control.</p><p style={paragraph}>A revoked or invalid key receives <code>401</code>. Do not share keys between unrelated applications. Rotate a key immediately if it may have leaked.</p></>)}
           <div style={{height:0}}/>
