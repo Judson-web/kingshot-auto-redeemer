@@ -13,7 +13,7 @@ function CopyButton({ value, label = "Copy" }: { value: string; label?: string }
 
 export default function DeveloperApp() {
   const [tab, setTab] = useState<"curl" | "javascript">("curl");
-  const [expanded, setExpanded] = useState("authentication");
+  const [expanded, setExpanded] = useState("");
   const code = tab === "curl" ? curlExample : `const response = await fetch("${endpoint}", {
   headers: {
     Authorization: "Bearer YOUR_API_KEY",
@@ -51,7 +51,7 @@ console.log(result.data.playerId, result.data.name);`;
       .dev-stat-label{font-size:11px;color:#9da8ba}
       .dev-stat-value{font-size:clamp(14px,2vw,18px);font-weight:750;letter-spacing:-.02em;margin-top:7px;overflow-wrap:anywhere}
       .dev-stat-detail{font-size:11px;color:#8390a4;margin-top:4px;line-height:1.5}
-      .dev-layout{display:grid;grid-template-columns:minmax(270px, .78fr) minmax(0,1.65fr);align-items:start;gap:18px}
+      .dev-layout{display:grid;grid-template-columns:minmax(260px,.62fr) minmax(0,1.8fr);align-items:start;gap:24px}.dev-sidebar{position:sticky;top:84px}.dev-content{gap:12px}.dev-card{box-shadow:0 10px 35px #00000012}.dev-endpoint{padding:10px 12px}.dev-code{font-size:12px;tab-size:2}.dev-section-nav{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 16px}.dev-section-nav a{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #293343;border-radius:9px;color:#c8d0df;text-decoration:none;font-size:12px;background:#11161f}.dev-section-nav a:hover{border-color:#555fa0;color:#fff}.dev-doc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.dev-doc-grid>#api-reference{grid-column:1/-1}.dev-doc-grid .dev-code{max-width:100%}
       .dev-sidebar{min-width:0}
       .dev-content{min-width:0;display:grid;gap:16px}
       .dev-card{background:#131821;border:1px solid #2b3442;border-radius:15px;padding:clamp(16px,2.5vw,23px);min-width:0}
@@ -65,7 +65,7 @@ console.log(result.data.playerId, result.data.name);`;
       .dev-endpoint{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px;background:#0d1118;border:1px solid #2b3442;border-radius:10px}
       .dev-footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:26px;padding-top:17px;border-top:1px solid #252c38;color:#8f9aab;font-size:11px}
       .dev-footer a{color:#b8bdff;text-decoration:none}
-      @media(max-width:760px){.dev-shell{padding:0 14px}.dev-page{padding-top:23px}.dev-layout{grid-template-columns:minmax(0,1fr)}.dev-sidebar{order:0}.dev-content{order:1}.dev-stat-grid{gap:8px}.dev-stat{padding:12px}.dev-stat-detail{font-size:10px}.dev-topbar-inner{min-height:59px}.dev-nav-link{padding:7px 6px}.dev-overview{gap:10px}.dev-version-pill{font-size:10px;padding:7px 8px}}
+      @media(max-width:760px){.dev-shell{padding:0 14px}.dev-page{padding-top:23px}.dev-layout{grid-template-columns:minmax(0,1fr)}.dev-sidebar{position:static;order:0}.dev-content{order:1}.dev-doc-grid{grid-template-columns:minmax(0,1fr)}.dev-doc-grid>#api-reference{grid-column:auto}.dev-stat-grid{gap:8px}.dev-stat{padding:12px}.dev-stat-detail{font-size:10px}.dev-topbar-inner{min-height:59px}.dev-nav-link{padding:7px 6px}.dev-overview{gap:10px}.dev-version-pill{font-size:10px;padding:7px 8px}}
       @media(max-width:430px){.dev-stat-grid{grid-template-columns:1fr 1fr}.dev-stat:last-child{grid-column:1/-1}.dev-overview{display:block}.dev-version-pill{margin-top:13px}.dev-brand-copy{display:none}.dev-top-nav{gap:2px!important}.dev-nav-link{font-size:11px}}
       @media(prefers-reduced-motion:reduce){.dev-dashboard *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
     `}</style>
@@ -86,9 +86,9 @@ console.log(result.data.playerId, result.data.name);`;
         <article className="dev-stat"><div className="dev-stat-label">Per-key quota</div><div className="dev-stat-value">60 / min</div><div className="dev-stat-detail">Up to 1,000 requests per day</div></article>
         <article className="dev-stat"><div className="dev-stat-label">Additional protection</div><div className="dev-stat-value">120 / min / IP</div><div className="dev-stat-detail">Shared IP-level rate limit</div></article>
       </div>
-      <div className="dev-layout">
+      <div className="dev-section-nav" aria-label="Documentation sections"><a href="#quickstart"><Terminal size={13}/> Quick start</a><a href="#api-reference"><Activity size={13}/> Endpoint reference</a><a href="#limits"><Gauge size={13}/> Limits &amp; errors</a><a href="#authentication"><ShieldCheck size={13}/> Security</a></div><div className="dev-layout">
         <aside className="dev-sidebar" aria-label="Account and API keys"><DeveloperAccountPanel/></aside>
-        <div className="dev-content">
+        <div className="dev-content"><div className="dev-doc-grid">
           <section className="dev-card dev-feature-card">
             <div className="dev-section-kicker" style={{display:"flex",alignItems:"center",gap:7}}><ShieldCheck size={14}/> Read-only REST API</div>
             <h2 style={{fontSize:"clamp(21px,3vw,28px)",letterSpacing:"-.035em",lineHeight:1.25,margin:"10px 0 8px"}}>Your player data. Ready to integrate.</h2>
