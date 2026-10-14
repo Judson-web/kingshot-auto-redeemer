@@ -47,7 +47,7 @@ function setRateHeaders(res: ResponseLike, result: Record<string, unknown>): voi
   if (typeof result.remaining === "number") res.setHeader("X-RateLimit-Remaining", String(result.remaining));
   if (typeof result.reset_at === "string" || typeof result.reset_at === "number") {
     const reset = typeof result.reset_at === "number" ? result.reset_at : Date.parse(result.reset_at);
-    if (Number.isFinite(reset)) res.setHeader("X-RateLimit-Reset", String(Math.ceil(reset / 1000)));
+    if (Number.isFinite(reset)) { res.setHeader("X-RateLimit-Reset", String(Math.ceil(reset / 1000))); res.setHeader("Retry-After", String(Math.max(1, Math.ceil((reset - Date.now()) / 1000)))); }
   }
 }
 export default async function developerApi(req: RequestLike, res: ResponseLike, path: string): Promise<void> {
@@ -86,6 +86,22 @@ export default async function developerApi(req: RequestLike, res: ResponseLike, 
     } catch (error) { respondError(res, error); }
     return;
   }
+  if (path === "admin-player" && req.method === "GET") {
+    if (!adminTokenHash) { res.status(401).json({ error: "Admin session expired. Sign in again." }); return; }
+    try {
+      await rpc<unknown>("kingshot_developer_list_keys", { p_admin_token_hash: adminTokenHash });
+      const id = new URL(req.url || "/", "https://local.invalid").searchParams.get("id")?.trim() || "";
+      if (!/^\\d{5,20}$/.test(id)) { res.status(400).json({ error: "Provide a player ID containing 5–20 digits." }); return; }
+      const player = await getPlayer(id);
+      res.status(200).json({ player });
+    } catch (error) {
+      const status = (error as { status?: number } | null)?.status;
+      if (status === 404) { res.status(404).json({ error: "Player not found." }); return; }
+      respondError(res, error);
+    }
+    return;
+  }
+
   if (path === "player" && req.method === "GET") {
     const rawKey = keyFromRequest(req);
     if (!rawKey) { res.setHeader("WWW-Authenticate", "Bearer"); res.status(401).json({ error: "A valid developer API key is required." }); return; }

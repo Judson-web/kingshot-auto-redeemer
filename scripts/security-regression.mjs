@@ -170,6 +170,7 @@ assertCheck("Developer endpoints require admin sessions for key management", dev
 assertCheck("Developer API has a database-backed per-IP issuance cap and quotas", developerMigration.includes("lifetime limit of two API keys") && developerMigration.includes("kingshot_developer_authorize_key") && developerMigration.includes("request_count"));
 assertCheck("Developer portal route and API v1 rewrites are connected", vercelConfig.rewrites.some(item => item.source === "/developer" && item.destination === "/index.html") && vercelConfig.rewrites.some(item => item.source === "/api/v1/:path*" && item.destination === "/api/kingshot-tools/developer/:path*") && developerUi.includes("/api/v1/player?id="));
 assertCheck("Developer portal uses the existing admin passkey login", developerUi.includes("/api/kingshot-admin-login") && developerUi.includes("accessKey: passkey"));
+assertCheck("Developer portal player lookup is admin-session protected", developerApi.includes('path === "admin-player"') && developerApi.includes('kingshot_developer_list_keys', developerApi.indexOf('path === "admin-player"')) && developerUi.includes("/api/kingshot-tools/developer/admin-player?id="));
 
 assertCheck("Discord interaction handler does not embed a Supabase publishable key",
  !/sb_publishable_[A-Za-z0-9_-]+/.test(discordInteractions));

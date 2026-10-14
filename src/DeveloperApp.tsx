@@ -53,7 +53,7 @@ export default function DeveloperApp() {
   const lookup = async (event: React.FormEvent) => {
     event.preventDefault(); setBusy(true); setError(""); setNotice(""); setPlayer(null);
     try {
-      const data = await request("/api/kingshot-player?id=" + encodeURIComponent(playerId.trim()));
+      const data = await request("/api/kingshot-tools/developer/admin-player?id=" + encodeURIComponent(playerId.trim()));
       const p = data.player || data;
       setPlayer({ playerId: String(p.governor_id || p.fid || p.id || playerId), name: String(p.nick_name || p.name || p.nickname || "Kingshot Player"), kingdomId: String(p.kid ?? p.kingdom_id ?? ""), power: p.power ?? null, townCenterLevel: p.town_center_level ?? p.tc_level ?? null, avatarUrl: p.avatar_url || p.avatar || p.avatarUrl || null });
     } catch (e) { setError(e instanceof Error ? e.message : "Player lookup failed."); }
