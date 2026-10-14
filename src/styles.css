@@ -1699,3 +1699,7 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .support-float-error{padding:10px;border:1px solid #67343e;border-radius:9px;background:#28171c;color:#ffb9c0;font-size:11px;line-height:1.5}
 .support-float-spin{animation:profile-spin 1s linear infinite}
 @media(max-width:520px){.support-float-root{right:14px;bottom:max(14px,env(safe-area-inset-bottom))}.support-float-trigger{width:48px;height:48px}.support-float-panel{width:calc(100vw - 28px)}.profile-user-card{flex-wrap:wrap}.profile-user-badge{margin-left:auto}}
+
+.site-profile-link{display:grid;place-items:center;flex:0 0 28px;width:28px;height:28px;border:1px solid #303747;border-radius:50%;background:#171b24;color:#aeb8ca;text-decoration:none}
+.site-profile-link:hover{border-color:#777fff;color:#fff}
+.site-login-chip:disabled{opacity:.65;cursor:wait}
