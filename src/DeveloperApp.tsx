@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import DeveloperAccountPanel from "./DeveloperAccountPanel.tsx";
+import DeveloperAccountPanel from "./DeveloperAccountPanel";
 import { Activity, BookOpen, Check, ChevronRight, Code2, Copy, ExternalLink, Gauge, KeyRound, ShieldCheck, Terminal } from "lucide-react";
 
 const ORIGIN = "https://kingshot-autoredeemer.vercel.app";
