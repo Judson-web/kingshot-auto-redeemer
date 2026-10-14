@@ -29,14 +29,17 @@ async function rpc<T>(name: string, body: Record<string, unknown>): Promise<T> {
   if (!response.ok) { const error = new Error(typeof data?.message === "string" ? data.message : "Developer API database request failed.") as Error & { status?: number }; error.status = response.status; throw error; }
   return data as T;
 }
+function requestId(res: ResponseLike): string { const id = crypto.randomUUID(); res.setHeader("X-Request-Id", id); return id; }
+function apiError(res: ResponseLike, status: number, code: string, message: string, requestIdValue = crypto.randomUUID(), extra: Record<string, unknown> = {}): void { res.setHeader("X-Request-Id", requestIdValue); res.status(status).json({ error: message, code, meta: { requestId: requestIdValue, timestamp: new Date().toISOString() }, ...extra }); }
 function respondError(res: ResponseLike, error: unknown): void {
+  const id = requestId(res);
   const message = error instanceof Error ? error.message : "Request failed.";
   const status = (error as { status?: number } | null)?.status;
-  if (status === 401 || /unauthorized/i.test(message)) { res.status(401).json({ error: "Developer session expired. Sign in again." }); return; }
-  if (/lifetime limit of two API keys/i.test(message)) { res.status(429).json({ error: "This IP address has reached the lifetime limit of two API keys." }); return; }
-  if (/developer API is not configured/i.test(message)) { res.status(503).json({ error: message }); return; }
+  if (status === 401 || /unauthorized/i.test(message)) { apiError(res, 401, "unauthorized", "Developer session expired. Sign in again.", id); return; }
+  if (/lifetime limit of two API keys/i.test(message)) { apiError(res, 429, "ip_issuance_limit", "This IP address has reached the lifetime limit of two API keys.", id); return; }
+  if (/developer API is not configured/i.test(message)) { apiError(res, 503, "service_not_configured", message, id); return; }
   console.error("[developer-api] database operation failed", { status, message });
-  res.status(502).json({ error: "Developer API could not complete the request." });
+  apiError(res, 502, "internal_error", "Developer API could not complete the request.", id);
 }
 function keyFromRequest(req: RequestLike): string {
   const match = /^Bearer\s+(ks_live_[a-f0-9]{64})$/i.exec(String(header(req, "authorization") || "").trim());
@@ -51,6 +54,7 @@ function setRateHeaders(res: ResponseLike, result: Record<string, unknown>): voi
   }
 }
 export default async function developerApi(req: RequestLike, res: ResponseLike, path: string): Promise<void> {
+  const rid = requestId(res);
   res.setHeader("Cache-Control", "private, no-store");
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -104,21 +108,21 @@ export default async function developerApi(req: RequestLike, res: ResponseLike, 
 
   if (path === "player" && req.method === "GET") {
     const rawKey = keyFromRequest(req);
-    if (!rawKey) { res.setHeader("WWW-Authenticate", "Bearer"); res.status(401).json({ error: "A valid developer API key is required." }); return; }
+    if (!rawKey) { res.setHeader("WWW-Authenticate", "Bearer"); apiError(res, 401, "missing_api_key", "A valid developer API key is required.", rid); return; }
     const ip = clientIp(req);
-    if (!ip) { res.status(503).json({ error: "The trusted client IP is unavailable." }); return; }
+    if (!ip) { apiError(res, 503, "client_ip_unavailable", "The trusted client IP is unavailable.", rid); return; }
     try {
       const authorization = await rpc<Record<string, unknown>>("kingshot_developer_authorize_key", { p_key_hash: sha256(rawKey), p_ip_hash: sha256(ip) });
       setRateHeaders(res, authorization);
       if (authorization.allowed !== true) {
         const reason = String(authorization.reason || "");
         const status = reason === "invalid_api_key" ? 401 : 429;
-        res.status(status).json({ error: status === 401 ? "Invalid or revoked developer API key." : "API rate limit or quota exceeded.", code: reason, ...(authorization.reset_at ? { resetAt: authorization.reset_at } : {}) });
+        apiError(res, status, status === 401 ? "invalid_api_key" : "rate_limit_exceeded", status === 401 ? "Invalid or revoked developer API key." : "API rate limit or quota exceeded.", rid, { reason, ...(authorization.reset_at ? { resetAt: authorization.reset_at } : {}) });
         return;
       }
       const url = new URL(req.url || "/", "https://local.invalid");
       const id = url.searchParams.get("id")?.trim() || "";
-      if (!/^\d{5,20}$/.test(id)) { res.status(400).json({ error: "Provide a player ID containing 5–20 digits.", code: "invalid_player_id" }); return; }
+      if (!/^\d{5,20}$/.test(id)) { apiError(res, 400, "invalid_player_id", "Provide a player ID containing 5–20 digits.", rid); return; }
       const player = await getPlayer(id);
       res.status(200).json({ data: {
         playerId: String(player.governor_id || player.fid || player.id || id),
@@ -127,14 +131,14 @@ export default async function developerApi(req: RequestLike, res: ResponseLike, 
         power: player.power ?? null,
         townCenterLevel: player.town_center_level ?? player.tc_level ?? null,
         avatarUrl: String(player.avatar_url || player.avatar || player.avatarUrl || "").slice(0, 500) || null
-      }, meta: { requestId: crypto.randomUUID(), remaining: authorization.remaining, dailyRemaining: authorization.daily_remaining } });
+      }, meta: { requestId: rid, timestamp: new Date().toISOString(), fetchedAt: new Date().toISOString(), source: "mightpulse", stale: false, remaining: authorization.remaining, dailyRemaining: authorization.daily_remaining } });
     } catch (error) {
       const status = (error as { status?: number } | null)?.status;
-      if (status === 404) { res.status(404).json({ error: "Player not found.", code: "player_not_found" }); return; }
+      if (status === 404) { apiError(res, 404, "player_not_found", "Player not found.", rid); return; }
       console.error("[developer-api] player lookup failed", error instanceof Error ? error.message : "unknown error");
-      res.status(502).json({ error: "Player lookup provider is unavailable.", code: "upstream_unavailable" });
+      apiError(res, 502, "upstream_unavailable", "Player lookup provider is unavailable.", rid);
     }
     return;
   }
-  res.status(404).json({ error: "Developer API route not found.", documentation: "/developer" });
+  apiError(res, 404, "route_not_found", "Developer API route not found.", rid, { documentation: "/developer" });
 }
