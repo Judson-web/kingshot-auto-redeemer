@@ -42,7 +42,7 @@ console.log(result.data.playerId, result.data.name);`;
       <section style={{ ...card, background: "linear-gradient(135deg, #171b2a, #131821 65%)", marginBottom: 17 }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 7, color: "#9ce9c2", fontSize: 11, fontWeight: 800, letterSpacing: ".08em" }}><span style={{ width: 7, height: 7, borderRadius: 10, background: "#6ee7a8" }}/> READ-ONLY REST API</span>
         <h2 style={{ fontSize: "clamp(22px, 4vw, 31px)", letterSpacing: "-.035em", lineHeight: 1.2, margin: "13px 0 0" }}>Integrate Kingshot player data into your tools.</h2>
-        <p style={{ ...paragraph, maxWidth: 720 }}>A versioned, read-only API for player lookups. Create an email-verified developer account below to manage your own API keys. Existing valid API keys continue to work.</p>
+        <p style={{ ...paragraph, maxWidth: 720 }}>A versioned, read-only API for player lookups. Sign in with GitHub below to manage your own API keys. Existing valid API keys continue to work.</p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 17 }}><span style={{ border: "1px solid #343e4d", borderRadius: 999, padding: "6px 10px", fontSize: 11, color: "#cbd3e2" }}>Version 1</span><span style={{ border: "1px solid #343e4d", borderRadius: 999, padding: "6px 10px", fontSize: 11, color: "#cbd3e2" }}>HTTPS</span><span style={{ border: "1px solid #343e4d", borderRadius: 999, padding: "6px 10px", fontSize: 11, color: "#cbd3e2" }}>Bearer authentication</span></div>
       </section>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 205px), 1fr))", gap: 12, marginBottom: 17 }}>
