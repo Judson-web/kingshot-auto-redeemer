@@ -38,6 +38,20 @@
 | 🔐 **Security** | Uses server-side credentials, rate-aware behavior, and regression checks |
 | 🔔 **Web push** | Optional browser notifications for verified new gift codes and authorized developer announcements, with optional HTTPS images |
 
+## ✦ Account profiles and support\n\nThe public site has a floating support launcher that submits a support ticket with a Player ID and message. It is ticket submission, not a live agent chat; replies are handled through the existing support workflow. The optional web-push prompt rechecks permission and subscription state on focus/visibility changes and reappears if the browser permission or subscription state changes after a prior dismissal.\n\n## ✦ Sign-in providers and roles
+
+The public `/profile` page supports GitHub and Discord sign-in for a regular user profile. The header shows a neutral **USER** badge for profile-only sessions. Developer API access is a separate sign-in/session on `/developer`; only there does the account display the **DEVELOPER** or allowlisted **ADMIN** badge. Existing GitHub users should continue choosing GitHub and sign in with the same account. Choosing Discord is not a promise that two provider identities are merged; use the same provider identity you originally registered with unless Supabase identity linking is explicitly configured. Each developer account can manage only its own API keys.
+
+To enable Discord OAuth for a deployment:
+
+1. Create an application at the [Discord Developer Portal](https://discord.com/developers/applications).
+2. In Supabase Dashboard → Authentication → Sign In / Providers → Discord, enable the provider and enter the Discord **Client ID** and **Client Secret**.
+3. In the Discord application OAuth2 settings, register the Supabase callback URL shown by Supabase's Discord provider configuration (typically `https://wocxvtptqapietlteshr.supabase.co/auth/v1/callback`).
+4. In Supabase Authentication → URL Configuration, allow the production redirects `https://kingshot-autoredeemer.vercel.app/profile?provider=discord`, `https://kingshot-autoredeemer.vercel.app/profile?provider=github`, `https://kingshot-autoredeemer.vercel.app/developer`, `https://kingshot-autoredeemer.vercel.app/developer?provider=discord`, `https://kingshot-autoredeemer.vercel.app/dev`, and `https://kingshot-autoredeemer.vercel.app/dev?provider=discord`.
+5. Save the provider configuration and test both Discord and GitHub sign-in.
+
+The owner role is determined on the server from the existing authorized GitHub identity/email or the configured Discord account ID. The Discord owner ID is `871756466900598815`; display names and avatars are not used to grant the role. Do not put the Discord client secret in source code or client-side environment variables. The existing admin passkey remains available.
+
 ## ✦ What it does
 
 Kingshot Auto Redeemer automates the repetitive parts of gift-code redemption without turning the worker into a fragile one-off script.

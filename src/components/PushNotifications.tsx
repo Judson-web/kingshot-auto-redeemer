@@ -37,37 +37,47 @@ const buttonStyle: React.CSSProperties = {
 
 export default function PushNotifications() {
   const [state, setState] = useState<PushState>("checking");
-  const [hidden, setHidden] = useState(() => {
-    try { return localStorage.getItem("ks-push-panel-dismissed") === "1"; } catch { return false; }
-  });
+  const [hidden, setHidden] = useState(false);
+  const [stateSignature, setStateSignature] = useState("unknown");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     let alive = true;
+    let checking = false;
     const check = async () => {
-      if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-        if (alive) setState("unsupported");
-        return;
-      }
-      if (Notification.permission === "denied") {
-        if (alive) setState("denied");
-        return;
-      }
+      if (checking) return;
+      checking = true;
       try {
-        const reg = await navigator.serviceWorker.ready;
-        const sub = await reg.pushManager.getSubscription();
-        if (alive) setState(sub ? "on" : "off");
-      } catch {
-        if (alive) setState("off");
-      }
+        if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+          if (alive) { setState("unsupported"); setHidden(true); }
+          return;
+        }
+        const permission = Notification.permission;
+        let sub = null;
+        try { const reg = await navigator.serviceWorker.ready; sub = await reg.pushManager.getSubscription(); } catch {}
+        if (!alive) return;
+        const nextSignature = permission + ":" + (sub ? "subscribed" : "unsubscribed");
+        setStateSignature(nextSignature);
+        let dismissed = "";
+        try { dismissed = localStorage.getItem("ks-push-panel-dismissed-v2") || ""; } catch {}
+        setHidden(dismissed === nextSignature);
+        if (permission === "denied") setState("denied");
+        else if (permission === "granted" && sub) setState("on");
+        else setState("off");
+      } finally { checking = false; }
     };
     void check();
-    return () => { alive = false; };
+    const onResume = () => { if (document.visibilityState === "visible") void check(); };
+    window.addEventListener("focus", onResume);
+    window.addEventListener("pageshow", onResume);
+    document.addEventListener("visibilitychange", onResume);
+    const timer = window.setInterval(onResume, 30000);
+    return () => { alive = false; window.clearInterval(timer); window.removeEventListener("focus", onResume); window.removeEventListener("pageshow", onResume); document.removeEventListener("visibilitychange", onResume); };
   }, []);
 
   const dismiss = () => {
     setHidden(true);
-    try { localStorage.setItem("ks-push-panel-dismissed", "1"); } catch {}
+    try { localStorage.setItem("ks-push-panel-dismissed-v2", stateSignature); } catch {}
   };
 
   const toggle = async () => {
@@ -79,7 +89,7 @@ export default function PushNotifications() {
       }
       const reg = await navigator.serviceWorker.ready;
       const existing = await reg.pushManager.getSubscription();
-      if (existing) {
+      if (existing && Notification.permission === "granted") {
         const response = await fetch("/api/custom-message", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -91,6 +101,17 @@ export default function PushNotifications() {
         setState("off");
         setMessage("Notifications are off on this device.");
         return;
+      }
+      // A subscription can outlive a browser permission reset. Remove that stale
+      // subscription before asking for permission and creating a fresh one.
+      if (existing && Notification.permission !== "granted") {
+        await fetch("/api/custom-message", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "PUSH_UNSUBSCRIBE", subscription: existing.toJSON() }),
+          credentials: "same-origin",
+        }).catch(() => {});
+        await existing.unsubscribe().catch(() => {});
       }
 
       const permission = Notification.permission === "default" ? await Notification.requestPermission() : Notification.permission;

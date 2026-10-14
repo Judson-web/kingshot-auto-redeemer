@@ -1,6 +1,6 @@
 import React,{useEffect,useRef,useState}from"react";
 import{createRoot}from"react-dom/client";
-import{ExternalLink,Gift,Menu,Search,ShieldCheck,X,CheckCircle,LoaderCircle,AlertTriangle,Info,OctagonAlert,ArrowRight,Copy,Activity,Wrench,WifiOff}from"lucide-react";
+import{ExternalLink,Gift,Menu,Search,ShieldCheck,X,CheckCircle,LoaderCircle,AlertTriangle,Info,OctagonAlert,ArrowRight,Copy,Activity,Wrench,WifiOff,UserRound}from"lucide-react";
 import"./styles.css";
 import LegalApp from"./LegalApp.jsx";
 import InfoApp from"./InfoApp.jsx";
@@ -10,6 +10,8 @@ import PushNotifications from"./components/PushNotifications.tsx";
 import PushConsoleApp from"./PushConsoleApp.tsx";
 import DeveloperApp from"./DeveloperApp.tsx";
 import PrivateDevApp from"./PrivateDevApp.tsx";
+import ProfileApp from"./ProfileApp.tsx";
+import SupportWidget from"./components/SupportWidget.tsx";
 
 
 const imageUrl=(user,size=1024,format=user.format)=>"/api/discord-avatar?id="+encodeURIComponent(user.id)+"&hash="+encodeURIComponent(user.avatar)+"&format="+encodeURIComponent(format)+"&size="+encodeURIComponent(size);
@@ -33,7 +35,15 @@ function SiteStatus(){
   <div className="site-status-foot"><span>Updates automatically every 30 seconds</span><a href="/info">How it works <ArrowRight size={11}/></a></div></section></>}
  </div>;
 }
-function DiscordChip(){const [user,setUser]=useState(null);useEffect(()=>{let live=true;const load=()=>fetch("/api/discord-user?id=871756466900598815",{credentials:"same-origin",cache:"no-store",headers:{"cache-control":"no-cache"}}).then(r=>r.ok?r.json():null).then(d=>{if(live&&d?.id)setUser(d)}).catch(()=>{});load();const timer=setInterval(load,60000);return()=>{live=false;clearInterval(timer)}},[]);const avatar=user?.avatar?(user.avatarUrl||imageUrl(user,64,user.animated?"gif":"png")):"https://cdn.discordapp.com/embed/avatars/0.png?size=64";return <a className="site-discord-credit" href="https://discord.com/channels/@me/871756466900598815" target="_blank" rel="noreferrer" aria-label="Message Judson on Discord"><img key={user?.avatar||"default"} src={avatar} alt="Judson" loading="eager" onError={e=>{e.currentTarget.src="https://cdn.discordapp.com/embed/avatars/0.png?size=64"}}/><span>Judson</span></a>}
+function DiscordChip(){
+ const [account,setAccount]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState("");
+ useEffect(()=>{let live=true;const load=async()=>{try{const [pr,dr]=await Promise.all([fetch("/api/kingshot-player?developer=account-auth",{credentials:"same-origin",cache:"no-store"}),fetch("/api/kingshot-player?developer=account-auth",{method:"POST",credentials:"same-origin",cache:"no-store",headers:{"content-type":"application/json"},body:JSON.stringify({action:"profile-check"})})]);const d=await pr.json().catch(()=>({})),p=await dr.json().catch(()=>({}));if(live){if(d.authenticated)setAccount({...d.user,role:d.role,kind:"developer"});else if(p.authenticated)setAccount({...p.user,role:"user",kind:"user"});else setAccount(null)}}catch{if(live)setAccount(null)}};load();const onFocus=()=>load();window.addEventListener("focus",onFocus);return()=>{live=false;window.removeEventListener("focus",onFocus)}},[]);
+ const signIn=async()=>{setBusy(true);setError("");try{const r=await fetch("/api/kingshot-player?developer=account-auth",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:JSON.stringify({action:"site-discord-oauth-url"})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.url)throw Error(d.error||"Could not start Discord sign-in.");location.assign(d.url)}catch(e){setError(e.message||"Could not start Discord sign-in.");setBusy(false)}};
+ const avatar=account?.avatar_url||"https://cdn.discordapp.com/embed/avatars/0.png?size=64";
+ if(!account)return <div className="site-account-wrap"><button className="site-login-chip" type="button" onClick={signIn} disabled={busy}><span className="site-login-discord" aria-hidden="true">◉</span><span>{busy?"Connecting…":"Discord login"}</span></button><a className="site-profile-link" href="/profile" aria-label="Create or manage profile"><UserRound size={14}/></a>{error&&<span className="site-login-error" role="status">{error}</span>}</div>;
+ const isDeveloper=account.kind==="developer",isAdmin=isDeveloper&&account.role==="admin",isDev=isDeveloper&&!isAdmin;
+ return <div className="site-account-wrap"><a className={"site-account-chip "+(isAdmin?"site-account-admin":isDev?"site-account-developer":"site-account-user")} href={isDeveloper?"/developer":"/profile"} aria-label={isAdmin?"Admin account":isDev?"Developer account":"User profile"}><span className="site-account-avatar-frame"><img src={avatar} alt="" onError={e=>{e.currentTarget.src="https://cdn.discordapp.com/embed/avatars/0.png?size=64"}}/><span className="site-account-frame-mark" aria-hidden="true">{isAdmin?"✦":isDev?"◆":"●"}</span></span><span className="site-account-chip-copy"><b>{account.username||account.email||"Account"}</b><small>{isAdmin?"ADMIN":isDev?"DEVELOPER":"USER"}</small></span></a><button className="site-account-logout" type="button" title="Sign out" aria-label="Sign out" onClick={async()=>{await fetch("/api/kingshot-player?developer=account-auth",{method:isDeveloper?"DELETE":"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:isDeveloper?undefined:JSON.stringify({action:"profile-logout"})}).catch(()=>{});setAccount(null)}}><X size={13}/></button></div>;
+}
 
 function KingshotApp(){
  const [playerId,setPlayerId]=useState(""),[code,setCode]=useState(""),[player,setPlayer]=useState(null),[busy,setBusy]=useState(false),[result,setResult]=useState(null),[error,setError]=useState(""),[menu,setMenu]=useState(false),[copiedRef,setCopiedRef]=useState(false);
@@ -95,7 +105,7 @@ function InstallAppPrompt(){const [installEvent,setInstallEvent]=useState(null),
 function AnnouncementCard({item}){if(!item)return null;const C=announcementIcon(item.type||"info");return <aside className={"site-announcement site-announcement-"+(item.type||"info")}><div className="site-announcement-icon"><C size={17}/></div><div className="site-announcement-content"><b>{item.title||"Announcement title"}</b><p>{item.message||"Your announcement message will appear here."}</p>{item.link_url&&<a href={item.link_url} target="_blank" rel="noopener noreferrer">{item.link_label||"Learn more"} <ExternalLink size={11}/></a>}</div></aside>}
 function PublicAnnouncements({children}){const[state,setState]=useState(null);useEffect(()=>{fetch("/api/kingshot-admin-data?public=announcements").then(r=>r.ok?r.json():null).then(d=>setState(d?.announcements||[])).catch(()=>setState([]))},[]);return <>{state?.[0]&&<div style={{maxWidth:"1180px",margin:"0 auto",padding:"14px 20px 0"}}><AnnouncementCard item={state[0]}/></div>}{children}</>}
 function PublicMaintenance({children}){const [state,setState]=useState(null);useEffect(()=>{let live=true;fetch("/api/kingshot-admin-data?public=maintenance",{credentials:"same-origin",cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(live)setState(d||{maintenanceEnabled:false})}).catch(()=>{if(live)setState({maintenanceEnabled:false})});return()=>{live=false}},[]);return state?.maintenanceEnabled?<MaintenanceScreen/>:children}
-const publicPage=location.pathname==="/auto"||location.pathname==="/" ? <AutoRedeemApp/>:location.pathname==="/manual"||location.pathname==="/redeem" ? <KingshotApp/>:location.pathname==="/info"?<InfoApp/>:location.pathname==="/message"?<CustomMessageApp/>:location.pathname==="/push"?<PushConsoleApp/>:location.pathname==="/developer"?<DeveloperApp/>:location.pathname==="/dev"?<PrivateDevApp/>:location.pathname==="/gift-codes"?<GiftCodesApp/>:location.pathname==="/terms"?<LegalApp type="terms"/>:location.pathname==="/privacy"?<LegalApp type="privacy"/>:<AutoRedeemApp/>; function registerAppServiceWorker(){
+const publicPage=location.pathname==="/auto"||location.pathname==="/" ? <AutoRedeemApp/>:location.pathname==="/manual"||location.pathname==="/redeem" ? <KingshotApp/>:location.pathname==="/info"?<InfoApp/>:location.pathname==="/message"?<CustomMessageApp/>:location.pathname==="/push"?<PushConsoleApp/>:location.pathname==="/developer"?<DeveloperApp/>:location.pathname==="/profile"?<ProfileApp/>:location.pathname==="/dev"?<PrivateDevApp/>:location.pathname==="/gift-codes"?<GiftCodesApp/>:location.pathname==="/terms"?<LegalApp type="terms"/>:location.pathname==="/privacy"?<LegalApp type="privacy"/>:<AutoRedeemApp/>; function registerAppServiceWorker(){
  if(!("serviceWorker" in navigator))return;
  const showUpdate=()=>{
   if(document.getElementById("ks-update-toast"))return;
@@ -145,4 +155,4 @@ if(typeof window!=="undefined")window.addEventListener("load",recordVisitorPageV
 
 registerAppServiceWorker();
 
-createRoot(document.getElementById("root")).render(<MaintenanceGate><PublicAnnouncements>{publicPage}</PublicAnnouncements><InstallAppPrompt/><PushNotifications/></MaintenanceGate>);
+createRoot(document.getElementById("root")).render(<MaintenanceGate><PublicAnnouncements>{publicPage}</PublicAnnouncements><InstallAppPrompt/><PushNotifications/><SupportWidget/></MaintenanceGate>);
