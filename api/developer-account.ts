@@ -2,14 +2,14 @@ import crypto from "node:crypto";
 import { rateLimit } from "../lib/request-rate-limit.js";
 type Req={method?:string;url?:string;headers:Record<string,string|string[]|undefined>;body?:Record<string,unknown>};
 type Res={status(n:number):Res;json(v:unknown):Res;setHeader(k:string,v:string):void};
-const URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
+const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
 const KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
 const COOKIE="__Host-ks_developer_session";
 const sha=(v:string)=>crypto.createHash("sha256").update(v).digest("hex");
 const get=(req:Req,n:string)=>{const v=req.headers[n.toLowerCase()]??req.headers[n];return Array.isArray(v)?v[0]:v};
 function token(req:Req){const raw=String(get(req,"cookie")||"");const p=raw.split(";").map(x=>x.trim()).find(x=>x.startsWith(COOKIE+"="));if(!p)return "";try{return decodeURIComponent(p.slice(COOKIE.length+1))}catch{return ""}}
 function ip(req:Req){const raw=String(get(req,"x-vercel-forwarded-for")||"").split(",")[0].trim();return raw.length>0&&raw.length<=64?raw:"unknown"}
-async function rpc(name:string,body:Record<string,unknown>){if(!KEY)throw new Error("Developer API is not configured");const r=await fetch(URL+"/rest/v1/rpc/"+name,{method:"POST",headers:{apikey:KEY,authorization:"Bearer "+KEY,"content-type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(8000)});const d:any=await r.json().catch(()=>null);if(!r.ok){const e=new Error(d?.message||"Developer account request failed") as Error&{status?:number};e.status=r.status;throw e}return d}
+async function rpc(name:string,body:Record<string,unknown>){if(!KEY)throw new Error("Developer API is not configured");const r=await fetch(SUPABASE_URL+"/rest/v1/rpc/"+name,{method:"POST",headers:{apikey:KEY,authorization:"Bearer "+KEY,"content-type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(8000)});const d:any=await r.json().catch(()=>null);if(!r.ok){const e=new Error(d?.message||"Developer account request failed") as Error&{status?:number};e.status=r.status;throw e}return d}
 export default async function handler(req:Req,res:Res){res.setHeader("Cache-Control","private, no-store");res.setHeader("X-Content-Type-Options","nosniff");if(!["GET","POST","DELETE"].includes(String(req.method))){res.status(405).json({error:"Method not allowed"});return}
  const s=token(req);if(!s){res.status(401).json({error:"Sign in to manage your API keys."});return}const p_session_hash=sha(s);
  try{
