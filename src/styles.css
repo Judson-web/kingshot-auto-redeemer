@@ -1703,3 +1703,63 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .site-profile-link{display:grid;place-items:center;flex:0 0 28px;width:28px;height:28px;border:1px solid #303747;border-radius:50%;background:#171b24;color:#aeb8ca;text-decoration:none}
 .site-profile-link:hover{border-color:#777fff;color:#fff}
 .site-login-chip:disabled{opacity:.65;cursor:wait}
+
+
+/* Header refinement: clear hierarchy, fewer competing controls */
+.ks-app>header{position:relative;display:grid;grid-template-columns:minmax(175px,1fr) auto auto;gap:clamp(14px,2.5vw,30px);align-items:center;height:72px}
+.ks-app>header .brand{min-width:0}
+.ks-app>header .primary-nav{display:flex;align-items:center;gap:clamp(14px,2vw,25px);white-space:nowrap}
+.ks-app>header .primary-nav a{font-size:12px;color:#a0a4b0}
+.ks-app>header .primary-nav a:hover{color:#fff}
+.ks-app>header .header-right{display:flex;align-items:center;justify-content:flex-end;gap:10px;min-width:0}
+.ks-app>header .site-status-trigger{min-height:35px;padding:0 10px;gap:7px}
+.ks-app>header .site-status-label{font-size:9px;letter-spacing:.08em}
+.ks-app>header .site-account-chip{min-height:39px;max-width:185px}
+.ks-app>header .site-account-chip-copy{max-width:100px}
+.ks-app>header .menu-btn{flex:0 0 36px;width:36px;height:36px;border-radius:10px}
+.site-login-chip .site-login-discord{font-size:0;position:relative}
+.site-login-chip .site-login-discord:before{content:"";position:absolute;width:14px;height:10px;border-radius:5px 5px 4px 4px;background:#fff}
+.site-login-chip .site-login-discord:after{content:"••";position:absolute;top:5px;left:7px;color:#5865f2;font-size:8px;letter-spacing:2px}
+.profile-card-wide{width:min(100%,680px)}
+.profile-link-section{margin:20px 0;padding:17px;border:1px solid #2d3545;border-radius:15px;background:#0d1118}
+.profile-link-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#b8bdff}
+.profile-link-heading h2{margin:5px 0 0;color:#f4f5fa;font-size:19px;letter-spacing:-.03em}
+.profile-link-section>p{margin:8px 0 16px;color:#9ea9bc;font-size:12px;line-height:1.65}
+.profile-provider-row{display:flex;align-items:center;gap:11px;padding:12px 0;border-top:1px solid #272f3d}
+.profile-provider-icon{display:grid;place-items:center;width:38px;height:38px;flex:0 0 38px;border-radius:11px;background:#1b2230;color:#dbe2f0}
+.profile-provider-discord{background:#5865f222;color:#aeb5ff}
+.profile-provider-info{display:flex;flex:1;flex-direction:column;gap:4px;min-width:0}
+.profile-provider-info b{font-size:13px;color:#f2f4fa}
+.profile-provider-info small{font-size:11px;color:#8f9bb0}
+.profile-connected{display:inline-flex;align-items:center;gap:5px;color:#9ce0bd;font-size:11px;font-weight:750;white-space:nowrap}
+.profile-link-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 11px;border:1px solid #4b5287;border-radius:9px;background:#292d4b;color:#e5e7ff;font:inherit;font-size:11px;font-weight:750;white-space:nowrap}
+.profile-link-button:disabled{opacity:.6}
+.profile-link-foot{display:flex;gap:8px;margin-top:13px;padding:10px;border-radius:9px;background:#171b28;color:#aeb8ca;font-size:10px;line-height:1.6}
+.profile-link-foot svg{flex:0 0 15px;margin-top:1px;color:#aab0ff}
+@media(max-width:900px){
+ .ks-app>header{grid-template-columns:minmax(135px,1fr) auto;gap:12px}
+ .ks-app>header .primary-nav{display:none}
+ .ks-app>header .header-right{gap:8px}
+ .ks-app>header .menu-btn{display:grid}
+}
+@media(max-width:520px){
+ .ks-app>header{height:62px;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+ .ks-app>header .brand{gap:7px}
+ .ks-app>header .brand-mark{width:29px;height:29px;flex:0 0 29px}
+ .ks-app>header .brand span:last-child{font-size:11px;max-width:132px}
+ .ks-app>header .header-right{gap:6px}
+ .ks-app>header .site-status-trigger{width:35px;min-width:35px;padding:0;justify-content:center}
+ .ks-app>header .site-status-label,.ks-app>header .site-status-chevron{display:none}
+ .ks-app>header .site-account-chip{min-height:35px;padding:3px 8px 3px 4px;gap:6px}
+ .ks-app>header .site-account-chip-copy{max-width:54px}
+ .ks-app>header .site-account-chip-copy b{font-size:9px}
+ .ks-app>header .site-account-chip-copy small{font-size:7px}
+ .ks-app>header .site-account-avatar-frame{width:27px;height:27px;flex-basis:27px}
+ .ks-app>header .menu-btn{width:32px;height:32px;flex-basis:32px}
+ .profile-card-wide{padding:20px 15px}
+ .profile-link-section{padding:13px}
+ .profile-provider-row{gap:8px}
+ .profile-provider-icon{width:33px;height:33px;flex-basis:33px}
+ .profile-link-button{padding:8px;font-size:10px}
+ .profile-connected{font-size:10px}
+}
