@@ -1605,3 +1605,26 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  .maintenance-time b{font-size:17px}
 }
 @media(prefers-reduced-motion:reduce){.maintenance-shell,.maintenance-visual-ring-a,.maintenance-visual-ring-b,.maintenance-visual .maintenance-icon,.maintenance-visual-spark,.maintenance-live i{animation:none!important}.maintenance-time{transition:none}}
+
+
+/* Discord sign-in and account role frames */
+.site-account-wrap{position:relative;display:inline-flex;align-items:center;gap:5px;min-width:0}
+.site-login-chip,.site-account-chip{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:4px 11px 4px 5px;border:1px solid #343b52;border-radius:999px;background:linear-gradient(135deg,#171b29,#101116);color:#f4f5fb;text-decoration:none;white-space:nowrap;cursor:pointer;font:inherit;font-size:12px;font-weight:750;transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+.site-login-chip:hover,.site-account-chip:hover{border-color:#6978ff;box-shadow:0 0 0 3px #5865f222}
+.site-login-chip:active,.site-account-chip:active{transform:translateY(1px)}
+.site-login-discord{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#5865f2;color:white;font-size:20px;line-height:1}
+.site-account-chip-copy{display:flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:105px;min-width:0}
+.site-account-chip-copy b{max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:11px;line-height:1.15}
+.site-account-chip-copy small{font-size:8px;letter-spacing:.12em;line-height:1.2;color:#b8c1d5}
+.site-account-avatar-frame{position:relative;display:grid;place-items:center;flex:0 0 31px;width:31px;height:31px;border-radius:50%;padding:2px;background:linear-gradient(135deg,#a5b4fc,#6475f5 52%,#333b65);box-shadow:0 0 0 1px #a5b4fc66;box-sizing:border-box}
+.site-account-avatar-frame img{width:100%;height:100%;border-radius:50%;object-fit:cover;background:#171a24}
+.site-account-frame-mark{position:absolute;right:-4px;bottom:-4px;display:grid;place-items:center;width:15px;height:15px;border:2px solid #101116;border-radius:50%;background:#31394c;color:#e4e9f7;font-size:8px;line-height:1}
+.site-account-admin{border-color:#b8944f;background:linear-gradient(125deg,#211c14,#111116 68%);box-shadow:inset 0 0 0 1px #b8944f22}
+.site-account-admin .site-account-avatar-frame{background:conic-gradient(from 25deg,#fff0b2,#d6a84c,#fff1bd,#8f6828,#fff0b2);box-shadow:0 0 0 1px #e8c77788,0 0 13px #d5aa4b26}
+.site-account-admin .site-account-frame-mark{background:linear-gradient(135deg,#f6d78b,#a87924);color:#21180a;border-color:#17130e;font-size:9px}
+.site-account-admin .site-account-chip-copy small{color:#f0ce82}
+.site-account-developer .site-account-avatar-frame{background:linear-gradient(135deg,#a6b2c9,#5c6c88,#323c50)}
+.site-account-logout{display:grid;place-items:center;width:25px;height:25px;border:1px solid #303543;border-radius:50%;background:#171a22;color:#aab2c4;cursor:pointer}
+.site-account-logout:hover{border-color:#6875ef;color:#fff}
+.site-login-error{position:absolute;z-index:20;top:calc(100% + 8px);right:0;width:min(240px,70vw);padding:9px 11px;border:1px solid #6b353e;border-radius:9px;background:#201419;color:#ffc4cb;font-size:11px;white-space:normal;box-shadow:0 8px 28px #0006}
+@media(max-width:680px){.site-login-chip,.site-account-chip{gap:6px;min-height:36px;padding-right:8px;font-size:11px}.site-account-chip-copy{max-width:72px}.site-account-chip-copy b{font-size:10px}.site-account-chip-copy small{font-size:7px}.site-account-avatar-frame{width:29px;height:29px;flex-basis:29px}.site-account-logout{width:23px;height:23px}}
