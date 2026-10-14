@@ -45,10 +45,6 @@
       "destination": "/api/admin-tools/login"
     },
     {
-      "source": "/api/kingshot-developer-login",
-      "destination": "/api/admin-tools/developer-login"
-    },
-    {
       "source": "/api/kingshot-health",
       "destination": "/api/ops-tools/health"
     },
