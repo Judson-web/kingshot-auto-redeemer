@@ -6,18 +6,18 @@ interface RequestLike { method?: string; url?: string; headers: Record<string, H
 interface ResponseLike { status(code: number): ResponseLike; json(body: unknown): ResponseLike; setHeader(name: string, value: string): void; }
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wocxvtptqapietlteshr.supabase.co";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
-const ADMIN_COOKIE = "__Host-ks_admin_session";
+const DEVELOPER_COOKIE = "__Host-ks_developer_session";
 const sha256 = (value: string) => crypto.createHash("sha256").update(value, "utf8").digest("hex");
 const header = (req: RequestLike, name: string) => { const value = req.headers[name.toLowerCase()] ?? req.headers[name]; return Array.isArray(value) ? value[0] : value; };
 function clientIp(req: RequestLike): string {
   const value = String(header(req, "x-vercel-forwarded-for") || "").split(",")[0].trim();
   return value.length > 0 && value.length <= 64 ? value : "";
 }
-function adminSession(req: RequestLike): string {
+function developerSession(req: RequestLike): string {
   const cookie = String(header(req, "cookie") || "");
-  const pair = cookie.split(";").map(part => part.trim()).find(part => part.startsWith(ADMIN_COOKIE + "="));
+  const pair = cookie.split(";").map(part => part.trim()).find(part => part.startsWith(DEVELOPER_COOKIE + "="));
   if (!pair) return "";
-  try { return decodeURIComponent(pair.slice(ADMIN_COOKIE.length + 1)); } catch { return ""; }
+  try { return decodeURIComponent(pair.slice(DEVELOPER_COOKIE.length + 1)); } catch { return ""; }
 }
 async function rpc<T>(name: string, body: Record<string, unknown>): Promise<T> {
   if (!SUPABASE_KEY) throw new Error("Developer API is not configured.");
@@ -32,7 +32,7 @@ async function rpc<T>(name: string, body: Record<string, unknown>): Promise<T> {
 function respondError(res: ResponseLike, error: unknown): void {
   const message = error instanceof Error ? error.message : "Request failed.";
   const status = (error as { status?: number } | null)?.status;
-  if (status === 401 || /unauthorized/i.test(message)) { res.status(401).json({ error: "Admin session expired. Sign in again." }); return; }
+  if (status === 401 || /unauthorized/i.test(message)) { res.status(401).json({ error: "Developer session expired. Sign in again." }); return; }
   if (/lifetime limit of two API keys/i.test(message)) { res.status(429).json({ error: "This IP address has reached the lifetime limit of two API keys." }); return; }
   if (/developer API is not configured/i.test(message)) { res.status(503).json({ error: message }); return; }
   console.error("[developer-api] database operation failed", { status, message });
@@ -58,8 +58,8 @@ export default async function developerApi(req: RequestLike, res: ResponseLike, 
   res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
   res.setHeader("Access-Control-Expose-Headers", "X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset");
   if (req.method === "OPTIONS") { res.status(204).json({}); return; }
-  const adminToken = adminSession(req);
-  const adminTokenHash = adminToken ? sha256(adminToken) : "";
+  const developerToken = developerSession(req);
+  const adminTokenHash = developerToken ? sha256(developerToken) : "";
 
   if (path === "keys" && req.method === "GET") {
     try { const keys = await rpc<unknown>("kingshot_developer_list_keys", { p_admin_token_hash: adminTokenHash }); res.status(200).json({ keys }); }
@@ -87,7 +87,7 @@ export default async function developerApi(req: RequestLike, res: ResponseLike, 
     return;
   }
   if (path === "admin-player" && req.method === "GET") {
-    if (!adminTokenHash) { res.status(401).json({ error: "Admin session expired. Sign in again." }); return; }
+    if (!adminTokenHash) { res.status(401).json({ error: "Developer session expired. Sign in again." }); return; }
     try {
       await rpc<unknown>("kingshot_developer_list_keys", { p_admin_token_hash: adminTokenHash });
       const id = new URL(req.url || "/", "https://local.invalid").searchParams.get("id")?.trim() || "";
