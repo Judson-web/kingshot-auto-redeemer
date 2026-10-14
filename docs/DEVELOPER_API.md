@@ -2,14 +2,61 @@
 
 Base URL: `https://kingshot-autoredeemer.vercel.app`
 
+Use HTTPS for every request. API responses are JSON and include a request identifier where applicable. The public `/developer` page contains interactive key management and examples; this document is the copyable reference.
+
 ## Authentication
-Create an API key in [/developer](/developer). Send it as `Authorization: Bearer ks_live_…`. Never put API keys in browser bundles, public repositories, or query parameters.
+
+Create a key at [/developer](https://kingshot-autoredeemer.vercel.app/developer). Send it as `Authorization: Bearer YOUR_API_KEY`. Never place keys in query parameters, browser bundles, screenshots, or public repositories. The full key is shown only once; the database stores a SHA-256 hash. Revoke compromised keys from the developer account panel.
+
+## Endpoints at a glance
+
+| Method | Endpoint | Access | Purpose |
+|---|---|---|---|
+| `GET` | `/api/v1/player?id=PLAYER_ID` | Bearer API key | Versioned player lookup |
+| `POST` | `/api/v1/redeem` | Bearer API key | Manual redemption request |
+| `GET` | `/api/kingshot-player?id=PLAYER_ID` | Public, rate limited | Legacy player lookup |
+| `POST` | `/api/kingshot-redeem` | Public, rate limited | Website manual-redemption route |
+| `POST` | `/api/kingshot-register` | Public, rate limited | Register a player for existing auto-redemption |
+| `GET` | `/api/kingshot-health` | Public | Health summary |
+
+`/api/kingshot-auto` is an internal scheduler/worker endpoint. It is not a public integration API. Do not call it from clients or expose scheduler credentials.
 
 ## Player lookup
 
 `GET /api/v1/player?id=43180889`
 
-Returns `data` containing playerId, name, kingdomId, power, townCenterLevel and avatarUrl, plus `meta` with requestId, timestamp, fetchedAt, source, stale and quota counters.
+The `id` query parameter must contain 5–20 digits. Example:
+
+```bash
+curl "https://kingshot-autoredeemer.vercel.app/api/v1/player?id=43180889" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Example response shape (values are illustrative):
+
+```json
+{
+  "data": {
+    "playerId": "43180889",
+    "name": "Example Player",
+    "kingdomId": "1125",
+    "power": 123456789,
+    "townCenterLevel": 30,
+    "avatarUrl": null
+  },
+  "meta": {
+    "requestId": "server-generated-id",
+    "timestamp": "2026-10-14T12:00:00.000Z",
+    "fetchedAt": "2026-10-14T11:59:58.000Z",
+    "source": "provider",
+    "stale": false,
+    "remaining": 59,
+    "dailyRemaining": 999
+  }
+}
+```
+
+Some profile fields may be null when unavailable. Treat `meta.stale` and `meta.fetchedAt` as freshness signals; a successful response can use an explicitly identified cached result if the upstream provider is temporarily unavailable.
 
 ## Manual redemption
 
@@ -18,10 +65,14 @@ Returns `data` containing playerId, name, kingdomId, power, townCenterLevel and 
 Requires a valid API key. JSON body:
 
 ```json
-{ "playerId": "43180889", "code": "EXAMPLECODE", "kid": "1125" }
+{
+  "playerId": "43180889",
+  "code": "EXAMPLECODE",
+  "kid": "1125"
+}
 ```
 
-Example:
+Example request:
 
 ```bash
 curl -X POST "https://kingshot-autoredeemer.vercel.app/api/v1/redeem" \
@@ -30,19 +81,45 @@ curl -X POST "https://kingshot-autoredeemer.vercel.app/api/v1/redeem" \
   -d '{"playerId":"43180889","code":"EXAMPLECODE","kid":"1125"}'
 ```
 
-A successful HTTP response means the request was processed; inspect `data.status` and `data.errorCategory` for the in-game redemption outcome. API quota/rate-limit headers include `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset`.
+A successful HTTP status means the API processed the request, not necessarily that the game accepted the code. Inspect `data.status`, `data.errorCategory`, and the returned message for the redemption outcome. Codes may be expired, invalid, already claimed, or limited by the game.
 
-## Automatic redemption
+## Existing automatic redemption workflow
 
-The service already has an automatic redemption workflow for players registered through the website. Use `POST /api/kingshot-register` with `playerId` and optional `kingdomId`, `playerName`, and `avatarUrl` to register a player. Automatic processing happens through the internal scheduler.
+Players can opt in to the existing scheduled workflow through `POST /api/kingshot-register`. The registration payload accepts `playerId` and optional `kingdomId`, `playerName`, and `avatarUrl`. The service validates the player and schedules eligible public gift codes through its internal worker.
 
-`/api/kingshot-auto` is an internal worker endpoint, not a public API. Do not call it from clients or expose scheduler tokens. Public, user-authorized start/stop controls are not provided by this route.
+This is registration for the existing workflow, not a per-key API command to start or stop the worker. The internal scheduler remains private.
 
-## Other endpoints
-- `GET /api/kingshot-player?id=PLAYER_ID` — legacy public player lookup, rate limited.
-- `POST /api/kingshot-redeem` — legacy website manual-redemption endpoint, rate limited.
-- `POST /api/kingshot-register` — register a player for the existing automatic workflow.
-- `GET /api/kingshot-health` — public health summary.
+## Rate limits and headers
+
+Current documented key quotas:
+
+- 60 requests per minute per API key.
+- 1,000 requests per day per API key.
+- 120 requests per minute per IP.
+
+Responses may include `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Retry-After`, and request ID metadata. On `429`, respect `Retry-After` when present and retry with exponential backoff. Do not attempt to evade rate limits by rotating IP addresses or keys.
 
 ## Errors
-Errors include a stable `code`, readable `error`, and `meta.requestId` where applicable. Common statuses: 400 invalid input, 401 missing/invalid key, 404 player or route not found, 429 quota/rate limit exceeded, 502 provider unavailable, 503 server not configured, 504 upstream timeout.
+
+| HTTP status | Meaning | Recommended action |
+|---:|---|---|
+| `400` | Missing or invalid input | Validate the request body and Player ID |
+| `401` | Missing, invalid, or revoked API key | Check the Authorization header and key status |
+| `404` | Player or route not found | Confirm the Player ID and endpoint |
+| `429` | Key quota or IP rate limit exceeded | Back off and check reset headers |
+| `502` | Upstream provider unavailable | Retry later with bounded backoff |
+| `503` | Server-side integration not configured | Contact the service operator |
+| `504` | Upstream request timed out | Retry later; avoid tight loops |
+
+Where provided, error responses contain a stable `code`, readable `error`, and `meta.requestId`. Include the request ID in a support report; do not send your API key.
+
+## Security and responsible use
+
+Use only Player IDs you are authorized to access. Do not probe protected endpoints, bypass authentication, evade quotas, flood upstream services, or expose API keys. The service may throttle or revoke access to protect users and upstream systems.
+
+## Related links
+
+- [Developer portal and API key management](https://kingshot-autoredeemer.vercel.app/developer)
+- [Service information](https://kingshot-autoredeemer.vercel.app/info)
+- [Privacy notice](https://kingshot-autoredeemer.vercel.app/privacy?service=kingshot-auto)
+- [Terms of service](https://kingshot-autoredeemer.vercel.app/terms?service=kingshot-auto)
