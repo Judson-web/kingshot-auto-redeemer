@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { getPlayer } from "../../internal/kingshot/mightpulse.js";
+import { getPlayer } from "../internal/kingshot/mightpulse.js";
 
 type HeaderValue = string | string[] | undefined;
 interface RequestLike { method?: string; url?: string; headers: Record<string, HeaderValue>; body?: Record<string, unknown>; query?: Record<string, unknown>; }
