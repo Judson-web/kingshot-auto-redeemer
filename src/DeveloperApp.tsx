@@ -123,3 +123,4 @@ console.log(result.data.playerId, result.data.name);`;
       <footer className="dev-footer"><span>API v1 · Read-only player data</span><a href="https://github.com/Judson-web/kingshot-auto-redeemer" target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:5}}>Source and changelog <ExternalLink size={12}/></a><a href="/privacy?service=kingshot-auto" style={{color:"inherit"}}>Privacy</a></footer>
     </div>
   </main>;
+}
