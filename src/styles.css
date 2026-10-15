@@ -2135,3 +2135,28 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .support-chat-panel .support-chat-day{flex:0 0 auto!important;margin:3px 0 0!important}
 @media(max-width:760px){.support-float-panel.support-chat-panel{position:fixed!important;left:10px!important;right:10px!important;bottom:calc(76px + env(safe-area-inset-bottom))!important;width:auto!important;max-width:none!important;height:min(690px,calc(100dvh - 110px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))!important;max-height:calc(100dvh - 100px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;border-radius:20px!important}.support-chat-panel .support-float-body{padding:0!important}.support-chat-panel .support-chat-messages{padding:14px 10px 18px!important}.support-chat-panel .support-chat-message{max-width:88%!important}.support-chat-panel .support-float-body form{padding:10px!important}.support-chat-panel .support-float-body form textarea{min-height:62px!important}.support-chat-panel .support-float-foot{padding:9px 11px!important}.support-float-root{z-index:1020!important}}
 @media(max-height:650px) and (max-width:760px){.support-float-panel.support-chat-panel{height:calc(100dvh - 84px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;bottom:calc(64px + env(safe-area-inset-bottom))!important}.support-chat-panel .support-chat-messages{min-height:70px!important}}
+
+
+/* Compact, distinct role identity system shared by the header chip and profile card. */
+.site-account-chip.site-account-icon-only{width:34px;height:34px;min-width:34px;min-height:34px;overflow:visible;border-width:1px;box-shadow:0 2px 10px #0003;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
+.site-account-chip.site-account-icon-only:hover{transform:translateY(-1px)}
+.site-account-chip.site-account-icon-only .site-account-avatar-frame{position:relative;width:27px;height:27px;flex-basis:27px;padding:2px;border-radius:50%}
+.site-account-role-mark{position:absolute;right:-4px;bottom:-3px;display:grid;place-items:center;width:13px;height:13px;border:2px solid #101116;border-radius:50%;font:900 9px/1 system-ui,sans-serif;background:#c5cedc;color:#202733;box-sizing:border-box}
+.site-account-user.site-account-icon-only{border-color:#566174;background:linear-gradient(145deg,#252c38,#11151c)}
+.site-account-user .site-account-avatar-frame{background:linear-gradient(145deg,#d4dbe6,#8592a6 55%,#465166);box-shadow:0 0 0 1px #b9c5d566}
+.site-account-user .site-account-role-mark{background:#d4dbe6;color:#2b3545}
+.site-account-developer.site-account-icon-only{border-color:#6e91d8;background:linear-gradient(145deg,#172743,#11151d);box-shadow:0 2px 11px #547fda20}
+.site-account-developer .site-account-avatar-frame{background:linear-gradient(145deg,#b8d7ff,#628de0 55%,#354d85);box-shadow:0 0 0 1px #86b3ff99,0 0 0 3px #4778cb22}
+.site-account-developer .site-account-role-mark{background:#8db8ff;color:#10213e;font-size:8px}
+.site-account-admin.site-account-icon-only{border-color:#d8b45d;background:linear-gradient(145deg,#352711,#17130d);box-shadow:0 2px 12px #d8aa452b}
+.site-account-admin .site-account-avatar-frame{background:conic-gradient(from 25deg,#fff1b6,#d9a83e,#fff4c9,#9b7029,#fff1b6);box-shadow:0 0 0 1px #f4d58a,0 0 0 3px #d5a33c24}
+.site-account-admin .site-account-role-mark{background:linear-gradient(135deg,#ffedac,#c28a27);color:#34230b;border-color:#17130e;font-size:8px}
+.profile-user-badge{gap:5px;padding:4px 7px;border-radius:7px;font-size:9px;line-height:1.1;letter-spacing:.075em;white-space:nowrap;border-width:1px}
+.profile-role-symbol{display:grid;place-items:center;width:13px;height:13px;border-radius:4px;font-size:10px;line-height:1;font-weight:950}
+.profile-role-user{color:#cbd4e1;background:#202936;border-color:#48566b}
+.profile-role-user .profile-role-symbol{color:#e0e7f0;background:#394657}
+.profile-role-developer{color:#b8d2ff;background:#172946;border-color:#547dc0}
+.profile-role-developer .profile-role-symbol{color:#132746;background:#8bb7ff}
+.profile-role-admin{color:#ffe4a0;background:#30240f;border-color:#b88b37;box-shadow:inset 0 0 0 1px #d4a8491a}
+.profile-role-admin .profile-role-symbol{color:#35240b;background:linear-gradient(135deg,#ffedac,#d3a03d)}
+@media(max-width:520px){.site-account-chip.site-account-icon-only{width:32px;height:32px;min-width:32px;min-height:32px}.site-account-chip.site-account-icon-only .site-account-avatar-frame{width:25px;height:25px;flex-basis:25px}.site-account-role-mark{width:12px;height:12px;right:-4px;bottom:-3px;font-size:8px}.profile-user-badge{padding:4px 6px;font-size:8px}}
