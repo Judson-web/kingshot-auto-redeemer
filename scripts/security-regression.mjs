@@ -159,7 +159,7 @@ assertCheck("Admin data requires a stored owner session before privileged work",
 assertCheck("Admin data verifies the configured Discord owner identity",
  adminData.includes("OWNER_DISCORD_ID") &&
  adminData.includes('x?.provider==="discord"') &&
- adminData.includes('owner?.app_metadata?.providers.includes("discord")') &&
+ adminData.includes('owner.app_metadata.providers.includes("discord")') &&
  adminData.includes("discordId!==OWNER_DISCORD_ID"));
 assertCheck("Owner sessions use secure HttpOnly cookies and cryptographic randomness",
  developerAuth.includes('OWNER_COOKIE+"="+encodeURIComponent(v)+"; Max-Age="+age+"; Path=/; HttpOnly; Secure; SameSite=Strict') &&
