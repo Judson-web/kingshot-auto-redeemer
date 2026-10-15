@@ -272,14 +272,24 @@ export default async function handler(req,res){
   for(const item of newCodes)await sendDiscordEvent({title:"🎁 New Kingshot gift code",description:"A candidate gift code was discovered by the multi-source scraper and is awaiting player verification.",fields:[{name:"Gift code",value:String(item.code),inline:true},{name:"Sources",value:String((item.sources||[item.source||"merged"]).join(", ")),inline:true},{name:"Confidence",value:Math.round(Number(item.confidence||0)*100)+"% "+String(item.confidenceTier||"unverified"),inline:true},{name:"Expires",value:item.expiresAt&&!Number.isNaN(item.expiresAt)?new Date(item.expiresAt).toISOString():"Not specified",inline:true}]});
   const players=await rpc("list_kingshot_autoredeem_players",{});
   const list=Array.isArray(players)?players:[];
+  // The 05:30 IST reset can make every account due at once. Process the least
+  // recently checked players first and enforce a bounded validation budget so
+  // a rate-limited upstream cannot hold the coordinator past Vercel's limit.
+  const validationPlayers=[...list].sort((a,b)=>{
+   const left=Date.parse(String(a?.last_kingdom_check_at||""));
+   const right=Date.parse(String(b?.last_kingdom_check_at||""));
+   return (Number.isFinite(left)?left:0)-(Number.isFinite(right)?right:0);
+  });
+  const validationDeadline=Date.now()+150000;
 
   // Phase 1: kingdom revalidation is completed BEFORE any redemption worker
   // starts. This prevents the 05:30 IST reset burst from competing with the
   // three redemption shards for Supabase/MightPulse capacity.
   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
-  const kingdomResults=await runWithConcurrency(list,player=>revalidatePlayer(player,{rpc,notify:sendDiscordEvent}),KINGDOM_VALIDATION_CONCURRENCY);
+  const kingdomResults=await runWithConcurrency(validationPlayers,player=>revalidatePlayer(player,{rpc,notify:sendDiscordEvent}),KINGDOM_VALIDATION_CONCURRENCY,{deadline:validationDeadline});
   const validPlayers=[];
   const kingdomSummary=kingdomResults.reduce((a,result)=>{
+   if(result?.deadlineSkipped){a.deferred++;return a;}
    if(result?.revalidationError){
     a.errors++;
     return a;
@@ -289,8 +299,8 @@ export default async function handler(req,res){
    if(result?.kingdomChanged)a.changed++;
    if(result?.player?.kingdom_id)validPlayers.push(result.player);
    return a;
-  },{checked:0,changed:0,stale:0,errors:0});
-  console.log("Kingshot kingdom check:",{players:list.length,...kingdomSummary,validPlayers:validPlayers.length});
+  },{checked:0,changed:0,stale:0,errors:0,deferred:0});
+  console.log("Kingshot kingdom check:",{players:list.length,...kingdomSummary,validationBudgetMs:150000,validPlayers:validPlayers.length});
   // One canary per cycle. The real endpoint can consume the reward on this player.
   const pendingCandidates=persistedCodeRows.filter(r=>r&&r.validation_status==="pending"&&r.suppressed!==true).map(r=>({code:String(r.code||"").trim()})).filter(r=>r.code&&!expiredCodes.has(r.code.toUpperCase())&&codes.some(c=>c.code.toUpperCase()===r.code.toUpperCase()));
   const canaryCandidate=pendingCandidates[0];let verificationAttempt=null;
@@ -415,7 +425,8 @@ export default async function handler(req,res){
   await rpc("finish_kingshot_worker_run",{p_token:workerToken,p_status:totals.errors||totals.stale?"COMPLETED_WITH_WARNINGS":"COMPLETED",p_error:null,p_summary:summary}).catch(error=>console.error("Worker state update failed:",error?.message||error));
   const anomalyReasons=[];
   if(totals.errors||workerFailures.length)anomalyReasons.push("worker errors");
-  if(totals.deadlineSkipped)anomalyReasons.push("deadline deferrals");
+  if(totals.deadlineSkipped)anomalyReasons.push("worker deadline deferrals");
+  if(kingdomSummary.deferred)anomalyReasons.push("kingdom validation budget deferred "+kingdomSummary.deferred+" players");
   if(!activeCodes.length)anomalyReasons.push("no active codes");
   if(sourceHealthPct<50)anomalyReasons.push("scraper source health below 50%");
   if(list.length&&validPlayers.length<Math.floor(list.length*0.7))anomalyReasons.push("over 30% of players failed validation");
