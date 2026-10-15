@@ -2199,3 +2199,45 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  .support-float-panel .support-chat-toolbar button{font-size:9px!important;padding:6px 7px!important}
  .support-float-panel .support-float-head{padding:10px!important}
 }
+
+
+/* Support overlay: one clean viewport-bounded sheet, with the page behind it visually quiet. */
+.support-float-root{isolation:isolate}
+.support-float-panel.support-chat-panel{position:fixed!important;z-index:1200!important;display:flex!important;flex-direction:column!important;inset:auto 16px 82px auto!important;width:min(420px,calc(100vw - 32px))!important;height:min(680px,calc(100dvh - 112px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))!important;max-height:calc(100dvh - 112px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;min-height:0!important;overflow:hidden!important;border-radius:20px!important;background:#0d1118!important;box-shadow:0 22px 70px #000b!important}
+.support-float-panel.support-chat-panel>.support-float-head{position:relative!important;flex:0 0 auto!important;z-index:2!important}
+.support-float-panel.support-chat-panel>.support-chat-toolbar{position:relative!important;flex:0 0 auto!important}
+.support-float-panel.support-chat-panel>.support-float-body{display:flex!important;flex:1 1 auto!important;flex-direction:column!important;min-width:0!important;min-height:0!important;max-height:none!important;height:auto!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important}
+.support-float-panel.support-chat-panel>.support-float-foot{position:relative!important;flex:0 0 auto!important;z-index:2!important;max-width:100%!important;background:#0d1118!important;border-top:1px solid #252d3a!important;padding:10px 14px!important}
+.support-float-panel.support-chat-panel .support-chat-messages{flex:1 1 auto!important;min-height:100px!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important}
+.support-float-panel.support-chat-panel>.support-float-body>form{flex:0 0 auto!important;min-width:0!important;margin:0!important;padding-top:10px!important}
+.support-float-panel.support-chat-panel .support-welcome{margin:0 0 12px!important;padding:14px!important;border-radius:15px!important}
+.support-float-panel.support-chat-panel .support-chat-assurance{margin:0 0 12px!important;padding:0 2px 12px!important;font-size:12px!important;line-height:1.5!important}
+.support-float-panel.support-chat-panel .support-form-section{margin:8px -14px 12px!important;padding:12px 14px!important}
+.support-float-panel.support-chat-panel .support-float-body form label{display:block!important;min-width:0!important;margin:0 0 12px!important;font-size:11px!important;line-height:1.4!important;letter-spacing:.045em!important}
+.support-float-panel.support-chat-panel .support-float-body input,.support-float-panel.support-chat-panel .support-float-body select,.support-float-panel.support-chat-panel .support-float-body textarea{display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;margin-top:6px!important;font-size:14px!important;line-height:1.45!important;letter-spacing:normal!important;overflow-wrap:anywhere!important}
+.support-float-panel.support-chat-panel .support-float-body textarea{min-height:76px!important;max-height:180px!important;resize:vertical!important;white-space:pre-wrap!important}
+.support-float-panel.support-chat-panel .support-chat-message{width:fit-content!important;max-width:min(88%,520px)!important;min-width:0!important;overflow-wrap:anywhere!important;word-break:normal!important}
+.support-float-panel.support-chat-panel .support-chat-message p{margin:8px 0!important;white-space:pre-wrap!important;overflow-wrap:anywhere!important;word-break:normal!important;line-height:1.5!important}
+.support-float-panel.support-chat-panel .support-chat-message time{display:block!important;margin-top:6px!important;font-size:10px!important;opacity:.72!important}
+.support-float-panel.support-chat-panel .support-chat-author{display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:6px!important}
+.support-float-panel.support-chat-panel .support-chat-author b{max-width:100%!important;overflow-wrap:anywhere!important}
+.support-float-panel.support-chat-panel .support-float-foot span{display:block!important;min-width:0!important;overflow-wrap:anywhere!important;line-height:1.4!important;font-size:10px!important}
+@media(max-width:760px){
+ .support-float-panel.support-chat-panel{inset:auto 8px calc(70px + env(safe-area-inset-bottom)) 8px!important;width:auto!important;height:min(660px,calc(100dvh - 96px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))!important;max-height:calc(100dvh - 96px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;border-radius:18px!important}
+ .support-float-root{right:10px!important;bottom:calc(10px + env(safe-area-inset-bottom))!important}
+ .support-float-panel.support-chat-panel>.support-float-head{padding:12px!important}
+ .support-float-panel.support-chat-panel>.support-float-body{padding:12px!important}
+ .support-float-panel.support-chat-panel>.support-float-foot{padding:8px 12px!important}
+ .support-float-panel.support-chat-panel .support-welcome{padding:12px!important}
+ .support-float-panel.support-chat-panel .support-form-section{margin-left:-12px!important;margin-right:-12px!important;padding:11px 12px!important}
+ .support-float-panel.support-chat-panel .support-chat-toolbar{gap:6px!important}
+ .support-float-panel.support-chat-panel .support-chat-toolbar>span:first-child{flex:1 1 auto}
+}
+@media(max-width:380px){
+ .support-float-panel.support-chat-panel{left:5px!important;right:5px!important;bottom:calc(64px + env(safe-area-inset-bottom))!important}
+ .support-float-panel.support-chat-panel .support-float-head small{font-size:9px!important;line-height:1.35!important;overflow-wrap:anywhere!important}
+ .support-float-panel.support-chat-panel .support-chat-toolbar button{font-size:9px!important;padding:6px 7px!important}
+}
+/* A modal support session should not visually compete with the underlying page. */
+body:has(.support-float-panel.support-chat-panel){overflow:hidden}
+body:has(.support-float-panel.support-chat-panel) .ks-install-prompt{display:none!important}
