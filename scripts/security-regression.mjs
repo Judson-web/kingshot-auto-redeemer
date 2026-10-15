@@ -33,6 +33,8 @@ const registerHandler=read("api/kingshot-register.ts");
 const support=read("lib/support.js");
 const adminData=read("lib/admin-data.js");
 const adminLogin=read("lib/admin-login.js");
+const supportWidget=read("src/components/SupportWidget.tsx");
+const supportWidgetCss=read("src/support-chat-polish.css");
 const developerAuth=read("lib/developer-auth.ts");
 const discordInteractions=read("lib/discord-interactions.js");
 const health=read("lib/health.js");
@@ -240,6 +242,54 @@ assertCheck(
  /drop extension if exists pg_net/i.test(migrations) &&
  /create extension pg_net schema extensions/i.test(migrations)
 );
+
+
+assertCheck("Support drawer exposes a persistent, labelled close button",
+ supportWidget.includes('className="support-drawer-close"') &&
+ supportWidget.includes('aria-label="Close support chat"') &&
+ supportWidget.includes('onClick={()=>{restoreFocusRef.current=true;setOpen(false)}}'));
+assertCheck("Support drawer closes on Escape",
+ supportWidget.includes('event.key==="Escape"') && supportWidget.includes('restoreFocusRef.current=true;setOpen(false)'));
+assertCheck("Support drawer closes when the user clicks outside",
+ supportWidget.includes('document.addEventListener("pointerdown",onPointerDown)') &&
+ supportWidget.includes('!rootRef.current.contains(event.target as Node)'));
+assertCheck("Support drawer keeps keyboard focus inside while open",
+ supportWidget.includes('event.key!=="Tab"') &&
+ supportWidget.includes('panel.querySelectorAll<HTMLElement>') &&
+ supportWidget.includes('el.getClientRects().length>0'));
+assertCheck("Support drawer restores focus only after intentional close",
+ supportWidget.includes('if(restoreFocusRef.current){restoreFocusRef.current=false;window.setTimeout(()=>triggerRef.current?.focus(),0)}'));
+assertCheck("Support drawer maps current pages to relevant support topics",
+ supportWidget.includes('path==="/developer"') &&
+ supportWidget.includes('path==="/profile"') &&
+ supportWidget.includes('path==="/manual"') &&
+ supportWidget.includes('path==="/gift-codes"') &&
+ supportWidget.includes('path==="/push"'));
+assertCheck("Support drawer displays page context and troubleshooting guidance",
+ supportWidget.includes('support-context-strip') &&
+ supportWidget.includes('{pageContext.title}') &&
+ supportWidget.includes('{pageContext.hint}'));
+assertCheck("Support drawer accepts explicit context from page-level open events",
+ supportWidget.includes('CustomEvent<{topic?:string;subject?:string;pageTitle?:string}>') &&
+ supportWidget.includes('window.addEventListener("ks-support-open",openGeneral)'));
+assertCheck("New support threads refresh topic context for the current page",
+ supportWidget.includes('function newConversation(){const next=getPageContext()') &&
+ supportWidget.includes('setTopic(next.topic)'));
+assertCheck("Registration-removal entry point retains its dedicated topic",
+ supportWidget.includes('setTopic("Registration removal")') &&
+ supportWidget.includes('ks-support-registration-removal'));
+assertCheck("Support drawer uses a compact desktop footprint",
+ supportWidgetCss.includes('width:min(392px,calc(100vw - 28px))') &&
+ supportWidgetCss.includes('height:min(660px,calc(100dvh - 108px'));
+assertCheck("Support drawer respects mobile viewport and safe areas",
+ supportWidgetCss.includes('@media(max-width:760px)') &&
+ supportWidgetCss.includes('env(safe-area-inset-bottom)') &&
+ supportWidgetCss.includes('100dvh - 96px'));
+assertCheck("Support drawer provides visible close-button keyboard focus",
+ supportWidgetCss.includes('.support-drawer-close:focus-visible') &&
+ supportWidgetCss.includes('outline:2px solid #a9c2ff'));
+assertCheck("Support drawer honours reduced-motion preferences",
+ supportWidgetCss.includes('@media(prefers-reduced-motion:reduce){.support-drawer-close,.support-context-strip *{transition:none!important;animation:none!important}}'));
 
 const failed=checks.filter(item=>!item.ok);
 for(const item of checks){
