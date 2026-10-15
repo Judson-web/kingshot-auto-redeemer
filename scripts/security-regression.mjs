@@ -268,7 +268,7 @@ assertCheck("Support drawer maps current pages to relevant support topics",
 assertCheck("Support drawer displays page context and troubleshooting guidance",
  supportWidget.includes('support-context-strip') &&
  supportWidget.includes('{pageContext.title}') &&
- supportWidget.includes('{pageContext.hint}'));
+ supportWidget.includes(':pageContext.hint}'));
 assertCheck("Support drawer accepts explicit context from page-level open events",
  supportWidget.includes('CustomEvent<{topic?:string;subject?:string;pageTitle?:string}>') &&
  supportWidget.includes('window.addEventListener("ks-support-open",openGeneral)'));
