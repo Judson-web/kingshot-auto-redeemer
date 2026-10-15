@@ -2,6 +2,7 @@ import React,{useEffect,useRef,useState}from"react";
 import{createRoot}from"react-dom/client";
 import{ExternalLink,Gift,Menu,Search,ShieldCheck,X,CheckCircle,LoaderCircle,AlertTriangle,Info,OctagonAlert,ArrowRight,Copy,Activity,Wrench,WifiOff,UserRound,MessageCircle,Image as ImageIcon}from"lucide-react";
 import"./styles.css";
+import"./support-chat-polish.css";
 import LegalApp from"./LegalApp.jsx";
 import InfoApp from"./InfoApp.jsx";
 import CustomMessageApp from"./CustomMessageApp.jsx";
