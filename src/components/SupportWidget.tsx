@@ -41,7 +41,7 @@ export default function SupportWidget(){
    if(event.key==="Escape"){event.preventDefault();setOpen(false);return}
    if(event.key!=="Tab")return;
    const panel=panelRef.current;if(!panel)return;
-   const items=Array.from(panel.querySelectorAll<HTMLElement>('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')).filter(el=>el.offsetParent!==null);
+   const items=Array.from(panel.querySelectorAll<HTMLElement>('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')).filter(el=>el.getClientRects().length>0);
    if(!items.length){event.preventDefault();return}
    const first=items[0],last=items[items.length-1];
    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
@@ -100,7 +100,7 @@ export default function SupportWidget(){
  }catch(e){setError(e instanceof Error?e.message:"Support is unavailable right now.")}finally{setBusy(false)}}
  function newConversation(){const next=getPageContext();setPageContext(next);setConversation(null);setMessages([]);setMessage("");setAttachment(null);if(attachmentPreview)URL.revokeObjectURL(attachmentPreview);setAttachmentPreview("");setSubject("");setTopic(next.topic);setPlayerId("");setError("");setNotice("");setUnread(0);if(fileInput.current)fileInput.current.value="";try{localStorage.removeItem(STORAGE)}catch{}}
  return <div className="support-float-root" ref={rootRef}>
-  <button ref={triggerRef} className={"support-float-trigger "+(open?"is-open":"")} type="button" aria-label={open?"Close support":"Open support chat"+(unread?" ("+unread+" unread replies)": "")} aria-expanded={open} onClick={()=>{setOpen(v=>!v);if(!open)setNotice("")}}>
+  <button ref={triggerRef} className={"support-float-trigger "+(open?"is-open":"")} type="button" aria-label={open?"Close support":"Open support chat"+(unread?" ("+unread+" unread replies)": "")} aria-expanded={open} onClick={()=>{if(!open){const context=getPageContext();setPageContext(context);if(!conversation&&topic===pageContext.topic)setTopic(context.topic);setNotice("")}setOpen(v=>!v)}}>
    {open?<X size={20}/>:<MessageCircle size={21}/>}
    {!open&&unread>0&&<span className="support-unread-badge" aria-label={unread+" unread support replies"}>{unread>9?"9+":unread}</span>}
    <span className="support-float-ping"/><span className="support-float-trigger-label">{open?"Close":"Support"}</span>
