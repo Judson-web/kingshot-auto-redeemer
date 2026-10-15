@@ -2028,3 +2028,25 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  .support-chat-message{max-width:94%!important}
  .support-float-foot{font-size:8px!important}
 }
+
+
+/* Support notifications: compact unread counter and one clear close affordance. */
+.support-float-trigger{position:relative!important}
+.support-unread-badge{position:absolute!important;top:-7px!important;right:-7px!important;z-index:3!important;min-width:20px!important;height:20px!important;padding:0 5px!important;display:grid!important;place-items:center!important;border:2px solid #08090c!important;border-radius:999px!important;background:#ed626b!important;color:#fff!important;font-size:10px!important;font-weight:850!important;line-height:1!important;box-shadow:0 3px 12px #ed626b55!important}
+.support-float-head{padding-right:16px!important}
+.support-chat-panel .support-float-head>div{min-width:0!important;flex:1!important}
+.support-chat-panel .support-float-head b{display:block!important;overflow-wrap:anywhere!important}
+.support-chat-panel .support-chat-toolbar{flex-wrap:wrap!important}
+.support-chat-panel .support-chat-toolbar .support-thread-state{max-width:100%!important;overflow-wrap:anywhere!important}
+.ds-unread-badge{display:inline-flex!important;align-items:center!important;align-self:flex-start!important;width:max-content!important;margin:7px 0 0!important;padding:4px 7px!important;border:1px solid #694b35!important;border-radius:999px!important;background:#2a1d17!important;color:#f0b875!important;font-size:8px!important;font-weight:850!important;letter-spacing:.08em!important}
+.ds-thread{gap:6px!important}
+.maintenance-brand .site-account-wrap{position:fixed!important;top:16px!important;right:16px!important;z-index:1100!important}
+.maintenance-brand .site-account-chip.site-login-chip{width:42px!important;height:42px!important;display:grid!important;place-items:center!important;border:1px solid #3c334e!important;border-radius:14px!important;background:linear-gradient(145deg,#201a30,#11121b)!important;color:#d5c4ff!important;box-shadow:0 8px 28px #0005!important}
+.maintenance-brand .site-account-chip.site-login-chip>svg{width:18px!important;height:18px!important}
+.site-account-chip.site-login-chip.site-account-icon-only{border:1px solid #514269!important;background:linear-gradient(145deg,#27203a,#12131b)!important;color:#c9b8f5!important;box-shadow:0 4px 18px #0003!important}
+.site-account-chip.site-login-chip.site-account-icon-only:hover{border-color:#8a70cb!important;background:linear-gradient(145deg,#34294c,#171822)!important}
+@media(max-width:520px){
+ .maintenance-brand .site-account-wrap{top:10px!important;right:10px!important}
+ .maintenance-brand .site-account-chip.site-login-chip{width:38px!important;height:38px!important;border-radius:12px!important}
+ .support-unread-badge{top:-5px!important;right:-5px!important}
+}
