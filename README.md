@@ -38,19 +38,30 @@
 | 🔐 **Security** | Uses server-side credentials, rate-aware behavior, and regression checks |
 | 🔔 **Web push** | Optional browser notifications for verified new gift codes and authorized developer announcements, with optional HTTPS images |
 
-## ✦ Account profiles and support\n\nThe public site has a floating support launcher that submits a support ticket with a Player ID and message. It is ticket submission, not a live agent chat; replies are handled through the existing support workflow. The optional web-push prompt rechecks permission and subscription state on focus/visibility changes and reappears if the browser permission or subscription state changes after a prior dismissal.\n\n## ✦ Sign-in providers and roles
+## ✦ Account profiles and support
+
+The public site has a floating support launcher for submitting a support ticket with a Player ID and message. It is a ticket workflow, not a promise of live-agent chat; replies are handled through the existing support process. The optional web-push setup checks permission and subscription state again when the page becomes active, so the prompt can return if that state changes after dismissal.
+
+## ✦ Sign-in providers and roles
 
 The public `/profile` page supports GitHub and Discord sign-in for a regular user profile. The header shows a neutral **USER** badge for profile-only sessions. Developer API access is a separate sign-in/session on `/developer`; only there does the account display the **DEVELOPER** or allowlisted **ADMIN** badge. Existing GitHub users should continue choosing GitHub and sign in with the same account. Choosing Discord is not a promise that two provider identities are merged; use the same provider identity you originally registered with unless Supabase identity linking is explicitly configured. Each developer account can manage only its own API keys.
 
-To enable Discord OAuth for a deployment:
+### Enabling Discord OAuth (deployment maintainers)
 
-1. Create an application at the [Discord Developer Portal](https://discord.com/developers/applications).
-2. In Supabase Dashboard → Authentication → Sign In / Providers → Discord, enable the provider and enter the Discord **Client ID** and **Client Secret**.
-3. In the Discord application OAuth2 settings, register the Supabase callback URL shown by Supabase's Discord provider configuration (typically `https://wocxvtptqapietlteshr.supabase.co/auth/v1/callback`).
-4. In Supabase Authentication → URL Configuration, allow the production redirects `https://kingshot-autoredeemer.vercel.app/profile?provider=discord`, `https://kingshot-autoredeemer.vercel.app/profile?provider=github`, `https://kingshot-autoredeemer.vercel.app/developer`, `https://kingshot-autoredeemer.vercel.app/developer?provider=discord`, `https://kingshot-autoredeemer.vercel.app/dev`, and `https://kingshot-autoredeemer.vercel.app/dev?provider=discord`.
-5. Save the provider configuration and test both Discord and GitHub sign-in.
+This is deployment configuration, not a step required by ordinary users. Configure it only if you administer the deployment and have access to its Discord and Supabase projects.
 
-The owner role is determined on the server from the existing authorized GitHub identity/email or the configured Discord account ID. The Discord owner ID is `871756466900598815`; display names and avatars are not used to grant the role. Do not put the Discord client secret in source code or client-side environment variables. The existing admin passkey remains available.
+1. Create or select an application in the [Discord Developer Portal](https://discord.com/developers/applications).
+2. In Supabase → **Authentication → Sign In / Providers → Discord**, enable Discord and enter the application's Client ID and Client Secret.
+3. Copy the **callback URL shown by that Supabase project** into the Discord application's OAuth2 redirect settings. Do not guess the project URL or copy a callback from another deployment.
+4. In Supabase → **Authentication → URL Configuration**, add only the exact production and local redirect URLs the application actually uses. Match the scheme, hostname, path, and query string; keep wildcard redirects out of production unless strictly required.
+5. Save the settings, then test both Discord and GitHub sign-in, including the expected profile/developer destinations and a non-owner account.
+
+**Security notes**
+- Never commit a Discord Client Secret, Supabase service-role key, admin passkey, session token, or other credential to this public repository.
+- Keep secrets in the relevant provider dashboard or server-side deployment secret store. Anything bundled into browser code—including client-prefixed build variables—must be treated as public.
+- The owner/admin role is decided server-side using configured, stable account identifiers and/or existing authorized identity checks—not a display name, avatar, or user-editable profile field. Keep actual owner identifiers out of public documentation and never use a client-side role flag as authorization.
+- Discord and GitHub sign-in do not automatically merge identities. Users should use the provider associated with their existing account unless identity linking has been deliberately configured and tested.
+- Keep the existing admin authentication path configured as documented in the private deployment runbook; do not publish passkeys or operational bypass details here.
 
 ## ✦ What it does
 
@@ -103,7 +114,7 @@ The worker is coordinated through database-backed state rather than process-loca
 
 Player lookups can refresh the stored profile of an already-registered Player ID when fresh provider data is available. This does not reset the scheduler's kingdom-validation cooldown.
 
-The archive and DR systems are downstream of production. **Normal redemption does not depend on GitHub, the cold archive, or the DR vault.** The private archive repository's README publishes its generated checkpoint and recovery status; consult it before treating a backup as current. At the latest checked archive state (9 October 2026), the encrypted offsite copy was **not yet matched to the latest recovery point**, so offsite freshness still required verification.
+The archive and disaster-recovery systems are downstream of production. **Normal redemption does not depend on GitHub, the cold archive, or the DR vault.** Recovery freshness is operational state and can change; consult the private archive's current recovery status before relying on any backup. This public README intentionally does not publish live backup identifiers, recovery checkpoints, or internal recovery gaps.
 
 ## ✦ Data & privacy boundary
 
@@ -329,7 +340,9 @@ npm run typecheck
 
 ## ✦ Environment & secrets
 
-Production secrets are configured through the deployment environment and repository secret stores.
+Production secrets are configured through the deployment environment and repository secret stores. Keep production and local-development credentials separate, grant each secret only the access it needs, and rotate a credential immediately if it is exposed.
+
+Anything shipped to the browser is public—even if its name looks like an environment variable. Only non-sensitive public configuration belongs in client-side build variables.
 
 **Never commit:**
 
@@ -376,7 +389,11 @@ Before submitting changes:
 5. Review security-sensitive changes carefully.
 6. Never commit credentials or private user data.
 
-For larger architectural changes, open an issue first so operational and recovery implications can be reviewed.
+For larger architectural changes, open an issue first so operational and recovery implications can be reviewed. Do not attach production logs, user identifiers, access tokens, database dumps, or recovery artifacts to public issues.
+
+## ✦ Security reports
+
+Please report suspected vulnerabilities privately rather than opening a public issue with exploit details. Use GitHub's [private vulnerability reporting page](https://github.com/Judson-web/kingshot-auto-redeemer/security/advisories/new) if it is available for this repository. Include the affected component, impact, and reproducible steps, while avoiding real user data and live credentials.
 
 ## ✦ Project status
 
