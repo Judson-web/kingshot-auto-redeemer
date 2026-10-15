@@ -2341,3 +2341,38 @@ body:has(.support-float-panel.support-chat-panel) .ks-install-prompt{display:non
 .support-float-panel.support-chat-panel .support-float-error,.support-float-panel.support-chat-panel .support-chat-notice{display:flex!important;align-items:flex-start!important;gap:8px!important;min-width:0!important;padding:10px 11px!important;border-radius:11px!important;font-size:12px!important;line-height:1.45!important;overflow-wrap:anywhere!important}
 .support-float-panel.support-chat-panel .support-float-foot{border-top:1px solid #202a38!important}
 @media(prefers-reduced-motion:reduce){.support-float-panel.support-chat-panel *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+
+/* Public support section: elevated, readable, responsive request form. */
+.ks-app .ks-support{position:relative;isolation:isolate;width:min(820px,100%);margin:30px auto 0;padding:clamp(17px,3vw,26px);border:1px solid #2b3341;border-radius:20px;background:radial-gradient(ellipse at 0 0,#182133 0,transparent 48%),linear-gradient(145deg,#111722,#0c0f15 72%);box-shadow:0 22px 55px #0003;overflow:hidden}
+.ks-app .ks-support:before{content:"";position:absolute;inset:0 0 auto;height:2px;background:linear-gradient(90deg,#83aaff,#7b69d9,transparent 78%);opacity:.8;pointer-events:none}
+.ks-app .ks-support .section-title{display:grid;grid-template-columns:1fr;gap:7px;margin-bottom:13px}
+.ks-app .ks-support .section-title>span{display:inline-flex;align-items:center;gap:7px;color:#a9bfff;font-size:10px;font-weight:800;letter-spacing:.15em}
+.ks-app .ks-support .section-title h2{margin:0;font-size:clamp(22px,4vw,30px);line-height:1.18;letter-spacing:-.035em;color:#eef2fb;overflow-wrap:anywhere}
+.ks-app .ks-support-copy{max-width:54ch;margin:0 0 22px;color:#9ba7ba;font-size:13px;line-height:1.7}
+.ks-app .ks-support-form{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.35fr);gap:14px;align-items:stretch}
+.ks-app .ks-support-form .ks-register-field{height:auto;min-height:94px;padding:13px 14px;border:1px solid #303b4e;border-radius:13px;background:#111722;box-shadow:none}
+.ks-app .ks-support-form .ks-register-field label,.ks-app .ks-support-reason>span{margin-bottom:9px;color:#a4b0c3;font-size:10px;letter-spacing:.08em}
+.ks-app .ks-support-form .ks-register-field>div{min-height:26px}
+.ks-app .ks-support-form .ks-register-field svg{color:#91b4ff}
+.ks-app .ks-support-form .ks-register-field input{height:26px;font-size:14px;color:#f0f4fc}
+.ks-app .ks-support-form .ks-register-field input::placeholder,.ks-app .ks-support-reason textarea::placeholder{color:#758197}
+.ks-app .ks-support-reason{grid-column:1/-1;min-width:0}
+.ks-app .ks-support-reason textarea{height:112px;min-height:92px;padding:13px 14px;border:1px solid #303b4e;border-radius:13px;background:#111722;color:#f0f4fc;font:inherit;font-size:13px;line-height:1.6;box-sizing:border-box}
+.ks-app .ks-support-reason textarea:focus,.ks-app .ks-support-form .ks-register-field:focus-within{border-color:#7899e8;box-shadow:0 0 0 3px #7899e81c;outline:none}
+.ks-app .ks-support-form .ks-submit{grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:9px;width:100%;height:48px;min-height:48px;border-radius:12px;font-size:13px;font-weight:700;white-space:normal}
+.ks-app .ks-support-form .ks-submit:disabled{opacity:.58;cursor:wait}
+.ks-app .ks-support-success{margin-top:14px;padding:13px 14px;border:1px solid #315c49;border-radius:12px;background:#102019;color:#b5e6c9;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.ks-app .ks-support-success svg{flex:0 0 auto}
+.ks-app .ks-support-success strong{display:block;margin-bottom:2px;color:#d8f5e3}
+@media(max-width:600px){
+ .ks-app .ks-support{margin-top:22px;padding:17px;border-radius:17px}
+ .ks-app .ks-support .section-title h2{font-size:23px}
+ .ks-app .ks-support-copy{font-size:12px;line-height:1.65;margin-bottom:17px}
+ .ks-app .ks-support-form{grid-template-columns:minmax(0,1fr);gap:11px}
+ .ks-app .ks-support-form .ks-register-field{min-height:78px}
+ .ks-app .ks-support-reason{grid-column:1}
+ .ks-app .ks-support-reason textarea{height:120px}
+ .ks-app .ks-support-form .ks-submit{grid-column:1;height:48px;min-height:48px}
+}
+@media(prefers-reduced-motion:reduce){.ks-app .ks-support *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
