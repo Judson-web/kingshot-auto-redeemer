@@ -2323,3 +2323,21 @@ body:has(.support-float-panel.support-chat-panel) .ks-install-prompt{display:non
  .support-float-panel.support-chat-panel .support-float-body input,.support-float-panel.support-chat-panel .support-float-body select{min-height:42px!important}
  .support-float-panel.support-chat-panel .support-float-body textarea{min-height:82px!important}
 }
+
+
+/* Cleaner support form: remove redundant safety strip and tighten the first section. */
+.support-float-panel.support-chat-panel .support-chat-assurance{display:none!important}
+.support-float-panel.support-chat-panel .support-form-section:first-child{padding-top:8px!important}
+.support-float-panel.support-chat-panel .support-float-body{scrollbar-width:thin;scrollbar-color:#344055 transparent}
+.support-float-panel.support-chat-panel .support-float-body::-webkit-scrollbar{width:5px}
+.support-float-panel.support-chat-panel .support-float-body::-webkit-scrollbar-thumb{background:#344055;border-radius:9px}
+.support-float-panel.support-chat-panel .support-float-head{border-bottom:1px solid #283243!important;background:#121925!important}
+.support-float-panel.support-chat-panel .support-float-head>div{min-width:0!important}
+.support-float-panel.support-chat-panel .support-float-head b{display:block!important;overflow-wrap:anywhere!important;line-height:1.3!important}
+.support-float-panel.support-chat-panel .support-float-head small{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;font-size:10px!important;letter-spacing:.055em!important;line-height:1.4!important}
+.support-float-panel.support-chat-panel .support-float-body>form>label input:focus-visible,.support-float-panel.support-chat-panel .support-float-body>form>label select:focus-visible,.support-float-panel.support-chat-panel .support-float-body>form>label textarea:focus-visible{outline:2px solid #81aaff!important;outline-offset:2px!important}
+.support-float-panel.support-chat-panel .support-float-body>form>label input::placeholder,.support-float-panel.support-chat-panel .support-float-body>form>label textarea::placeholder{color:#66748a!important;opacity:1!important}
+.support-float-panel.support-chat-panel .support-float-body .support-float-submit:disabled{opacity:.48!important;cursor:not-allowed!important;filter:saturate(.6)!important}
+.support-float-panel.support-chat-panel .support-float-error,.support-float-panel.support-chat-panel .support-chat-notice{display:flex!important;align-items:flex-start!important;gap:8px!important;min-width:0!important;padding:10px 11px!important;border-radius:11px!important;font-size:12px!important;line-height:1.45!important;overflow-wrap:anywhere!important}
+.support-float-panel.support-chat-panel .support-float-foot{border-top:1px solid #202a38!important}
+@media(prefers-reduced-motion:reduce){.support-float-panel.support-chat-panel *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
