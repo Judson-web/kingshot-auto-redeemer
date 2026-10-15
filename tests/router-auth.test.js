@@ -25,7 +25,7 @@ test("admin router rejects unauthenticated data access", async () => {
   const res=response();
   await router(req("data"),res);
   assert.equal(res.statusCode,401);
-  assert.equal(res.body?.error,"Unauthorized");
+  assert.equal(res.body?.error,"Discord administrator sign-in required.");
 });
 
 test("custom message endpoint rejects unauthenticated destination access", async () => {

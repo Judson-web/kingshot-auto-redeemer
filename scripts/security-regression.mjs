@@ -33,6 +33,7 @@ const registerHandler=read("api/kingshot-register.ts");
 const support=read("lib/support.js");
 const adminData=read("lib/admin-data.js");
 const adminLogin=read("lib/admin-login.js");
+const developerAuth=read("lib/developer-auth.ts");
 const discordInteractions=read("lib/discord-interactions.js");
 const health=read("lib/health.js");
 const logs=read("lib/health.js");
@@ -146,26 +147,33 @@ assertCheck("Registration has request rate limiting",
  /rateLimit\(req,\s*res,\s*"register",\s*60,\s*60000\)/.test(registerHandler));
 assertCheck("Support has request rate limiting",
  support.includes('rateLimit(req,res,"support",6,60000)'));
-assertCheck("Admin login has request rate limiting",
- adminLogin.includes('rateLimit(req,res,"admin-login",5,900000)'));
-assertCheck("Admin data validates an admin session before privileged work",
- adminData.includes("kingshot_admin_validate_session"));
-assertCheck("Admin player listing passes a session token hash",
+assertCheck("Legacy passkey admin login is retired",
+ adminLogin.includes("res.status(410)") &&
+ adminLogin.includes("Legacy passkey administration has been retired.") &&
+ adminLogin.includes('signInUrl:"/dev"'));
+assertCheck("Modern admin authentication has request rate limiting",
+ developerAuth.includes('rateLimit(req,res,"developer-account-auth",8,900000)'));
+assertCheck("Admin data requires a stored owner session before privileged work",
+ adminData.includes('const COOKIE="__Host-ks_owner_session"') &&
+ adminData.includes("const session=getCookie(req);if(!session)return res.status(401)") &&
+ adminData.includes('rpc("kingshot_developer_account_session_get",{p_token_hash:hash(session)})'));
+assertCheck("Admin data verifies the configured Discord owner identity",
+ adminData.includes("OWNER_DISCORD_ID") &&
+ adminData.includes('x?.provider==="discord"') &&
+ adminData.includes('owner.app_metadata.providers.includes("discord")') &&
+ adminData.includes("discordId!==OWNER_DISCORD_ID"));
+assertCheck("Owner sessions use secure HttpOnly cookies and cryptographic randomness",
+ developerAuth.includes('OWNER_COOKIE+"="+encodeURIComponent(v)+"; Max-Age="+age+"; Path=/; HttpOnly; Secure; SameSite=Strict') &&
+ developerAuth.includes("crypto.randomBytes(32).toString("));
+assertCheck("Admin privileged RPCs require a hashed Discord session",
+ adminData.includes('rpc("kingshot_admin_create_discord_session",{p_token_hash:tokenHash,p_user_id:ownerUserId})') &&
  adminData.includes('rpc("kingshot_admin_list_players",{p_token_hash:tokenHash})'));
-assertCheck("Admin session cookie is HttpOnly/Secure/Strict",
- adminLogin.includes("HttpOnly; Secure; SameSite=Strict"));
-assertCheck("Admin login uses a cryptographically random session token",
- adminLogin.includes("randomBytes(32)"));
-assertCheck("Admin access-key path delegates verification to the key RPC",
- adminLogin.includes("kingshot_admin_create_session_with_key") &&
- !adminLogin.includes('"kingshot_admin_create_session"'));
 
 const developerApi = read("lib/developer-api.ts");
 const developerRouter = read("api/kingshot-tools/[...path].js");
 const playerFunction = read("api/kingshot-player.ts");
 const developerUi = read("src/DeveloperApp.tsx");
 const developerAccountUi = read("src/DeveloperAccountPanel.tsx");
-const developerAuth = read("lib/developer-auth.ts");
 const authProfileTriggerMigration = read("supabase/migrations/20261015091801_fix_auth_profile_trigger_permissions.sql");
 const developerAccountApi = read("lib/developer-account.ts");
 const accountMigration = read("supabase/migrations/20261014105114_developer_email_accounts.sql");
