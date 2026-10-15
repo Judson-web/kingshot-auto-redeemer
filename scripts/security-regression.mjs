@@ -166,6 +166,7 @@ const playerFunction = read("api/kingshot-player.ts");
 const developerUi = read("src/DeveloperApp.tsx");
 const developerAccountUi = read("src/DeveloperAccountPanel.tsx");
 const developerAuth = read("lib/developer-auth.ts");
+const authProfileTriggerMigration = read("supabase/migrations/20261015120000_fix_auth_profile_trigger_permissions.sql");
 const developerAccountApi = read("lib/developer-account.ts");
 const accountMigration = read("supabase/migrations/20261014105114_developer_email_accounts.sql");
 const developerMigration = read("supabase/migrations/20261014091531_developer_api_v2.sql");
@@ -173,6 +174,7 @@ assertCheck("Developer API is routed through an existing serverless function", p
 assertCheck("Developer keys are generated with cryptographic randomness and stored hashed", developerApi.includes("randomBytes(32)") && developerApi.includes("sha256(secret)") && !developerApi.includes("key_plain"));
 assertCheck("Legacy developer endpoints remain admin-session protected", developerApi.includes("kingshot_developer_list_keys") && developerApi.includes("kingshot_developer_create_key") && developerApi.includes("kingshot_developer_revoke_key"));
 assertCheck("Discord OAuth is verified server-side before creating developer sessions", developerAuth.includes('action==="oauth"') && developerAuth.includes('/auth/v1/user') && developerAuth.includes('provider!=="discord"') && developerAuth.includes("OWNER_DISCORD_ID") && developerAuth.includes("kingshot_developer_account_session_create"));
+assertCheck("Auth profile trigger uses a pinned security-definer function and blocks direct app-role execution", authProfileTriggerMigration.includes("SECURITY DEFINER") && authProfileTriggerMigration.includes("SET search_path = pg_catalog") && authProfileTriggerMigration.includes("REVOKE ALL ON FUNCTION public.handle_new_user()"));
 assertCheck("Developer accounts keep isolated API-key ownership", developerAccountApi.includes("kingshot_developer_account_create_key") && accountMigration.includes("owner_user_id") && accountMigration.includes("p_session_hash"));
 assertCheck("Developer account sessions use secure HttpOnly cookies", developerAuth.includes("HttpOnly; Secure; SameSite=Strict") && developerAuth.includes("randomBytes(32)"));
 assertCheck("Account dashboard uses Discord-only OAuth and key management", developerAccountUi.includes("Continue with Discord") && !developerAccountUi.includes("Continue with GitHub") && !developerAccountUi.includes("signup") && developerAccountUi.includes('action:"oauth"') && developerAccountUi.includes("Create API key") && developerAccountUi.includes("Revoke"));
