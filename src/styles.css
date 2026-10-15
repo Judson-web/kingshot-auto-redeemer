@@ -1876,3 +1876,66 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .site-account-chip.site-account-icon-only .site-account-chip-copy,.site-account-chip.site-account-icon-only .site-account-provider-marks,.site-account-chip.site-account-icon-only .site-account-arrow,.site-account-chip.site-account-icon-only .site-account-frame-mark{display:none!important;}
 .site-account-chip.site-account-icon-only .site-account-avatar-frame{width:28px;height:28px;min-width:28px;margin:0;border-radius:50%;}
 .site-account-chip.site-account-icon-only>svg{flex:none;}
+
+
+/* Compact, calm chrome: status is a utility, not a header item. */
+.ks-app>header{height:60px!important;grid-template-columns:minmax(0,1fr) auto auto!important;gap:clamp(8px,1.4vw,16px)!important}
+.ks-app>header .primary-nav{gap:clamp(10px,1.5vw,18px)!important}
+.ks-app>header .primary-nav a{font-size:11px!important}
+.ks-app>header .header-right{gap:7px!important}
+.ks-app>header .site-account-chip.site-account-icon-only{width:34px;height:34px;min-width:34px}
+.app>header{height:62px!important;margin-top:8px!important;padding:0 12px!important;border-radius:14px!important}
+.app>header .brand{gap:8px!important}
+.app>header .brand-mark{width:32px!important;height:32px!important;border-radius:10px!important}
+.app>header .brand span:last-child{font-size:12px!important}
+.app>header nav{gap:2px!important;padding:3px!important}
+.app>header nav a{padding:8px 10px!important;font-size:10px!important}
+.header-right{gap:7px!important}
+
+/* Keep the live status reachable without consuming header width. */
+.site-status{position:fixed!important;left:12px!important;right:auto!important;top:auto!important;bottom:12px!important;z-index:900!important}
+.site-status-trigger{width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;padding:0!important;justify-content:center!important;gap:0!important;border-radius:50%!important;background:#10131aeF!important;box-shadow:0 6px 22px #0005}
+.site-status-label,.site-status-chevron{display:none!important}
+.site-status-popover{position:absolute!important;top:auto!important;bottom:calc(100% + 9px)!important;left:0!important;right:auto!important;width:min(330px,calc(100vw - 24px))!important}
+.site-status-backdrop{z-index:0!important}
+.site-status-popover{z-index:1!important}
+
+/* Support chat behaves like a compact service inbox across screen sizes. */
+.support-float-root{right:14px!important;bottom:14px!important;z-index:1000!important}
+.support-float-panel{display:flex!important;flex-direction:column!important;width:min(390px,calc(100vw - 24px))!important;max-height:min(680px,calc(100dvh - 88px - env(safe-area-inset-top)))!important;border-radius:18px!important}
+.support-float-head{flex:0 0 auto!important;padding:14px!important}
+.support-float-head small{font-size:8px!important;line-height:1.45!important;letter-spacing:.04em!important;overflow-wrap:anywhere}
+.support-float-body{flex:1 1 auto!important;min-height:0!important;max-height:none!important;overflow:auto!important;overscroll-behavior:contain!important;padding:14px!important}
+.support-chat-messages{max-height:none!important;min-height:100px!important;overflow:visible!important}
+.support-chat-message{max-width:min(92%,340px)!important}
+.support-float-body form{gap:10px!important}
+.support-float-body form input,.support-float-body form textarea{box-sizing:border-box!important;min-height:42px!important;font-size:13px!important;line-height:1.45!important}
+.support-float-body form textarea{min-height:86px!important;resize:vertical!important}
+.support-float-submit{min-height:44px!important;font-size:12px!important}
+.support-float-foot{flex:0 0 auto!important;font-size:9px!important}
+.support-float-trigger{height:46px!important;min-height:46px!important;padding:0 14px!important;border-radius:14px!important}
+@media(max-width:760px){
+ .ks-app>header{height:56px!important;grid-template-columns:minmax(0,1fr) auto!important;gap:7px!important}
+ .ks-app>header .primary-nav{display:none!important}
+ .ks-app>header .brand{gap:7px!important}
+ .ks-app>header .brand-mark{width:29px!important;height:29px!important;flex-basis:29px!important}
+ .ks-app>header .brand span:last-child{font-size:11px!important;max-width:150px}
+ .ks-app>header .header-right{gap:6px!important}
+ .ks-app>header .menu-btn{width:31px!important;height:31px!important;flex-basis:31px!important}
+ .app>header{width:calc(100% - 16px)!important;height:56px!important;margin-top:8px!important;padding:0 9px!important}
+ .app>header .brand span:last-child{font-size:11px!important}
+ .app>header nav{display:none!important}
+ .support-float-root{right:10px!important;bottom:calc(10px + env(safe-area-inset-bottom))!important}
+ .support-float-panel{right:0!important;bottom:58px!important;width:calc(100vw - 20px)!important;max-height:calc(100dvh - 82px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;border-radius:16px!important}
+ .support-float-body{padding:12px!important}
+ .support-float-trigger{height:44px!important;min-width:44px!important;padding:0 12px!important}
+ .site-status{left:10px!important;bottom:calc(10px + env(safe-area-inset-bottom))!important}
+ .site-status-popover{position:fixed!important;top:auto!important;bottom:calc(58px + env(safe-area-inset-bottom))!important;left:10px!important;right:auto!important;width:min(320px,calc(100vw - 20px))!important;max-height:calc(100dvh - 90px - env(safe-area-inset-top))!important;overflow:auto!important}
+}
+@media(max-width:360px){
+ .app>header .brand span:last-child{max-width:112px!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .support-float-panel{width:calc(100vw - 16px)!important}
+ .support-float-head{gap:8px!important;padding:11px!important}
+ .support-float-head b{font-size:12px!important}
+}
+@media(prefers-reduced-motion:reduce){.support-float-trigger{transition:none!important}}
