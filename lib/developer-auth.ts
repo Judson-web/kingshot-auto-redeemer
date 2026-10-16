@@ -17,9 +17,9 @@ function cookieValue(req:Req,name:string){const raw=String(get(req,"cookie")||""
 function session(req:Req){return cookieValue(req,COOKIE)}
 function ownerSession(req:Req){return cookieValue(req,OWNER_COOKIE)}
 function profileSession(req:Req){return cookieValue(req,PROFILE_COOKIE)}
-function setProfileCookie(res:Res,v:string,age=2592000){res.setHeader("Set-Cookie",PROFILE_COOKIE+"="+encodeURIComponent(v)+"; Max-Age="+age+"; Path=/; HttpOnly; Secure; SameSite=Strict")}
+function setProfileCookie(res:Res,v:string,age=315360000){res.setHeader("Set-Cookie",PROFILE_COOKIE+"="+encodeURIComponent(v)+"; Max-Age="+age+"; Path=/; HttpOnly; Secure; SameSite=Strict")}
 function clearProfileCookie(res:Res){res.setHeader("Set-Cookie",PROFILE_COOKIE+"=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Strict")}
-function setOwnerCookie(res:Res,v:string,age=43200){res.setHeader("Set-Cookie",OWNER_COOKIE+"="+encodeURIComponent(v)+"; Max-Age="+age+"; Path=/; HttpOnly; Secure; SameSite=Strict")}
+function setOwnerCookie(res:Res,v:string,age=315360000){res.setHeader("Set-Cookie",OWNER_COOKIE+"="+encodeURIComponent(v)+"; Max-Age="+age+"; Path=/; HttpOnly; Secure; SameSite=Strict")}
 function clearOwnerCookie(res:Res){res.setHeader("Set-Cookie",OWNER_COOKIE+"=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Strict")}
 function providersOf(user:any){return Array.isArray(user?.app_metadata?.providers)?user.app_metadata.providers:[]}
 function hasProvider(user:any,provider:string){return providersOf(user).includes(provider)||(Array.isArray(user?.identities)&&user.identities.some((identity:any)=>identity?.provider===provider))}
