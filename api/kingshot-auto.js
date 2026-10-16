@@ -74,14 +74,14 @@ async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
 
 import { fetchSource, classifyScraperError } from "../internal/kingshot/scraper.js";
 import { runWithConcurrency, runWorkerShard, workerBucket } from "../internal/kingshot/worker.js";
-async function redeemForPlayer(player,codes){
-const kingdomState=await revalidatePlayer(player,{rpc,notify:sendDiscordEvent});
+async function redeemForPlayer(player,codes,rpcClient=rpc){
+const kingdomState=await revalidatePlayer(player,{rpc:rpcClient,notify:sendDiscordEvent});
  const kingdomCheck=Boolean(kingdomState.revalidated);
  const kingdomChanged=Boolean(kingdomState.kingdomChanged);
  if(kingdomState.stale)return {attempted:0,success:0,alreadyHandled:0,skipped:1,stale:1,kingdomCheck,kingdomChanged};
  if(!kingdomState.player?.kingdom_id)return {attempted:0,success:0,alreadyHandled:0,skipped:1,revalidationError:1,kingdomCheck,kingdomChanged};
  player=kingdomState.player;
- const history=await rpc("list_kingshot_player_redemptions",{p_player_id:player.player_id});
+ const history=await rpcClient("list_kingshot_player_redemptions",{p_player_id:player.player_id});
  const handled=getHandledGiftCodes(history);
 
  // Process only the newest outstanding code for each player per run.
@@ -96,7 +96,7 @@ const kingdomState=await revalidatePlayer(player,{rpc,notify:sendDiscordEvent});
   return {attempted:0,success:0,alreadyHandled:codes.length,skipped:0,kingdomCheck,kingdomChanged,handledCodeCounts};
  }
 
- const claimed=await rpc("claim_kingshot_redemption",{p_player_id:player.player_id,p_code:item.code});
+ const claimed=await rpcClient("claim_kingshot_redemption",{p_player_id:player.player_id,p_code:item.code});
  if(!claimed)return {attempted:0,success:0,alreadyHandled:0,skipped:1,kingdomCheck,kingdomChanged};
 
  const redemptionStartedAt=Date.now();
@@ -104,7 +104,7 @@ const kingdomState=await revalidatePlayer(player,{rpc,notify:sendDiscordEvent});
  const completedAt=Date.now();
  const status=String(d?.status||"ERROR").toUpperCase();
  const message=d?.message||d?.error||"";
- await rpc("record_kingshot_redemption",{p_player_id:player.player_id,p_code:item.code,p_status:status,p_err_code:d?.errCode??null,p_message:(d?.errorCategory?"["+d.errorCategory+"] ":"")+message});
+ await rpcClient("record_kingshot_redemption",{p_player_id:player.player_id,p_code:item.code,p_status:status,p_err_code:d?.errCode??null,p_message:(d?.errorCategory?"["+d.errorCategory+"] ":"")+message});
 
  const discoveryAt=Number.isFinite(item.discoveredAt)?item.discoveredAt:null;
  const redemptionTelemetry={code:item.code,resultAt:new Date(completedAt).toISOString(),status,redemptionLatencyMs:Math.max(0,completedAt-redemptionStartedAt),discoveryToResultMs:discoveryAt==null?null:Math.max(0,completedAt-discoveryAt)};
@@ -159,7 +159,7 @@ export default async function handler(req,res){
     }
     return rpc(name,body);
    };
-   const result=await runWorkerShard(slot,codes,players,{rpc:shardRpc,redeemForPlayer},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
+   const result=await runWorkerShard(slot,codes,players,{rpc:shardRpc,redeemForPlayer:(player,codes)=>redeemForPlayer(player,codes,shardRpc)},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
    return res.status(200).json({ok:true,...result});
   }catch(error){
    console.error("Kingshot worker shard:",slot,error);
