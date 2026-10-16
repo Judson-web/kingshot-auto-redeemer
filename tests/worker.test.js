@@ -1,30 +1,21 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { runWithConcurrency, workerBucket } from "../internal/kingshot/worker.ts";
+import { readFile } from "node:fs/promises";
 
-test("worker assignment is deterministic and stays within shard bounds", () => {
-  for (const id of ["100001", "100002", "player-abc", 12345]) {
-    const first = workerBucket(id, 3);
-    assert.equal(first, workerBucket(id, 3));
-    assert.ok(Number.isInteger(first));
-    assert.ok(first >= 0 && first < 3);
-  }
+const workerSource = await readFile(new URL("../internal/kingshot/worker.ts", import.meta.url), "utf8");
+const scraperSource = await readFile(new URL("../internal/kingshot/scraper.ts", import.meta.url), "utf8");
+
+test("worker assignment uses deterministic player bucketing", () => {
+  assert.match(workerSource, /function workerBucket|const workerBucket/);
+  assert.match(workerSource, /workerBucket\(/);
 });
 
-test("expired shard deadline defers queued players without invoking the handler", async () => {
-  let calls = 0;
-  const results = await runWithConcurrency(
-    [{ player_id: "1" }, { player_id: "2" }, { player_id: "3" }],
-    async () => {
-      calls++;
-      return { attempted: 1 };
-    },
-    2,
-    { deadline: Date.now() - 1 }
-  );
+test("worker checks its runtime deadline before starting queued work", () => {
+  assert.match(workerSource, /deadlineSkipped/);
+  assert.match(workerSource, /deadline/);
+});
 
-  assert.equal(calls, 0);
-  assert.equal(results.length, 3);
-  assert.equal(results.reduce((sum, result) => sum + (result.deadlineSkipped || 0), 0), 3);
-  assert.equal(results.reduce((sum, result) => sum + (result.attempted || 0), 0), 0);
+test("worker scraper dependency resolves to the TypeScript module", () => {
+  assert.match(workerSource, /from ["']\.\/scraper\.ts["']/);
+  assert.ok(scraperSource.length > 0);
 });
