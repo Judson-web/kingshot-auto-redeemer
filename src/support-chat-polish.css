@@ -268,3 +268,13 @@
 .support-topic-trigger{touch-action:manipulation!important;user-select:none!important;-webkit-tap-highlight-color:transparent!important}
 .support-topic-trigger:active{transform:scale(.995)!important}
 @media(max-width:560px){.ks-support-quick{padding:20px 17px!important;border-radius:20px!important}.ks-support-quick-actions{grid-template-columns:1fr!important}.ks-support-quick-actions button{min-height:49px!important}.ks-support-quick>p{font-size:13px!important;margin-bottom:16px!important}}
+
+
+/* Keep the category control clickable above the scrollable form and adjacent labels. */
+.support-topic-field{display:block!important;position:relative!important;isolation:isolate!important;z-index:40!important;min-width:0!important}
+.support-topic-label{display:block!important;margin:0 0 7px!important;color:#a5b2c6!important;font-size:11px!important;font-weight:700!important;letter-spacing:.09em!important;line-height:1.4!important;pointer-events:none!important}
+.support-topic-picker{position:relative!important;z-index:41!important;display:block!important;min-width:0!important}
+.support-topic-trigger{position:relative!important;z-index:42!important;display:flex!important;pointer-events:auto!important;cursor:pointer!important}
+.support-topic-menu{position:relative!important;z-index:43!important;display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;touch-action:pan-y!important}
+.support-topic-option{position:relative!important;z-index:44!important;pointer-events:auto!important;cursor:pointer!important}
+.support-topic-trigger svg,.support-topic-option svg{pointer-events:none!important}
