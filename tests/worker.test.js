@@ -15,7 +15,7 @@ test("worker checks its runtime deadline before starting queued work", () => {
   assert.match(workerSource, /deadline/);
 });
 
-test("worker scraper dependency resolves to the TypeScript module", () => {
-  assert.match(workerSource, /from ["']\.\/scraper\.ts["']/);
+test("worker keeps its extension-mapped scraper dependency", () => {
+  assert.match(workerSource, /from ["']\.\/scraper\.js["']/);
   assert.ok(scraperSource.length > 0);
 });
