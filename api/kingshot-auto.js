@@ -138,9 +138,11 @@ export default async function handler(req,res){
    const suppressedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.suppressed===true).map(row=>String(row?.code||"").trim().toUpperCase()).filter(Boolean));
    const verifiedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(r=>r?.validation_status==="verified"&&r?.active!==false&&r?.suppressed!==true).map(r=>String(r?.code||"").trim().toUpperCase()));
    const codes=requestedCodes.filter(item=>item&&typeof item.code==="string"&&!suppressedCodes.has(item.code.trim().toUpperCase())&&verifiedCodes.has(item.code.trim().toUpperCase()));
-   // Fetch redemption history once per shard instead of issuing one RPC per player.
-   // The worker's existing redeemForPlayer path remains unchanged via a scoped RPC adapter.
-   const playerIds=[...new Set(players.map(player=>String(player?.player_id||"").trim()).filter(Boolean))];
+   // Partition before loading history. The coordinator sends the full player list
+   // to each shard, so querying history for every player here caused three large,
+   // redundant database scans per cycle and amplified PostgREST timeout pressure.
+   const assignedPlayers=players.filter(player=>workerBucket(player?.player_id,WORKER_COUNT)===slot);
+   const playerIds=[...new Set(assignedPlayers.map(player=>String(player?.player_id||"").trim()).filter(Boolean))];
    const historyRows=playerIds.length
     ? await rpc("list_kingshot_player_redemptions_bulk",{p_player_ids:playerIds})
     : [];
@@ -159,7 +161,7 @@ export default async function handler(req,res){
     }
     return rpc(name,body);
    };
-   const result=await runWorkerShard(slot,codes,players,{rpc:shardRpc,redeemForPlayer:(player,codes)=>redeemForPlayer(player,codes,shardRpc)},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
+   const result=await runWorkerShard(slot,codes,assignedPlayers,{rpc:shardRpc,redeemForPlayer:(player,codes)=>redeemForPlayer(player,codes,shardRpc)},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
    return res.status(200).json({ok:true,...result});
   }catch(error){
    console.error("Kingshot worker shard:",slot,error);
