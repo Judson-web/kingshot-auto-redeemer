@@ -17,7 +17,16 @@ const VERIFIED_FALLBACK_CODES=[{code:"VIP777",expiresAt:Date.parse("2026-12-31T2
 if(!SUPABASE_KEY)throw Error("Supabase service key is not configured on the server.");
 
 async function rpc(name,body){
- const r=await fetch(SUPABASE_URL+"/rest/v1/rpc/"+name,{method:"POST",headers:{"apikey":SUPABASE_KEY,"authorization":"Bearer "+SUPABASE_KEY,"content-type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(10000)});
+ const startedAt=Date.now();
+ let r;
+ try{
+  r=await fetch(SUPABASE_URL+"/rest/v1/rpc/"+name,{method:"POST",headers:{"apikey":SUPABASE_KEY,"authorization":"Bearer "+SUPABASE_KEY,"content-type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(10000)});
+ }catch(error){
+  console.error("Supabase RPC transport failed:",{operation:name,durationMs:Date.now()-startedAt,errorName:error?.name||null,message:String(error?.message||error).slice(0,200)});
+  throw error;
+ }
+ const durationMs=Date.now()-startedAt;
+ if(durationMs>=1500)console.warn("Supabase RPC slow:",{operation:name,durationMs,status:r.status});
  const d=await r.json().catch(()=>null);
  if(!r.ok){
   const code=typeof d?.code==="string"?d.code.slice(0,40):null;
@@ -114,6 +123,7 @@ const kingdomState=await revalidatePlayer(player,{rpc:rpcClient,notify:sendDisco
 export default async function handler(req,res){
  if(!["GET","POST"].includes(req.method))return res.status(405).json({error:"Method not allowed"});
  const cycleStartedAt=Date.now();
+ let currentStage="request-authentication";
  const cronSecret=process.env.CRON_SECRET;
  const schedulerToken=req.headers["x-kingshot-scheduler-token"];
  const requestUrl=new URL(req.url||"/","https://kingshot-autoredeemer.vercel.app");
@@ -225,12 +235,14 @@ export default async function handler(req,res){
 
  let workerToken=null;
  try{
+  currentStage="worker-run-lock";
   const lock=await rpc("claim_kingshot_worker_run",{});
   if(!lock?.claimed)return res.status(200).json({ok:true,skipped:true,reason:"WORKER_ALREADY_RUNNING"});
   workerToken=lock.token;
   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
   // Keep community-source requests sequential instead of bursting all providers at once.
   // This reduces 429 risk without rotating identities or bypassing upstream quotas.
+  currentStage="gift-code-source-fetch";
   const apiSource=await fetchSource(rpc,GIFT_SOURCE_URL,"api");
   await new Promise(resolve=>setTimeout(resolve,250));
   const pageSource=await fetchSource(rpc,"https://kingshot.net/gift-codes","page");
@@ -246,6 +258,7 @@ export default async function handler(req,res){
    await new Promise(resolve=>setTimeout(resolve,250));
    publicSources.push(await fetchSource(rpc,aggregatorUrl,"aggregator"));
   }
+  currentStage="gift-code-merge-and-persist";
   const adminRows=await rpc("list_kingshot_admin_gift_codes",{});
   const data=apiSource.data;
   const apiCodes=apiSource.codes;
@@ -303,6 +316,7 @@ export default async function handler(req,res){
    const right=Date.parse(String(b?.last_kingdom_check_at||""));
    return (Number.isFinite(left)?left:0)-(Number.isFinite(right)?right:0);
   });
+  currentStage="kingdom-revalidation";
   const validationDeadline=Date.now()+150000;
 
   // Phase 1: kingdom revalidation is completed BEFORE any redemption worker
@@ -344,6 +358,7 @@ export default async function handler(req,res){
     }catch(error){console.error("Gift-code verification attempt failed:",canaryCandidate.code,error?.message||error);verificationAttempt={code:canaryCandidate.code,status:"VERIFICATION_ERROR",validationStatus:"pending",errorCategory:classifyScraperError(error)};break;}
    }
   }
+  currentStage="gift-code-validation-gate";
   const latestCodeRows=await rpc("list_kingshot_admin_gift_codes",{});
   const verifiedCodeSet=new Set((Array.isArray(latestCodeRows)?latestCodeRows:[]).filter(r=>r?.validation_status==="verified"&&r?.active!==false&&r?.suppressed!==true).map(r=>String(r?.code||"").trim().toUpperCase()));
   activeCodes=activeCodes.filter(c=>verifiedCodeSet.has(c.code.toUpperCase()));
@@ -377,7 +392,9 @@ export default async function handler(req,res){
   const assignments=Array.from({length:WORKER_COUNT},()=>[]);
   for(const player of validPlayers)assignments[workerBucket(player?.player_id,WORKER_COUNT)].push(player);
   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
+  currentStage="worker-shard-fanout";
   const workerRuns=await Promise.all(assignments.map(async(assigned,workerIndex)=>{
+   const shardStartedAt=Date.now();
    try{
     const response=await fetch(workerUrlBase+workerIndex,{
      method:"POST",
@@ -387,9 +404,11 @@ export default async function handler(req,res){
     });
     const payload=await response.json().catch(()=>({}));
     if(!response.ok)throw Error(payload?.error||"Worker shard returned HTTP "+response.status);
+    const shardDurationMs=Date.now()-shardStartedAt;
+    if(shardDurationMs>=5000)console.warn("Kingshot worker shard slow:",{slot:workerIndex,durationMs:shardDurationMs,status:response.status,players:assigned.length});
     return payload;
    }catch(error){
-    console.error("Kingshot worker fan-out failed:",workerIndex,error?.message||error);
+    console.error("Kingshot worker fan-out failed:",{slot:workerIndex,durationMs:Date.now()-shardStartedAt,players:assigned.length,errorName:error?.name||null,message:error?.message||String(error)});
     return {slot:workerIndex,claimed:false,error:error?.message||"Worker shard failed.",errorCategory:classifyScraperError(error),players:assigned.length};
    }
   }));
@@ -470,7 +489,7 @@ export default async function handler(req,res){
    ].join("\n").slice(0,1024)||"None",inline:false}],color:totals.errors||totals.stale||workerFailures.length?0xFEE75C:0x57F287});
   return res.status(200).json({ok:true,...summary});
  }catch(e){
-  console.error("Kingshot auto redeem:",e);
+  console.error("Kingshot auto redeem:",{stage:currentStage,durationMs:Date.now()-cycleStartedAt,errorName:e?.name||null,message:e?.message||String(e),stack:typeof e?.stack==="string"?e.stack.split("\n").slice(0,4).join("\n"):null});
   if(workerToken)await rpc("finish_kingshot_worker_run",{p_token:workerToken,p_status:"FAILED",p_error:e?.message||"Auto redemption failed.",p_summary:{errorCategory:classifyScraperError(e)}}).catch(error=>console.error("Worker failure state update failed:",error?.message||error));
   await sendDiscordEvent({title:"❌ Auto-redeem worker error",description:e?.message||"Auto redemption failed.",color:0xED4245});
   return res.status(502).json({error:e.message||"Auto redemption failed.",errorCategory:classifyScraperError(e)});
