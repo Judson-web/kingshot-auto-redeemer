@@ -1675,7 +1675,7 @@ body,#root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .support-float-trigger{position:relative;display:grid;place-items:center;width:50px;height:50px;border:1px solid #9ba2ff;border-radius:50%;background:linear-gradient(145deg,#747cff,#555ee0);color:white;box-shadow:0 8px 30px #0008,0 0 0 4px #747cff22;transition:transform .18s ease,box-shadow .18s ease}
 .support-float-trigger:hover{transform:translateY(-2px);box-shadow:0 12px 34px #0009,0 0 0 5px #747cff30}
 .support-float-trigger.is-open{background:#242a38;border-color:#444d61}
-.support-float-ping{position:absolute;right:2px;top:2px;width:9px;height:9px;border:2px solid #5e67ee;border-radius:50%;background:#9be4bd}
+/* Decorative support ping removed; unread replies use the numeric badge. */
 .support-float-panel{width:min(370px,calc(100vw - 28px));max-height:min(650px,calc(100dvh - 100px));overflow:auto;border:1px solid #343b4d;border-radius:19px;background:#11151e;color:#f4f5fb;box-shadow:0 20px 70px #000a;animation:support-float-in .18s ease-out}
 @keyframes support-float-in{from{opacity:0;transform:translateY(7px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 .support-float-head{position:sticky;top:0;display:flex;align-items:center;gap:10px;padding:14px;border-bottom:1px solid #2b3240;background:#151a25;z-index:1}
