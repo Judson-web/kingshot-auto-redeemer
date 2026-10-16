@@ -216,3 +216,27 @@
  .support-float-panel.support-chat-panel .support-context-strip{display:none!important}
 }
 @media(prefers-reduced-motion:reduce){.support-drawer-close,.support-context-strip *{transition:none!important;animation:none!important}}
+
+
+/* Native-select replacement: themed, accessible support topic picker. */
+.support-topic-field{position:relative!important;z-index:8!important}
+.support-topic-picker{position:relative!important;margin-top:7px!important}
+.support-topic-trigger{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;width:100%!important;min-height:58px!important;padding:10px 12px!important;border:1px solid #35445c!important;border-radius:13px!important;background:linear-gradient(135deg,#172235,#101722)!important;color:#eaf0fc!important;text-align:left!important;cursor:pointer!important;transition:border-color .16s ease,background .16s ease,box-shadow .16s ease!important}
+.support-topic-trigger:hover,.support-topic-trigger.is-expanded{border-color:#7798d3!important;background:linear-gradient(135deg,#1d2b42,#121b29)!important}
+.support-topic-trigger:focus-visible{outline:2px solid #9dbdff!important;outline-offset:2px!important}
+.support-topic-trigger>svg{flex:0 0 auto!important;color:#9fb9e8!important;transition:transform .16s ease!important}
+.support-topic-trigger.is-expanded>svg{transform:rotate(180deg)!important}
+.support-topic-selected{display:flex!important;flex-direction:column!important;gap:4px!important;min-width:0!important}
+.support-topic-selected small{color:#8094b4!important;font-size:9px!important;font-weight:750!important;letter-spacing:.12em!important}
+.support-topic-selected b{color:#f0f5ff!important;font-size:13px!important;font-weight:700!important;line-height:1.35!important}
+.support-topic-menu{position:absolute!important;top:calc(100% + 7px)!important;left:0!important;right:0!important;z-index:30!important;display:flex!important;flex-direction:column!important;gap:4px!important;max-height:min(340px,45dvh)!important;overflow-y:auto!important;padding:6px!important;border:1px solid #34445e!important;border-radius:15px!important;background:#0d1420!important;box-shadow:0 18px 48px #000a,0 0 0 1px #ffffff06!important;overscroll-behavior:contain!important;scrollbar-color:#34445e #0d1420!important}
+.support-topic-option{display:flex!important;align-items:center!important;gap:10px!important;width:100%!important;min-height:54px!important;padding:9px 10px!important;border:1px solid transparent!important;border-radius:10px!important;background:transparent!important;color:#cbd7ea!important;text-align:left!important;cursor:pointer!important;touch-action:manipulation!important}
+.support-topic-option:hover,.support-topic-option:focus-visible{outline:none!important;border-color:#354b6b!important;background:#172438!important}
+.support-topic-option.is-selected{border-color:#3e5b83!important;background:linear-gradient(110deg,#1b2b43,#142033)!important;color:#f0f5ff!important}
+.support-topic-option-icon{display:grid!important;place-items:center!important;flex:0 0 32px!important;width:32px!important;height:32px!important;border:1px solid #33455f!important;border-radius:10px!important;background:#1a273a!important;color:#a9c7ff!important;font-size:16px!important}
+.support-topic-option>span:nth-child(2){display:flex!important;flex:1 1 auto!important;flex-direction:column!important;gap:3px!important;min-width:0!important}
+.support-topic-option b{color:inherit!important;font-size:12px!important;font-weight:700!important;line-height:1.3!important}
+.support-topic-option small{color:#8e9eb5!important;font-size:10px!important;line-height:1.35!important;white-space:normal!important}
+.support-topic-option>svg{flex:0 0 auto!important;color:#a8c7ff!important}
+@media(max-width:760px){.support-topic-menu{max-height:min(300px,38dvh)!important}.support-topic-option{min-height:51px!important;padding:8px!important}.support-topic-option small{font-size:9px!important}.support-topic-trigger{min-height:55px!important}}
+@media(prefers-reduced-motion:reduce){.support-topic-trigger,.support-topic-trigger>svg{transition:none!important}}
