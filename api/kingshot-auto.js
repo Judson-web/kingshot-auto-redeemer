@@ -138,7 +138,28 @@ export default async function handler(req,res){
    const suppressedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.suppressed===true).map(row=>String(row?.code||"").trim().toUpperCase()).filter(Boolean));
    const verifiedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(r=>r?.validation_status==="verified"&&r?.active!==false&&r?.suppressed!==true).map(r=>String(r?.code||"").trim().toUpperCase()));
    const codes=requestedCodes.filter(item=>item&&typeof item.code==="string"&&!suppressedCodes.has(item.code.trim().toUpperCase())&&verifiedCodes.has(item.code.trim().toUpperCase()));
-   const result=await runWorkerShard(slot,codes,players,{rpc,redeemForPlayer},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
+   // Fetch redemption history once per shard instead of issuing one RPC per player.
+   // The worker's existing redeemForPlayer path remains unchanged via a scoped RPC adapter.
+   const playerIds=[...new Set(players.map(player=>String(player?.player_id||"").trim()).filter(Boolean))];
+   const historyRows=playerIds.length
+    ? await rpc("list_kingshot_player_redemptions_bulk",{p_player_ids:playerIds})
+    : [];
+   const historiesByPlayer=new Map();
+   for(const row of Array.isArray(historyRows)?historyRows:[]){
+    const id=String(row?.player_id||"");
+    if(!historiesByPlayer.has(id))historiesByPlayer.set(id,[]);
+    const {player_id,...history}=row;
+    historiesByPlayer.get(id).push(history);
+   }
+   const shardRpc=async(name,body)=>{
+    if(name==="list_kingshot_player_redemptions"){
+     const id=String(body?.p_player_id||"");
+     if(!historiesByPlayer.has(id))return [];
+     return historiesByPlayer.get(id);
+    }
+    return rpc(name,body);
+   };
+   const result=await runWorkerShard(slot,codes,players,{rpc:shardRpc,redeemForPlayer},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
    return res.status(200).json({ok:true,...result});
   }catch(error){
    console.error("Kingshot worker shard:",slot,error);
