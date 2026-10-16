@@ -105,7 +105,7 @@ export default function SupportWidget(){
   <button ref={triggerRef} className={"support-float-trigger "+(open?"is-open":"")} type="button" aria-label={open?"Close support":"Open support chat"+(unread?" ("+unread+" unread replies)": "")} aria-expanded={open} onClick={()=>{if(open)restoreFocusRef.current=true;if(!open){const context=getPageContext();setPageContext(context);if(!conversation&&topic===pageContext.topic)setTopic(context.topic);setNotice("")}setOpen(v=>!v)}}>
    {open?<X size={20}/>:<MessageCircle size={21}/>}
    {!open&&unread>0&&<span className="support-unread-badge" aria-label={unread+" unread support replies"}>{unread>9?"9+":unread}</span>}
-   <span className="support-float-ping"/><span className="support-float-trigger-label">{open?"Close":"Support"}</span>
+   <span className="support-float-trigger-label">{open?"Close":"Support"}</span>
   </button>
   {open&&<section ref={panelRef} className="support-float-panel support-chat-panel" role="dialog" aria-modal="true" aria-label="Kingshot support chat">
    <header className="support-float-head"><span className="support-float-icon"><LifeBuoy size={18}/></span><div className="support-head-copy"><b>{conversation?(conversation.subject||"Support conversation"):"Support centre"}</b><small><i className="support-live-dot"/>{conversation?(conversation.supportTicketId?"REMOVAL REQUEST · TICKET "+conversation.supportTicketId.slice(0,8).toUpperCase():"PRIVATE TICKET · REPLIES IN THIS THREAD"):"PRIVATE HELP · PRIVATE REPLIES"}</small></div><button ref={closeButtonRef} className="support-drawer-close" type="button" aria-label="Close support chat" title="Close support chat" onClick={()=>{restoreFocusRef.current=true;setOpen(false)}}><X size={17}/></button></header>
