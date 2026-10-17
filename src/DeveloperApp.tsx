@@ -101,7 +101,7 @@ console.log(result.data.playerId, result.data.name);`;
         <span className="dev-version-pill"><span style={{width:7,height:7,borderRadius:9,background:"#9ce9c2",boxShadow:"0 0 0 3px #9ce9c21c"}}/> API v3 <span style={{color:"#687487"}}>·</span> HTTPS</span>
       </header>
       <div className="dev-stat-grid" aria-label="API overview">
-        <article className="dev-stat"><div className="dev-stat-label">Endpoint</div><div className="dev-stat-value"><code style={{fontSize:"inherit"}}>GET /api/v1/player</code></div><div className="dev-stat-detail">Single read-only player lookup</div></article>
+        <article className="dev-stat"><div className="dev-stat-label">Endpoint</div><div className="dev-stat-value"><code style={{fontSize:"inherit"}}>GET /api/v3/players/&#123;playerId&#125;</code></div><div className="dev-stat-detail">Single read-only player lookup</div></article>
         <article className="dev-stat"><div className="dev-stat-label">Per-key quota</div><div className="dev-stat-value">60 / min</div><div className="dev-stat-detail">Up to 1,000 requests per day</div></article>
         <article className="dev-stat"><div className="dev-stat-label">Additional protection</div><div className="dev-stat-value">120 / min / IP</div><div className="dev-stat-detail">Shared IP-level rate limit</div></article>
       </div>
@@ -129,7 +129,7 @@ console.log(result.data.playerId, result.data.name);`;
             <div className="dev-endpoint"><span style={{background:"#164b39",color:"#9ce9c2",borderRadius:6,padding:"5px 8px",fontSize:10,fontWeight:900}}>GET</span><code style={{fontSize:12,overflowWrap:"anywhere",flex:"1 1 170px"}}>/api/v3/players/{playerId}</code><CopyButton value="/api/v3/players/{playerId}" label="Copy path"/></div>
             <p className="dev-muted" style={{marginTop:11}}>Required path parameter: <code>playerId</code> — 5 to 20 digits. A valid, active API key is required.</p>
             <h3 style={{fontSize:13,margin:"19px 0 9px"}}>Example response</h3>
-            <pre className="dev-code"><code>{JSON.stringify({data:{playerId:"43180889",name:"Example Player",kingdomId:"1125",power:123456789,townCenterLevel:30,avatarUrl:null},meta:{apiVersion:"3",requestId:"server-generated-id",timestamp:"2026-10-17T12:00:00.000Z",rateLimit:{perMinuteLimit:60,perMinuteRemaining:59,perDayLimit:1000,perDayRemaining:999}}},null,2)}</code></pre>
+            <pre className="dev-code"><code>{JSON.stringify({data:{playerId:"43180889",name:"Example Player",kingdomId:"1125",power:123456789,townCenterLevel:30,avatarUrl:null},meta:{apiVersion:"3",requestId:"server-generated-id",timestamp:"2026-10-17T12:00:00.000Z",source:"mightpulse",stale:false,providerFresh:true,providerAgeSeconds:2,rateLimit:{perMinuteLimit:60,perMinuteRemaining:59,perDayLimit:1000,perDayRemaining:999,resetAt:"2026-10-17T12:01:00.000Z"}}},null,2)}</code></pre>
             <p className="dev-muted" style={{fontSize:11,marginTop:9}}>Illustrative values only. Some fields may be null when the upstream provider has no value.</p>
           </section>
           <section className="dev-card" id="manual-redemption">
