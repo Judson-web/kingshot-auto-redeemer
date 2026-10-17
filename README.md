@@ -16,7 +16,7 @@
 [![Vercel](https://img.shields.io/badge/Vercel-Production-000000?style=flat-square&logo=vercel&logoColor=white)](https://vercel.com/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-2DA44E?style=flat-square)](./LICENSE)
 
-[**Open the service →**](https://kingshot-autoredeemer.vercel.app/) · [**How it works →**](https://kingshot-autoredeemer.vercel.app/info) · [**Report an issue →**](https://github.com/Judson-web/kingshot-auto-redeemer/issues)
+[**Open the service →**](https://kingshot-autoredeemer.vercel.app/) · [**How it works →**](https://kingshot-autoredeemer.vercel.app/info) · [**Contact support →**](https://kingshot-autoredeemer.vercel.app/developer)
 
 </div>
 
@@ -44,7 +44,7 @@ The public site has a floating support launcher for submitting a support ticket 
 
 ## ✦ Sign-in providers and roles
 
-The public `/profile` page supports GitHub and Discord sign-in for a regular user profile. The header shows a neutral **USER** badge for profile-only sessions. Developer API access is a separate sign-in/session on `/developer`; only there does the account display the **DEVELOPER** or allowlisted **ADMIN** badge. Existing GitHub users should continue choosing GitHub and sign in with the same account. Choosing Discord is not a promise that two provider identities are merged; use the same provider identity you originally registered with unless Supabase identity linking is explicitly configured. Each developer account can manage only its own API keys.
+The public `/profile` page supports GitHub and Discord sign-in for a regular user profile. Developer API access uses a separate Discord-based account/session on `/developer`; profile and developer identities are not assumed to be linked or merged. Only the developer portal displays the **DEVELOPER** or allowlisted **ADMIN** badge, and each developer account can manage only its own API keys.
 
 ### Enabling Discord OAuth (deployment maintainers)
 
@@ -57,7 +57,7 @@ This is deployment configuration, not a step required by ordinary users. Configu
 5. Save the settings, then test both Discord and GitHub sign-in, including the expected profile/developer destinations and a non-owner account.
 
 **Security notes**
-- Never commit a Discord Client Secret, Supabase service-role key, session token, or other credential to this public repository.
+- Never commit a Discord Client Secret, Supabase service-role key, session token, or other credential to this repository.
 - Keep secrets in the relevant provider dashboard or server-side deployment secret store. Anything bundled into browser code—including client-prefixed build variables—must be treated as public.
 - The owner/admin role is decided server-side using configured, stable account identifiers and/or existing authorized identity checks—not a display name, avatar, or user-editable profile field. Keep actual owner identifiers out of public documentation and never use a client-side role flag as authorization.
 - Privileged tools reuse the existing verified Discord developer-account session and enforce the owner Discord identity server-side. Do not add a separate console passkey or a second sign-in flow.
@@ -256,11 +256,11 @@ The goal is simple: **a green build should mean more than “the frontend compil
 
 ## ✦ Website visitor telemetry
 
-The public site records a minimal first-party page-view event through the existing operations catch-all route. It stores the request IP when available, Vercel-provided country/region/city/timezone, path without query parameters, referrer hostname, user-agent, inferred browser/OS/device category, accepted language, approximate screen-size class, and timestamp.
+The service records a best-effort, rate-limited first-party page-view event. When available, the event includes the request IP address, Vercel-supplied country/region/city/timezone, page path without query parameters, referrer hostname, user-agent string, inferred browser/OS/device category, accepted language, approximate screen-size class, and timestamp. Collection runs at most once per page path per tab session and excludes form values and game credentials; it does not request precise GPS or build a cross-site advertising fingerprint.
 
-Visitor events are stored in the private `kingshot_visitor_events` table with row-level security enabled and no anonymous/authenticated client access. Only server-side service-role access is granted. A daily PostgreSQL cron job deletes records after 30 days. Collection is best-effort and rate-limited; client-side collection runs at most once per page path per tab session. It does not collect form values, game credentials, precise GPS, or a cross-site fingerprint. Hosting providers may independently process request metadata.
+Visitor events are stored in the `kingshot_visitor_events` table with RLS enabled and no anonymous/authenticated client access. Rows have a 30-day expiry and a daily PostgreSQL job purges expired rows. This describes the application event store; hosting providers may separately process request metadata under their own retention settings.
 
-This tracker is separate from the public aggregate-only analytics visualized in the [archive README](https://github.com/Judson-web/Kingshot-auto-redeemer-archive#live-website-analytics). Raw IPs and detailed visitor rows are not copied into the long-term archive. See the [Privacy notice](https://kingshot-autoredeemer.vercel.app/privacy?service=kingshot-auto).
+Developer API key management also stores SHA-256 hashes derived from client IP addresses for per-IP rate limits and the lifetime issuance cap. These hashes are pseudonymous, not guaranteed-anonymous. The current schema has no automatic expiry configured for issuance hashes or per-IP rate-limit rows; revoking a key does not remove these records. Raw visitor IPs and detailed visitor events are not copied into the long-term scraper archive. See the [Privacy notice](https://kingshot-autoredeemer.vercel.app/privacy?service=kingshot-auto) for provider and retention details.
 
 ## ✦ Web push notifications
 
@@ -287,11 +287,18 @@ Do not include secrets, personal data, or content you do not have permission to 
 | `/terms` | Terms of service |
 | `/privacy` | Privacy information |
 
-## ✦ Developer API
+## ✦ Developer API (V3)
 
-The interactive `/developer` portal includes account/key management and endpoint examples. For crawlers, integrations, and automated documentation tools, use the plain-text [developer API guide](https://kingshot-autoredeemer.vercel.app/developer.md) or the machine-readable [OpenAPI 3.1 specification](https://kingshot-autoredeemer.vercel.app/openapi.json). These public docs describe endpoints; they do not provide access credentials.
+The interactive `/developer` portal provides account/key management and endpoint examples. Crawler-friendly documentation is available at [`/developer.md`](https://kingshot-autoredeemer.vercel.app/developer.md), and the machine-readable contract is the [OpenAPI 3.1 specification](https://kingshot-autoredeemer.vercel.app/openapi.json). Documentation does not provide credentials.
 
-The `/developer` portal uses the existing verified Discord account session to create and revoke developer API keys. Key material is shown once and stored only as a SHA-256 hash in private database tables. An IP address can be issued at most two keys for its lifetime; revoking a key does not reset that cap. The read-only player lookup is available at `GET /api/v1/player?id=PLAYER_ID` with `Authorization: Bearer ks_live_…`. Limits are 60 requests/minute and 1,000 requests/day per key, plus 120 requests/minute per IP. Usage counters and issuance caps are database-backed so they remain consistent across serverless instances. The developer API is routed through the existing player-lookup serverless function to stay within the Vercel Hobby deployment function-count limit.
+| Method | V3 endpoint | Purpose |
+|---|---|---|
+| `GET` | `/api/v3/players/{playerId}` | Read a player profile with provider-freshness metadata |
+| `POST` | `/api/v3/redemptions` | Submit one manual redemption request |
+
+The developer portal uses the existing verified Discord identity to create and revoke API keys. A key is shown once; only its SHA-256 hash, short prefix, label and lifecycle metadata are stored. Quotas are database-backed: 60 requests/minute and 1,000 requests/day per key, plus a shared 120 requests/minute per-IP limit. V3 standardizes nested error responses, request IDs, HTTP method/content-type validation and freshness signals from MightPulse. Errors use `error.code` and `error.message`; inspect `meta.requestId` when contacting support. A completed redemption rejection may still return HTTP 200, so always inspect `data.ok` and `data.status`. Do not blindly retry an ambiguous upstream timeout.
+
+V1 endpoints `/api/v1/player?id=PLAYER_ID` and `/api/v1/redeem` remain available for backward compatibility. New integrations should use V3. Public website enrollment and internal worker routes are separate from this developer API; never call `/api/kingshot-auto` from third-party integrations. The V3 API is routed through the existing player-lookup serverless function to respect the deployment function-count limit.
 
 ## ✦ Technology
 
@@ -405,7 +412,7 @@ For larger architectural changes, open an issue first so operational and recover
 
 ## ✦ Security reports
 
-Please report suspected vulnerabilities privately rather than opening a public issue with exploit details. Use GitHub's [private vulnerability reporting page](https://github.com/Judson-web/kingshot-auto-redeemer/security/advisories/new) if it is available for this repository. Include the affected component, impact, and reproducible steps, while avoiding real user data and live credentials.
+Report suspected vulnerabilities through the website support channel at [the developer portal](https://kingshot-autoredeemer.vercel.app/developer). Do not include credentials, live API keys, session tokens, real player data, or exploit details in a general support message. For sensitive reproduction details, ask for a private follow-up channel first.
 
 ## ✦ Project status
 

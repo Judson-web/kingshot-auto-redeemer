@@ -2,11 +2,11 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Kingshot Auto Redeemer Developer API",
-    "version": "1.0.0",
-    "description": "Public integration endpoints for player lookup, manual gift-code redemption, and public auto-redeem enrollment. Use only with authorized player accounts. See https://kingshot-autoredeemer.vercel.app/developer.md for human-readable guidance.",
-    "termsOfService": "https://kingshot-autoredeemer.vercel.app/terms",
+    "version": "3.0.0",
+    "description": "V3 developer API for player lookup and manual redemption. V1 endpoints remain available for compatibility. Use only with authorized player accounts.",
+    "termsOfService": "https://kingshot-autoredeemer.vercel.app/terms?service=kingshot-auto",
     "contact": {
-      "url": "https://github.com/Judson-web/kingshot-auto-redeemer/security/advisories/new"
+      "url": "https://kingshot-autoredeemer.vercel.app/developer"
     }
   },
   "servers": [
@@ -31,7 +31,7 @@
           "Developer API"
         ],
         "summary": "Look up a player profile",
-        "description": "Returns provider-supplied profile data. A valid, active developer API key is required. Rate limits are 60 requests/minute and 1,000 requests/day per key, plus 120 requests/minute per IP.",
+        "description": "Legacy V1 route retained for compatibility. New integrations should use GET /api/v3/players/{playerId}.",
         "security": [
           {
             "bearerAuth": []
@@ -78,7 +78,8 @@
           "502": {
             "description": "Upstream provider unavailable"
           }
-        }
+        },
+        "deprecated": true
       }
     },
     "/api/v1/redeem": {
@@ -87,7 +88,7 @@
           "Developer API"
         ],
         "summary": "Manually redeem a gift code",
-        "description": "Submits one authorized player/code/kingdom combination. Inspect the response body for the redemption outcome; HTTP success alone does not guarantee rewards were granted. Do not blindly retry ambiguous outcomes.",
+        "description": "Legacy V1 route retained for compatibility. New integrations should use POST /api/v3/redemptions. Inspect the response body; HTTP success alone does not guarantee rewards were granted.",
         "security": [
           {
             "bearerAuth": []
@@ -119,7 +120,8 @@
           "502": {
             "description": "Upstream provider unavailable"
           }
-        }
+        },
+        "deprecated": true
       }
     },
     "/api/kingshot-register": {
@@ -148,6 +150,235 @@
           },
           "429": {
             "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/api/v3/players/{playerId}": {
+      "get": {
+        "tags": [
+          "Developer API"
+        ],
+        "operationId": "getPlayerV3",
+        "summary": "Look up a player profile (V3)",
+        "description": "Returns a normalized player profile plus provider-cache freshness signals and database-backed quota metadata. Requires an active developer Bearer key.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "playerId",
+            "in": "path",
+            "required": true,
+            "description": "Numeric Kingshot Player ID (5–20 digits).",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{5,20}$",
+              "minLength": 5,
+              "maxLength": 20
+            },
+            "example": "43180889"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Player lookup completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiV3PlayerResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Player ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Player not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or quota exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream provider unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authorization or provider configuration unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Upstream request timed out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v3/redemptions": {
+      "post": {
+        "tags": [
+          "Developer API"
+        ],
+        "operationId": "createRedemptionV3",
+        "summary": "Submit a manual gift-code redemption (V3)",
+        "description": "Submits one player/code/kingdom combination. A completed in-game rejection may return HTTP 200; inspect data.ok and data.status. Do not blindly retry an ambiguous timeout.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiV3RedemptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Redemption operation completed; inspect data for the in-game outcome",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiV3RedemptionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must be application/json",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or quota exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream provider unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authorization or provider configuration unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Upstream request timed out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -269,6 +500,261 @@
           "avatarUrl": {
             "type": "string",
             "format": "uri"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApiV3RateLimit": {
+        "type": "object",
+        "properties": {
+          "perMinuteLimit": {
+            "type": "integer"
+          },
+          "perMinuteRemaining": {
+            "type": "integer"
+          },
+          "perDayLimit": {
+            "type": "integer"
+          },
+          "perDayRemaining": {
+            "type": "integer"
+          },
+          "resetAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": true
+      },
+      "ApiV3Meta": {
+        "type": "object",
+        "required": [
+          "apiVersion",
+          "requestId",
+          "timestamp"
+        ],
+        "properties": {
+          "apiVersion": {
+            "type": "string",
+            "const": "3"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fetchedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "source": {
+            "type": "string"
+          },
+          "stale": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "providerFresh": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "providerAgeSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "rateLimit": {
+            "$ref": "#/components/schemas/ApiV3RateLimit"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "resetAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "documentation": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "ApiV3ErrorResponse": {
+        "type": "object",
+        "required": [
+          "error",
+          "meta"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiV3Meta"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApiV3PlayerResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "playerId",
+              "name",
+              "kingdomId",
+              "power",
+              "townCenterLevel",
+              "avatarUrl"
+            ],
+            "properties": {
+              "playerId": {
+                "type": "string"
+              },
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "kingdomId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "power": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "townCenterLevel": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "avatarUrl": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri"
+              }
+            },
+            "additionalProperties": false
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiV3Meta"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApiV3RedemptionRequest": {
+        "type": "object",
+        "required": [
+          "playerId",
+          "code",
+          "kid"
+        ],
+        "properties": {
+          "playerId": {
+            "type": "string",
+            "pattern": "^[0-9]{5,20}$"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "kid": {
+            "type": "string",
+            "pattern": "^[0-9]{1,10}$"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApiV3RedemptionResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "ok",
+              "status",
+              "statusLabel",
+              "message",
+              "errorCategory",
+              "errCode"
+            ],
+            "properties": {
+              "ok": {
+                "type": "boolean"
+              },
+              "status": {
+                "type": "string"
+              },
+              "statusLabel": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "errorCategory": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "errCode": {
+                "type": [
+                  "string",
+                  "number",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiV3Meta"
           }
         },
         "additionalProperties": false

@@ -1,210 +1,125 @@
-# Developer API reference
+# Kingshot Auto Redeemer — Developer API
 
-Base URL: `https://kingshot-autoredeemer.vercel.app`
+Base URL: https://kingshot-autoredeemer.vercel.app
 
-This reference distinguishes the authenticated developer API from the website's existing automatic-redemption registration workflow. Use HTTPS and JSON. Never put API keys in URLs or browser-side code.
+**Current version: V3.** Use HTTPS and JSON. V1 endpoints remain available for existing integrations; new integrations should use V3. Never place API keys in URLs, browser bundles, client-visible environment variables, or logs.
 
-## Endpoint map
+## Endpoints
 
-| Method | Endpoint | Authentication | What it does |
-|---|---|---|---|
-| `GET` | `/api/v1/player?id=PLAYER_ID` | Developer Bearer key | Read a player profile |
-| `POST` | `/api/v1/redeem` | Developer Bearer key | Manually redeem one gift code for a player |
-| `POST` | `/api/kingshot-register` | Public website route; rate limited | Register one player for the existing automatic-redemption workflow |
-| `POST` | `/api/kingshot-redeem` | Public website route; rate limited | The website's manual-redemption handler |
-| `GET` | `/api/kingshot-player?id=PLAYER_ID` | Public website route; rate limited | Legacy player lookup |
-| `GET` | `/api/kingshot-health` | Public | Health summary |
-
-**Important:** `/api/kingshot-register` enrolls a player in the existing automatic workflow; it does not start or control the worker. `/api/kingshot-auto` is an internal scheduler/worker endpoint and must not be called by third-party clients.
-
-## Authentication and keys
-
-Create a developer account at [Developer portal](https://kingshot-autoredeemer.vercel.app/developer) using the supported GitHub sign-in flow. Create an API key from the account panel. The full secret is shown only once; the database stores a hash. Send it on supported versioned endpoints as:
-
-```http
-Authorization: Bearer ks_live_YOUR_64_CHARACTER_SECRET
-```
-
-Keep the key in a server-side environment variable or secret manager. Do not expose it in a browser bundle, query string, public repository, or screenshot. Revoke a key immediately if it may have leaked.
-
-## 1. Player lookup
-
-`GET /api/v1/player?id=43180889`
-
-The `id` parameter must contain 5–20 digits.
-
-```bash
-curl "https://kingshot-autoredeemer.vercel.app/api/v1/player?id=43180889" \
-  -H "Authorization: Bearer $KINGSHOT_API_KEY"
-```
-
-Example response (illustrative values):
-
-```json
-{
-  "data": {
-    "playerId": "43180889",
-    "name": "Example Player",
-    "kingdomId": "1125",
-    "power": 123456789,
-    "townCenterLevel": 30,
-    "avatarUrl": null
-  },
-  "meta": {
-    "requestId": "server-generated-id",
-    "timestamp": "2026-10-14T12:00:00.000Z",
-    "fetchedAt": "2026-10-14T11:59:58.000Z",
-    "source": "mightpulse",
-    "stale": false,
-    "remaining": 59,
-    "dailyRemaining": 999
-  }
-}
-```
-
-Use `meta.fetchedAt` and `meta.stale` as freshness signals. Some player fields can be null when the upstream provider does not supply them.
-
-## 2. Manual gift-code redemption
-
-`POST /api/v1/redeem`
-
-This endpoint submits one code for one player. It requires a valid developer Bearer key and JSON body with all three fields:
-
-| Field | Type | Validation |
+| Method | Endpoint | Auth |
 |---|---|---|
-| `playerId` | string | 5–20 digits |
-| `code` | string | 1–64 letters, digits, underscores, or hyphens |
-| `kid` | string | 1–10 digits; the player's kingdom ID |
+| GET | /api/v3/players/{playerId} | Developer Bearer key |
+| POST | /api/v3/redemptions | Developer Bearer key |
+| GET | /api/v1/player?id=PLAYER_ID | Developer Bearer key; legacy |
+| POST | /api/v1/redeem | Developer Bearer key; legacy |
+| POST | /api/kingshot-register | Public website flow; rate limited |
+| POST | /api/kingshot-redeem | Public website flow; rate limited |
+| GET | /api/kingshot-health | Public status |
 
-Request:
+The registration endpoint enrolls a player in the existing workflow; it does not start or control the worker. /api/kingshot-auto is an internal scheduler/worker endpoint and must not be used as a third-party API.
 
-```bash
-curl -X POST "https://kingshot-autoredeemer.vercel.app/api/v1/redeem" \
-  -H "Authorization: Bearer $KINGSHOT_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"playerId":"43180889","code":"EXAMPLECODE","kid":"1125"}'
-```
+## Authentication
 
-Example response:
+Create a developer account at https://kingshot-autoredeemer.vercel.app/developer using Discord sign-in, then create a key. The full key is displayed only once; the database stores a SHA-256 hash of it. Send it in the Authorization header:
 
-```json
-{
-  "data": {
-    "ok": true,
-    "status": "SUCCESS",
-    "statusLabel": "Redeemed successfully.",
-    "message": "Your gift rewards should be available in-game.",
-    "errorCategory": null,
-    "errCode": null
-  },
-  "meta": {
-    "requestId": "server-generated-id",
-    "timestamp": "2026-10-14T12:00:00.000Z",
-    "remaining": 59,
-    "dailyRemaining": 999
-  }
-}
-```
+    Authorization: Bearer ks_live_YOUR_64_CHARACTER_SECRET
 
-The response above is an example, not a guarantee. Read `data.ok`, `data.status`, `data.message`, and `data.errorCategory` to determine the actual outcome. Common outcomes include success, already claimed, expired or invalid code, usage limit reached, player not found, kingdom mismatch, and temporary upstream errors. An HTTP response alone should not be treated as proof that the game awarded rewards.
+Store the key server-side. Revoke it immediately if it may have leaked. Developer API keys are separate from website sign-in cookies.
 
-## 3. Automatic redemption registration
+## V3 player lookup
 
-`POST /api/kingshot-register`
+GET /api/v3/players/43180889
 
-This is the website's existing enrollment endpoint. It registers a player for automatic checks of eligible public gift codes. It is rate limited and does not use developer API keys; the website's registration flow should be preferred for normal use.
+The playerId path parameter must be a string containing 5–20 digits.
 
-Request body (one player per request):
+    curl "https://kingshot-autoredeemer.vercel.app/api/v3/players/43180889" \
+      -H "Authorization: Bearer $KINGSHOT_API_KEY"
 
-```bash
-curl -X POST "https://kingshot-autoredeemer.vercel.app/api/kingshot-register" \
-  -H "Content-Type: application/json" \
-  -d '{"playerId":"43180889","kingdomId":"1125","playerName":"Example Player","avatarUrl":"https://example.com/avatar.png"}'
-```
+Success responses contain data and meta. The data object has playerId, name, kingdomId, power, townCenterLevel and avatarUrl. Some fields may be null. Metadata includes apiVersion, requestId, timestamp, and upstream freshness fields fetchedAt, providerFresh, providerAgeSeconds and stale. The provider may return cached data, so do not assume every response reflects a real-time lookup.
 
-Required field: `playerId`. Optional fields: `kingdomId`, `playerName`, `avatarUrl`. Player ID must contain 5–20 digits. If supplied, `kingdomId` must contain 1–10 digits. Names and avatar URLs are optional display metadata; the service revalidates player/kingdom data where possible.
+## V3 manual redemption
 
-Example response:
+POST /api/v3/redemptions
 
-```json
-{
-  "registered": true,
-  "alreadyRegistered": false,
-  "registrationStatus": "NEW",
-  "kingdomVerified": true,
-  "verifiedKingdomId": "1125",
-  "player": {}
-}
-```
+    curl -X POST "https://kingshot-autoredeemer.vercel.app/api/v3/redemptions" \
+      -H "Authorization: Bearer $KINGSHOT_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"playerId":"43180889","code":"EXAMPLECODE","kid":"1125"}'
 
-Possible fields include `alreadyRegistered`, `registrationStatus`, `kingdomVerified`, `verificationPending`, `stale`, and `verifiedKingdomId`. If the player is already enrolled, the service reports that state rather than creating a second registration. Kingdom verification can be pending if the upstream provider is temporarily unavailable. Registration is not an endpoint to start/stop the worker, force a redemption, or guarantee every code is valid.
+The JSON body must contain exactly these string fields:
 
-The public registration endpoint has a limit of 60 requests per minute per IP. A successful registration means the enrollment was accepted; individual code redemption outcomes are handled later by the internal worker.
+| Field | Validation |
+|---|---|
+| playerId | 5–20 digits |
+| code | 1–64 letters, digits, underscores or hyphens |
+| kid | 1–10 digits |
 
-## 4. Website manual redemption route
+Unknown properties and non-string field values are rejected. A completed redemption operation returns HTTP 200 and places the actual game result in data.ok, data.status, data.message, data.errorCategory and data.errCode. HTTP 200 means the operation completed, not that rewards were necessarily granted. V3 does not promise idempotent or exactly-once execution; an upstream timeout may leave an ambiguous outcome, so do not automatically retry it.
 
-`POST /api/kingshot-redeem`
+## V3 error format
 
-This is the website's public, rate-limited manual-redemption handler. It accepts the same core fields: `playerId`, `code`, and `kid`. The website UI should be used by people who do not need developer API integration.
+Errors have a stable nested shape:
 
-```bash
-curl -X POST "https://kingshot-autoredeemer.vercel.app/api/kingshot-redeem" \
-  -H "Content-Type: application/json" \
-  -d '{"playerId":"43180889","code":"EXAMPLECODE","kid":"1125"}'
-```
+    {
+      "error": {
+        "code": "invalid_player_id",
+        "message": "The playerId path parameter must contain 5–20 digits."
+      },
+      "meta": {
+        "apiVersion": "3",
+        "requestId": "server-generated-id",
+        "timestamp": "2026-10-17T12:00:00.000Z"
+      }
+    }
 
-Example result shape:
+| HTTP | Meaning |
+|---:|---|
+| 400 | Invalid path parameter or JSON body |
+| 401 | Missing, invalid or revoked developer key |
+| 404 | Player or route not found |
+| 405 | Unsupported HTTP method |
+| 415 | Redemption request must use application/json |
+| 429 | Per-key or per-IP limit exceeded |
+| 502 | Upstream provider unavailable |
+| 503 | Authorization, trusted-IP or provider configuration unavailable |
+| 504 | Upstream player lookup or redemption timed out |
 
-```json
-{
-  "ok": true,
-  "status": "SUCCESS",
-  "statusLabel": "Redeemed successfully.",
-  "message": "Your gift rewards should be available in-game.",
-  "errorCategory": "SUCCESS",
-  "errCode": null,
-  "error": null
-}
-```
+Responses include X-Request-Id and X-API-Version. Quota headers include X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset when available. On 429, honor Retry-After and use bounded backoff. Include the request ID in support reports, never the API key.
 
-The website route is rate limited to 12 requests per minute per IP. For integrations, prefer the versioned `/api/v1/redeem` route because it requires a developer key and returns request IDs and quota metadata.
+## Rate limits
 
-## Rate limits and response headers
+- Per developer key: 60 requests per minute and 1,000 per UTC day.
+- Shared per-IP API limit: 120 requests per minute.
+- Website registration: 60 requests per minute per IP.
+- Website manual redemption: 12 requests per minute per IP.
 
-- Versioned developer API: per-key quota enforced by the database authorization RPC; documented default quota is 60 requests/minute and 1,000 requests/day per key.
-- Versioned endpoints also apply an IP-level limit and expose rate-limit headers when available.
-- Automatic registration: 60 requests/minute per IP.
-- Public manual redemption: 12 requests/minute per IP.
+Quota accounting for the developer API is database-backed and shared across serverless instances. Do not rotate IPs or keys to bypass limits.
 
-Where available, inspect `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Retry-After`, and `X-Request-Id`. On `429`, back off and honor `Retry-After`; do not rotate IPs or keys to evade limits.
+## V1 compatibility
 
-## Errors
+GET /api/v1/player?id=PLAYER_ID and POST /api/v1/redeem remain available for existing clients and retain their legacy response envelope. Use V3 for the REST-style player path, nested error envelope and explicit upstream freshness metadata.
 
-| Status | Meaning | Suggested action |
-|---:|---|---|
-| `400` | Invalid Player ID, code, kingdom, or request body | Validate fields and retry once corrected |
-| `401` | Missing, invalid, or revoked developer key | Check the Bearer header and key status |
-| `404` | Player not found or endpoint unavailable | Confirm the ID and route |
-| `429` | Per-key or per-IP limit exceeded | Back off and inspect reset headers |
-| `502` | Upstream provider returned an error | Retry later with bounded backoff |
-| `503` | Required integration or trusted IP is unavailable | Retry later; contact the service operator if persistent |
-| `504` | Registration/upstream request timed out | Check registration status before repeating |
+## Automatic redemption enrollment
 
-Versioned API errors include a stable `code`, readable `error`, and `meta.requestId` where applicable. Include the request ID in support reports, never the API key.
+POST /api/kingshot-register registers a player for scheduled processing. It does not start or stop the worker, force an individual redemption, or guarantee a code is eligible. It does not use developer Bearer-key authentication.
 
-## Security and operational boundaries
+    curl -X POST "https://kingshot-autoredeemer.vercel.app/api/kingshot-register" \
+      -H "Content-Type: application/json" \
+      -d '{"playerId":"43180889","kingdomId":"1125","playerName":"Example Player"}'
+
+## Security
 
 - Use only Player IDs you are authorized to access.
-- Do not expose API keys or server-side signing secrets.
-- Do not call the internal `/api/kingshot-auto` worker endpoint from integrations.
-- Automatic enrollment does not imply that every gift code is eligible, active, or redeemable for that player.
-- Use bounded retries and respect all rate limits.
+- Keep API keys on trusted servers and revoke leaked keys.
+- Never call internal scheduler/worker endpoints from integrations.
+- Read redemption response bodies and avoid blind retries after ambiguous timeouts.
+- Respect rate limits and HTTPS.
 
 ## Related links
 
-- [Automatic redemption page](https://kingshot-autoredeemer.vercel.app/auto)
-- [Manual redemption page](https://kingshot-autoredeemer.vercel.app/manual)
-- [Developer portal and API keys](https://kingshot-autoredeemer.vercel.app/developer)
-- [How the service works](https://kingshot-autoredeemer.vercel.app/info)
-- [Privacy notice](https://kingshot-autoredeemer.vercel.app/privacy?service=kingshot-auto)
-- [Terms of service](https://kingshot-autoredeemer.vercel.app/terms?service=kingshot-auto)
+- Automatic redemption: https://kingshot-autoredeemer.vercel.app/auto
+- Manual redemption: https://kingshot-autoredeemer.vercel.app/manual
+- Developer portal: https://kingshot-autoredeemer.vercel.app/developer
+- OpenAPI 3.1: https://kingshot-autoredeemer.vercel.app/openapi.json
+- Privacy: https://kingshot-autoredeemer.vercel.app/privacy?service=kingshot-auto
+- Terms: https://kingshot-autoredeemer.vercel.app/terms?service=kingshot-auto

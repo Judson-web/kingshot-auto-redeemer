@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/api/v3/players/:playerId",
+      "destination": "/api/kingshot-player?developer=v3-player&id=:playerId"
+    },
+    {
+      "source": "/api/v3/redemptions",
+      "destination": "/api/kingshot-player?developer=v3-redemptions"
+    },
+    {
       "source": "/api/v1/player/:path*",
       "destination": "/api/kingshot-player?developer=player"
     },
