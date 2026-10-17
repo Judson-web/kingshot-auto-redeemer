@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import DeveloperAccountPanel from "./DeveloperAccountPanel";
-import { Activity, BookOpen, Check, ChevronRight, Code2, Copy, ExternalLink, Gauge, KeyRound, ShieldCheck, Terminal } from "lucide-react";
+import { Activity, BookOpen, Check, ChevronRight, Copy, ExternalLink, Gauge, KeyRound, ShieldCheck, Terminal } from "lucide-react";
 
 const ORIGIN = "https://kingshot-autoredeemer.vercel.app";
 const endpoint = ORIGIN + "/api/v1/player?id=43180889";
@@ -89,7 +89,7 @@ console.log(result.data.playerId, result.data.name);`;
       @media(prefers-reduced-motion:reduce){.dev-dashboard *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
     `}</style>
     <div className="dev-topbar"><div className="dev-shell dev-topbar-inner">
-      <div className="dev-brand-mark"><Code2 size={20}/></div>
+      <div className="dev-brand-mark" aria-hidden="true"><img src="/favicon.svg" alt="" width="100%" height="100%" decoding="async" /></div>
       <div className="dev-brand-copy" style={{minWidth:0,flex:1}}><div style={{fontSize:13,fontWeight:800,letterSpacing:"-.02em"}}>Kingshot <span style={{color:"#aeb4ff"}}>Developers</span></div><div style={{fontSize:10,color:"#8f9aab",marginTop:2}}>Player lookup · manual redeem · auto enrollment</div></div>
       <nav className="dev-top-nav" aria-label="Developer navigation" style={{display:"flex",alignItems:"center",gap:5}}>
         <a className="dev-nav-link" href="#quickstart">Quick start</a><a className="dev-nav-link" href="#api-reference">API reference</a><a className="dev-nav-link" href="/" style={{display:"inline-flex",alignItems:"center",gap:5}}><ExternalLink size={12}/> Home</a>
