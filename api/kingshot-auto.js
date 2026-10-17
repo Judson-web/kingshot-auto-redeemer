@@ -272,7 +272,7 @@ export default async function handler(req,res){
     return rpc(name,body);
    };
    const result=await runWorkerShard(slot,codes,eligiblePlayers,{rpc:shardRpc,redeemForPlayer:(player,codes)=>redeemForPlayer(player,codes,shardRpc)},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
-   return res.status(200).json({ok:true,...result,bannedPlayersSkipped});
+   return res.status(200).json({ok:true,...result,restrictedPlayersSkipped,bannedPlayersSkipped:restrictedPlayersSkipped});
   }catch(error){
    console.error("Kingshot worker shard:",slot,error);
    return res.status(502).json({error:error?.message||"Worker shard failed.",errorCategory:classifyScraperError(error),slot});
