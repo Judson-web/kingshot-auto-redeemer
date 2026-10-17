@@ -8,7 +8,7 @@
 
 [![Live Website Status](https://kingshot-autoredeemer.vercel.app/api/kingshot-health?badge=1)](https://kingshot-autoredeemer.vercel.app/)
 [![Live Site](https://img.shields.io/badge/Live%20Site-Kingshot%20Auto%20Redeem-2563EB?style=for-the-badge&logo=vercel&logoColor=white)](https://kingshot-autoredeemer.vercel.app/)
-[![Guardrails](https://github.com/Judson-web/kingshot-auto-redeemer/actions/workflows/guardrails.yml/badge.svg)](https://github.com/Judson-web/kingshot-auto-redeemer/actions/workflows/guardrails.yml)
+[![Verification](https://github.com/Judson-web/kingshot-auto-redeemer/actions/workflows/verify.yml/badge.svg)](https://github.com/Judson-web/kingshot-auto-redeemer/actions/workflows/verify.yml)
 [![Node 24](https://img.shields.io/badge/Node.js-24.x-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![React 19](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=111827)](https://react.dev/)
 [![Vite 6](https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vite.dev/)
@@ -60,7 +60,6 @@ This is deployment configuration, not a step required by ordinary users. Configu
 - Never commit a Discord Client Secret, Supabase service-role key, admin passkey, session token, or other credential to this public repository.
 - Keep secrets in the relevant provider dashboard or server-side deployment secret store. Anything bundled into browser code—including client-prefixed build variables—must be treated as public.
 - The owner/admin role is decided server-side using configured, stable account identifiers and/or existing authorized identity checks—not a display name, avatar, or user-editable profile field. Keep actual owner identifiers out of public documentation and never use a client-side role flag as authorization.
-- Discord and GitHub sign-in do not automatically merge identities. Users should use the provider associated with their existing account unless identity linking has been deliberately configured and tested.
 - Keep the existing admin authentication path configured as documented in the private deployment runbook; do not publish passkeys or operational bypass details here.
 
 ## ✦ What it does
@@ -404,19 +403,7 @@ Please report suspected vulnerabilities privately rather than opening a public i
 
 ## ✦ Project status
 
-This is an actively maintained production service, not a demo implementation.
-
-The architecture deliberately favors boring, durable components over unnecessary infrastructure:
-
-- one production database
-- one queryable scraper archive
-- one private cold-backup repository
-- encrypted disaster-recovery snapshots
-- deterministic worker coordination
-- database-backed claims and leases
-- automated validation and recovery checks
-
-There is no second source-of-truth database, no IP-rotation layer, and no dependency on the cold archive during normal redemption. Neon is deliberately limited to the independent redemption-recovery journal.
+This is an actively maintained production service. Supabase remains the production source of truth, Neon is limited to the independent redemption-recovery journal, and the cold archive is not on the normal redemption path. The service uses database-backed worker coordination and automated verification rather than IP rotation or quota evasion.
 
 ## ✦ License
 
