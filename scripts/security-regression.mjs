@@ -313,6 +313,14 @@ assertCheck("Support drawer provides visible close-button keyboard focus",
 assertCheck("Support drawer honours reduced-motion preferences",
  supportWidgetCss.includes('@media(prefers-reduced-motion:reduce){.support-drawer-close,.support-context-strip *{transition:none!important;animation:none!important}}'));
 
+assertCheck("Support reply push notifications are opt-in and scoped to the authenticated conversation",
+ supportChat.includes('"support-push-subscribe"') &&
+ supportChat.includes('saveSupportPushSubscription(id,token,b.subscription)') &&
+ supportChat.includes('notifySupportReply(id,found[0].subject)') &&
+ read("internal/support-push-notifications.ts").includes('conversation_id=eq.') &&
+ read("supabase/migrations/20261017153000_support_reply_push_notifications.sql").includes('references public.kingshot_chat_conversations(id) on delete cascade') &&
+ supportWidget.includes('action:"support-push-subscribe"') &&
+ supportWidget.includes('registration.pushManager.subscribe'));
 const adminPlayers=read("src/AdminPlayersApp.tsx");
 const pushService=read("internal/push-notifications.ts");
 const pushWorker=read("public/sw.js");
