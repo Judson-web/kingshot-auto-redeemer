@@ -83,6 +83,23 @@ async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
 
 import { fetchSource, classifyScraperError } from "../internal/kingshot/scraper.js";
 import { runWithConcurrency, runWorkerShard, workerBucket } from "../internal/kingshot/worker.js";
+async function recordRedemptionSafely(rpcClient,payload){
+ let lastError;
+ for(let attempt=1;attempt<=2;attempt++){
+  try{
+   return await rpcClient("record_kingshot_redemption",payload);
+  }catch(error){
+   lastError=error;
+   console.error("Redemption result persistence failed:",{attempt,maxAttempts:2,status:String(payload?.p_status||"UNKNOWN"),error:String(error?.message||error).slice(0,200)});
+   if(attempt<2)await new Promise(resolve=>setTimeout(resolve,250));
+  }
+ }
+ // Never repeat the upstream redemption just because persistence failed: its
+ // outcome may already have consumed the code. Fail closed and surface the
+ // persistence failure for operator follow-up.
+ throw new Error("Redemption outcome could not be durably recorded after retry: "+String(lastError?.message||lastError).slice(0,180));
+}
+
 async function redeemForPlayer(player,codes,rpcClient=rpc){
 const kingdomState=await revalidatePlayer(player,{rpc:rpcClient,notify:sendDiscordEvent});
  const kingdomCheck=Boolean(kingdomState.revalidated);
@@ -113,7 +130,7 @@ const kingdomState=await revalidatePlayer(player,{rpc:rpcClient,notify:sendDisco
  const completedAt=Date.now();
  const status=String(d?.status||"ERROR").toUpperCase();
  const message=d?.message||d?.error||"";
- await rpcClient("record_kingshot_redemption",{p_player_id:player.player_id,p_code:item.code,p_status:status,p_err_code:d?.errCode??null,p_message:(d?.errorCategory?"["+d.errorCategory+"] ":"")+message});
+ await recordRedemptionSafely(rpcClient,{p_player_id:player.player_id,p_code:item.code,p_status:status,p_err_code:d?.errCode??null,p_message:(d?.errorCategory?"["+d.errorCategory+"] ":"")+message});
 
  const discoveryAt=Number.isFinite(item.discoveredAt)?item.discoveredAt:null;
  const redemptionTelemetry={code:item.code,resultAt:new Date(completedAt).toISOString(),status,redemptionLatencyMs:Math.max(0,completedAt-redemptionStartedAt),discoveryToResultMs:discoveryAt==null?null:Math.max(0,completedAt-discoveryAt)};
@@ -350,7 +367,7 @@ export default async function handler(req,res){
      const claim=await rpc("claim_kingshot_redemption",{p_player_id:player.player_id,p_code:canaryCandidate.code});if(!claim)continue;
      const result=await redeemKingshot({playerId:player.player_id,code:canaryCandidate.code,kid:player.kingdom_id});
      const status=String(result?.status||"ERROR").toUpperCase(),message=String(result?.message||result?.error||"");
-     await rpc("record_kingshot_redemption",{p_player_id:player.player_id,p_code:canaryCandidate.code,p_status:status,p_err_code:result?.errCode??null,p_message:(result?.errorCategory?"["+result.errorCategory+"] ":"")+message});
+     await recordRedemptionSafely(rpc,{p_player_id:player.player_id,p_code:canaryCandidate.code,p_status:status,p_err_code:result?.errCode??null,p_message:(result?.errorCategory?"["+result.errorCategory+"] ":"")+message});
      // This response identifies an account eligibility restriction, not an invalid code.
      // Treat only this exact response as verification success so the code is released to all players.
      let validationStatus="pending";if(["SUCCESS","RECEIVED","SAME TYPE EXCHANGE","RECHARGE_MONEY ERROR"].includes(status))validationStatus="verified";else if(status==="CDK_NOT_FOUND")validationStatus="invalid";else if(status==="TIME_ERROR")validationStatus="expired";else if(status==="USAGE_LIMIT")validationStatus="usage_limit";
