@@ -1,7 +1,7 @@
 import React,{useEffect,useRef,useState} from "react";
 import {ArrowLeft,CheckCircle,Clock3,Database,Gift,History,LockKeyhole,RefreshCw,Sparkles,Zap,Menu,X,ShieldCheck} from "lucide-react";
-const KINGSHOT_ICON="https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/ee/d2/22/eed22297-9313-d8b0-52c8-95f42a2795b2/AppIcon-0-0-1x_U007emarketing-0-8-0-85-220.png/0x0ss-85.png";
-function KsLogo(){return <a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={KINGSHOT_ICON} alt="Kingshot"/></span><span>Kingshot Redeemer</span></a>}
+const BRAND_ICON="/favicon.svg";
+function KsLogo(){return <a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={BRAND_ICON} alt="Kingshot Redeemer"/></span><span>Kingshot Redeemer</span></a>}
 const PROFILE_CHIP_CACHE="ks-profile-chip-v1";
 function readCachedProfile(){try{const value=JSON.parse(sessionStorage.getItem(PROFILE_CHIP_CACHE)||"null");return value&&typeof value==="object"&&typeof value.username==="string"?value:null}catch{return null}}
 function DiscordChip(){
