@@ -1,5 +1,5 @@
 import React,{useEffect,useState}from"react";
-import{MessageCircle,X,Send,LoaderCircle,CheckCircle2,LifeBuoy,ArrowLeft,RefreshCw,ShieldCheck,Headset,UserRound,LockKeyhole,Paperclip,Image as ImageIcon,ChevronDown,Check}from"lucide-react";
+import{MessageCircle,X,Send,LoaderCircle,CheckCircle2,LifeBuoy,ArrowLeft,RefreshCw,ShieldCheck,Headset,UserRound,LockKeyhole,Paperclip,Image as ImageIcon,ChevronDown,Check,BellRing}from"lucide-react";
 const API="/api/kingshot-support-chat",STORAGE="ks-support-chat-v1",SEEN_PREFIX="ks-support-seen-v1:",NOTIFIED_PREFIX="ks-support-notified-v1:";
 type Saved={conversationId:string;token:string;subject:string;supportTicketId?:string};
 type Msg={id:number;sender:"user"|"admin";body:string;created_at:string;attachment_url?:string|null;attachment_name?:string|null;attachment_type?:string|null};
@@ -31,9 +31,28 @@ function dayKey(value:string){const date=safeDate(value);return date?date.toLoca
 function dayLabel(value:string){const date=safeDate(value);if(!date)return "Date unavailable";const today=new Date();if(date.toDateString()===today.toDateString())return "Today";const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);if(date.toDateString()===yesterday.toDateString())return "Yesterday";return date.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric",year:date.getFullYear()===today.getFullYear()?undefined:"numeric"})}
 function timeLabel(value:string){const date=safeDate(value);return date?date.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}):"Time unavailable"}
 
+async function syncSupportPush(c:Saved,createIfMissing:boolean){
+ if(!("serviceWorker"in navigator)||!("PushManager"in window))throw Error("This browser does not support background notifications.");
+ const registration=await navigator.serviceWorker.ready;
+ let subscription=await registration.pushManager.getSubscription();
+ if(!subscription&&createIfMissing){
+  if(typeof Notification==="undefined")throw Error("Notifications are not supported by this browser.");
+  let permission=Notification.permission;
+  if(permission==="default")permission=await Notification.requestPermission();
+  if(permission!=="granted")throw Error("Allow notifications in your browser settings to receive support replies.");
+  const keyData=await request("/api/custom-message",{method:"POST",body:JSON.stringify({action:"PUSH_PUBLIC_KEY"})});
+  const encoded=String(keyData.publicKey||"").replace(/-/g,"+").replace(/_/g,"/");
+  const padded=encoded+"=".repeat((4-encoded.length%4)%4);
+  const raw=atob(padded),applicationServerKey=Uint8Array.from(raw,ch=>ch.charCodeAt(0));
+  subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey});
+ }
+ if(!subscription)return false;
+ await request(API,{method:"POST",body:JSON.stringify({action:"support-push-subscribe",conversationId:c.conversationId,token:c.token,subscription:subscription.toJSON()})});
+ return true;
+}
 function notifyReply(c:Saved){if(typeof Notification==="undefined"||Notification.permission!=="granted")return;const options={body:"You have a new reply in your support conversation.",tag:"support-reply-"+c.conversationId,data:{url:"/"}};if("serviceWorker"in navigator){navigator.serviceWorker.getRegistration().then(reg=>{if(reg)reg.showNotification("Kingshot support replied",options);else new Notification("Kingshot support replied",options)}).catch(()=>{})}else new Notification("Kingshot support replied",options)}
 export default function SupportWidget(){
- const[open,setOpen]=useState(false),[topicMenuOpen,setTopicMenuOpen]=useState(false),[playerId,setPlayerId]=useState(""),[subject,setSubject]=useState(""),[topic,setTopic]=useState(()=>getPageContext().topic),[pageContext,setPageContext]=useState<PageContext>(()=>getPageContext()),[message,setMessage]=useState(""),[busy,setBusy]=useState(false),[refreshing,setRefreshing]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState(""),[conversation,setConversation]=useState<Saved|null>(null),[messages,setMessages]=useState<Msg[]>([]),[unread,setUnread]=useState(0),[attachment,setAttachment]=useState<File|null>(null),[attachmentPreview,setAttachmentPreview]=useState(""),fileInput=React.useRef<HTMLInputElement>(null),messagesViewportRef=React.useRef<HTMLDivElement>(null),chatScrollStateRef=React.useRef({conversationId:"",count:0}),rootRef=React.useRef<HTMLDivElement>(null),triggerRef=React.useRef<HTMLButtonElement>(null),closeButtonRef=React.useRef<HTMLButtonElement>(null),panelRef=React.useRef<HTMLElement>(null),restoreFocusRef=React.useRef(false);
+ const[pushEnabled,setPushEnabled]=useState(false),[pushBusy,setPushBusy]=useState(false),[open,setOpen]=useState(false),[topicMenuOpen,setTopicMenuOpen]=useState(false),[playerId,setPlayerId]=useState(""),[subject,setSubject]=useState(""),[topic,setTopic]=useState(()=>getPageContext().topic),[pageContext,setPageContext]=useState<PageContext>(()=>getPageContext()),[message,setMessage]=useState(""),[busy,setBusy]=useState(false),[refreshing,setRefreshing]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState(""),[conversation,setConversation]=useState<Saved|null>(null),[messages,setMessages]=useState<Msg[]>([]),[unread,setUnread]=useState(0),[attachment,setAttachment]=useState<File|null>(null),[attachmentPreview,setAttachmentPreview]=useState(""),fileInput=React.useRef<HTMLInputElement>(null),messagesViewportRef=React.useRef<HTMLDivElement>(null),chatScrollStateRef=React.useRef({conversationId:"",count:0}),rootRef=React.useRef<HTMLDivElement>(null),triggerRef=React.useRef<HTMLButtonElement>(null),closeButtonRef=React.useRef<HTMLButtonElement>(null),panelRef=React.useRef<HTMLElement>(null),restoreFocusRef=React.useRef(false);
  useEffect(()=>{setConversation(saved())},[]);
  useEffect(()=>{const openRemoval=(event:Event)=>{const detail=(event as CustomEvent<{playerId?:string}>).detail||{};setPageContext(getPageContext());setOpen(true);setConversation(null);setMessages([]);try{localStorage.removeItem(STORAGE)}catch{}setTopic("Registration removal");setSubject("Registration removal request");setPlayerId(String(detail.playerId||"").replace(/\D/g,"").slice(0,20));setMessage("");setAttachment(null);setAttachmentPreview("");setError("");setNotice("");setUnread(0)};const openGeneral=(event:Event)=>{const base=getPageContext(),detail=(event as CustomEvent<{topic?:string;subject?:string;pageTitle?:string}>).detail||{},next={...base,title:typeof detail.pageTitle==="string"?detail.pageTitle:base.title,topic:TOPICS.includes(String(detail.topic))?String(detail.topic):base.topic};setPageContext(next);setTopic(next.topic);if(typeof detail.subject==="string")setSubject(detail.subject.slice(0,120));setOpen(true);setError("");setNotice("")};window.addEventListener("ks-support-registration-removal",openRemoval);window.addEventListener("ks-support-open",openGeneral);return()=>{window.removeEventListener("ks-support-registration-removal",openRemoval);window.removeEventListener("ks-support-open",openGeneral)}},[]);
  useEffect(()=>{
@@ -62,6 +81,19 @@ export default function SupportWidget(){
   }
   chatScrollStateRef.current={conversationId:conversation.conversationId,count:messages.length};
  },[open,conversation?.conversationId,messages.length]);
+ useEffect(()=>{
+  if(!conversation){setPushEnabled(false);return}
+  let live=true;
+  void syncSupportPush(conversation,false).then(enabled=>{if(live)setPushEnabled(enabled)}).catch(()=>{if(live)setPushEnabled(false)});
+  return()=>{live=false};
+ },[conversation?.conversationId,conversation?.token]);
+ async function enableReplyNotifications(){
+  if(!conversation)return;
+  setPushBusy(true);setError("");setNotice("");
+  try{await syncSupportPush(conversation,true);setPushEnabled(true);setNotice("Notifications enabled for replies in this conversation.");}
+  catch(e){setError(e instanceof Error?e.message:"Could not enable reply notifications.")}
+  finally{setPushBusy(false)}
+ }
  useEffect(()=>{
   if(!conversation)return;
   let live=true,busyPoll=false;
@@ -119,7 +151,7 @@ export default function SupportWidget(){
   </button>
   {open&&<section ref={panelRef} className="support-float-panel support-chat-panel" role="dialog" aria-modal="true" aria-label="Kingshot support chat">
    <header className="support-float-head"><span className="support-float-icon"><LifeBuoy size={18}/></span><div className="support-head-copy"><b>{conversation?(conversation.subject||"Support conversation"):"Support centre"}</b><small><i className="support-live-dot"/>{conversation?(conversation.supportTicketId?"REMOVAL REQUEST · TICKET "+conversation.supportTicketId.slice(0,8).toUpperCase():"PRIVATE TICKET · REPLIES IN THIS THREAD"):"PRIVATE HELP · PRIVATE REPLIES"}</small></div><button ref={closeButtonRef} className="support-drawer-close" type="button" aria-label="Close support chat" title="Close support chat" onClick={()=>{restoreFocusRef.current=true;setOpen(false)}}><X size={17}/></button></header>
-   {conversation&&<div className="support-chat-toolbar"><span><MessageCircle size={13}/> {messages.length} messages</span><span className="support-thread-state"><i/> {messages.length&&messages[messages.length-1]?.sender==="admin"?"Support replied":"In progress"}</span><button type="button" disabled={refreshing} onClick={refresh}>{refreshing?<LoaderCircle size={12} className="support-float-spin"/>:<RefreshCw size={12}/>} Refresh</button><button type="button" onClick={newConversation}><ArrowLeft size={13}/> New chat</button></div>}
+   {conversation&&<div className="support-chat-toolbar"><span><MessageCircle size={13}/> {messages.length} messages</span><span className="support-thread-state"><i/> {messages.length&&messages[messages.length-1]?.sender==="admin"?"Support replied":"In progress"}</span><button type="button" disabled={refreshing} onClick={refresh}>{refreshing?<LoaderCircle size={12} className="support-float-spin"/>:<RefreshCw size={12}/>} Refresh</button>{!pushEnabled&&<button type="button" className="support-push-enable" disabled={pushBusy} onClick={enableReplyNotifications}>{pushBusy?<LoaderCircle size={12} className="support-float-spin"/>:<BellRing size={12}/>} {pushBusy?"Enabling…":"Notify me"}</button>}{pushEnabled&&<span className="support-push-enabled" title="Push notifications enabled for this conversation"><BellRing size={12}/> Reply alerts on</span>}<button type="button" onClick={newConversation}><ArrowLeft size={13}/> New chat</button></div>}
    <div className={"support-float-body"+(conversation?" support-chat-active":"")}>
     
     {!conversation&&<><div className="support-form-intro"><span>NEW CONVERSATION</span><b>How can we help?</b><small>Choose a category and tell us what happened.</small></div></>}
