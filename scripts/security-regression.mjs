@@ -293,6 +293,35 @@ assertCheck("Support drawer provides visible close-button keyboard focus",
 assertCheck("Support drawer honours reduced-motion preferences",
  supportWidgetCss.includes('@media(prefers-reduced-motion:reduce){.support-drawer-close,.support-context-strip *{transition:none!important;animation:none!important}}'));
 
+const adminPlayers=read("src/AdminPlayersApp.tsx");
+const pushService=read("internal/push-notifications.ts");
+const pushWorker=read("public/sw.js");
+const supportChat=read("lib/support-chat.js");
+const bansMigration=read("supabase/migrations/20261017120000_admin_player_database_and_push_audience.sql");
+assertCheck("Configured Discord owner is returned as explicit admin kind",
+ developerAuth.includes('kind:role') && developerAuth.includes('OWNER_DISCORD_ID="871756466900598815"'));
+assertCheck("Admin player database is routed and protected by server-side admin session",
+ read("src/main.jsx").includes('location.pathname==="/admin/players"?<AdminPlayersApp/>') &&
+ adminData.includes('kingshot_admin_list_players') &&
+ adminData.includes('if(!session)return res.status(401)'));
+assertCheck("Admin player database supports MightPulse refresh and redemption history",
+ adminPlayers.includes('action("REFRESH_PLAYER"') &&
+ adminPlayers.includes('playerHistory=') &&
+ adminData.includes('kingshot_redemptions?select=player_id,gift_code,status,err_code,message,attempted_at'));
+assertCheck("Banned Player IDs are checked before registration and return explicit response",
+ register.includes('kingshot_player_bans?select=player_id,reason,created_at') &&
+ registerHandler.includes('code:"player_banned"') &&
+ adminData.includes('action==="BAN_PLAYER"') &&
+ bansMigration.includes('create table if not exists public.kingshot_player_bans'));
+assertCheck("Support-message push alerts are restricted to admin audience and can include images",
+ supportChat.includes('broadcastAdminPush') &&
+ pushService.includes('audience: "admin"') &&
+ pushService.includes('audience=eq."+audience') &&
+ pushWorker.includes('safeImage(p.image)'));
+assertCheck("Public and administrator push subscriptions are audience-separated",
+ pushService.includes('broadcastForAudience(payload,"public")') &&
+ pushService.includes('broadcastForAudience(payload,"admin")') &&
+ bansMigration.includes("audience text not null default 'public'"));
 const failed=checks.filter(item=>!item.ok);
 for(const item of checks){
  console.log(`${item.ok?"PASS":"FAIL"}  ${item.name}${item.detail?": "+item.detail:""}`);
