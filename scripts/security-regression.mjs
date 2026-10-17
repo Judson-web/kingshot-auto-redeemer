@@ -36,6 +36,7 @@ const adminLogin=read("lib/admin-login.js");
 const legacyDeveloperLogin=read("lib/developer-login.js");
 const pushConsole=read("src/PushConsoleApp.tsx");
 const customMessage=read("api/custom-message.js");
+const legacyPasskeyMigration=read("supabase/migrations/20261017140000_retire_legacy_developer_passkeys.sql");
 const supportWidget=read("src/components/SupportWidget.tsx");
 const supportWidgetCss=read("src/support-chat-polish.css");
 const developerAuth=read("lib/developer-auth.ts");
@@ -168,7 +169,10 @@ assertCheck("Push console validates the existing Discord session and owner ident
 assertCheck("Legacy developer passkey endpoint cannot create sessions",
  legacyDeveloperLogin.includes("Legacy developer passkey authentication has been retired.") &&
  !legacyDeveloperLogin.includes("kingshot_developer_create_session_with_key") &&
- !legacyDeveloperLogin.includes("req.body?.accessKey"));
+ !legacyDeveloperLogin.includes("req.body?.accessKey") &&
+ !read("lib/developer-login.ts").includes("kingshot_developer_create_session_with_key") &&
+ legacyPasskeyMigration.includes("drop table if exists private.kingshot_developer_access_keys") &&
+ legacyPasskeyMigration.includes("drop function if exists public.kingshot_developer_create_session_with_key(text,text)"));
 assertCheck("Modern admin authentication has request rate limiting",
  developerAuth.includes('rateLimit(req,res,"developer-account-auth",8,900000)'));
 assertCheck("Admin data requires a stored owner session before privileged work",
