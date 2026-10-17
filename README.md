@@ -211,7 +211,9 @@ Sensitive configuration is kept in deployment or repository secret stores, inclu
 - scheduler/authentication secrets
 - DR encryption keys
 
-The repository includes security regression checks and database privilege checks.
+The repository includes security regression checks, database privilege checks, and a scheduled OWASP ZAP passive scan of the deployed public site. ZAP reports are retained as GitHub Actions artifacts; findings are advisory while the baseline is being established.
+
+The production edge sets a restrictive Content Security Policy, HSTS, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, a referrer policy, and a Permissions Policy. CSP permits HTTPS images for external game avatars; this is intentionally broader than the font policy. These controls reduce risk but are not a substitute for authenticated API testing or a full penetration test.
 
 Privileged operational endpoints require server-side authentication. The public website does not expose privileged credentials or signing material.
 
@@ -279,11 +281,15 @@ Do not include secrets, personal data, or content you do not have permission to 
 | `/manual` | Manual redemption |
 | `/info` | Service documentation |
 | `/push` | Private developer push-notification console (passkey required) |
-| `/developer` | Developer portal, admin passkey, API key management, and player lookup |
+| `/developer` | Interactive developer portal and API reference |
+| `/developer.md` | Plain-text API documentation for crawlers and integrations |
+| `/openapi.json` | Machine-readable OpenAPI 3.1 specification |
 | `/terms` | Terms of service |
 | `/privacy` | Privacy information |
 
 ## ✦ Developer API
+
+The interactive `/developer` portal includes account/key management and endpoint examples. For crawlers, integrations, and automated documentation tools, use the plain-text [developer API guide](https://kingshot-autoredeemer.vercel.app/developer.md) or the machine-readable [OpenAPI 3.1 specification](https://kingshot-autoredeemer.vercel.app/openapi.json). These public docs describe endpoints; they do not provide access credentials.
 
 The `/developer` portal uses the existing admin passkey/session to create and revoke developer API keys. Key material is shown once and stored only as a SHA-256 hash in private database tables. An IP address can be issued at most two keys for its lifetime; revoking a key does not reset that cap. The read-only player lookup is available at `GET /api/v1/player?id=PLAYER_ID` with `Authorization: Bearer ks_live_…`. Limits are 60 requests/minute and 1,000 requests/day per key, plus 120 requests/minute per IP. Usage counters and issuance caps are database-backed so they remain consistent across serverless instances. The developer API is routed through the existing player-lookup serverless function to stay within the Vercel Hobby deployment function-count limit.
 
