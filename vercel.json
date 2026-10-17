@@ -1,159 +1,50 @@
 {
   "rewrites": [
-    {
-      "source": "/api/v1/player",
-      "destination": "/api/kingshot-player?developer=player"
-    },
-    {
-      "source": "/api/v1/redeem",
-      "destination": "/api/kingshot-player?developer=redeem"
-    },
-    {
-      "source": "/auto",
-      "destination": "/auto.html"
-    },
-    {
-      "source": "/developer",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/profile",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/dev",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/info",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/manual",
-      "destination": "/manual.html"
-    },
-    {
-      "source": "/redeem",
-      "destination": "/redeem.html"
-    },
-    {
-      "source": "/api/discord-avatar",
-      "destination": "/api/discord-tools/avatar"
-    },
-    {
-      "source": "/api/discord-user",
-      "destination": "/api/discord-tools/user"
-    },
-    {
-      "source": "/api/discord-interactions",
-      "destination": "/api/discord-tools/interactions"
-    },
-    {
-      "source": "/api/kingshot-admin-data",
-      "destination": "/api/admin-tools/data"
-    },
-    {
-      "source": "/api/kingshot-admin-login",
-      "destination": "/api/admin-tools/login"
-    },
-    {
-      "source": "/api/kingshot-developer-login",
-      "destination": "/api/admin-tools/developer-login"
-    },
-    {
-      "source": "/api/kingshot-health",
-      "destination": "/api/ops-tools/health"
-    },
-    {
-      "source": "/api/kingshot-support",
-      "destination": "/api/ops-tools/support"
-    },
-    {
-      "source": "/terms",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/privacy",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/message",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/gift-codes",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/push",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/push/",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/devsupport",
-      "destination": "/index.html"
-    }
+    { "source": "/api/v1/player", "destination": "/api/kingshot-player?developer=player" },
+    { "source": "/api/v1/redeem", "destination": "/api/kingshot-player?developer=redeem" },
+    { "source": "/auto", "destination": "/auto.html" },
+    { "source": "/developer", "destination": "/index.html" },
+    { "source": "/profile", "destination": "/index.html" },
+    { "source": "/dev", "destination": "/index.html" },
+    { "source": "/info", "destination": "/index.html" },
+    { "source": "/manual", "destination": "/manual.html" },
+    { "source": "/redeem", "destination": "/redeem.html" },
+    { "source": "/api/discord-avatar", "destination": "/api/discord-tools/avatar" },
+    { "source": "/api/discord-user", "destination": "/api/discord-tools/user" },
+    { "source": "/api/discord-interactions", "destination": "/api/discord-tools/interactions" },
+    { "source": "/api/kingshot-admin-data", "destination": "/api/admin-tools/data" },
+    { "source": "/api/kingshot-admin-login", "destination": "/api/admin-tools/login" },
+    { "source": "/api/kingshot-developer-login", "destination": "/api/admin-tools/developer-login" },
+    { "source": "/api/kingshot-health", "destination": "/api/ops-tools/health" },
+    { "source": "/api/kingshot-support", "destination": "/api/ops-tools/support" },
+    { "source": "/terms", "destination": "/index.html" },
+    { "source": "/privacy", "destination": "/index.html" },
+    { "source": "/message", "destination": "/index.html" },
+    { "source": "/gift-codes", "destination": "/index.html" },
+    { "source": "/push", "destination": "/index.html" },
+    { "source": "/push/", "destination": "/index.html" },
+    { "source": "/devsupport", "destination": "/index.html" }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "Permissions-Policy",
-          "value": "camera=(), microphone=(), geolocation=()"
-        },
-        {
-          "key": "Content-Security-Policy",
-          "value": "default-src 'none'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://discord.com https://discordapp.com; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests; frame-src https://discord.com https://discordapp.com"
-        },
-        {
-          "key": "Strict-Transport-Security",
-          "value": "max-age=63072000; includeSubDomains; preload"
-        },
-        {
-          "key": "Cross-Origin-Opener-Policy",
-          "value": "same-origin"
-        },
-        {
-          "key": "Cross-Origin-Resource-Policy",
-          "value": "same-origin"
-        },
-        {
-          "key": "X-Permitted-Cross-Domain-Policies",
-          "value": "none"
-        },
-        {
-          "key": "X-DNS-Prefetch-Control",
-          "value": "off"
-        },
-        {
-          "key": "Origin-Agent-Cluster",
-          "value": "?1"
-        }
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
+        { "key": "Content-Security-Policy", "value": "default-src 'none'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://discord.com https://discordapp.com; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests; frame-src https://discord.com https://discordapp.com" },
+        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
+        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
+        { "key": "Cross-Origin-Resource-Policy", "value": "same-origin" },
+        { "key": "X-Permitted-Cross-Domain-Policies", "value": "none" },
+        { "key": "X-DNS-Prefetch-Control", "value": "off" },
+        { "key": "Origin-Agent-Cluster", "value": "?1" }
       ]
     }
   ],
   "functions": {
-    "api/kingshot-auto.js": {
-      "maxDuration": 300
-    },
-    "api/custom-message.js": {
-      "maxDuration": 300
-    }
+    "api/kingshot-auto.js": { "maxDuration": 300 },
+    "api/custom-message.js": { "maxDuration": 300 }
   }
 }
