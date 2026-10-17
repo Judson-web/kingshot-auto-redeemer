@@ -18,7 +18,8 @@
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "@neondatabase/serverless": "^1.0.2"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
