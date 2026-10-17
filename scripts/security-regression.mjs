@@ -315,7 +315,7 @@ assertCheck("Banned Player IDs are checked before registration and return explic
  bansMigration.includes('create table if not exists public.kingshot_player_bans'));
 assertCheck("Support-message push alerts are restricted to admin audience and can include images",
  supportChat.includes('broadcastAdminPush') &&
- pushService.includes('audience: "admin"') &&
+ pushService.includes('audience:"admin"') &&
  pushService.includes('audience=eq."+audience') &&
  pushWorker.includes('safeImage(p.image)'));
 assertCheck("Public and administrator push subscriptions are audience-separated",
