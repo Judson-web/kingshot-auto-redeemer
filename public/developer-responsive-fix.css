@@ -299,3 +299,99 @@ main.dev-dashboard :focus-visible{outline:2px solid #aeb4ff!important;outline-of
 @media(prefers-reduced-motion:reduce){
   main.dev-dashboard *,main.dev-dashboard *:before,main.dev-dashboard *:after{transition:none!important;animation:none!important;scroll-behavior:auto!important}
 }
+
+
+/* Content architecture pass: group the docs by task and keep the account panel out of the mobile reading path. */
+main.dev-dashboard .dev-layout{align-items:start!important}
+main.dev-dashboard .dev-content{min-width:0!important}
+main.dev-dashboard .dev-doc-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  grid-auto-flow:row!important;
+  align-items:stretch!important;
+  gap:16px!important;
+}
+main.dev-dashboard .dev-doc-grid>.dev-feature-card{
+  grid-column:1/-1!important;
+  padding:clamp(22px,3vw,30px)!important;
+}
+main.dev-dashboard .dev-doc-grid>#quickstart,
+main.dev-dashboard .dev-doc-grid>#api-reference{
+  grid-column:span 1!important;
+  align-self:stretch!important;
+}
+main.dev-dashboard .dev-doc-grid>#manual-redemption,
+main.dev-dashboard .dev-doc-grid>#auto-redemption{
+  grid-column:span 1!important;
+  align-self:stretch!important;
+}
+main.dev-dashboard .dev-doc-grid>.dev-accordion{
+  grid-column:span 1!important;
+  min-width:0!important;
+}
+main.dev-dashboard .dev-accordion>button{
+  min-height:58px!important;
+  gap:12px!important;
+  padding:16px 17px!important;
+}
+main.dev-dashboard .dev-accordion>button b{
+  font-size:13px!important;
+  line-height:1.45!important;
+  font-weight:700!important;
+}
+main.dev-dashboard .dev-accordion>button svg{flex:none!important;color:#aeb4ff!important}
+main.dev-dashboard .dev-accordion>div{padding:0 17px 17px!important}
+main.dev-dashboard .dev-doc-grid>#quickstart .dev-code,
+main.dev-dashboard .dev-doc-grid>#api-reference .dev-code,
+main.dev-dashboard .dev-doc-grid>#manual-redemption .dev-code,
+main.dev-dashboard .dev-doc-grid>#auto-redemption .dev-code{
+  min-height:0!important;
+}
+main.dev-dashboard .dev-feature-card .dev-section-kicker{margin-bottom:4px!important}
+main.dev-dashboard .dev-feature-card>div:last-child{row-gap:7px!important}
+main.dev-dashboard .dev-card-head{min-width:0!important}
+main.dev-dashboard .dev-endpoint{align-items:center!important}
+main.dev-dashboard .dev-footer{
+  display:flex!important;align-items:center!important;justify-content:flex-start!important;
+  gap:10px 18px!important;
+}
+main.dev-dashboard .dev-footer>span{flex:1 1 100%!important}
+main.dev-dashboard .dev-footer a{display:inline-flex!important;align-items:center!important;gap:5px!important}
+@media(min-width:1100px){
+  main.dev-dashboard .dev-doc-grid{gap:18px!important}
+  main.dev-dashboard .dev-doc-grid>#quickstart,
+  main.dev-dashboard .dev-doc-grid>#api-reference,
+  main.dev-dashboard .dev-doc-grid>#manual-redemption,
+  main.dev-dashboard .dev-doc-grid>#auto-redemption{padding:21px!important}
+  main.dev-dashboard .dev-sidebar{max-height:calc(100dvh - 100px)!important;overflow-y:auto!important;overscroll-behavior:contain!important;scrollbar-width:thin!important;scrollbar-color:#344055 transparent!important}
+}
+@media(min-width:761px) and (max-width:1099px){
+  main.dev-dashboard .dev-layout{grid-template-columns:minmax(250px,.7fr) minmax(0,1.5fr)!important;gap:16px!important}
+  main.dev-dashboard .dev-doc-grid{grid-template-columns:minmax(0,1fr)!important;gap:13px!important}
+  main.dev-dashboard .dev-doc-grid>.dev-feature-card,
+  main.dev-dashboard .dev-doc-grid>#quickstart,
+  main.dev-dashboard .dev-doc-grid>#api-reference,
+  main.dev-dashboard .dev-doc-grid>#manual-redemption,
+  main.dev-dashboard .dev-doc-grid>#auto-redemption,
+  main.dev-dashboard .dev-doc-grid>.dev-accordion{grid-column:1!important}
+}
+@media(max-width:760px){
+  /* On phones, start with the docs; key management remains available immediately after the guide. */
+  main.dev-dashboard .dev-layout{display:flex!important;flex-direction:column!important;gap:16px!important}
+  main.dev-dashboard .dev-content{order:0!important;width:100%!important}
+  main.dev-dashboard .dev-sidebar{order:1!important;width:100%!important;position:static!important;max-height:none!important;overflow:visible!important}
+  main.dev-dashboard .dev-doc-grid{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:12px!important}
+  main.dev-dashboard .dev-doc-grid>.dev-feature-card,
+  main.dev-dashboard .dev-doc-grid>#quickstart,
+  main.dev-dashboard .dev-doc-grid>#api-reference,
+  main.dev-dashboard .dev-doc-grid>#manual-redemption,
+  main.dev-dashboard .dev-doc-grid>#auto-redemption,
+  main.dev-dashboard .dev-doc-grid>.dev-accordion{grid-column:1!important}
+  main.dev-dashboard .dev-doc-grid>.dev-feature-card{padding:19px 16px!important}
+  main.dev-dashboard .dev-accordion>button{min-height:54px!important;padding:14px!important}
+  main.dev-dashboard .dev-accordion>div{padding:0 14px 15px!important}
+  main.dev-dashboard .dev-footer{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:9px!important}
+  main.dev-dashboard .dev-footer>span{margin-bottom:3px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  main.dev-dashboard .dev-stat,main.dev-dashboard .dev-section-nav a{transition:none!important}
+}
