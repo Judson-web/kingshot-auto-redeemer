@@ -237,7 +237,22 @@ export default async function handler(req,res){
    // to each shard, so querying history for every player here caused three large,
    // redundant database scans per cycle and amplified PostgREST timeout pressure.
    const assignedPlayers=players.filter(player=>workerBucket(player?.player_id,WORKER_COUNT)===slot);
-   const playerIds=[...new Set(assignedPlayers.map(player=>String(player?.player_id||"").trim()).filter(Boolean))];
+   // Enforce bans at the worker boundary, not only in registration/admin flows.
+   // Fail closed if ban state cannot be read: unknown ban state must never permit redemption.
+   const bannedIds=new Set();
+   const banPageSize=1000;
+   for(let offset=0;;offset+=banPageSize){
+    const bansResponse=await fetch(SUPABASE_URL+"/rest/v1/kingshot_player_bans?select=player_id&order=player_id.asc",{headers:{"apikey":SUPABASE_KEY,"authorization":"Bearer "+SUPABASE_KEY,"Range":offset+"-"+(offset+banPageSize-1)},signal:AbortSignal.timeout(10000)});
+    if(!bansResponse.ok)throw Error("Unable to verify player bans before redemption (HTTP "+bansResponse.status+").");
+    const bansRows=await bansResponse.json();
+    if(!Array.isArray(bansRows))throw Error("Unable to verify player bans before redemption: invalid response.");
+    for(const row of bansRows){const id=String(row?.player_id||"").trim();if(id)bannedIds.add(id)}
+    if(bansRows.length<banPageSize)break;
+   }
+   const eligiblePlayers=assignedPlayers.filter(player=>!bannedIds.has(String(player?.player_id||"").trim()));
+   const bannedPlayersSkipped=assignedPlayers.length-eligiblePlayers.length;
+   if(bannedPlayersSkipped)console.warn("Kingshot worker skipped banned players:",{slot,count:bannedPlayersSkipped});
+   const playerIds=[...new Set(eligiblePlayers.map(player=>String(player?.player_id||"").trim()).filter(Boolean))];
    const historyRows=playerIds.length
     ? await rpc("list_kingshot_player_redemptions_bulk",{p_player_ids:playerIds})
     : [];
@@ -256,8 +271,8 @@ export default async function handler(req,res){
     }
     return rpc(name,body);
    };
-   const result=await runWorkerShard(slot,codes,assignedPlayers,{rpc:shardRpc,redeemForPlayer:(player,codes)=>redeemForPlayer(player,codes,shardRpc)},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
-   return res.status(200).json({ok:true,...result});
+   const result=await runWorkerShard(slot,codes,eligiblePlayers,{rpc:shardRpc,redeemForPlayer:(player,codes)=>redeemForPlayer(player,codes,shardRpc)},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
+   return res.status(200).json({ok:true,...result,bannedPlayersSkipped});
   }catch(error){
    console.error("Kingshot worker shard:",slot,error);
    return res.status(502).json({error:error?.message||"Worker shard failed.",errorCategory:classifyScraperError(error),slot});
