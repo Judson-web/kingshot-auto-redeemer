@@ -338,9 +338,9 @@ assertCheck("Support notification images use a separately refreshed signed URL w
  supportChat.includes("Math.min(Number(expiresIn)||900,86400)") &&
  supportChat.includes("image:typeof image===\"string\"&&image.startsWith(\"https://\")?image:\"\""));
 assertCheck("Mobile support chat keeps the message thread scrollable and composer visible",
- styles.includes("height:min(82dvh,760px)!important") &&
- styles.includes(".support-chat-messages{\n   flex:1 1 0!important") &&
- styles.includes(".support-composer textarea"));
+ supportWidgetCss.includes("height:min(82dvh,760px)!important") &&
+ supportWidgetCss.includes(".support-chat-messages{\n   flex:1 1 0!important") &&
+ supportWidgetCss.includes(".support-composer textarea"));
 assertCheck("Support-message push alerts are restricted to admin audience and can include images",
  supportChat.includes('broadcastAdminPush') &&
  pushService.includes('audience=eq."+audience') &&
