@@ -1,0 +1,4 @@
+Contact: https://github.com/Judson-web/kingshot-auto-redeemer/security/advisories/new
+Expires: 2027-10-17T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://kingshot-autoredeemer.vercel.app/.well-known/security.txt
