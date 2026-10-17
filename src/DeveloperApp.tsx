@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import DeveloperAccountPanel from "./DeveloperAccountPanel";
 import { Activity, BookOpen, Check, ChevronRight, Code2, Copy, ExternalLink, Gauge, KeyRound, ShieldCheck, Terminal } from "lucide-react";
 
@@ -12,6 +12,25 @@ function CopyButton({ value, label = "Copy" }: { value: string; label?: string }
 }
 
 export default function DeveloperApp() {
+  useEffect(() => {
+    const title = "Kingshot Developer API Documentation";
+    const description = "Integration guide for the Kingshot Auto Redeemer community API: authentication, player lookup, manual redemption, enrollment, quotas, and response codes.";
+    document.title = title;
+    let meta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
+    if (!meta) { meta = document.createElement("meta"); meta.name = "description"; document.head.appendChild(meta); }
+    meta.content = description;
+    let robots = document.querySelector<HTMLMetaElement>('meta[name="robots"]');
+    if (!robots) { robots = document.createElement("meta"); robots.name = "robots"; document.head.appendChild(robots); }
+    robots.content = "index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1";
+    let canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!canonical) { canonical = document.createElement("link"); canonical.rel = "canonical"; document.head.appendChild(canonical); }
+    canonical.href = ORIGIN + "/developer";
+    const schema = { "@context": "https://schema.org", "@type": "TechArticle", headline: title, description, url: ORIGIN + "/developer", mainEntityOfPage: ORIGIN + "/developer", about: { "@type": "WebAPI", name: "Kingshot Developer API", documentation: ORIGIN + "/developer.md", termsOfService: ORIGIN + "/terms" }, isPartOf: { "@type": "WebSite", name: "Kingshot Auto Redeemer", url: ORIGIN } };
+    let script = document.getElementById("developer-api-jsonld") as HTMLScriptElement | null;
+    if (!script) { script = document.createElement("script"); script.id = "developer-api-jsonld"; script.type = "application/ld+json"; document.head.appendChild(script); }
+    script.textContent = JSON.stringify(schema);
+    return () => { document.title = "Kingshot Auto Redeem"; meta?.setAttribute("content", "Redeem Kingshot gift codes with less hassle. Register your player for automatic code checks or use the manual redemption tool."); canonical?.setAttribute("href", ORIGIN + "/"); script?.remove(); };
+  }, []);
   const [tab, setTab] = useState<"curl" | "javascript">("curl");
   const [expanded, setExpanded] = useState("");
   const code = tab === "curl" ? curlExample : `const response = await fetch("${endpoint}", {
@@ -31,7 +50,7 @@ console.log(result.data.playerId, result.data.name);`;
   const paragraph: React.CSSProperties = { color: "#aeb8ca", lineHeight: 1.7, margin: "8px 0 0", fontSize: 14 };
   const codeStyle: React.CSSProperties = { margin: 0, overflowX: "auto", padding: 15, borderRadius: 11, background: "#080a0f", color: "#d5d8ff", fontSize: 12, lineHeight: 1.75, whiteSpace: "pre" };
   const accordion = (id: string, title: string, body: React.ReactNode) => <section style={{ ...card, padding: 0, overflow: "hidden" }}><button type="button" onClick={() => setExpanded(expanded === id ? "" : id)} aria-expanded={expanded === id} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: 17, textAlign: "left", background: "transparent", color: "#f2f5fb", border: 0, font: "inherit", cursor: "pointer" }}><ChevronRight size={16} style={{ transform: expanded === id ? "rotate(90deg)" : "none", transition: "transform .15s" }}/><b style={{ flex: 1 }}>{title}</b></button>{expanded === id && <div style={{ padding: "0 18px 18px" }}>{body}</div>}</section>;
-  return <main className="dev-dashboard" style={{ minHeight: "100vh", background: "#0b0e14", color: "#f2f5fb", fontFamily: "inherit" }}>
+  return <main className="dev-dashboard" aria-labelledby="developer-docs-title" style={{ minHeight: "100vh", background: "#0b0e14", color: "#f2f5fb", fontFamily: "inherit" }}>
     <style>{`
       .dev-dashboard *{box-sizing:border-box}
       .dev-topbar{position:sticky;top:0;z-index:20;background:rgba(11,14,20,.88);backdrop-filter:blur(16px);border-bottom:1px solid #252c38}
@@ -51,7 +70,7 @@ console.log(result.data.playerId, result.data.name);`;
       .dev-stat-label{font-size:11px;color:#9da8ba}
       .dev-stat-value{font-size:clamp(14px,2vw,18px);font-weight:750;letter-spacing:-.02em;margin-top:7px;overflow-wrap:anywhere}
       .dev-stat-detail{font-size:11px;color:#8390a4;margin-top:4px;line-height:1.5}
-      .dev-layout{display:grid;grid-template-columns:minmax(260px,.62fr) minmax(0,1.8fr);align-items:start;gap:24px}.dev-sidebar{position:sticky;top:84px}.dev-content{gap:12px}.dev-card{box-shadow:0 10px 35px #00000012}.dev-endpoint{padding:10px 12px}.dev-code{font-size:12px;tab-size:2}.dev-section-nav{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 16px}.dev-section-nav a{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #293343;border-radius:9px;color:#c8d0df;text-decoration:none;font-size:12px;background:#11161f}.dev-section-nav a:hover{border-color:#555fa0;color:#fff}.dev-doc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.dev-doc-grid>#api-reference{grid-column:1/-1}.dev-doc-grid .dev-code{max-width:100%}
+      .dev-dashboard{display:block;width:100%;min-height:100dvh;font-size:14px;line-height:1.5;overflow-wrap:anywhere}.dev-dashboard a{touch-action:manipulation}.dev-dashboard button,.dev-dashboard input{max-width:100%;font:inherit}.dev-layout{display:grid;grid-template-columns:minmax(280px,.72fr) minmax(0,1.8fr);align-items:start;gap:24px}.dev-sidebar{position:sticky;top:84px}.dev-content{gap:16px}.dev-card{box-shadow:0 10px 35px #00000012}.dev-endpoint{padding:10px 12px;min-width:0}.dev-code{font-size:12px;tab-size:2;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}.dev-section-nav{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 18px;padding-bottom:2px}.dev-section-nav a{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #293343;border-radius:9px;color:#c8d0df;text-decoration:none;font-size:12px;background:#11161f;white-space:nowrap}.dev-section-nav a:hover,.dev-section-nav a:focus-visible{border-color:#777ff3;color:#fff;outline-offset:2px}.dev-doc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}.dev-doc-grid>section,.dev-doc-grid>div{min-width:0}.dev-doc-grid>#api-reference{grid-column:1/-1}.dev-doc-grid .dev-code{max-width:100%}.dev-dashboard h1,.dev-dashboard h2,.dev-dashboard h3{overflow-wrap:anywhere}.dev-dashboard p{max-width:100%}.dev-dashboard pre{max-width:100%;white-space:pre;overflow:auto}.dev-dashboard code{overflow-wrap:anywhere}.dev-dashboard :focus-visible{outline:2px solid #aeb4ff;outline-offset:3px}
       .dev-sidebar{min-width:0}
       .dev-content{min-width:0;display:grid;gap:16px}
       .dev-card{background:#131821;border:1px solid #2b3442;border-radius:15px;padding:clamp(16px,2.5vw,23px);min-width:0}
@@ -65,8 +84,8 @@ console.log(result.data.playerId, result.data.name);`;
       .dev-endpoint{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px;background:#0d1118;border:1px solid #2b3442;border-radius:10px}
       .dev-footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:26px;padding-top:17px;border-top:1px solid #252c38;color:#8f9aab;font-size:11px}
       .dev-footer a{color:#b8bdff;text-decoration:none}
-      @media(max-width:760px){.dev-shell{padding:0 14px}.dev-page{padding-top:23px}.dev-layout{grid-template-columns:minmax(0,1fr)}.dev-sidebar{position:static;order:0}.dev-content{order:1}.dev-doc-grid{grid-template-columns:minmax(0,1fr)}.dev-doc-grid>#api-reference{grid-column:auto}.dev-stat-grid{gap:8px}.dev-stat{padding:12px}.dev-stat-detail{font-size:10px}.dev-topbar-inner{min-height:59px}.dev-nav-link{padding:7px 6px}.dev-overview{gap:10px}.dev-version-pill{font-size:10px;padding:7px 8px}}
-      @media(max-width:430px){.dev-stat-grid{grid-template-columns:1fr 1fr}.dev-stat:last-child{grid-column:1/-1}.dev-overview{display:block}.dev-version-pill{margin-top:13px}.dev-brand-copy{display:none}.dev-top-nav{gap:2px!important}.dev-nav-link{font-size:11px}}
+      @media(max-width:760px){.dev-shell{padding:0 14px}.dev-page{padding-top:20px;padding-bottom:36px}.dev-layout{grid-template-columns:minmax(0,1fr);gap:16px}.dev-sidebar{position:static;order:0}.dev-content{order:1;gap:13px}.dev-doc-grid{grid-template-columns:minmax(0,1fr);gap:13px}.dev-doc-grid>#api-reference{grid-column:auto}.dev-stat-grid{gap:8px;margin-bottom:16px}.dev-stat{padding:12px}.dev-stat-detail{font-size:11px}.dev-topbar-inner{min-height:56px;gap:8px}.dev-top-nav{max-width:100%;overflow-x:auto;white-space:nowrap;scrollbar-width:none}.dev-top-nav::-webkit-scrollbar{display:none}.dev-nav-link{padding:8px 7px;flex:none}.dev-overview{gap:10px;margin-bottom:17px}.dev-version-pill{font-size:10px;padding:7px 8px}.dev-section-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-bottom:14px}.dev-section-nav a{white-space:normal;min-width:0;padding:10px 9px;line-height:1.3}.dev-card{padding:16px;border-radius:13px}.dev-code{font-size:11px;line-height:1.6;padding:12px}.dev-footer{gap:10px}.dev-endpoint{gap:8px;padding:10px}.dev-endpoint code{min-width:0}.dev-doc-grid .dev-card-title{font-size:16px}}
+      @media(max-width:430px){.dev-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dev-stat:last-child{grid-column:1/-1}.dev-overview{display:block}.dev-version-pill{margin-top:12px}.dev-brand-copy{display:none}.dev-top-nav{gap:2px!important;flex:1}.dev-nav-link{font-size:11px}.dev-section-nav{grid-template-columns:repeat(2,minmax(0,1fr))}.dev-stat-value{font-size:14px}.dev-dashboard input{min-width:0}.dev-dashboard .dev-footer{display:grid;grid-template-columns:1fr;justify-content:start}.dev-dashboard .dev-endpoint button{flex:1 0 auto}}
       @media(prefers-reduced-motion:reduce){.dev-dashboard *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
     `}</style>
     <div className="dev-topbar"><div className="dev-shell dev-topbar-inner">
@@ -78,7 +97,7 @@ console.log(result.data.playerId, result.data.name);`;
     </div></div>
     <div className="dev-shell dev-page">
       <header className="dev-overview">
-        <div><div className="dev-eyebrow">Developer workspace / Overview</div><h1 className="dev-page-title">Developer dashboard</h1><p className="dev-muted">Manage your API credentials and integrate Kingshot player data into your tools.</p></div>
+        <div><div className="dev-eyebrow">Developer workspace / Overview</div><h1 id="developer-docs-title" className="dev-page-title">Developer API documentation</h1><p className="dev-muted">Manage your API credentials and integrate Kingshot player data into your tools.</p></div>
         <span className="dev-version-pill"><span style={{width:7,height:7,borderRadius:9,background:"#9ce9c2",boxShadow:"0 0 0 3px #9ce9c21c"}}/> API v1 <span style={{color:"#687487"}}>·</span> HTTPS</span>
       </header>
       <div className="dev-stat-grid" aria-label="API overview">
@@ -138,7 +157,7 @@ console.log(result.data.playerId, result.data.name);`;
           </div>
         </div>
       </div>
-      <footer className="dev-footer"><span>API v1 · Read-only player data</span><a href="https://github.com/Judson-web/kingshot-auto-redeemer" target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:5}}>Source and changelog <ExternalLink size={12}/></a><a href="/privacy?service=kingshot-auto" style={{color:"inherit"}}>Privacy</a></footer>
+      <footer className="dev-footer"><span>API v1 · Player lookup, manual redemption, and auto-redeem enrollment</span><a href="/developer.md">Plain-text docs for crawlers and integrations</a><a href="/openapi.json">OpenAPI specification</a><a href="https://github.com/Judson-web/kingshot-auto-redeemer" target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:5}}>Source and changelog <ExternalLink size={12}/></a><a href="/privacy?service=kingshot-auto" style={{color:"inherit"}}>Privacy</a></footer>
     </div>
   </main>;
 }

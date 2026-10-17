@@ -1,0 +1,282 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Kingshot Auto Redeemer Developer API",
+    "version": "1.0.0",
+    "description": "Public integration endpoints for player lookup, manual gift-code redemption, and public auto-redeem enrollment. Use only with authorized player accounts. See https://kingshot-autoredeemer.vercel.app/developer.md for human-readable guidance.",
+    "termsOfService": "https://kingshot-autoredeemer.vercel.app/terms",
+    "contact": {
+      "url": "https://github.com/Judson-web/kingshot-auto-redeemer/security/advisories/new"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://kingshot-autoredeemer.vercel.app"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Developer API",
+      "description": "Bearer-key protected integration endpoints."
+    },
+    {
+      "name": "Enrollment",
+      "description": "Public website enrollment flow, separate from developer API key access."
+    }
+  ],
+  "paths": {
+    "/api/v1/player": {
+      "get": {
+        "tags": [
+          "Developer API"
+        ],
+        "summary": "Look up a player profile",
+        "description": "Returns provider-supplied profile data. A valid, active developer API key is required. Rate limits are 60 requests/minute and 1,000 requests/day per key, plus 120 requests/minute per IP.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "description": "Numeric Kingshot Player ID (5–20 digits).",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9]{5,20}$",
+              "minLength": 5,
+              "maxLength": 20
+            },
+            "example": "43180889"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lookup completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerLookupResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid Player ID"
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked API key"
+          },
+          "404": {
+            "description": "Player not found"
+          },
+          "429": {
+            "description": "Rate limit or quota exceeded"
+          },
+          "502": {
+            "description": "Upstream provider unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/redeem": {
+      "post": {
+        "tags": [
+          "Developer API"
+        ],
+        "summary": "Manually redeem a gift code",
+        "description": "Submits one authorized player/code/kingdom combination. Inspect the response body for the redemption outcome; HTTP success alone does not guarantee rewards were granted. Do not blindly retry ambiguous outcomes.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualRedemptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Request processed; inspect operation result in response body"
+          },
+          "400": {
+            "description": "Invalid request fields"
+          },
+          "401": {
+            "description": "Missing, invalid, or revoked API key"
+          },
+          "429": {
+            "description": "Rate limit or quota exceeded"
+          },
+          "502": {
+            "description": "Upstream provider unavailable"
+          }
+        }
+      }
+    },
+    "/api/kingshot-register": {
+      "post": {
+        "tags": [
+          "Enrollment"
+        ],
+        "summary": "Enroll a player in automatic redemption",
+        "description": "Public website enrollment route, separate from the Bearer-key developer API. Does not start or control the worker and does not guarantee code validity.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrollmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Enrollment request processed"
+          },
+          "400": {
+            "description": "Invalid request fields"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "API key",
+        "description": "Create a key from the developer portal. Keep it secret and send it only over HTTPS."
+      }
+    },
+    "schemas": {
+      "PlayerLookupResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "playerId": {
+                "type": "string"
+              },
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "kingdomId": {
+                "type": [
+                  "string",
+                  "number",
+                  "null"
+                ]
+              },
+              "power": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "townCenterLevel": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "avatarUrl": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri"
+              }
+            }
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "requestId": {
+                "type": "string"
+              },
+              "remaining": {
+                "type": "integer"
+              },
+              "dailyRemaining": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "ManualRedemptionRequest": {
+        "type": "object",
+        "required": [
+          "playerId",
+          "code",
+          "kid"
+        ],
+        "properties": {
+          "playerId": {
+            "type": "string",
+            "pattern": "^[0-9]{5,20}$"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "kid": {
+            "type": "string",
+            "pattern": "^[0-9]{1,10}$"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EnrollmentRequest": {
+        "type": "object",
+        "required": [
+          "playerId"
+        ],
+        "properties": {
+          "playerId": {
+            "type": "string",
+            "pattern": "^[0-9]{5,20}$"
+          },
+          "kingdomId": {
+            "type": "string",
+            "pattern": "^[0-9]{1,10}$"
+          },
+          "playerName": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "externalDocs": {
+    "description": "Interactive developer documentation",
+    "url": "https://kingshot-autoredeemer.vercel.app/developer"
+  }
+}
