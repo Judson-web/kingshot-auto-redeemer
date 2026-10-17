@@ -2,7 +2,6 @@ const LABELS = {
   registered: "REGISTERED",
   existing: "ALREADY ACTIVE",
   reactivated: "RE-ENABLED",
-  banned: "DISABLED",
   disabled: "DISABLED",
   failed: "NEEDS ATTENTION"
 };
@@ -11,7 +10,6 @@ const HEADLINES = {
   registered: "Registration complete",
   existing: "Already active",
   reactivated: "Re-enabled successfully",
-  banned: "Auto-redemption disabled",
   disabled: "Auto-redemption disabled",
   failed: "Registration needs attention"
 };
@@ -41,8 +39,6 @@ function outcome(kind, data) {
     summary = "Already enrolled. No duplicate registration was created.";
   } else if (kind === "reactivated") {
     summary = "The previous registration is active again for automatic redemption.";
-  } else if (kind === "banned") {
-    summary = "Auto-redemption is disabled for this Player ID. Contact support if you believe this is a mistake.";
   } else if (kind === "disabled") {
     summary = "This Player ID is disabled for automatic redemption. Contact support if you need help re-enabling it.";
   } else {
@@ -58,7 +54,7 @@ function outcome(kind, data) {
     label: LABELS[kind],
     headline: HEADLINES[kind],
     summary,
-    reason: kind === "disabled" && (reason || ban) ? reason || ban?.reason || "Auto-redemption is disabled for this Player ID." : "",
+    reason: kind === "disabled" ? reason || "Auto-redemption is disabled for this Player ID." : "",
     code: text(data.code),
     verificationPending: Boolean(data.verificationPending),
     stale: Boolean(data.stale)
@@ -103,23 +99,22 @@ export function makeFailureOutcome({ id, message, code, banned, disabled, alread
 }
 
 export function summarizeRegistrationOutcomes(outcomes = []) {
-  const counts = { total: outcomes.length, registered: 0, existing: 0, reactivated: 0, banned: 0, disabled: 0, failed: 0 };
+  const counts = { total: outcomes.length, registered: 0, existing: 0, reactivated: 0, disabled: 0, failed: 0 };
   for (const item of outcomes) {
     if (Object.hasOwn(counts, item?.kind)) counts[item.kind] += 1;
   }
   counts.active = counts.registered + counts.existing + counts.reactivated;
   const parts = [];
   if (counts.active) parts.push(`${counts.active} active`);
-  if (counts.banned) parts.push(`${counts.banned} blocked`);
   if (counts.disabled) parts.push(`${counts.disabled} disabled`);
   if (counts.failed) parts.push(`${counts.failed} need attention`);
 
   const message = counts.total === 1
     ? outcomes[0]?.summary || "No registration result was returned."
     : `${counts.total} Player IDs checked · ${parts.join(" · ") || "No results"}.`;
-  const allRestricted = counts.total > 0 && counts.banned + counts.disabled === counts.total;
+  const allRestricted = counts.total > 0 && counts.disabled === counts.total;
   const allActive = counts.total > 0 && counts.active === counts.total;
-  const needsAttention = counts.banned + counts.disabled + counts.failed > 0;
+  const needsAttention = counts.disabled + counts.failed > 0;
 
   return { ...counts, message, allRestricted, allActive, needsAttention };
 }
