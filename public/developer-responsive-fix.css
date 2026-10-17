@@ -1,0 +1,72 @@
+/* Developer documentation responsive containment and typography repair. */
+main.dev-dashboard{display:block!important;width:100%!important;max-width:none!important;min-width:0!important;overflow-x:clip!important;font-size:14px!important;line-height:1.5!important;overflow-wrap:anywhere!important}
+main.dev-dashboard,main.dev-dashboard *{box-sizing:border-box!important;min-width:0}
+main.dev-dashboard .dev-shell{width:100%!important;max-width:1180px!important;margin-inline:auto!important;padding-inline:clamp(14px,3vw,24px)!important}
+main.dev-dashboard .dev-topbar{width:100%!important;max-width:100%!important}
+main.dev-dashboard .dev-topbar-inner{display:flex!important;flex-wrap:wrap!important;align-items:center!important;min-height:64px!important;gap:12px!important}
+main.dev-dashboard .dev-brand-copy{flex:1 1 180px!important;min-width:0!important}
+main.dev-dashboard .dev-top-nav{display:flex!important;flex:0 1 auto!important;min-width:0!important;max-width:100%!important;flex-wrap:wrap!important;align-items:center!important;white-space:normal!important}
+main.dev-dashboard .dev-nav-link{font-size:12px!important;line-height:1.4!important;white-space:normal!important}
+main.dev-dashboard .dev-page{padding-top:clamp(20px,4vw,34px)!important;padding-bottom:52px!important}
+main.dev-dashboard .dev-overview{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:start!important;gap:18px!important;margin:0 0 22px!important}
+main.dev-dashboard .dev-overview>div{min-width:0!important}
+main.dev-dashboard .dev-eyebrow{font-size:10px!important;line-height:1.5!important;letter-spacing:.14em!important}
+main.dev-dashboard .dev-page-title{display:block!important;margin:7px 0 10px!important;font-size:clamp(27px,4vw,36px)!important;line-height:1.12!important;letter-spacing:-.045em!important;font-weight:750!important;overflow-wrap:anywhere!important}
+main.dev-dashboard .dev-muted{font-size:13px!important;line-height:1.65!important;overflow-wrap:anywhere!important}
+main.dev-dashboard .dev-version-pill{align-self:start!important;max-width:100%!important;white-space:normal!important;flex-wrap:wrap!important;font-size:11px!important;line-height:1.4!important}
+main.dev-dashboard .dev-stat-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px!important;margin:0 0 20px!important}
+main.dev-dashboard .dev-stat{display:block!important;min-width:0!important;padding:15px!important}
+main.dev-dashboard .dev-stat-label{font-size:11px!important;line-height:1.5!important}
+main.dev-dashboard .dev-stat-value{display:block!important;margin-top:7px!important;font-size:clamp(14px,2vw,18px)!important;line-height:1.4!important;font-weight:750!important;overflow-wrap:anywhere!important}
+main.dev-dashboard .dev-stat-detail{display:block!important;margin-top:4px!important;font-size:11px!important;line-height:1.5!important;overflow-wrap:anywhere!important}
+main.dev-dashboard .dev-section-nav{display:flex!important;flex-wrap:wrap!important;align-items:stretch!important;gap:7px!important;margin:0 0 18px!important;padding:0 0 2px!important}
+main.dev-dashboard .dev-section-nav a{display:inline-flex!important;flex:0 1 auto!important;align-items:center!important;gap:6px!important;min-width:0!important;max-width:100%!important;padding:9px 10px!important;font-size:12px!important;line-height:1.35!important;white-space:normal!important;overflow-wrap:anywhere!important}
+main.dev-dashboard .dev-layout{display:grid!important;grid-template-columns:minmax(270px,.72fr) minmax(0,1.8fr)!important;align-items:start!important;gap:22px!important}
+main.dev-dashboard .dev-sidebar,main.dev-dashboard .dev-content{min-width:0!important;max-width:100%!important}
+main.dev-dashboard .dev-sidebar{position:sticky!important;top:84px!important}
+main.dev-dashboard .dev-content{display:grid!important;gap:16px!important}
+main.dev-dashboard .dev-doc-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;align-items:start!important;gap:16px!important}
+main.dev-dashboard .dev-doc-grid>section,main.dev-dashboard .dev-doc-grid>div{min-width:0!important;max-width:100%!important}
+main.dev-dashboard .dev-doc-grid>#api-reference{grid-column:1/-1!important}
+main.dev-dashboard .dev-card{min-width:0!important;max-width:100%!important;padding:clamp(15px,2.5vw,23px)!important;overflow-wrap:anywhere!important}
+main.dev-dashboard .dev-card-title{font-size:17px!important;line-height:1.3!important}
+main.dev-dashboard h1,main.dev-dashboard h2,main.dev-dashboard h3{max-width:100%!important;line-height:1.25!important;overflow-wrap:anywhere!important}
+main.dev-dashboard p{max-width:100%!important;white-space:normal!important}
+main.dev-dashboard pre,main.dev-dashboard .dev-code{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:auto!important;white-space:pre!important;overscroll-behavior-x:contain!important;font-size:12px!important;line-height:1.65!important}
+main.dev-dashboard .dev-endpoint{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:8px!important;min-width:0!important;max-width:100%!important}
+main.dev-dashboard .dev-endpoint code{flex:1 1 160px!important;min-width:0!important;overflow-wrap:anywhere!important;white-space:normal!important}
+main.dev-dashboard button,main.dev-dashboard input,main.dev-dashboard select,main.dev-dashboard textarea{max-width:100%!important;font-size:inherit}
+main.dev-dashboard .dev-footer{display:flex!important;flex-wrap:wrap!important;gap:12px!important;line-height:1.6!important}
+@media(max-width:760px){
+ main.dev-dashboard .dev-shell{padding-inline:14px!important}
+ main.dev-dashboard .dev-topbar-inner{min-height:56px!important;gap:8px!important}
+ main.dev-dashboard .dev-brand-copy{flex:1 1 150px!important}
+ main.dev-dashboard .dev-top-nav{flex:1 1 100%!important;width:100%!important;justify-content:flex-start!important;overflow-x:auto!important;flex-wrap:nowrap!important;white-space:nowrap!important;padding-bottom:7px!important}
+ main.dev-dashboard .dev-top-nav .dev-nav-link{flex:0 0 auto!important;white-space:nowrap!important}
+ main.dev-dashboard .dev-page{padding-top:20px!important;padding-bottom:36px!important}
+ main.dev-dashboard .dev-overview{grid-template-columns:minmax(0,1fr)!important;gap:10px!important;margin-bottom:17px!important}
+ main.dev-dashboard .dev-version-pill{justify-self:start!important;margin-top:0!important}
+ main.dev-dashboard .dev-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;margin-bottom:16px!important}
+ main.dev-dashboard .dev-stat{padding:12px!important}
+ main.dev-dashboard .dev-stat:last-child{grid-column:1/-1!important}
+ main.dev-dashboard .dev-stat-value{font-size:14px!important}
+ main.dev-dashboard .dev-section-nav{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;margin-bottom:14px!important}
+ main.dev-dashboard .dev-section-nav a{display:flex!important;align-items:center!important;justify-content:flex-start!important;padding:10px 9px!important;white-space:normal!important;line-height:1.35!important}
+ main.dev-dashboard .dev-layout{grid-template-columns:minmax(0,1fr)!important;gap:15px!important}
+ main.dev-dashboard .dev-sidebar{position:static!important;top:auto!important;order:0!important}
+ main.dev-dashboard .dev-content{order:1!important;gap:13px!important}
+ main.dev-dashboard .dev-doc-grid{grid-template-columns:minmax(0,1fr)!important;gap:13px!important}
+ main.dev-dashboard .dev-doc-grid>#api-reference{grid-column:auto!important}
+ main.dev-dashboard .dev-card{padding:16px!important;border-radius:13px!important}
+ main.dev-dashboard .dev-card-title{font-size:16px!important}
+ main.dev-dashboard .dev-code,main.dev-dashboard pre{font-size:11px!important;line-height:1.6!important;padding:12px!important}
+ main.dev-dashboard .dev-footer{display:grid!important;grid-template-columns:minmax(0,1fr)!important;justify-content:start!important}
+}
+@media(max-width:420px){
+ main.dev-dashboard .dev-shell{padding-inline:12px!important}
+ main.dev-dashboard .dev-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ main.dev-dashboard .dev-section-nav{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ main.dev-dashboard .dev-top-nav .dev-nav-link{font-size:11px!important;padding-inline:7px!important}
+ main.dev-dashboard .dev-page-title{font-size:clamp(26px,8vw,32px)!important}
+}
+@media(prefers-reduced-motion:reduce){main.dev-dashboard *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
