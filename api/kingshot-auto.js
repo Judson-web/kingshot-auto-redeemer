@@ -249,9 +249,9 @@ export default async function handler(req,res){
     for(const row of bansRows){const id=String(row?.player_id||"").trim();if(id)bannedIds.add(id)}
     if(bansRows.length<banPageSize)break;
    }
-   const eligiblePlayers=assignedPlayers.filter(player=>!bannedIds.has(String(player?.player_id||"").trim()));
-   const bannedPlayersSkipped=assignedPlayers.length-eligiblePlayers.length;
-   if(bannedPlayersSkipped)console.warn("Kingshot worker skipped banned players:",{slot,count:bannedPlayersSkipped});
+   const eligiblePlayers=assignedPlayers.filter(player=>player?.enabled!==false&&!bannedIds.has(String(player?.player_id||"").trim()));
+   const restrictedPlayersSkipped=assignedPlayers.length-eligiblePlayers.length;
+   if(restrictedPlayersSkipped)console.warn("Kingshot worker skipped disabled/restricted players:",{slot,count:restrictedPlayersSkipped});
    const playerIds=[...new Set(eligiblePlayers.map(player=>String(player?.player_id||"").trim()).filter(Boolean))];
    const historyRows=playerIds.length
     ? await rpc("list_kingshot_player_redemptions_bulk",{p_player_ids:playerIds})
