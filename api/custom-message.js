@@ -191,7 +191,7 @@ export default async function handler(req,res){
     const currentRows=await db(query+"&select=id,code,suppressed");
     if(!Array.isArray(currentRows)||!currentRows.length)return res.status(404).json({error:"Gift code not found."});
     if(active&&currentRows[0].suppressed===true)return res.status(409).json({error:"This code is blocked. Use Add / reactivate and confirm the trusted source before unblocking it."});
-    const patch={active:false,expires_at:expiresAt};if(active){patch.suppressed=false;patch.validation_status="pending";patch.validated_at=null;patch.validation_player_id=null;patch.validation_message="Awaiting player verification";}
+    const patch={active:false,suppressed:true,expires_at:expiresAt};if(active){patch.active=false;patch.suppressed=false;patch.validation_status="pending";patch.validated_at=null;patch.validation_player_id=null;patch.validation_message="Awaiting player verification";}
     const rows=await db(query,{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify(patch)});
     if(!Array.isArray(rows)||!rows.length)return res.status(404).json({error:"Gift code not found."});
     return res.status(200).json({ok:true,code:rows[0]});

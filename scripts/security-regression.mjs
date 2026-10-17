@@ -333,6 +333,10 @@ assertCheck("Banned Player IDs are checked before registration and return explic
  registerHandler.includes('code:"player_banned"') &&
  adminData.includes('action==="BAN_PLAYER"') &&
  bansMigration.includes('create table if not exists public.kingshot_player_bans'));
+assertCheck("Manual gift-code disable persists suppression against scraper reactivation",
+ customMessage.includes('const patch={active:false,suppressed:true,expires_at:expiresAt}') &&
+ customMessage.includes('if(active){patch.active=false;patch.suppressed=false;patch.validation_status="pending"') &&
+ customMessage.includes('body:JSON.stringify({active:false,suppressed:true})'));
 assertCheck("Support notification images use a separately refreshed signed URL with bounded expiry",
  supportChat.includes("signedAttachment(message.attachment_path,86400)") &&
  supportChat.includes("Math.min(Number(expiresIn)||900,86400)") &&
