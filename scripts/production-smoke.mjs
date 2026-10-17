@@ -29,6 +29,8 @@ async function check(name,path,expected,options={}){
 
 await check("Production homepage", "/", response=>response.status>=200&&response.status<400);
 if(process.env.GITHUB_EVENT_NAME!=="pull_request") await check("Versioned developer player API requires a key", "/api/v1/player?id=123456", 401);
+await check("Public player API preflight advertises intentional CORS", "/api/v1/player", response=>response.status===204 && response.headers.get("access-control-allow-origin")==="*", {method:"OPTIONS",headers:{"Origin":"https://cors-probe.invalid","Access-Control-Request-Method":"GET"}});
+await check("Developer key-management preflight does not advertise CORS", "/api/kingshot-player?developer=keys", response=>response.status===204 && !response.headers.has("access-control-allow-origin"), {method:"OPTIONS",headers:{"Origin":"https://cors-probe.invalid","Access-Control-Request-Method":"GET"}});
 if(process.env.GITHUB_EVENT_NAME!=="pull_request") await check("Production logs JSON API", "/api/kingshot-health?logs=1", response=>response.status===200);
 await check("Admin data rejects unauthenticated access", "/api/kingshot-admin-data", 401);
 await check("Registration endpoint rejects wrong HTTP method", "/api/kingshot-register", 405);
