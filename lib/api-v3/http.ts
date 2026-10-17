@@ -89,7 +89,7 @@ export function setPublicHeaders(res: V3Response, methods: string): void {
   res.setHeader("X-API-Version", "3");
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", methods + ", OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
-  res.setHeader("Access-Control-Expose-Headers", "X-Request-Id, X-API-Version, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-RateLimit-Daily-Limit, X-RateLimit-Daily-Remaining, Retry-After");
+  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Idempotency-Key");
+  res.setHeader("Access-Control-Expose-Headers", "X-Request-Id, X-API-Version, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-RateLimit-Daily-Limit, X-RateLimit-Daily-Remaining, Retry-After, Idempotency-Replayed");
   res.setHeader("Vary", "Origin");
 }

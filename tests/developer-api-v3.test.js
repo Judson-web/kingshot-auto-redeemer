@@ -4,6 +4,7 @@ import test from "node:test";
 import { normalizeV3PlayerId, validateV3RedemptionBody } from "../lib/developer-api-v3-validation.js";
 import { normalizeV3PlayerData, normalizeV3ProviderMetadata } from "../lib/api-v3/contracts.js";
 import { shouldRetryProviderRead, withBoundedProviderReadRetry } from "../lib/api-v3/retry.js";
+import { readIdempotencyKey } from "../lib/api-v3/idempotency.js";
 test("V3 player IDs accept numeric strings from 5 to 20 digits", () => {
   assert.equal(normalizeV3PlayerId("43180889"), "43180889");
   assert.equal(normalizeV3PlayerId(" 43180889 "), "43180889");
@@ -81,3 +82,5 @@ test("V3 routes stay wired through the existing serverless handler", async () =>
   assert.match(router, /developerPath\.startsWith\("v3-"\)/);
   assert.match(router, /developerApiV3\(req, res, developerPath\.slice\(3\)\)/);
 });
+
+test("V3 idempotency key validation",()=>{assert.deepEqual(readIdempotencyKey({headers:{}}),{present:false,valid:true,key:""});assert.equal(readIdempotencyKey({headers:{"idempotency-key":"redeem-1234"}}).valid,true);assert.equal(readIdempotencyKey({headers:{"idempotency-key":"short"}}).valid,false);assert.equal(readIdempotencyKey({headers:{"idempotency-key":"has spaces"}}).valid,false);assert.equal(readIdempotencyKey({headers:{"idempotency-key":"x".repeat(129)}}).valid,false)});

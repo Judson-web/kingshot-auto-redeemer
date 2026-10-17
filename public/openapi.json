@@ -273,7 +273,7 @@
         ],
         "operationId": "createRedemptionV3",
         "summary": "Submit a manual gift-code redemption (V3)",
-        "description": "Submits one player/code/kingdom combination. A completed in-game rejection may return HTTP 200; inspect data.ok and data.status. Do not blindly retry an ambiguous timeout.",
+        "description": "Submits one player/code/kingdom combination. A completed in-game rejection may return HTTP 200; inspect data.ok and data.status. Do not blindly retry an ambiguous timeout. Optional Idempotency-Key provides durable 24-hour replay protection for matching bodies; conflicting reuse returns 409. This cannot guarantee exactly-once upstream execution.",
         "security": [
           {
             "bearerAuth": []
@@ -296,6 +296,17 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV3RedemptionResponse"
+                }
+              }
+            },
+            "headers": {
+              "Idempotency-Replayed": {
+                "description": "True when a stored outcome is replayed",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "true"
+                  ]
                 }
               }
             }
@@ -322,6 +333,16 @@
           },
           "405": {
             "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency key conflict or request still processing",
             "content": {
               "application/json": {
                 "schema": {
@@ -380,7 +401,22 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "description": "Optional durable replay protection for 24 hours; conflicting reuse returns 409.",
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            },
+            "example": "redeem-43180889-example-001"
+          }
+        ]
       }
     }
   },
