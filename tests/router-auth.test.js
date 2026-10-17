@@ -73,7 +73,7 @@ test("admin stylesheet is loaded and registration responses share one swipeable 
 
 test("home page registration outcome component is defined before React mounts the app", async () => {
   const entry = await readFile(new URL("../src/main.jsx", import.meta.url), "utf8");
-  assert.match(entry, /<RegistrationOutcomePanel outcomes=\{outcomes\} \/>/);
+  assert.ok(entry.includes("<RegistrationOutcomePanel outcomes={outcomes}/>"));
   assert.match(entry, /function RegistrationOutcomePanel\(\{outcomes\}\)/);
   assert.ok(entry.indexOf("function RegistrationOutcomePanel") < entry.indexOf("createRoot(document.getElementById"));
 });
