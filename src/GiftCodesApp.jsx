@@ -56,7 +56,6 @@ const input = {
 const panel = { background: "#11151e", border: "1px solid #252c39", borderRadius: 16 };
 
 export default function GiftCodesApp() {
-  const [passkey, setPasskey] = useState("");
   const [confirmManual, setConfirmManual] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -100,7 +99,7 @@ export default function GiftCodesApp() {
     try {
       const data = await api({ action, ...extra });
       if (action === "LOGOUT") {
-        setAuthed(false); setPasskey(""); setCodes([]);
+        setAuthed(false); setCodes([]);
       } else if (action === "GIFT_CODE_ADD") {
         setCode(""); setExpires(""); setConfirmManual(false);
         setNotice(data.restored ? "Code restored and queued for player verification." : "Code added and queued for player verification.");
@@ -118,20 +117,6 @@ export default function GiftCodesApp() {
       }
     } catch (err) {
       setError(err.message || "The action could not be completed.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const login = async (event) => {
-    event.preventDefault();
-    setBusy(true); setError("");
-    try {
-      await api({ action: "LOGIN", passkey });
-      setAuthed(true); setPasskey("");
-      await load();
-    } catch (err) {
-      setError(err.message || "Sign-in failed.");
     } finally {
       setBusy(false);
     }
@@ -166,18 +151,15 @@ export default function GiftCodesApp() {
 
   if (!authed) return (
     <main style={{ ...shell, display: "grid", placeItems: "center" }}>
-      <form onSubmit={login} style={{ ...panel, width: "min(100%, 390px)", padding: 24, boxSizing: "border-box" }}>
+      <section style={{ ...panel, width: "min(100%, 390px)", padding: 24, boxSizing: "border-box" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
           <span style={{ display: "grid", placeItems: "center", width: 44, height: 44, borderRadius: 13, background: "#292442", color: "#c8b8ff" }}><ShieldCheck size={22}/></span>
           <div><div style={{ color: "#a99be0", fontSize: 10, fontWeight: 800, letterSpacing: ".14em" }}>KINGSHOT OPERATIONS</div><h1 style={{ margin: "4px 0 0", fontSize: 23 }}>Gift codes</h1></div>
         </div>
-        <p style={{ color: "#9aa4b6", fontSize: 13, lineHeight: 1.6 }}>Sign in to manage the trusted gift-code inventory.</p>
-        <label htmlFor="gift-admin-passkey" style={{ display: "block", margin: "18px 0 7px", fontSize: 12, fontWeight: 700 }}>Admin passkey</label>
-        <input id="gift-admin-passkey" autoComplete="current-password" type="password" required value={passkey} onChange={(event) => setPasskey(event.target.value)} style={input}/>
+        <p style={{ color: "#9aa4b6", fontSize: 13, lineHeight: 1.6 }}>Use your existing administrator account to manage the trusted gift-code inventory. No separate passkey is required.</p>
+        <a href="/profile?returnTo=/gift-codes" style={{ ...button, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", marginTop: 14, background: "#d8c49a", borderColor: "#d8c49a", color: "#17140e", textDecoration: "none", boxSizing: "border-box" }}><ShieldCheck size={15}/> Sign in with admin account</a>
         {error && <p role="alert" style={{ color: "#f0aab5", fontSize: 12 }}>{error}</p>}
-        <button disabled={busy} style={{ ...button, width: "100%", marginTop: 14, background: "#d8c49a", borderColor: "#d8c49a", color: "#17140e" }}>{busy ? <LoaderCircle size={15}/> : <ShieldCheck size={15}/>} Sign in</button>
-        <a href="/message" style={{ display: "inline-block", marginTop: 18, color: "#a99be0", fontSize: 12, textDecoration: "none" }}>← Discord custom message</a>
-      </form>
+      </section>
     </main>
   );
 
