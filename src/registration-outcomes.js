@@ -2,7 +2,7 @@ const LABELS = {
   registered: "REGISTERED",
   existing: "ALREADY ACTIVE",
   reactivated: "RE-ENABLED",
-  banned: "BLOCKED",
+  banned: "DISABLED",
   disabled: "DISABLED",
   failed: "NEEDS ATTENTION"
 };
@@ -11,7 +11,7 @@ const HEADLINES = {
   registered: "Registration complete",
   existing: "Already active",
   reactivated: "Re-enabled successfully",
-  banned: "Registration blocked",
+  banned: "Auto-redemption disabled",
   disabled: "Auto-redemption disabled",
   failed: "Registration needs attention"
 };
@@ -42,7 +42,7 @@ function outcome(kind, data) {
   } else if (kind === "reactivated") {
     summary = "The previous registration is active again for automatic redemption.";
   } else if (kind === "banned") {
-    summary = "This Player ID cannot be enrolled under the current service rules.";
+    summary = "Auto-redemption is disabled for this Player ID. Contact support if you believe this is a mistake.";
   } else if (kind === "disabled") {
     summary = "This Player ID is disabled for automatic redemption. Contact support if you need help re-enabling it.";
   } else {
@@ -58,7 +58,7 @@ function outcome(kind, data) {
     label: LABELS[kind],
     headline: HEADLINES[kind],
     summary,
-    reason: kind === "banned" ? reason || "This ID is restricted from registration." : "",
+    reason: kind === "banned" ? reason || "Auto-redemption is disabled for this Player ID." : "",
     code: text(data.code),
     verificationPending: Boolean(data.verificationPending),
     stale: Boolean(data.stale)
