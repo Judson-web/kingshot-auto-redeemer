@@ -278,3 +278,55 @@
 .support-topic-menu{position:relative!important;z-index:43!important;display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;touch-action:pan-y!important}
 .support-topic-option{position:relative!important;z-index:44!important;pointer-events:auto!important;cursor:pointer!important}
 .support-topic-trigger svg,.support-topic-option svg{pointer-events:none!important}
+
+
+/* Support chat: keep the thread and composer in separate, scroll-safe regions on phones. */
+@media(max-width:600px){
+ .support-float-root{--support-safe-bottom:env(safe-area-inset-bottom,0px)}
+ .support-float-panel.support-chat-panel{
+   position:fixed!important;left:8px!important;right:8px!important;bottom:calc(8px + var(--support-safe-bottom))!important;
+   top:auto!important;width:auto!important;max-width:none!important;height:min(82dvh,760px)!important;max-height:calc(100dvh - 24px - var(--support-safe-bottom))!important;
+   min-height:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;
+   border-radius:20px!important;box-sizing:border-box!important;z-index:10050!important;
+ }
+ .support-float-panel.support-chat-panel .support-float-head{flex:0 0 auto!important;min-height:68px!important;padding:13px 14px!important}
+ .support-float-panel.support-chat-panel .support-float-body{
+   display:flex!important;flex:1 1 0!important;flex-direction:column!important;min-height:0!important;
+   overflow:hidden!important;padding:0 12px!important;overscroll-behavior:contain!important;
+ }
+ .support-float-panel.support-chat-panel .support-chat-messages{
+   flex:1 1 0!important;min-height:84px!important;height:auto!important;max-height:none!important;
+   overflow-y:auto!important;overflow-x:hidden!important;padding:14px 2px 18px!important;
+   overscroll-behavior:contain!important;scrollbar-gutter:stable!important;
+ }
+ .support-float-panel.support-chat-panel .support-chat-message{flex:0 0 auto!important;max-width:92%!important;min-width:0!important}
+ .support-float-panel.support-chat-panel .support-chat-message p{overflow-wrap:anywhere!important;word-break:break-word!important}
+ .support-float-panel.support-chat-panel .support-float-body>form{
+   flex:0 0 auto!important;min-height:0!important;margin:0 -12px!important;padding:10px 12px 12px!important;
+   background:#111722!important;border-top:1px solid #283243!important;
+ }
+ .support-float-panel.support-chat-panel .support-float-body>form .support-message-label{padding-top:0!important}
+ .support-float-panel.support-chat-panel .support-float-body>form .support-composer{
+   border:1px solid #354156!important;border-radius:16px!important;overflow:hidden!important;background:#0e1420!important;
+ }
+ .support-float-panel.support-chat-panel .support-float-body>form .support-composer textarea{
+   display:block!important;width:100%!important;min-height:74px!important;height:clamp(74px,12dvh,112px)!important;max-height:112px!important;
+   margin:0!important;padding:13px!important;border:0!important;border-radius:0!important;resize:none!important;
+   font-size:16px!important;line-height:1.45!important;background:transparent!important;
+ }
+ .support-float-panel.support-chat-panel .support-float-body>form .support-composer-toolbar{
+   min-height:48px!important;padding:7px 9px!important;gap:8px!important;border-top:1px solid #283243!important;
+ }
+ .support-float-panel.support-chat-panel .support-float-body>form .support-composer-hint{flex:1 1 120px!important;min-width:0!important;font-size:10px!important;line-height:1.4!important}
+ .support-float-panel.support-chat-panel .support-float-body>form .support-message-count{flex:0 0 auto!important;font-size:10px!important}
+ .support-float-panel.support-chat-panel .support-float-body>form .support-float-submit{flex:0 0 auto!important;min-height:46px!important;margin-top:9px!important}
+ .support-float-panel.support-chat-panel .support-attachment-preview{min-width:0!important;max-width:100%!important}
+ .support-float-panel.support-chat-panel .support-attachment-preview span{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+ .support-float-panel.support-chat-panel>.support-float-foot{flex:0 0 auto!important;padding:8px 12px calc(8px + var(--support-safe-bottom))!important}
+}
+@media(max-width:380px){
+ .support-float-panel.support-chat-panel{left:5px!important;right:5px!important;border-radius:16px!important}
+ .support-float-panel.support-chat-panel .support-float-body{padding:0 9px!important}
+ .support-float-panel.support-chat-panel .support-float-body>form{margin:0 -9px!important;padding:9px!important}
+ .support-float-panel.support-chat-panel .support-float-body>form .support-composer-hint{font-size:9px!important}
+}
