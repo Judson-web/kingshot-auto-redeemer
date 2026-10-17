@@ -19,8 +19,7 @@ const pages=[
 const apis=[
 {method:"GET",path:"/api/v3/players/{playerId}",auth:"Bearer API key",desc:"V3 player profile with explicit provider freshness and quota metadata."},
 {method:"POST",path:"/api/v3/redemptions",auth:"Bearer API key",desc:"V3 manual redemption with standardized errors; inspect the operation outcome."},
-{method:"GET",path:"/api/v1/player?id=PLAYER_ID",auth:"Bearer API key · legacy",desc:"V1-compatible player lookup route."},
-{method:"POST",path:"/api/v1/redeem",auth:"Bearer API key · legacy",desc:"V1-compatible manual redemption route."},
+{method:"GET/POST",path:"/api/v1/*",auth:"Deprecated · migration only",desc:"Legacy developer routes emit deprecation headers. Migrate player lookup and redemption clients to V3."},
 {method:"GET",path:"/api/kingshot-player?id=PLAYER_ID",auth:"Public, rate limited",desc:"Legacy website player lookup endpoint."},
 {method:"POST",path:"/api/kingshot-redeem",auth:"Public, rate limited",desc:"Website manual-redemption endpoint."},
 {method:"POST",path:"/api/kingshot-register",auth:"Public, rate limited",desc:"Register a player for the existing auto-redemption workflow."},

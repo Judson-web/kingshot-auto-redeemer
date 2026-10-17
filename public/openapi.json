@@ -3,7 +3,7 @@
   "info": {
     "title": "Kingshot Auto Redeemer Developer API",
     "version": "3.0.0",
-    "description": "V3 developer API for player lookup and manual redemption. V1 endpoints remain available for compatibility. Use only with authorized player accounts.",
+    "description": "V3 is the supported developer API for player lookup and manual redemption. V1 routes are deprecated and retained temporarily for migration; new and existing integrations should migrate to V3. Use only with authorized player accounts.",
     "termsOfService": "https://kingshot-autoredeemer.vercel.app/terms?service=kingshot-auto",
     "contact": {
       "url": "https://kingshot-autoredeemer.vercel.app/developer"
@@ -54,7 +54,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Lookup completed",
+            "description": "Lookup completed; V1 is deprecated, and responses include deprecation headers pointing to V3",
             "content": {
               "application/json": {
                 "schema": {
@@ -106,7 +106,7 @@
         },
         "responses": {
           "200": {
-            "description": "Request processed; inspect operation result in response body"
+            "description": "Request processed; inspect operation result in response body; V1 is deprecated, and responses include deprecation headers pointing to V3"
           },
           "400": {
             "description": "Invalid request fields"
