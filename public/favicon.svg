@@ -1,1 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="g" x1="64" y1="40" x2="448" y2="472" gradientUnits="userSpaceOnUse"><stop stop-color="#9275f4"/><stop offset="1" stop-color="#4a2c9c"/></linearGradient><radialGradient id="glow" cx="50%" cy="38%" r="65%"><stop stop-color="#b8a7ff" stop-opacity=".35"/><stop offset="1" stop-color="#b8a7ff" stop-opacity="0"/></radialGradient></defs><rect width="512" height="512" rx="116" fill="#090a0f"/><rect x="34" y="34" width="444" height="444" rx="98" fill="url(#g)"/><rect x="50" y="50" width="412" height="412" rx="84" fill="#0d0e15" stroke="#b29dff" stroke-opacity=".35" stroke-width="3"/><circle cx="256" cy="232" r="150" fill="url(#glow)"/><path d="M154 137h111c63 0 103 39 103 94 0 57-40 96-103 96h-48v49h-63V137Zm63 55v80h45c28 0 44-14 44-41 0-25-16-39-44-39h-45Z" fill="#fff"/><circle cx="368" cy="367" r="62" fill="#12131b" stroke="#a58df7" stroke-width="12"/><path d="m414 413 38 38" stroke="#a58df7" stroke-width="18" stroke-linecap="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="5" y1="4" x2="59" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#17152b"/><stop offset="1" stop-color="#08090f"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="12" y1="10" x2="49" y2="54" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#c4b5fd"/><stop offset="1" stop-color="#8062e8"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="url(#bg)"/>
+  <path d="M13 17h16c11 0 18 7 18 16S40 49 29 49H13V17Zm10 9v14h6c5 0 8-2 8-7s-3-7-8-7h-6Z" fill="url(#mark)"/>
+  <path d="m43 42 9 9" stroke="#f5f3ff" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="45" cy="41" r="7" fill="#17152b" stroke="#f5f3ff" stroke-width="3"/>
+  <path d="M48 13h4m-2-2v4" stroke="#c4b5fd" stroke-width="2" stroke-linecap="round"/>
+</svg>
