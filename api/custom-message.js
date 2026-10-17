@@ -1,6 +1,4 @@
-import crypto from"node:crypto";
 import {rateLimit}from"../lib/request-rate-limit.js";
-const PASS=process.env.CUSTOM_MESSAGE_PASSKEY||"";
 function parseConfiguredDestinations(){
  const entries=String(process.env.CUSTOM_MESSAGE_DESTINATIONS||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>{
   const [key,...name]=x.split(":");
@@ -26,28 +24,11 @@ function webhookFor(key){
  if(k==="1494360495694549134")return process.env.DISCORD_KINGSHOT_WEBHOOK_URL||process.env.DISCORD_SCRAPER_WEBHOOK_URL||"";
  return process.env["CUSTOM_MESSAGE_WEBHOOK_"+k.toUpperCase()+"_URL"]||"";
 }
-const COOKIE="__Host-ks_message_session";
 const ADMIN_COOKIE="__Host-ks_admin_session";
 const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
 const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
-const TTL=12*60*60*1000;
-function sign(value){return crypto.createHmac("sha256",PASS).update(value).digest("base64url")}
-function token(){const exp=Date.now()+TTL,nonce=crypto.randomBytes(24).toString("base64url"),body=exp+"."+nonce;return body+"."+sign(body)}
 async function validSession(req){
  const cookies=String(req.headers.cookie||"").split(";").map(x=>x.trim());
- const raw=cookies.find(x=>x.startsWith(COOKIE+"="));
- if(PASS&&raw){
-  try{
-   const value=decodeURIComponent(raw.slice(COOKIE.length+1)),parts=value.split(".");
-   if(parts.length===3){
-    const [exp,nonce,sig]=parts,body=exp+"."+nonce;
-    if(/^\d+$/.test(exp)&&Number(exp)>=Date.now()){
-     const expected=sign(body),a=Buffer.from(sig),b=Buffer.from(expected);
-     if(a.length===b.length&&crypto.timingSafeEqual(a,b))return true;
-    }
-   }
-  }catch{}
- }
  // Reuse the site's existing admin session across private tools. Only the
  // server validates this HttpOnly cookie against the authoritative session RPC.
  const adminRaw=cookies.find(x=>x.startsWith(ADMIN_COOKIE+"="));
@@ -111,16 +92,8 @@ export default async function handler(req,res){
  if(req.method!=="POST")return res.status(405).json({error:"Method not allowed"});
  try{
   const body=req.body||{},action=String(body.action||"").toUpperCase();
-  if(action==="LOGIN"){
-   if(!rateLimit(req,res,"custom-message-login",5,15*60*1000))return res.status(429).json({error:"Too many attempts. Try again later."});
-   if(!PASS)return res.status(503).json({error:"Custom message access is not configured."});
-   const supplied=String(body.passkey||""),a=Buffer.from(supplied),b=Buffer.from(PASS);
-   const ok=a.length===b.length&&crypto.timingSafeEqual(a,b);
-   if(!ok)return res.status(401).json({error:"Invalid passkey."});
-   setCookie(res,token());
-   return res.status(200).json({ok:true,expiresIn:TTL});
-  }
-  if(action==="LOGOUT"){clearCookie(res);return res.status(200).json({ok:true})}
+  if(action==="LOGIN")return res.status(410).json({error:"Separate passkey login has been retired. Sign in with your administrator account."});
+  if(action==="LOGOUT")return res.status(200).json({ok:true,redirect:"/profile"});
   if(action==="CHECK"){const valid=await validSession(req);return res.status(valid?200:401).json({ok:valid})}
   if(action==="PUSH_STATUS"){
    if(!(await validSession(req)))return res.status(401).json({error:"Unauthorized. Sign in to the private console first."});
