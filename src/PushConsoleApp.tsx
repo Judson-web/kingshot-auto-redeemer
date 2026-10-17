@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { BellRing, CheckCircle2, LogOut, Send, ShieldCheck, LoaderCircle, AlertTriangle, Eye, EyeOff, Gift, MessageSquareText, Image as ImageIcon, X } from "lucide-react";
+import { BellRing, CheckCircle2, LogOut, Send, ShieldCheck, LoaderCircle, AlertTriangle, Gift, MessageSquareText, Image as ImageIcon, X } from "lucide-react";
 
 export default function PushConsoleApp() {
-  const [passkey, setPasskey] = useState("");
   const [authed, setAuthed] = useState(false);
   const [checking, setChecking] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [showPass, setShowPass] = useState(false);
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [url, setUrl] = useState("/gift-codes");
@@ -36,17 +34,6 @@ export default function PushConsoleApp() {
       .finally(() => { if (alive) setAudienceLoading(false); });
     return () => { alive = false; };
   }, [authed]);
-
-  const login = async event => {
-    event.preventDefault(); setBusy(true); setError("");
-    try {
-      const response = await fetch("/api/custom-message", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "LOGIN", passkey }), credentials: "same-origin" });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw Error(data.error || "Could not authenticate.");
-      setAuthed(true); setPasskey("");
-    } catch (e) { setError(e instanceof Error ? e.message : "Authentication failed."); }
-    finally { setBusy(false); }
-  };
 
   const send = async event => {
     event.preventDefault();
@@ -91,9 +78,9 @@ export default function PushConsoleApp() {
         <div style={{ flex: 1 }}><div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".12em", color: "#aeb7ff" }}>PRIVATE DEVELOPER TOOL</div><h1 style={{ margin: "5px 0 0", fontSize: "clamp(23px, 5vw, 30px)", letterSpacing: "-.04em" }}>Push notification console</h1></div>
         {authed && <button type="button" onClick={logout} title="Sign out" aria-label="Sign out" style={{ ...button, width: "auto", margin: 0, padding: 10, background: "#ffffff10" }}><LogOut size={16}/></button>}
       </header>
-      {!authed ? <><p style={{ color: "var(--muted, #a8afbf)", lineHeight: 1.6 }}>Sign in with the dedicated private console passkey. This page uses the existing server-side session and does not expose push credentials.</p>
-        <form onSubmit={login}><label style={label}>ACCESS PASSKEY<div style={{ position: "relative" }}><input style={{ ...input, paddingRight: 48 }} type={showPass ? "text" : "password"} value={passkey} onChange={e => setPasskey(e.target.value)} autoComplete="off" autoFocus placeholder="Enter your passkey" required/><button type="button" onClick={() => setShowPass(v => !v)} aria-label={showPass ? "Hide passkey" : "Show passkey"} style={{ position: "absolute", right: 8, top: 12, border: 0, background: "transparent", color: "inherit", padding: 7 }}>{showPass ? <EyeOff size={17}/> : <Eye size={17}/>}</button></div></label><button style={button} disabled={busy || !passkey}>{busy ? <LoaderCircle className="spin" size={17}/> : <ShieldCheck size={17}/>} Unlock console</button></form>
-      </> : <><p style={{ color: "var(--muted, #a8afbf)", lineHeight: 1.6, marginTop: 0 }}>Send a push notification to all subscribed devices. This does not post to Discord.</p>
+      {!authed ? <div style={{ padding: 16, borderRadius: 13, border: "1px solid var(--border, #303642)", background: "#ffffff06" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 11 }}><ShieldCheck size={20} color="#aeb7ff" style={{ flexShrink: 0, marginTop: 2 }}/><div><h2 style={{ margin: 0, fontSize: 17 }}>Administrator session required</h2><p style={{ color: "var(--muted, #a8afbf)", lineHeight: 1.6, margin: "7px 0 0" }}>This console uses the same verified administrator session as the rest of the site. Sign in from the existing profile/login section, then return here. No separate console password is used.</p><a href="/profile?next=%2Fpush" style={{ ...button, width: "auto", textDecoration: "none", marginTop: 14 }}><ShieldCheck size={16}/> Open profile & sign-in</a></div></div>
+      </div> : <><p style={{ color: "var(--muted, #a8afbf)", lineHeight: 1.6, marginTop: 0 }}>Send a push notification to all subscribed devices. This does not post to Discord.</p>
         <div style={{ display: "grid", gap: 10, padding: 14, borderRadius: 12, background: "#ffffff07", border: "1px solid #ffffff12", marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, fontSize: 12 }}><span style={{ color: "var(--muted, #a8afbf)" }}>Subscribed devices</span><strong aria-live="polite">{audienceLoading ? "Checking…" : audienceCount === null ? "Unavailable" : audienceCount.toLocaleString()}</strong></div>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}><Gift size={17} color="#aeb7ff"/><span style={{ fontSize: 12, lineHeight: 1.5 }}>Gift-code alerts are sent automatically after a code is verified.</span></div>
