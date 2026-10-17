@@ -1,7 +1,7 @@
 {
   "rewrites": [
     {
-      "source": "/api/v1/player",
+      "source": "/api/v1/player/:path*",
       "destination": "/api/kingshot-player?developer=player"
     },
     {
