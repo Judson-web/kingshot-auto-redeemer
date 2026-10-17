@@ -8,7 +8,10 @@ export const HANDLED_REDEMPTION_STATUSES = new Set([
   "USAGE_LIMIT",
   // Player-specific profile/eligibility failures must not block every later code.
   "STOVE_LV ERROR",
-  "USER INFO ERROR"
+  "USER INFO ERROR",
+  // Concierge-service accounts may be ineligible for gift-code redemption.
+  // Handle this for that player, but do not invalidate the code globally.
+  "RECHARGE_MONEY ERROR"
 ]);
 
 export function getHandledGiftCodes(history: unknown): Set<string> {
