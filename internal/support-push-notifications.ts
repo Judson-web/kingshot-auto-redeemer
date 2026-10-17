@@ -6,7 +6,7 @@ const PUBLIC_KEY=process.env.WEB_PUSH_VAPID_PUBLIC_KEY||"";
 const PRIVATE_KEY=process.env.WEB_PUSH_VAPID_PRIVATE_KEY||"";
 const SUBJECT=process.env.WEB_PUSH_VAPID_SUBJECT||"mailto:admin@kingshot-autoredeemer.vercel.app";
 const hash=value=>crypto.createHash("sha256").update(String(value||"")).digest("hex");
-async function db(path,init={}){if(!KEY)throw Error("Support push storage is not configured.");return fetch(BASE+"/rest/v1/"+path,{...init,headers:{apikey:KEY,authorization:"Bearer "+KEY,"content-type":"application/json",...(init.headers||{})},signal:AbortSignal.timeout(10000)})}
+async function db(path:string,init:RequestInit={}){if(!KEY)throw Error("Support push storage is not configured.");return fetch(BASE+"/rest/v1/"+path,{...init,headers:{apikey:KEY,authorization:"Bearer "+KEY,"content-type":"application/json",...(init.headers||{})},signal:AbortSignal.timeout(10000)})}
 function configure(){if(!KEY||!PUBLIC_KEY||!PRIVATE_KEY)throw Error("Support push notifications are not configured.");webpush.setVapidDetails(SUBJECT,PUBLIC_KEY,PRIVATE_KEY)}
 function safePath(value){if(typeof value!=="string"||!value.startsWith("/")||value.startsWith("//")||value.includes("\\"))return"/";try{const u=new URL(value,"https://ks-rewards.com");return u.origin==="https://ks-rewards.com"?u.pathname+u.search+u.hash:"/"}catch{return"/"}}
 export function supportPushConfigured(){return Boolean(KEY&&PUBLIC_KEY&&PRIVATE_KEY)}
