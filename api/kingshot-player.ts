@@ -1,5 +1,6 @@
 import { rateLimit } from "../lib/request-rate-limit.js";
 import developerApi from "../lib/developer-api.js";
+import developerApiV3 from "../lib/developer-api-v3.js";
 import developerAuth from "../lib/developer-auth.js";
 import developerAccount from "../lib/developer-account.js";
 import { isValidPlayerId, lookupPlayer, normalizePlayerId, PlayerLookupError } from "../internal/kingshot/player.js";
@@ -13,6 +14,7 @@ export default async function handler(req: RequestLike, res: ResponseLike): Prom
  const developerPath = String(req.query?.developerPath || requestUrl.searchParams.get("developerPath") || req.query?.developer || requestUrl.searchParams.get("developer") || "").replace(/^\/+|\/+$/g, "");
  if (developerPath === "account-auth") return developerAuth(req, res);
  if (developerPath === "account-keys") return developerAccount(req, res);
+ if (developerPath.startsWith("v3-")) return developerApiV3(req, res, developerPath.slice(3));
  if (developerPath) return developerApi(req, res, developerPath);
  if (req.method !== "GET") { res.setHeader("Allow", "GET"); return void sendError(res, 405, "method_not_allowed", "Method not allowed.", requestId); }
  if (!rateLimit(req, res, "player-lookup", 30, 60000)) return void sendError(res, 429, "rate_limit_exceeded", "Too many player lookups. Retry after the indicated delay.", requestId);
