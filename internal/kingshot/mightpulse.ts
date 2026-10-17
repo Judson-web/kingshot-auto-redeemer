@@ -42,11 +42,36 @@ async function fetchPlayer(playerId: string) {
   );
   const data = (await response.json().catch(() => ({}))) as {
     player?: KingshotPlayer;
+    fresh?: boolean;
+    cached_at?: string | null;
+    age_seconds?: number | null;
     message?: string;
     error?: string;
     [key: string]: unknown;
   };
   return { response, data };
+}
+
+export interface MightPulsePlayerSnapshot {
+  player: KingshotPlayer;
+  fresh: boolean | null;
+  cached_at: string | null;
+  age_seconds: number | null;
+}
+
+export async function getPlayerSnapshot(playerId: string): Promise<MightPulsePlayerSnapshot> {
+  const { response, data } = await fetchPlayer(playerId);
+  if (!response.ok) {
+    const error = new Error(data?.message || data?.error || "MightPulse could not find this player.") as ApiError;
+    error.status = response.status;
+    throw error;
+  }
+  return {
+    player: data.player || (data as KingshotPlayer),
+    fresh: typeof data.fresh === "boolean" ? data.fresh : null,
+    cached_at: typeof data.cached_at === "string" ? data.cached_at : null,
+    age_seconds: typeof data.age_seconds === "number" ? data.age_seconds : null
+  };
 }
 
 export async function getPlayer(playerId: string): Promise<KingshotPlayer> {

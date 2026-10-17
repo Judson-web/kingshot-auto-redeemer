@@ -1,4 +1,4 @@
-import { getPlayer, type KingshotPlayer } from "./mightpulse.js";
+import { getPlayer, getPlayerSnapshot, type KingshotPlayer } from "./mightpulse.js";
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wocxvtptqapietlteshr.supabase.co";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
@@ -37,6 +37,14 @@ async function syncRegisteredPlayerProfile(playerId: string, player: KingshotPla
   if (!response.ok) throw new Error("Could not refresh the stored player profile.");
 }
 
+export async function lookupPlayerWithMetadata(playerId: string) {
+  try {
+    const snapshot = await getPlayerSnapshot(playerId);
+    try { await syncRegisteredPlayerProfile(playerId, snapshot.player); } catch {}
+    return { ...snapshot, refreshed_at: new Date().toISOString() };
+  }
+  catch (error) { const typed = error as { message?: string; status?: number }; throw new PlayerLookupError(typed.message || "MightPulse request failed.", typed.status); }
+}
 export async function lookupPlayer(playerId: string): Promise<KingshotPlayer> {
   try {
     const player = await getPlayer(playerId);
