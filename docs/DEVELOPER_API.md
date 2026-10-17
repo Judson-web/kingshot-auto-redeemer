@@ -43,6 +43,8 @@ V3 bounds each upstream player-read attempt and retries at most once after a tra
 
 POST /api/v3/redemptions
 
+Optional `Idempotency-Key` (8–128 safe ASCII characters) enables durable replay protection for 24 hours, scoped to the developer key. Same key and body replays the stored response; a different body returns 409. Concurrent requests return 409. A stale in-progress request becomes an explicit unknown outcome rather than being submitted again. Storage failures reject keyed requests before redemption. Requests without this header retain legacy non-idempotent behavior.
+
     curl -X POST "https://kingshot-autoredeemer.vercel.app/api/v3/redemptions" \
       -H "Authorization: Bearer $KINGSHOT_API_KEY" \
       -H "Content-Type: application/json" \
@@ -56,7 +58,7 @@ The JSON body must contain exactly these string fields:
 | code | 1–64 letters, digits, underscores or hyphens |
 | kid | 1–10 digits |
 
-Unknown properties and non-string field values are rejected. A completed redemption operation returns HTTP 200 and places the actual game result in data.ok, data.status, data.message, data.errorCategory and data.errCode. HTTP 200 means the operation completed, not that rewards were necessarily granted. V3 does not promise idempotent or exactly-once execution; an upstream timeout may leave an ambiguous outcome, so do not automatically retry it. Unlike player lookup, redemption requests are never automatically retried by V3.
+Unknown properties and non-string field values are rejected. A completed redemption operation returns HTTP 200 and places the actual game result in data.ok, data.status, data.message, data.errorCategory and data.errCode. HTTP 200 means the operation completed, not that rewards were necessarily granted. V3 does not promise exactly-once execution by the upstream game provider. With an Idempotency-Key, this API prevents the same key/body from triggering another provider call and replays the stored result. A timeout or crash can still leave an ambiguous outcome; reuse the same key and never use a new key to blindly repeat the redemption.
 
 ## V3 error format
 
@@ -76,7 +78,7 @@ Errors have a stable nested shape:
 
 | HTTP | Meaning |
 |---:|---|
-| 400 | Invalid path parameter or JSON body |
+| 400 | Invalid path parameter, JSON body, or idempotency key |\n| 409 | Idempotency key conflict or request still processing |
 | 401 | Missing, invalid or revoked developer key |
 | 404 | Player or route not found |
 | 405 | Unsupported HTTP method |
