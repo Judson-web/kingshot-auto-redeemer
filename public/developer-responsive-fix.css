@@ -70,3 +70,232 @@ main.dev-dashboard .dev-footer{display:flex!important;flex-wrap:wrap!important;g
  main.dev-dashboard .dev-page-title{font-size:clamp(26px,8vw,32px)!important}
 }
 @media(prefers-reduced-motion:reduce){main.dev-dashboard *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+
+/* Developer workspace visual refresh: desktop command centre + mobile-first reading flow. */
+main.dev-dashboard{
+  background:
+    radial-gradient(ellipse at 14% 0%,rgba(91,104,205,.13),transparent 34rem),
+    radial-gradient(ellipse at 100% 22%,rgba(61,125,130,.08),transparent 32rem),
+    #090c12!important;
+  color:#edf1fa!important;
+  font-kerning:normal;
+  -webkit-font-smoothing:antialiased;
+}
+main.dev-dashboard .dev-topbar{
+  background:rgba(9,12,18,.9)!important;
+  border-bottom:1px solid rgba(143,158,187,.16)!important;
+  box-shadow:0 8px 30px rgba(0,0,0,.12);
+}
+main.dev-dashboard .dev-topbar-inner{min-height:70px!important}
+main.dev-dashboard .dev-brand-mark{
+  width:40px!important;height:40px!important;border-radius:13px!important;
+  border:1px solid #8c91ff35!important;
+  background:linear-gradient(145deg,#242b4b,#171d31)!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.07),0 6px 20px #0002;
+}
+main.dev-dashboard .dev-brand-copy>div:first-child{font-size:14px!important;letter-spacing:-.02em!important}
+main.dev-dashboard .dev-brand-copy>div:last-child{font-size:11px!important;line-height:1.45!important}
+main.dev-dashboard .dev-nav-link{
+  border:1px solid transparent!important;
+  border-radius:9px!important;
+  transition:background .16s ease,border-color .16s ease,color .16s ease!important;
+}
+main.dev-dashboard .dev-nav-link:hover,
+main.dev-dashboard .dev-nav-link:focus-visible{
+  background:#171d2a!important;border-color:#303b51!important;color:#f5f7ff!important;
+}
+main.dev-dashboard .dev-page{padding-top:34px!important}
+main.dev-dashboard .dev-overview{
+  position:relative!important;
+  padding:clamp(21px,3vw,32px)!important;
+  margin-bottom:18px!important;
+  border:1px solid #293346!important;
+  border-radius:20px!important;
+  background:linear-gradient(125deg,rgba(24,31,49,.96),rgba(15,20,30,.96) 65%,rgba(17,25,34,.95))!important;
+  box-shadow:0 18px 50px rgba(0,0,0,.18),inset 0 1px rgba(255,255,255,.025);
+  overflow:hidden;
+}
+main.dev-dashboard .dev-overview:before{
+  content:"";position:absolute;inset:0 0 auto;height:2px;
+  background:linear-gradient(90deg,#9b9dff,#78c8c0 46%,transparent 86%);
+  pointer-events:none;
+}
+main.dev-dashboard .dev-eyebrow{
+  display:flex!important;align-items:center;gap:8px!important;
+  color:#b6b9ff!important;letter-spacing:.16em!important;
+}
+main.dev-dashboard .dev-eyebrow:before{
+  content:"";width:7px;height:7px;border-radius:50%;background:#8d91ff;
+  box-shadow:0 0 0 4px #8d91ff1d;flex:none;
+}
+main.dev-dashboard .dev-page-title{max-width:760px!important;font-weight:760!important}
+main.dev-dashboard .dev-muted{color:#aab5c8!important}
+main.dev-dashboard .dev-version-pill{
+  border-color:#3a4559!important;background:#101722!important;
+  padding:9px 12px!important;box-shadow:inset 0 1px #ffffff08;
+}
+main.dev-dashboard .dev-stat-grid{gap:12px!important}
+main.dev-dashboard .dev-stat{
+  position:relative!important;overflow:hidden!important;
+  border-color:#293345!important;border-radius:15px!important;
+  background:linear-gradient(150deg,#141a25,#10151e)!important;
+  box-shadow:0 8px 24px #00000012,inset 0 1px #ffffff05;
+  transition:transform .18s ease,border-color .18s ease,background .18s ease!important;
+}
+main.dev-dashboard .dev-stat:before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:linear-gradient(#8d91ff,#72c8bc);opacity:.55;
+}
+main.dev-dashboard .dev-stat:hover{transform:translateY(-2px);border-color:#46536c!important;background:linear-gradient(150deg,#192131,#111822)!important}
+main.dev-dashboard .dev-stat-label{font-weight:650!important;letter-spacing:.035em!important}
+main.dev-dashboard .dev-stat-value{color:#f1f4ff!important;font-variant-numeric:tabular-nums}
+main.dev-dashboard .dev-stat-value code{color:#c8cbff!important}
+main.dev-dashboard .dev-section-nav{gap:8px!important;margin-bottom:20px!important}
+main.dev-dashboard .dev-section-nav a{
+  min-height:38px!important;border-color:#2a3445!important;
+  border-radius:10px!important;background:#10151e!important;
+  color:#c3ccdc!important;box-shadow:inset 0 1px #ffffff04;
+  transition:transform .15s ease,border-color .15s ease,background .15s ease!important;
+}
+main.dev-dashboard .dev-section-nav a:hover{transform:translateY(-1px);background:#171e2b!important;border-color:#646dc0!important}
+main.dev-dashboard .dev-section-nav a svg{color:#a9adff;flex:none}
+main.dev-dashboard .dev-layout{gap:22px!important}
+main.dev-dashboard .dev-sidebar{top:82px!important}
+main.dev-dashboard #developer-account{
+  border-color:#303b50!important;border-radius:18px!important;
+  background:linear-gradient(155deg,#171d29,#111620 72%)!important;
+  box-shadow:0 18px 45px #00000020,inset 0 1px #ffffff06!important;
+}
+main.dev-dashboard .dev-card{
+  border-color:#2a3445!important;border-radius:16px!important;
+  background:linear-gradient(155deg,#151b26,#11161f 76%)!important;
+  box-shadow:0 10px 30px #00000012,inset 0 1px #ffffff04!important;
+  transition:border-color .18s ease,box-shadow .18s ease!important;
+}
+main.dev-dashboard .dev-card:hover{border-color:#39465b!important;box-shadow:0 14px 36px #0000001c,inset 0 1px #ffffff05!important}
+main.dev-dashboard .dev-feature-card{
+  position:relative!important;overflow:hidden!important;
+  border-color:#3b4166!important;
+  background:radial-gradient(ellipse at 100% 0%,#30365b40,transparent 58%),linear-gradient(140deg,#1a2033,#131821 72%)!important;
+}
+main.dev-dashboard .dev-feature-card:after{
+  content:"API";position:absolute;right:18px;top:16px;
+  color:#d0d2ff0b;font-size:clamp(42px,6vw,76px);font-weight:900;
+  letter-spacing:-.08em;line-height:1;pointer-events:none;
+}
+main.dev-dashboard .dev-feature-card>*{position:relative;z-index:1}
+main.dev-dashboard .dev-card-head{gap:10px!important;margin-bottom:10px!important}
+main.dev-dashboard .dev-card-head>svg{flex:none;padding:3px;box-sizing:content-box}
+main.dev-dashboard .dev-card-title{font-weight:720!important;color:#f1f4fc!important}
+main.dev-dashboard .dev-code{
+  border:1px solid #252d3d!important;
+  background:#090d14!important;color:#d7dcff!important;
+  border-radius:12px!important;tab-size:2;
+  box-shadow:inset 0 1px 8px #0002;
+}
+main.dev-dashboard .dev-endpoint{
+  border-color:#303b4d!important;background:#0c1119!important;
+  border-radius:12px!important;padding:11px 12px!important;
+}
+main.dev-dashboard .dev-tab{border-radius:9px!important;transition:background .15s ease,border-color .15s ease!important}
+main.dev-dashboard .dev-tab:hover{border-color:#6872bd!important}
+main.dev-dashboard button:not(.dev-nav-link){
+  transition:filter .15s ease,border-color .15s ease,transform .15s ease!important;
+}
+main.dev-dashboard button:active{transform:translateY(1px)}
+main.dev-dashboard .dev-footer{color:#7f8da2!important}
+main.dev-dashboard .dev-footer a{color:#b9bdff!important;text-underline-offset:3px}
+main.dev-dashboard :focus-visible{outline:2px solid #aeb4ff!important;outline-offset:3px!important}
+@media(min-width:1100px){
+  main.dev-dashboard .dev-shell{max-width:1240px!important}
+  main.dev-dashboard .dev-layout{grid-template-columns:minmax(310px,.72fr) minmax(0,1.8fr)!important;gap:26px!important}
+  main.dev-dashboard .dev-overview{padding:34px 38px!important}
+  main.dev-dashboard .dev-doc-grid{gap:18px!important}
+  main.dev-dashboard .dev-section-nav{position:relative}
+  main.dev-dashboard .dev-stat{padding:18px!important}
+  main.dev-dashboard .dev-sidebar #developer-account{padding:24px!important}
+}
+@media(max-width:760px){
+  /* Mobile gets a compact, single-column reading flow instead of a shrunken desktop dashboard. */
+  main.dev-dashboard{background:radial-gradient(ellipse at 50% 0%,#1b2140 0,transparent 34rem),#090c12!important}
+  main.dev-dashboard .dev-topbar-inner{padding-top:9px!important;gap:9px!important}
+  main.dev-dashboard .dev-brand-mark{width:36px!important;height:36px!important;border-radius:11px!important}
+  main.dev-dashboard .dev-brand-copy{flex:1 1 140px!important}
+  main.dev-dashboard .dev-brand-copy>div:first-child{font-size:13px!important}
+  main.dev-dashboard .dev-brand-copy>div:last-child{font-size:10px!important}
+  main.dev-dashboard .dev-top-nav{
+    flex:1 1 100%!important;gap:5px!important;
+    padding:2px 0 8px!important;margin:0!important;
+    overflow-x:auto!important;overflow-y:hidden!important;
+    scrollbar-width:none!important;scroll-snap-type:x proximity!important;
+  }
+  main.dev-dashboard .dev-top-nav::-webkit-scrollbar{display:none!important}
+  main.dev-dashboard .dev-top-nav .dev-nav-link{
+    flex:0 0 auto!important;min-height:34px!important;
+    display:inline-flex!important;align-items:center!important;
+    padding:7px 10px!important;border:1px solid #283246!important;
+    border-radius:9px!important;background:#111722!important;
+    font-size:11px!important;scroll-snap-align:start;
+  }
+  main.dev-dashboard .dev-page{padding-top:14px!important;padding-bottom:30px!important}
+  main.dev-dashboard .dev-overview{
+    padding:19px 17px!important;gap:12px!important;margin-bottom:12px!important;
+    border-radius:16px!important;background:linear-gradient(145deg,#191f31,#111721)!important;
+  }
+  main.dev-dashboard .dev-eyebrow{font-size:9px!important;letter-spacing:.12em!important}
+  main.dev-dashboard .dev-page-title{font-size:clamp(27px,7.6vw,34px)!important;line-height:1.08!important;margin:9px 0 10px!important;letter-spacing:-.045em!important}
+  main.dev-dashboard .dev-overview .dev-muted{font-size:12px!important;line-height:1.65!important;max-width:38ch!important}
+  main.dev-dashboard .dev-version-pill{font-size:10px!important;padding:7px 9px!important}
+  main.dev-dashboard .dev-stat-grid{gap:8px!important;margin-bottom:13px!important}
+  main.dev-dashboard .dev-stat{padding:12px 11px!important;border-radius:12px!important}
+  main.dev-dashboard .dev-stat-label{font-size:10px!important}
+  main.dev-dashboard .dev-stat-value{font-size:14px!important;line-height:1.35!important;margin-top:6px!important}
+  main.dev-dashboard .dev-stat-detail{font-size:10px!important;line-height:1.45!important}
+  main.dev-dashboard .dev-section-nav{
+    display:flex!important;flex-wrap:nowrap!important;align-items:stretch!important;
+    gap:7px!important;margin:0 -2px 14px!important;padding:1px 2px 7px!important;
+    overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:thin!important;
+    scrollbar-color:#3c4860 transparent!important;scroll-snap-type:x proximity!important;
+  }
+  main.dev-dashboard .dev-section-nav a{
+    flex:0 0 auto!important;max-width:80%!important;min-height:39px!important;
+    padding:10px 11px!important;border-radius:10px!important;
+    white-space:nowrap!important;scroll-snap-align:start;
+  }
+  main.dev-dashboard .dev-layout{gap:13px!important}
+  main.dev-dashboard .dev-sidebar{order:0!important}
+  main.dev-dashboard #developer-account{border-radius:15px!important;padding:16px!important}
+  main.dev-dashboard .dev-content{order:1!important;gap:12px!important}
+  main.dev-dashboard .dev-doc-grid{gap:12px!important}
+  main.dev-dashboard .dev-card{padding:16px!important;border-radius:14px!important}
+  main.dev-dashboard .dev-feature-card{padding:18px 16px!important}
+  main.dev-dashboard .dev-feature-card h2{font-size:21px!important;line-height:1.22!important}
+  main.dev-dashboard .dev-feature-card:after{font-size:52px;right:13px;top:13px}
+  main.dev-dashboard .dev-card-head{align-items:flex-start!important}
+  main.dev-dashboard .dev-card-title{font-size:16px!important}
+  main.dev-dashboard .dev-code{padding:12px!important;font-size:11px!important;line-height:1.6!important}
+  main.dev-dashboard .dev-endpoint{gap:7px!important;padding:9px!important}
+  main.dev-dashboard .dev-endpoint code{flex:1 1 130px!important;font-size:11px!important}
+  main.dev-dashboard .dev-endpoint button{flex:0 0 auto!important}
+  main.dev-dashboard .dev-footer{gap:7px!important;margin-top:18px!important;padding-top:13px!important;font-size:10px!important}
+}
+@media(max-width:420px){
+  main.dev-dashboard .dev-shell{padding-inline:11px!important}
+  main.dev-dashboard .dev-topbar-inner{gap:7px!important}
+  main.dev-dashboard .dev-overview{padding:17px 14px!important}
+  main.dev-dashboard .dev-page-title{font-size:27px!important}
+  main.dev-dashboard .dev-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  main.dev-dashboard .dev-stat:last-child{grid-column:1/-1!important}
+  main.dev-dashboard .dev-stat:last-child .dev-stat-value{font-size:15px!important}
+  main.dev-dashboard .dev-section-nav a{max-width:88%!important;font-size:11px!important}
+  main.dev-dashboard .dev-card{padding:14px!important}
+  main.dev-dashboard .dev-feature-card{padding:16px 14px!important}
+  main.dev-dashboard .dev-endpoint button{white-space:normal!important}
+}
+@media(hover:none){
+  main.dev-dashboard .dev-stat:hover,main.dev-dashboard .dev-section-nav a:hover{transform:none!important}
+}
+@media(prefers-reduced-motion:reduce){
+  main.dev-dashboard *,main.dev-dashboard *:before,main.dev-dashboard *:after{transition:none!important;animation:none!important;scroll-behavior:auto!important}
+}
