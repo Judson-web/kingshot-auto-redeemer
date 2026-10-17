@@ -37,9 +37,15 @@ function num(value:unknown):number|null{
  return null;
 }
 function quota(result:JsonRecord):JsonRecord{
- const value:JsonRecord={perDayLimit:1000}; const limit=num(result.limit),remaining=num(result.remaining),daily=num(result.daily_remaining);
- if(limit!==null)value.perMinuteLimit=limit;
- if(remaining!==null)value.perMinuteRemaining=remaining;
+ const reason=String(result.reason||""),limit=num(result.limit),remaining=num(result.remaining),daily=num(result.daily_remaining);
+ const value:JsonRecord={perDayLimit:1000};
+ if(reason==="daily_quota_exceeded"){
+  value.perDayLimit=limit??1000;
+  value.perDayRemaining=0;
+ }else{
+  value.perMinuteLimit=limit??60;
+  if(remaining!==null)value.perMinuteRemaining=remaining;
+ }
  if(daily!==null)value.perDayRemaining=daily;
  if(typeof result.reset_at==="string")value.resetAt=result.reset_at;
  return value;
@@ -116,7 +122,7 @@ export default async function developerApiV3(req:RequestLike,res:ResponseLike,pa
     kingdomId:rawKingdom===undefined||rawKingdom===null||String(rawKingdom)===""?null:String(rawKingdom),
     power:num(player.power),townCenterLevel:num(player.town_center_level??player.tc_level??player.townCenterLevel),
     avatarUrl:avatar(player.avatar_url||player.avatar||player.avatarUrl)
-   },meta:{apiVersion:"3",requestId:rid,timestamp:now(),fetchedAt:snapshot.cached_at,source:"mightpulse",stale:snapshot.fresh===false,providerFresh:snapshot.fresh,providerAgeSeconds:snapshot.age_seconds,rateLimit:auth.rateLimit}});
+   },meta:{apiVersion:"3",requestId:rid,timestamp:now(),fetchedAt:snapshot.cached_at,source:"mightpulse",stale:snapshot.fresh===null?null:snapshot.fresh===false,providerFresh:snapshot.fresh,providerAgeSeconds:snapshot.age_seconds,rateLimit:auth.rateLimit}});
   }catch(error){
    const status=(error as {status?:number}|null)?.status,message=error instanceof Error?error.message:"";
    if(status===404)sendError(res,404,"player_not_found","The player lookup provider could not find this player.",rid,{rateLimit:auth.rateLimit});

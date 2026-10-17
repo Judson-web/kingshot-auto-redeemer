@@ -556,7 +556,10 @@
             "type": "string"
           },
           "stale": {
-            "type": "boolean"
+            "type": [
+              "boolean",
+              "null"
+            ]
           },
           "providerFresh": {
             "type": [
