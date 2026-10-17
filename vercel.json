@@ -95,6 +95,10 @@
     {
       "source": "/devsupport",
       "destination": "/index.html"
+    },
+    {
+      "source": "/admin/players",
+      "destination": "/index.html"
     }
   ],
   "headers": [
