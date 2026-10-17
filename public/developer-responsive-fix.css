@@ -299,3 +299,101 @@ main.dev-dashboard :focus-visible{outline:2px solid #aeb4ff!important;outline-of
 @media(prefers-reduced-motion:reduce){
   main.dev-dashboard *,main.dev-dashboard *:before,main.dev-dashboard *:after{transition:none!important;animation:none!important;scroll-behavior:auto!important}
 }
+
+
+/* Final polish: keep the overview title fully visible and make the top bar compact. */
+main.dev-dashboard .dev-topbar-inner{
+  min-height:60px!important;
+  padding-block:8px!important;
+  gap:10px!important;
+}
+main.dev-dashboard .dev-overview{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+  align-items:start!important;
+}
+main.dev-dashboard .dev-overview>div{
+  width:100%!important;
+  min-width:0!important;
+}
+main.dev-dashboard .dev-page-title{
+  display:block!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  line-clamp:unset!important;
+  -webkit-line-clamp:unset!important;
+  -webkit-box-orient:initial!important;
+  overflow-wrap:normal!important;
+  word-break:normal!important;
+  text-wrap:balance;
+}
+main.dev-dashboard .dev-overview .dev-muted{
+  max-width:65ch!important;
+}
+main.dev-dashboard .dev-version-pill{
+  justify-self:start!important;
+}
+@media(min-width:761px){
+  main.dev-dashboard .dev-overview{
+    grid-template-columns:minmax(0,1fr) auto!important;
+    gap:20px!important;
+    padding:clamp(24px,3vw,34px)!important;
+  }
+  main.dev-dashboard .dev-page-title{
+    font-size:clamp(30px,3.1vw,40px)!important;
+    line-height:1.16!important;
+    max-width:22ch!important;
+  }
+}
+@media(max-width:760px){
+  main.dev-dashboard .dev-topbar-inner{
+    min-height:0!important;
+    padding-block:9px 7px!important;
+    gap:7px!important;
+  }
+  main.dev-dashboard .dev-brand-mark{
+    width:34px!important;
+    height:34px!important;
+  }
+  main.dev-dashboard .dev-top-nav{
+    margin-top:1px!important;
+    padding-bottom:4px!important;
+  }
+  main.dev-dashboard .dev-page{
+    padding-top:12px!important;
+  }
+  main.dev-dashboard .dev-overview{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr)!important;
+    gap:11px!important;
+    padding:18px 16px!important;
+  }
+  main.dev-dashboard .dev-page-title{
+    font-size:clamp(29px,7.2vw,36px)!important;
+    line-height:1.16!important;
+    letter-spacing:-.04em!important;
+    max-width:18ch!important;
+    margin:9px 0 11px!important;
+  }
+  main.dev-dashboard .dev-overview .dev-muted{
+    max-width:42ch!important;
+  }
+  main.dev-dashboard .dev-version-pill{
+    margin-top:0!important;
+  }
+}
+@media(max-width:380px){
+  main.dev-dashboard .dev-page-title{
+    font-size:27px!important;
+    max-width:17ch!important;
+  }
+  main.dev-dashboard .dev-overview{
+    padding:16px 13px!important;
+  }
+}
