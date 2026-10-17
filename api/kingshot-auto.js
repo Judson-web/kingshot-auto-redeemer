@@ -432,10 +432,23 @@ export default async function handler(req,res){
      const history=await rpc("list_kingshot_player_redemptions",{p_player_id:player.player_id});
      const handled=getHandledGiftCodes(history);
      if(handled.has(canaryCandidate.code.toUpperCase()))continue;
-     const claim=await rpc("claim_kingshot_redemption",{p_player_id:player.player_id,p_code:canaryCandidate.code});if(!claim)continue;
-     const result=await redeemKingshot({playerId:player.player_id,code:canaryCandidate.code,kid:player.kingdom_id});
+     await journalStart(player.player_id,canaryCandidate.code);
+     let claim;
+     try{claim=await rpc("claim_kingshot_redemption",{p_player_id:player.player_id,p_code:canaryCandidate.code});}
+     catch(error){await journalCancel(player.player_id,canaryCandidate.code,"Supabase canary claim unavailable: "+String(error?.message||error).slice(0,180));throw error;}
+     if(!claim){await journalCancel(player.player_id,canaryCandidate.code,"Supabase canary claim declined");continue;}
+     let result;
+     try{result=await redeemKingshot({playerId:player.player_id,code:canaryCandidate.code,kid:player.kingdom_id});}
+     catch(error){
+      await neonJournal?.query("update public.redemption_journal set state='needs_review',last_error=$3,updated_at=now() where player_id=$1 and upper(gift_code)=upper($2) and state='in_flight'",[String(player.player_id),String(canaryCandidate.code),String(error?.message||error).slice(0,240)]).catch(()=>{});
+      throw error;
+     }
      const status=String(result?.status||"ERROR").toUpperCase(),message=String(result?.message||result?.error||"");
-     await recordRedemptionSafely(rpc,{p_player_id:player.player_id,p_code:canaryCandidate.code,p_status:status,p_err_code:result?.errCode??null,p_message:(result?.errorCategory?"["+result.errorCategory+"] ":"")+message});
+     const canaryMessage=(result?.errorCategory?"["+result.errorCategory+"] ":"")+message;
+     try{await journalResult(player.player_id,canaryCandidate.code,status,result?.errCode??null,canaryMessage);}
+     catch(error){console.error("Canary Neon result journal write failed; falling back to Supabase history:",String(error?.message||error).slice(0,240));}
+     await recordRedemptionSafely(rpc,{p_player_id:player.player_id,p_code:canaryCandidate.code,p_status:status,p_err_code:result?.errCode??null,p_message:canaryMessage});
+     await neonJournal?.query("update public.redemption_journal set state='supabase_recorded',attempts=attempts+1,last_error=null,updated_at=now() where player_id=$1 and upper(gift_code)=upper($2) and state='result_recorded'",[String(player.player_id),String(canaryCandidate.code)]).catch(error=>console.error("Canary Neon journal acknowledgement failed:",error?.message||error));
      // This response identifies an account eligibility restriction, not an invalid code.
      // Treat only this exact response as verification success so the code is released to all players.
      let validationStatus="pending";if(["SUCCESS","RECEIVED","SAME TYPE EXCHANGE","RECHARGE_MONEY ERROR"].includes(status))validationStatus="verified";else if(status==="CDK_NOT_FOUND")validationStatus="invalid";else if(status==="TIME_ERROR")validationStatus="expired";else if(status==="USAGE_LIMIT")validationStatus="usage_limit";
