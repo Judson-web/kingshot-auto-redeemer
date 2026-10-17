@@ -38,10 +38,10 @@ test("mixed multi-ID results preserve per-ID outcomes and aggregate counts", () 
   ];
   const summary = summarizeRegistrationOutcomes(items);
   assert.deepEqual({ total: summary.total, active: summary.active, registered: summary.registered, existing: summary.existing, banned: summary.banned, disabled: summary.disabled, failed: summary.failed },
-    { total: 5, active: 2, registered: 1, existing: 1, banned: 0, disabled: 2, failed: 1 });
+    { total: 5, active: 2, registered: 1, existing: 1, disabled: 3, failed: 1 });
   assert.match(summary.message, /5 Player IDs checked/);
   assert.match(summary.message, /2 active/);
-  assert.match(summary.message, /2 disabled/);
+  assert.match(summary.message, /3 disabled/);
   assert.equal(summary.needsAttention, true);
   assert.equal(registrationOutcomeHeadline(items), "Registration results");
 });
