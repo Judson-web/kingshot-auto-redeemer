@@ -1,0 +1,28 @@
+name: OWASP ZAP Baseline
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "23 5 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zap-baseline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  baseline:
+    name: Passive scan of production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Run OWASP ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: https://kingshot-autoredeemer.vercel.app/
+          cmd_options: "-a -m 3"
+          fail_action: false
