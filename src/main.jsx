@@ -124,6 +124,7 @@ function RegistrationOutcomePanel({outcomes}){
  if(!outcomes.length)return null;
  const current=outcomes[Math.min(activeIndex,outcomes.length-1)];
  const tone=summary.allRestricted?"blocked":summary.needsAttention?"attention":"success";
+ const aggregateKind=summary.banned?"banned":summary.disabled?"disabled":summary.failed?"failed":summary.reactivated?"reactivated":summary.existing?"existing":"registered";
  const heading=multiple?"Registration results":registrationOutcomeHeadline(outcomes);
  const overview=multiple?summary.message:"Player ID "+current.id+" was checked.";
  const iconFor=kind=>kind==="banned"?<ShieldOff size={20}/>:kind==="disabled"?<WifiOff size={20}/>:kind==="failed"?<AlertTriangle size={20}/>:kind==="existing"?<ShieldCheck size={20}/>:kind==="reactivated"?<RefreshCw size={20}/>:<CheckCircle size={20}/>;
@@ -138,9 +139,9 @@ function RegistrationOutcomePanel({outcomes}){
     :"Review each ID's status and reason below. Contact Support if you need help with a blocked or disabled registration.";
  return <section className={"ks-outcome-panel ks-outcome-"+tone} aria-labelledby="ks-outcome-title">
   <div className="ks-outcome-header">
-   <div className="ks-outcome-head-icon">{iconFor(multiple?(summary.needsAttention?"banned":"registered"):current.kind)}</div>
+   <div className="ks-outcome-head-icon">{iconFor(multiple?aggregateKind:current.kind)}</div>
    <div className="ks-outcome-head-copy"><span className="ks-outcome-kicker">{multiple?outcomes.length+" PLAYER IDs · SUBMISSION SUMMARY":"PLAYER ID STATUS"}</span><h2 id="ks-outcome-title">{heading}</h2><p>{overview}</p></div>
-   <span className="ks-outcome-count"><b>{multiple?outcomes.length:current.label}</b><small>{multiple?"CHECKED":"STATUS"}</small></span>
+   <span className="ks-outcome-count"><b>{outcomes.length}</b><small>{multiple?"CHECKED":"PLAYER"}</small></span>
   </div>
   {multiple&&<div className="ks-outcome-summary" aria-label="Outcome totals">{summary.active>0&&<span className="is-active"><CheckCircle size={12}/>{summary.active} active</span>}{summary.banned>0&&<span className="is-blocked"><ShieldOff size={12}/>{summary.banned} blocked</span>}{summary.disabled>0&&<span className="is-disabled"><WifiOff size={12}/>{summary.disabled} disabled</span>}{summary.failed>0&&<span className="is-failed"><AlertTriangle size={12}/>{summary.failed} need attention</span>}</div>}
   <div className="ks-outcome-track-wrap">
