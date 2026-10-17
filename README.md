@@ -34,7 +34,7 @@
 | 👤 **Player validation** | Revalidates player and kingdom data when required |
 | 📊 **Telemetry** | Tracks discovery, parsing, redemption, and operational outcomes; aggregate website analytics are archived separately |
 | 🗄️ **Archive** | Keeps scraper history in a separate private archive |
-| 🛡️ **Disaster recovery** | Maintains verified, encrypted recovery material |
+| 🛡️ **Disaster recovery** | Maintains verified, encrypted recovery material and an independent Neon redemption-outcome journal |
 | 🔐 **Security** | Uses server-side credentials, rate-aware behavior, and regression checks |
 | 🔔 **Web push** | Optional browser notifications for verified new gift codes and authorized developer announcements, with optional HTTPS images |
 
@@ -82,7 +82,7 @@ The service can:
 - retain a privacy-conscious scraper archive
 - maintain an isolated disaster-recovery path for registered players
 
-**Core rule:** the live Supabase database remains the operational source of truth for the production worker.
+**Core rule:** Supabase remains the operational source of truth for the production worker. A separately hosted Neon PostgreSQL database is used only as an independent redemption-recovery journal; it does not replace Supabase or hold the authoritative player registry.
 
 ## ✦ Architecture
 
@@ -110,7 +110,7 @@ flowchart LR
 
 The production service runs on Vercel, with Supabase/PostgreSQL providing durable application state. The TypeScript migration is in progress: TypeScript 5.9 type-checking is part of CI, but the repository still contains JavaScript/JSX modules. Do not treat the migration as complete until the remaining modules are converted and the full regression suite passes.
 
-The worker is coordinated through database-backed state rather than process-local memory. Worker sharding, leases, heartbeats, atomic claims, retry handling, and persistent redemption history are designed to prevent duplicate work across concurrent invocations.
+The worker is coordinated through database-backed state rather than process-local memory. Worker sharding, leases, heartbeats, atomic claims, retry handling, and persistent redemption history are designed to prevent duplicate work across concurrent invocations.\n\n### Independent redemption journal (Neon)\n\nThe worker writes a durable intent to the separately hosted Neon PostgreSQL journal before calling the upstream redemption service. When the upstream result is known, it records that outcome in Neon before attempting the normal Supabase history write. If Supabase history persistence fails, later worker runs can retry the history write from Neon without repeating the game redemption request. The same journaling flow covers normal worker attempts and validation-canary attempts.\n\nNeon is a recovery aid, not a second source of truth: Supabase remains authoritative for application state and user-facing redemption history. If Neon is unavailable before an upstream call, the worker fails closed rather than making an unjournaled attempt. Ambiguous upstream transport failures are marked for review instead of being blindly retried. No design can guarantee recovery if the upstream accepts a redemption but both independent databases fail before the result is durably recorded; such cases require careful review.
 
 Player lookups can refresh the stored profile of an already-registered Player ID when fresh provider data is available. This does not reset the scheduler's kingdom-validation cooldown.
 
@@ -192,7 +192,7 @@ The infrastructure includes:
 
 The recovery rehearsal restores into an **ephemeral SQLite database** and does not modify production.
 
-The production database remains authoritative.
+The production Supabase database remains authoritative. Neon holds only the independent redemption recovery journal; it is not a replacement database or a player-registration backup.
 
 ## ✦ Security model
 
@@ -289,7 +289,7 @@ The `/developer` portal uses the existing admin passkey/session to create and re
 | Frontend | React 19 + Vite 6 |
 | Runtime | Node.js 24.x + TypeScript 5.9 |
 | Deployment | Vercel |
-| Database | Supabase PostgreSQL |
+| Primary database | Supabase PostgreSQL (source of truth) |\n| Redemption recovery journal | Neon PostgreSQL via `@neondatabase/serverless` |
 | Storage | Supabase Storage |
 | Automation | GitHub Actions |
 | Recovery | Private GitHub archive + encrypted DR vault; check archive README for live checkpoint/backup status |
@@ -409,7 +409,7 @@ The architecture deliberately favors boring, durable components over unnecessary
 - database-backed claims and leases
 - automated validation and recovery checks
 
-There is intentionally **no second production database, no IP-rotation layer, and no dependency on the cold archive during normal redemption.**
+There is no second source-of-truth database, no IP-rotation layer, and no dependency on the cold archive during normal redemption. Neon is deliberately limited to the independent redemption-recovery journal.
 
 ## ✦ License
 
