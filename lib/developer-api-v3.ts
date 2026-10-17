@@ -133,7 +133,7 @@ export default async function developerApiV3(req:RequestLike,res:ResponseLike,pa
   return;
  }
  const validation=validateV3RedemptionBody(req.body);
- if(!validation.valid){sendError(res,400,validation.code,validation.message,rid,{rateLimit:auth.rateLimit});return;}
+ if(validation.valid===false){sendError(res,400,validation.code,validation.message,rid,{rateLimit:auth.rateLimit});return;}
  try{
   const result=await redeemKingshot(validation.value);
   if(result.httpStatus===504||result.errorCategory==="TIMEOUT"){sendError(res,504,"upstream_timeout","The redemption provider timed out. Check the outcome before submitting another attempt.",rid,{rateLimit:auth.rateLimit});return;}
