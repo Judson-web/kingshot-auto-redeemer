@@ -2605,3 +2605,9 @@ body:has(.support-float-panel.support-chat-panel) .ks-install-prompt{display:non
  .support-float-panel.support-chat-panel .support-float-body>form{margin:0 -9px!important;padding:9px!important}
  .support-float-panel.support-chat-panel .support-float-body>form .support-composer-hint{font-size:9px!important}
 }
+
+/* Registration outcome cards put the player's identity ahead of the numeric ID. */
+.ks-outcome-identity{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ks-outcome-identity h3{margin:0;font-size:17px;line-height:1.25;overflow-wrap:anywhere}
+.ks-outcome-identity .ks-outcome-player-meta{margin:0;font-size:12px}
+.ks-outcome-player-id{color:#777b8b;font-size:10px;letter-spacing:.045em;overflow-wrap:anywhere}
