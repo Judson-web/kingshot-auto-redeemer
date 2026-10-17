@@ -2611,3 +2611,7 @@ body:has(.support-float-panel.support-chat-panel) .ks-install-prompt{display:non
 .ks-outcome-identity h3{margin:0;font-size:17px;line-height:1.25;overflow-wrap:anywhere}
 .ks-outcome-identity .ks-outcome-player-meta{margin:0;font-size:12px}
 .ks-outcome-player-id{color:#777b8b;font-size:10px;letter-spacing:.045em;overflow-wrap:anywhere}
+
+.ks-outcome-slide-icon{overflow:hidden;flex:0 0 52px;width:52px;height:52px;border-radius:16px}
+.ks-outcome-avatar{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.ks-outcome-slide-icon:has(.ks-outcome-avatar){background:#171521;border:1px solid rgba(180,157,255,.18)}
