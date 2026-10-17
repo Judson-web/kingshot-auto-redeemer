@@ -7,4 +7,7 @@
   <url><loc>https://kingshot-autoredeemer.vercel.app/redeem</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://kingshot-autoredeemer.vercel.app/terms</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
   <url><loc>https://kingshot-autoredeemer.vercel.app/privacy</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://kingshot-autoredeemer.vercel.app/developer</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://kingshot-autoredeemer.vercel.app/developer.md</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://kingshot-autoredeemer.vercel.app/openapi.json</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
 </urlset>
