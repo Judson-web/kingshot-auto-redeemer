@@ -38,7 +38,7 @@ export async function notifySupportReply(conversationId,subject){
  const response=await db("kingshot_support_push_subscriptions?select=id,endpoint,p256dh,auth&conversation_id=eq."+encodeURIComponent(conversationId));
  if(!response.ok)throw Error("Could not load support notification subscribers.");
  const rows=await response.json().catch(()=>[]);
- const payload=JSON.stringify({title:"Kingshot support replied",body:"An administrator replied to your support conversation: "+String(subject||"Support conversation").slice(0,100),url:"/",tag:"support-reply-"+String(conversationId).slice(0,64)});
+ const payload=JSON.stringify({title:"Kingshot support replied",body:"An administrator replied to your support conversation.",url:"/",tag:"support-reply-"+String(conversationId).slice(0,64)});
  let sent=0,failed=0,cursor=0;
  const worker=async()=>{while(true){const i=cursor++;if(i>=rows.length)return;const row=rows[i];try{await webpush.sendNotification({endpoint:row.endpoint,keys:{p256dh:row.p256dh,auth:row.auth}},payload,{TTL:86400});sent++}catch(error){const status=Number(error?.statusCode||0);if(status===404||status===410){const removed=await db("kingshot_support_push_subscriptions?id=eq."+encodeURIComponent(String(row.id)),{method:"DELETE"}).catch(()=>null);if(!removed?.ok)failed++}else failed++}}};
  await Promise.all(Array.from({length:Math.min(4,rows.length)},worker));
