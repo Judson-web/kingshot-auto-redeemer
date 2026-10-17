@@ -33,6 +33,10 @@ const registerHandler=read("api/kingshot-register.ts");
 const support=read("lib/support.js");
 const adminData=read("lib/admin-data.js");
 const adminLogin=read("lib/admin-login.js");
+const legacyDeveloperLogin=read("lib/developer-login.js");
+const pushConsole=read("src/PushConsoleApp.tsx");
+const customMessage=read("api/custom-message.js");
+const legacyPasskeyMigration=read("supabase/migrations/20261017140000_retire_legacy_developer_passkeys.sql");
 const supportWidget=read("src/components/SupportWidget.tsx");
 const supportWidgetCss=read("src/support-chat-polish.css");
 const developerAuth=read("lib/developer-auth.ts");
@@ -153,6 +157,22 @@ assertCheck("Legacy passkey admin login is retired",
  adminLogin.includes("res.status(410)") &&
  adminLogin.includes("Legacy passkey administration has been retired.") &&
  adminLogin.includes('signInUrl:"/dev"'));
+assertCheck("Push console has no separate passkey UI and points to the existing account section",
+ !/passkey|ACCESS PASSKEY|Unlock console|action:\s*["']LOGIN["']/.test(pushConsole) &&
+ pushConsole.includes('action: "CHECK"') &&
+ pushConsole.includes('href="/developer?next=%2Fpush"'));
+assertCheck("Push console validates the existing Discord session and owner identity server-side",
+ customMessage.includes('__Host-ks_developer_session') &&
+ customMessage.includes('kingshot_developer_account_session_get') &&
+ customMessage.includes('discordId===OWNER_DISCORD_ID') &&
+ customMessage.includes('action==="CHECK"'));
+assertCheck("Legacy developer passkey endpoint cannot create sessions",
+ legacyDeveloperLogin.includes("Legacy developer passkey authentication has been retired.") &&
+ !legacyDeveloperLogin.includes("kingshot_developer_create_session_with_key") &&
+ !legacyDeveloperLogin.includes("req.body?.accessKey") &&
+ !read("lib/developer-login.ts").includes("kingshot_developer_create_session_with_key") &&
+ legacyPasskeyMigration.includes("drop table if exists private.kingshot_developer_access_keys") &&
+ legacyPasskeyMigration.includes("drop function if exists public.kingshot_developer_create_session_with_key(text,text)"));
 assertCheck("Modern admin authentication has request rate limiting",
  developerAuth.includes('rateLimit(req,res,"developer-account-auth",8,900000)'));
 assertCheck("Admin data requires a stored owner session before privileged work",

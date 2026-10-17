@@ -25,25 +25,40 @@ function webhookFor(key){
  if(k==="1494360495694549134")return process.env.DISCORD_KINGSHOT_WEBHOOK_URL||process.env.DISCORD_SCRAPER_WEBHOOK_URL||"";
  return process.env["CUSTOM_MESSAGE_WEBHOOK_"+k.toUpperCase()+"_URL"]||"";
 }
-const ADMIN_COOKIE="__Host-ks_admin_session";
+const DEVELOPER_COOKIE="__Host-ks_developer_session";
 const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
 const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
+const OWNER_DISCORD_ID="871756466900598815";
+const hashToken=value=>crypto.createHash("sha256").update(String(value||"")).digest("hex");
+function cookieValue(req,name){
+ const item=String(req.headers.cookie||"").split(";").map(x=>x.trim()).find(x=>x.startsWith(name+"="));
+ if(!item)return "";
+ try{return decodeURIComponent(item.slice(name.length+1))}catch{return ""}
+}
 async function validSession(req){
- const cookies=String(req.headers.cookie||"").split(";").map(x=>x.trim());
- // Reuse the site's existing admin session across private tools. Only the
- // server validates this HttpOnly cookie against the authoritative session RPC.
- const adminRaw=cookies.find(x=>x.startsWith(ADMIN_COOKIE+"="));
- if(!adminRaw||!SUPABASE_KEY)return false;
+ // Reuse the same verified Discord developer-account session as /developer.
+ // Only the configured owner Discord identity can access this private console.
+ const raw=cookieValue(req,DEVELOPER_COOKIE);
+ if(!raw||raw.length>256||!SUPABASE_KEY)return false;
  try{
-  const token=decodeURIComponent(adminRaw.slice(ADMIN_COOKIE.length+1));
-  if(!token||token.length>256)return false;
-  const tokenHash=crypto.createHash("sha256").update(token).digest("hex");
-  const response=await fetch(SUPABASE_URL+"/rest/v1/rpc/kingshot_admin_validate_session",{
-   method:"POST",headers:{apikey:SUPABASE_KEY,"content-type":"application/json"},
+  const tokenHash=hashToken(raw);
+  const sessionResponse=await fetch(SUPABASE_URL+"/rest/v1/rpc/kingshot_developer_account_session_get",{
+   method:"POST",headers:{apikey:SUPABASE_KEY,authorization:"Bearer "+SUPABASE_KEY,"content-type":"application/json"},
    body:JSON.stringify({p_token_hash:tokenHash}),signal:AbortSignal.timeout(5000)
   });
-  if(!response.ok)return false;
-  return (await response.json())===true;
+  if(!sessionResponse.ok)return false;
+  const userId=await sessionResponse.json();
+  if(typeof userId!=="string"||!userId)return false;
+  const userResponse=await fetch(SUPABASE_URL+"/auth/v1/admin/users/"+encodeURIComponent(userId),{
+   headers:{apikey:SUPABASE_KEY,authorization:"Bearer "+SUPABASE_KEY},signal:AbortSignal.timeout(5000)
+  });
+  if(!userResponse.ok)return false;
+  const user=await userResponse.json();
+  const providers=Array.isArray(user?.app_metadata?.providers)?user.app_metadata.providers:[];
+  const identities=Array.isArray(user?.identities)?user.identities:[];
+  const discord=identities.find(identity=>identity?.provider==="discord");
+  const discordId=String(discord?.identity_data?.provider_id||discord?.identity_data?.sub||discord?.identity_data?.id||discord?.identity_data?.user_id||discord?.id||user?.user_metadata?.provider_id||user?.user_metadata?.sub||user?.user_metadata?.id||"");
+  return (providers.includes("discord")||Boolean(discord))&&discordId===OWNER_DISCORD_ID;
  }catch{return false}
 }
 function clean(v,max){return String(v??"").trim().slice(0,max)}
@@ -91,11 +106,11 @@ export default async function handler(req,res){
  if(req.method!=="POST")return res.status(405).json({error:"Method not allowed"});
  try{
   const body=req.body||{},action=String(body.action||"").toUpperCase();
-  if(action==="LOGIN")return res.status(410).json({error:"Separate passkey login has been retired. Sign in with your administrator account."});
+  if(action==="LOGIN")return res.status(410).json({error:"Separate console login has been retired. Use the existing verified Discord developer session."});
   if(action==="LOGOUT")return res.status(200).json({ok:true,redirect:"/profile"});
   if(action==="CHECK"){const valid=await validSession(req);return res.status(valid?200:401).json({ok:valid})}
   if(action==="PUSH_STATUS"){
-   if(!(await validSession(req)))return res.status(401).json({error:"Unauthorized. Sign in to the private console first."});
+   if(!(await validSession(req)))return res.status(401).json({error:"Unauthorized. Open the existing developer account section and verify your Discord session."});
    const {pushIsConfigured}=await import("../internal/push-notifications.js");
    if(!pushIsConfigured())return res.status(503).json({error:"Push notifications are not configured."});
    const base=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";

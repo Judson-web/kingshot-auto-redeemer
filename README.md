@@ -57,10 +57,10 @@ This is deployment configuration, not a step required by ordinary users. Configu
 5. Save the settings, then test both Discord and GitHub sign-in, including the expected profile/developer destinations and a non-owner account.
 
 **Security notes**
-- Never commit a Discord Client Secret, Supabase service-role key, admin passkey, session token, or other credential to this public repository.
+- Never commit a Discord Client Secret, Supabase service-role key, session token, or other credential to this public repository.
 - Keep secrets in the relevant provider dashboard or server-side deployment secret store. Anything bundled into browser code—including client-prefixed build variables—must be treated as public.
 - The owner/admin role is decided server-side using configured, stable account identifiers and/or existing authorized identity checks—not a display name, avatar, or user-editable profile field. Keep actual owner identifiers out of public documentation and never use a client-side role flag as authorization.
-- Keep the existing admin authentication path configured as documented in the private deployment runbook; do not publish passkeys or operational bypass details here.
+- Privileged tools reuse the existing verified Discord developer-account session and enforce the owner Discord identity server-side. Do not add a separate console passkey or a second sign-in flow.
 
 ## ✦ What it does
 
@@ -173,7 +173,7 @@ Recovery material is designed around the minimum state needed to restore missing
 - snapshot metadata
 - SHA-256 integrity data
 
-It does not contain Discord IDs, authentication credentials, passkeys, session tokens, or redemption history.
+It does not contain Discord IDs, authentication credentials, session tokens, or redemption history.
 
 Recovery is fail-closed. A recovery workflow validates the snapshot, compares it with Supabase, and inserts only missing records. Existing live records are not overwritten.
 
@@ -266,7 +266,7 @@ This tracker is separate from the public aggregate-only analytics visualized in 
 
 Web push is optional. Visitors can choose whether to enable notifications through the browser permission prompt; the site does not repeatedly prompt after a user dismisses the setup panel. Notifications can include alerts for verified new gift codes and manually composed announcements sent by an authorized operator.
 
-The private push console is available at `/push` and requires its configured server-side passkey. An announcement can include an optional image URL. Images must already be hosted at a publicly accessible **HTTPS** URL; the console previews the image and the server validates the URL before sending. The service does not upload or store image files. Whether an image is shown depends on the recipient's browser, operating system, and notification surface; text and the notification title remain the fallback.
+The private push console is available at `/push` and reuses the existing verified Discord developer-account session; only the configured owner Discord identity is authorized. If the session is missing, use the existing account section on `/developer` and return to `/push`—there is no separate console login. An announcement can include an optional image URL. Images must already be hosted at a publicly accessible **HTTPS** URL; the console previews the image and the server validates the URL before sending. The service does not upload or store image files. Whether an image is shown depends on the recipient's browser, operating system, and notification surface; text and the notification title remain the fallback.
 
 Push subscriptions are stored in the existing Supabase application database and are used to deliver notifications. A browser can revoke permission or unsubscribe at any time. Invalid or expired subscriptions are removed when the push provider reports them as no longer valid. Notification delivery is best-effort and is not guaranteed for every device.
 
@@ -280,7 +280,7 @@ Do not include secrets, personal data, or content you do not have permission to 
 | `/auto` | Automatic redemption |
 | `/manual` | Manual redemption |
 | `/info` | Service documentation |
-| `/push` | Private developer push-notification console (passkey required) |
+| `/push` | Private push-notification console (existing verified Discord owner session) |
 | `/developer` | Interactive developer portal and API reference |
 | `/developer.md` | Plain-text API documentation for crawlers and integrations |
 | `/openapi.json` | Machine-readable OpenAPI 3.1 specification |
@@ -291,7 +291,7 @@ Do not include secrets, personal data, or content you do not have permission to 
 
 The interactive `/developer` portal includes account/key management and endpoint examples. For crawlers, integrations, and automated documentation tools, use the plain-text [developer API guide](https://kingshot-autoredeemer.vercel.app/developer.md) or the machine-readable [OpenAPI 3.1 specification](https://kingshot-autoredeemer.vercel.app/openapi.json). These public docs describe endpoints; they do not provide access credentials.
 
-The `/developer` portal uses the existing admin passkey/session to create and revoke developer API keys. Key material is shown once and stored only as a SHA-256 hash in private database tables. An IP address can be issued at most two keys for its lifetime; revoking a key does not reset that cap. The read-only player lookup is available at `GET /api/v1/player?id=PLAYER_ID` with `Authorization: Bearer ks_live_…`. Limits are 60 requests/minute and 1,000 requests/day per key, plus 120 requests/minute per IP. Usage counters and issuance caps are database-backed so they remain consistent across serverless instances. The developer API is routed through the existing player-lookup serverless function to stay within the Vercel Hobby deployment function-count limit.
+The `/developer` portal uses the existing verified Discord account session to create and revoke developer API keys. Key material is shown once and stored only as a SHA-256 hash in private database tables. An IP address can be issued at most two keys for its lifetime; revoking a key does not reset that cap. The read-only player lookup is available at `GET /api/v1/player?id=PLAYER_ID` with `Authorization: Bearer ks_live_…`. Limits are 60 requests/minute and 1,000 requests/day per key, plus 120 requests/minute per IP. Usage counters and issuance caps are database-backed so they remain consistent across serverless instances. The developer API is routed through the existing player-lookup serverless function to stay within the Vercel Hobby deployment function-count limit.
 
 ## ✦ Technology
 
