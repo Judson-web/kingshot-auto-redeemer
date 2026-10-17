@@ -58,7 +58,7 @@ function outcome(kind, data) {
     label: LABELS[kind],
     headline: HEADLINES[kind],
     summary,
-    reason: kind === "banned" ? reason || "Auto-redemption is disabled for this Player ID." : "",
+    reason: kind === "disabled" && (reason || ban) ? reason || ban?.reason || "Auto-redemption is disabled for this Player ID." : "",
     code: text(data.code),
     verificationPending: Boolean(data.verificationPending),
     stale: Boolean(data.stale)
@@ -68,7 +68,7 @@ function outcome(kind, data) {
 export function makeSuccessOutcome(id, player = {}, result = {}) {
   const status = text(result.registrationStatus || (result.alreadyRegistered ? "ALREADY_REGISTERED" : "NEW")).toUpperCase();
   let kind = "registered";
-  if (result.banned || result.code === "player_banned" || status.includes("BANNED") || status.includes("BLOCKED")) kind = "banned";
+  if (result.banned || result.code === "player_banned" || status.includes("BANNED") || status.includes("BLOCKED")) kind = "disabled";
   else if (result.disabled || result.enabled === false || status.includes("DISABLED")) kind = "disabled";
   else if (status.includes("REACTIVATED") || status.includes("RE-ENABLED")) kind = "reactivated";
   else if (result.alreadyRegistered || status.includes("ALREADY") || status.includes("EXISTING")) kind = "existing";
@@ -90,7 +90,7 @@ export function makeFailureOutcome({ id, message, code, banned, disabled, alread
   const normalizedMessage = text(message) || "The Player ID could not be registered. Check the details or contact support.";
   const lower = normalizedMessage.toLowerCase();
   let kind = "failed";
-  if (banned || code === "player_banned" || ban || /player id banned|blocked from registration|registration blocked/.test(lower)) kind = "banned";
+  if (banned || code === "player_banned" || ban || /player id banned|blocked from registration|registration blocked/.test(lower)) kind = "disabled";
   else if (disabled || code === "player_disabled" || /auto.?redemption.*disabled|player.*disabled|registration.*disabled/.test(lower)) kind = "disabled";
   else if (alreadyRegistered || code === "already_registered" || /already registered|already enrolled/.test(lower)) kind = "existing";
 
@@ -117,7 +117,7 @@ export function summarizeRegistrationOutcomes(outcomes = []) {
   const message = counts.total === 1
     ? outcomes[0]?.summary || "No registration result was returned."
     : `${counts.total} Player IDs checked · ${parts.join(" · ") || "No results"}.`;
-  const allRestricted = counts.total > 0 && counts.banned === counts.total;
+  const allRestricted = counts.total > 0 && counts.banned + counts.disabled === counts.total;
   const allActive = counts.total > 0 && counts.active === counts.total;
   const needsAttention = counts.banned + counts.disabled + counts.failed > 0;
 
