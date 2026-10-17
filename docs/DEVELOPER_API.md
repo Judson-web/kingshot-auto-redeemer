@@ -2,7 +2,7 @@
 
 Base URL: https://kingshot-autoredeemer.vercel.app
 
-**Current version: V3.** Use HTTPS and JSON. V1 endpoints remain available for existing integrations; new integrations should use V3. Never place API keys in URLs, browser bundles, client-visible environment variables, or logs.
+**Current version: V3.** Use HTTPS and JSON. V1 developer routes are deprecated. Migrate existing integrations to V3 now; new integrations must use V3. Never place API keys in URLs, browser bundles, client-visible environment variables, or logs.
 
 ## Endpoints
 
@@ -97,9 +97,16 @@ Responses include X-Request-Id and X-API-Version. Quota headers include X-RateLi
 
 Quota accounting for the developer API is database-backed and shared across serverless instances. Do not rotate IPs or keys to bypass limits.
 
-## V1 compatibility
+## Deprecated V1 routes
 
-GET /api/v1/player?id=PLAYER_ID and POST /api/v1/redeem remain available for existing clients and retain their legacy response envelope. Use V3 for the REST-style player path, nested error envelope and explicit upstream freshness metadata.
+`GET /api/v1/player?id=PLAYER_ID` and `POST /api/v1/redeem` are deprecated. They currently remain operational during migration and emit `Deprecation: true` plus a `Link` header pointing to the relevant V3 endpoint and migration documentation. They retain their legacy response envelope during this transition; no retirement date is published yet. Do not build new integrations on V1.
+
+Migrate as follows:
+
+- Player lookup: `GET /api/v3/players/{playerId}`
+- Manual redemption: `POST /api/v3/redemptions` with JSON fields `playerId`, `code`, and `kid`
+
+V3 provides the normalized response envelope, request IDs, quota metadata, and player-provider freshness metadata.
 
 ## Automatic redemption enrollment
 

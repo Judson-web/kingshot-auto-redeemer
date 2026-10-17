@@ -56,7 +56,7 @@ Typical statuses: 400 invalid input; 401 missing/invalid/revoked key; 404 not fo
 - GET /api/v1/player?id=PLAYER_ID
 - POST /api/v1/redeem
 
-Both remain available for existing clients with the legacy response envelope. New integrations should use V3.
+Both are deprecated and emit migration headers while they remain operational. New integrations must use V3.
 
 ## Website enrollment
 
