@@ -213,6 +213,10 @@ Sensitive configuration is kept in deployment or repository secret stores, inclu
 
 The repository includes security regression checks and database privilege checks.
 
+The production deployment also applies a Content Security Policy and standard browser security headers, including HTTP Strict Transport Security (HSTS). The vulnerability disclosure contact is published at [security.txt](https://kingshot-autoredeemer.vercel.app/.well-known/security.txt).
+
+A scheduled [OWASP ZAP baseline scan](https://github.com/Judson-web/kingshot-auto-redeemer/actions/workflows/zap-baseline.yml) performs passive dynamic checks against the public production site on pull requests, on demand, and weekly. Reports are retained as GitHub Actions artifacts for review; the baseline is advisory and does not currently block merges on findings. It complements, rather than replaces, code-level regression tests and a deeper authorized security assessment.
+
 Privileged operational endpoints require server-side authentication. The public website does not expose privileged credentials or signing material.
 
 ### Rate limiting
