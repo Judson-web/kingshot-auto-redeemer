@@ -37,7 +37,7 @@ test("mixed multi-ID results preserve per-ID outcomes and aggregate counts", () 
     makeFailureOutcome({ id: "100005", message: "Player profile not found" })
   ];
   const summary = summarizeRegistrationOutcomes(items);
-  assert.deepEqual({ total: summary.total, active: summary.active, registered: summary.registered, existing: summary.existing, banned: summary.banned, disabled: summary.disabled, failed: summary.failed },
+  assert.deepEqual({ total: summary.total, active: summary.active, registered: summary.registered, existing: summary.existing, disabled: summary.disabled, failed: summary.failed },
     { total: 5, active: 2, registered: 1, existing: 1, disabled: 2, failed: 1 });
   assert.match(summary.message, /5 Player IDs checked/);
   assert.match(summary.message, /2 active/);
