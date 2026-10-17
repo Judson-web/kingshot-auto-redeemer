@@ -55,14 +55,17 @@ test("worker enforces bans before redemption and fails closed when ban lookup fa
 });
 
 
-test("admin stylesheet is included in the entry bundle and blocked registrations use a dedicated response card", async () => {
+test("admin stylesheet is loaded and registration responses share one swipeable result panel", async () => {
   const entry = await readFile(new URL("../src/main.jsx", import.meta.url), "utf8");
   const adminCss = await readFile(new URL("../src/admin-players.css", import.meta.url), "utf8");
-  const app = entry;
+  const outcomeSource = await readFile(new URL("../src/registration-outcomes.js", import.meta.url), "utf8");
   const siteCss = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
-  assert.match(entry, /import["']\.\/admin-players\.css["'];/);
+  assert.match(entry, /import["\']\.\/admin-players\.css["\'];/);
   assert.match(adminCss, /main\.admin-players-page/);
-  assert.match(app, /ks-registration-results-blocked/);
-  assert.match(siteCss, /\.ks-registration-results/);
-  assert.match(app, /Boolean\(err\.banned\)/);
+  assert.match(entry, /RegistrationOutcomePanel/);
+  assert.match(entry, /registration-outcomes\.js/);
+  assert.match(siteCss, /\.ks-outcome-panel/);
+  assert.match(siteCss, /\.ks-outcome-track/);
+  assert.match(outcomeSource, /makeSuccessOutcome/);
+  assert.match(outcomeSource, /makeFailureOutcome/);
 });
