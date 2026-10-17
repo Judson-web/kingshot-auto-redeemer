@@ -23,6 +23,13 @@ export function normalizeRegistrationInput(body: RegisterPlayerInput) {
 }
 
 export async function registerPlayer(input: ReturnType<typeof normalizeRegistrationInput>): Promise<RegisterPlayerResult> {
+ const banResponse=await fetch(SUPABASE_URL+"/rest/v1/kingshot_player_bans?select=player_id,reason,created_at&player_id=eq."+encodeURIComponent(input.playerId)+"&limit=1",{headers:{apikey:SUPABASE_KEY,authorization:"Bearer "+SUPABASE_KEY},signal:AbortSignal.timeout(5000)});
+ if(!banResponse.ok)throw Error("Registration policy check is temporarily unavailable. Please retry.");
+ const bans=await banResponse.json().catch(()=>[]);
+ if(Array.isArray(bans)&&bans[0]) {
+  const blocked=Object.assign(new Error("This Player ID is blocked from registration. Reason: "+String(bans[0].reason||"Blocked by administrator")), {status:403,code:"player_banned",banned:true,ban:bans[0]});
+  throw blocked;
+ }
  const r = await fetch(SUPABASE_URL + "/rest/v1/rpc/register_kingshot_player_v2", { method: "POST", headers: { apikey: SUPABASE_KEY, authorization: "Bearer " + SUPABASE_KEY, "content-type": "application/json" }, body: JSON.stringify({ p_player_id: input.playerId, p_kingdom_id: input.kingdomId || null, p_player_name: input.playerName || null, p_avatar_url: input.avatarUrl || null }), signal: AbortSignal.timeout(10000) });
  const d = await r.json().catch(() => null);
  if (!r.ok) throw Error(d?.message || d?.hint || "Could not register this player.");
