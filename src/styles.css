@@ -2450,3 +2450,67 @@ body:has(.support-float-panel.support-chat-panel) .ks-install-prompt{display:non
 
 /* Unified support centre and linked registration-removal workflow. */
 .ks-support-hub-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:18px;margin-top:22px;padding:clamp(18px,3vw,28px);border:1px solid #2c3a51;border-radius:20px;background:radial-gradient(ellipse at 0 0,#1a2b45 0,transparent 58%),linear-gradient(145deg,#111925,#0b1018);box-shadow:0 20px 60px #0002}.ks-support-hub-icon{width:52px;height:52px;display:grid;place-items:center;border-radius:16px;border:1px solid #405a7d;background:#1a2b42;color:#b8d4ff}.ks-support-hub-copy{display:flex;flex-direction:column;gap:7px;min-width:0}.ks-support-hub-copy strong{font-size:15px;color:#f1f5fc}.ks-support-hub-copy>span{font-size:12px;line-height:1.65;color:#9eabc0}.ks-support-hub-points{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:4px}.ks-support-hub-points span{display:inline-flex;align-items:center;gap:5px;color:#aabbd4;font-size:10px}.ks-support-hub-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 15px;border:1px solid #9cbcff;border-radius:12px;background:#dce8ff;color:#17253d;font-size:12px;font-weight:750;white-space:nowrap;cursor:pointer;transition:transform .16s ease,background .16s ease}.ks-support-hub-button:hover{transform:translateY(-1px);background:#fff}.ks-support-hub-button:focus-visible,.ks-support-hub-secondary button:focus-visible{outline:2px solid #a9c6ff;outline-offset:3px}.ks-support-hub-secondary{margin:14px 2px 0;color:#929fb2;font-size:12px}.ks-support-hub-secondary button{border:0;background:transparent;color:#c8d9f8;text-decoration:underline;text-underline-offset:3px;cursor:pointer;font:inherit}.support-removal-hint{display:block!important;margin-top:6px;color:#91a6c7!important;font-size:10px!important;line-height:1.6}.ds-linked-ticket{display:inline-flex;align-items:center;gap:5px;width:fit-content;padding:5px 7px;border:1px solid #66552f;border-radius:7px;background:#302718;color:#f0d59b;font-size:10px;overflow-wrap:anywhere}.ds-thread .ds-linked-ticket{margin-top:5px}.ds-thread-meta .ds-linked-ticket{margin-top:0}@media(max-width:780px){.ks-support-hub-card{grid-template-columns:auto minmax(0,1fr);gap:13px}.ks-support-hub-button{grid-column:1/-1;width:100%;white-space:normal}.ks-support-hub-icon{width:44px;height:44px;border-radius:13px}.ks-support-hub-copy strong{font-size:14px}.ks-support-hub-points{gap:7px 10px}}@media(max-width:420px){.ks-support-hub-card{padding:15px}.ks-support-hub-points{display:grid;grid-template-columns:1fr 1fr}.ks-support-hub-button{font-size:11px;padding:0 10px}}
+
+
+/* Distinct blocked-registration response: explicit reason, status and recovery guidance. */
+.ks-registration-results{
+  width:min(760px,100%);margin:16px auto 0;padding:0;overflow:hidden;
+  text-align:left;border:1px solid #443044;border-radius:20px;
+  background:radial-gradient(ellipse at 0% 0%,#922f5030,transparent 55%),linear-gradient(145deg,#15111b,#0d0c13 72%);
+  box-shadow:0 20px 52px #0003,inset 0 1px #ffffff08;
+}
+.ks-registration-results-blocked{border-color:#633247}
+.ks-registration-results-attention{border-color:#51402d;background:radial-gradient(ellipse at 0% 0%,#b37a2a1d,transparent 58%),linear-gradient(145deg,#17141a,#0d0c13 72%)}
+.ks-registration-results-top{display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:start;gap:13px;padding:19px 19px 17px;border-bottom:1px solid #ffffff0e}
+.ks-registration-results-emblem{width:46px;height:46px;display:grid;place-items:center;border:1px solid #f08da332;border-radius:15px;background:linear-gradient(145deg,#a32b5129,#5d20351a);color:#ff9ab1;box-shadow:inset 0 1px #ffffff0b}
+.ks-registration-results-attention .ks-registration-results-emblem{border-color:#e5b25e35;background:#a66b241a;color:#f3c274}
+.ks-registration-results-heading{min-width:0}
+.ks-registration-results-kicker{display:inline-flex;align-items:center;gap:6px;color:#ff9ab1;font-size:9px;font-weight:900;letter-spacing:.15em;line-height:1.5}
+.ks-registration-results-attention .ks-registration-results-kicker{color:#f3c274}
+.ks-registration-results-heading h2{margin:5px 0 7px;color:#f8edf2;font-size:clamp(19px,3vw,25px);line-height:1.2;letter-spacing:-.045em;overflow-wrap:anywhere}
+.ks-registration-results-heading p{margin:0;color:#b8a8b3;font-size:12px;line-height:1.65}
+.ks-registration-results-count{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:48px;min-height:48px;padding:7px;border:1px solid #c65a7735;border-radius:13px;background:#7b27401c;color:#ff9ab1}
+.ks-registration-results-count b{font-size:20px;line-height:1;font-variant-numeric:tabular-nums}
+.ks-registration-results-count small{font-size:8px;font-weight:900;letter-spacing:.1em}
+.ks-registration-results-attention .ks-registration-results-count{border-color:#e5b25e35;background:#8d61201b;color:#f3c274}
+.ks-registration-results-list{display:grid;gap:9px;padding:13px}
+.ks-registration-result-row{display:flex;align-items:flex-start;gap:12px;min-width:0;padding:13px;border:1px solid #432838;border-radius:15px;background:linear-gradient(115deg,#21131d,#141018);box-shadow:inset 0 1px #ffffff05}
+.ks-registration-result-row.is-failed{border-color:#4b402b;background:linear-gradient(115deg,#201b14,#141117)}
+.ks-registration-result-icon{width:40px;height:40px;display:grid;place-items:center;flex:none;border-radius:12px;background:#842d481f;color:#ff9ab1}
+.ks-registration-result-row.is-failed .ks-registration-result-icon{background:#9b70231f;color:#f3c274}
+.ks-registration-result-body{flex:1;min-width:0}
+.ks-registration-result-title{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.ks-registration-result-title b{min-width:0;color:#f4eaf0;font-size:14px;font-weight:800;letter-spacing:-.02em;overflow-wrap:anywhere}
+.ks-registration-result-badge{flex:none;padding:5px 7px;border:1px solid #e56b8b42;border-radius:7px;background:#a932501b;color:#ff9ab1;font-size:8px;font-weight:900;letter-spacing:.08em}
+.ks-registration-result-badge.failed{border-color:#d9ad6038;background:#8860201c;color:#f3c274}
+.ks-registration-result-body>p{margin:8px 0 0;color:#c7b7c1;font-size:12px;line-height:1.55;overflow-wrap:anywhere}
+.ks-registration-result-reason{display:grid;gap:5px;margin-top:11px;padding:10px 11px;border:1px solid #64324788;border-radius:10px;background:#571d301e}
+.ks-registration-result-reason small{color:#d87f99;font-size:8px;font-weight:900;letter-spacing:.13em}
+.ks-registration-result-reason span{color:#e1c7d1;font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+.ks-registration-results-footer{display:flex;align-items:flex-start;gap:9px;padding:13px 17px 15px;border-top:1px solid #ffffff0e;background:#08070d4d;color:#ae9ca9}
+.ks-registration-results-footer>svg{flex:none;margin-top:2px;color:#c18c9d}
+.ks-registration-results-footer p{margin:0;font-size:10px;line-height:1.65}
+@media(max-width:520px){
+ .ks-registration-results{margin-top:13px;border-radius:17px}
+ .ks-registration-results-top{grid-template-columns:39px minmax(0,1fr) auto;gap:9px;padding:14px 12px 13px}
+ .ks-registration-results-emblem{width:38px;height:38px;border-radius:12px}
+ .ks-registration-results-emblem svg{width:19px;height:19px}
+ .ks-registration-results-heading h2{font-size:19px;margin:5px 0 6px}
+ .ks-registration-results-heading p{font-size:11px;line-height:1.55}
+ .ks-registration-results-count{min-width:39px;min-height:43px;padding:5px;border-radius:10px}
+ .ks-registration-results-count b{font-size:18px}
+ .ks-registration-results-count small{font-size:7px;letter-spacing:.04em}
+ .ks-registration-results-list{padding:10px;gap:8px}
+ .ks-registration-result-row{gap:9px;padding:10px;border-radius:12px}
+ .ks-registration-result-icon{width:34px;height:34px;border-radius:10px}
+ .ks-registration-result-icon svg{width:17px;height:17px}
+ .ks-registration-result-title{align-items:flex-start}
+ .ks-registration-result-title b{font-size:12px;padding-top:2px}
+ .ks-registration-result-badge{font-size:7px;padding:4px 5px;letter-spacing:.04em}
+ .ks-registration-result-body>p{font-size:11px;line-height:1.55;margin-top:7px}
+ .ks-registration-result-reason{padding:9px;margin-top:9px}
+ .ks-registration-result-reason small{font-size:7px}
+ .ks-registration-result-reason span{font-size:10px}
+ .ks-registration-results-footer{padding:11px 12px 13px;gap:7px}
+ .ks-registration-results-footer p{font-size:9px}
+}

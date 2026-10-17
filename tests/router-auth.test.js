@@ -53,3 +53,16 @@ test("worker enforces bans before redemption and fails closed when ban lookup fa
   assert.match(source, /runWorkerShard\(slot,codes,eligiblePlayers/);
   assert.match(source, /bannedPlayersSkipped/);
 });
+
+
+test("admin stylesheet is included in the entry bundle and blocked registrations use a dedicated response card", async () => {
+  const entry = await readFile(new URL("../src/main.jsx", import.meta.url), "utf8");
+  const adminCss = await readFile(new URL("../src/admin-players.css", import.meta.url), "utf8");
+  const app = entry;
+  const siteCss = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
+  assert.match(entry, /import["']\.\/admin-players\.css["'];/);
+  assert.match(adminCss, /main\.admin-players-page/);
+  assert.match(app, /ks-registration-results-blocked/);
+  assert.match(siteCss, /\.ks-registration-results/);
+  assert.match(app, /Boolean\(err\.banned\)/);
+});
