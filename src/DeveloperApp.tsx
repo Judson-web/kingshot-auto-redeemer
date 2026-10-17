@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import DeveloperAccountPanel from "./DeveloperAccountPanel";
-import { Activity, BookOpen, Check, ChevronRight, Copy, ExternalLink, Gauge, KeyRound, ShieldCheck, Terminal } from "lucide-react";
+import { Activity, BookOpen, Check, ChevronRight, Code2, Copy, ExternalLink, Gauge, KeyRound, ShieldCheck, Terminal } from "lucide-react";
 
 const ORIGIN = "https://kingshot-autoredeemer.vercel.app";
 const endpoint = ORIGIN + "/api/v1/player?id=43180889";
