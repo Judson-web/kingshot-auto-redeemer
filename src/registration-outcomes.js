@@ -2,7 +2,6 @@ const LABELS = {
   registered: "REGISTERED",
   existing: "ALREADY ACTIVE",
   reactivated: "RE-ENABLED",
-  banned: "BLOCKED",
   disabled: "DISABLED",
   failed: "NEEDS ATTENTION"
 };
@@ -11,7 +10,6 @@ const HEADLINES = {
   registered: "Registration complete",
   existing: "Already active",
   reactivated: "Re-enabled successfully",
-  banned: "Registration blocked",
   disabled: "Auto-redemption disabled",
   failed: "Registration needs attention"
 };
@@ -41,8 +39,6 @@ function outcome(kind, data) {
     summary = "Already enrolled. No duplicate registration was created.";
   } else if (kind === "reactivated") {
     summary = "The previous registration is active again for automatic redemption.";
-  } else if (kind === "banned") {
-    summary = "This Player ID cannot be enrolled under the current service rules.";
   } else if (kind === "disabled") {
     summary = "This Player ID is disabled for automatic redemption. Contact support if you need help re-enabling it.";
   } else {
@@ -58,7 +54,7 @@ function outcome(kind, data) {
     label: LABELS[kind],
     headline: HEADLINES[kind],
     summary,
-    reason: kind === "banned" ? reason || "This ID is restricted from registration." : "",
+    reason: kind === "disabled" ? reason || "Auto-redemption is disabled for this Player ID." : "",
     code: text(data.code),
     verificationPending: Boolean(data.verificationPending),
     stale: Boolean(data.stale)
@@ -68,7 +64,7 @@ function outcome(kind, data) {
 export function makeSuccessOutcome(id, player = {}, result = {}) {
   const status = text(result.registrationStatus || (result.alreadyRegistered ? "ALREADY_REGISTERED" : "NEW")).toUpperCase();
   let kind = "registered";
-  if (result.banned || result.code === "player_banned" || status.includes("BANNED") || status.includes("BLOCKED")) kind = "banned";
+  if (result.banned || result.code === "player_banned" || status.includes("BANNED") || status.includes("BLOCKED")) kind = "disabled";
   else if (result.disabled || result.enabled === false || status.includes("DISABLED")) kind = "disabled";
   else if (status.includes("REACTIVATED") || status.includes("RE-ENABLED")) kind = "reactivated";
   else if (result.alreadyRegistered || status.includes("ALREADY") || status.includes("EXISTING")) kind = "existing";
@@ -90,7 +86,7 @@ export function makeFailureOutcome({ id, message, code, banned, disabled, alread
   const normalizedMessage = text(message) || "The Player ID could not be registered. Check the details or contact support.";
   const lower = normalizedMessage.toLowerCase();
   let kind = "failed";
-  if (banned || code === "player_banned" || ban || /player id banned|blocked from registration|registration blocked/.test(lower)) kind = "banned";
+  if (banned || code === "player_banned" || ban || /player id banned|blocked from registration|registration blocked/.test(lower)) kind = "disabled";
   else if (disabled || code === "player_disabled" || /auto.?redemption.*disabled|player.*disabled|registration.*disabled/.test(lower)) kind = "disabled";
   else if (alreadyRegistered || code === "already_registered" || /already registered|already enrolled/.test(lower)) kind = "existing";
 
@@ -103,23 +99,22 @@ export function makeFailureOutcome({ id, message, code, banned, disabled, alread
 }
 
 export function summarizeRegistrationOutcomes(outcomes = []) {
-  const counts = { total: outcomes.length, registered: 0, existing: 0, reactivated: 0, banned: 0, disabled: 0, failed: 0 };
+  const counts = { total: outcomes.length, registered: 0, existing: 0, reactivated: 0, disabled: 0, failed: 0 };
   for (const item of outcomes) {
     if (Object.hasOwn(counts, item?.kind)) counts[item.kind] += 1;
   }
   counts.active = counts.registered + counts.existing + counts.reactivated;
   const parts = [];
   if (counts.active) parts.push(`${counts.active} active`);
-  if (counts.banned) parts.push(`${counts.banned} blocked`);
   if (counts.disabled) parts.push(`${counts.disabled} disabled`);
   if (counts.failed) parts.push(`${counts.failed} need attention`);
 
   const message = counts.total === 1
     ? outcomes[0]?.summary || "No registration result was returned."
     : `${counts.total} Player IDs checked · ${parts.join(" · ") || "No results"}.`;
-  const allRestricted = counts.total > 0 && counts.banned === counts.total;
+  const allRestricted = counts.total > 0 && counts.disabled === counts.total;
   const allActive = counts.total > 0 && counts.active === counts.total;
-  const needsAttention = counts.banned + counts.disabled + counts.failed > 0;
+  const needsAttention = counts.disabled + counts.failed > 0;
 
   return { ...counts, message, allRestricted, allActive, needsAttention };
 }

@@ -1,3 +1,4 @@
+import { withBoundedProviderReadRetry } from "../../lib/api-v3/retry.js";
 const MIGHTPULSE_BASE_URL = "https://api.mightpulse.com/v1/players/";
 
 export interface KingshotPlayer {
@@ -47,13 +48,19 @@ export interface MightPulsePlayerSnapshot {
   cached_at: string | null;
   age_seconds: number | null;
 }
+async function fetchPlayerWithRetry(playerId: string, timeoutMs = 15000) {
+  return withBoundedProviderReadRetry(async () => {
+    const result = await fetchPlayer(playerId, timeoutMs);
+    if (!result.response.ok) {
+      const error = new Error(result.data?.message || result.data?.error || "MightPulse request failed.") as ApiError;
+      error.status = result.response.status;
+      throw error;
+    }
+    return result;
+  }, { maxAttempts: 2, delayMs: 200 });
+}
 export async function getPlayerSnapshot(playerId: string, options: MightPulseRequestOptions = {}): Promise<MightPulsePlayerSnapshot> {
-  const { response, data } = await fetchPlayer(playerId, options.timeoutMs ?? 15000);
-  if (!response.ok) {
-    const error = new Error(data?.message || data?.error || "MightPulse could not find this player.") as ApiError;
-    error.status = response.status;
-    throw error;
-  }
+  const { data } = await fetchPlayerWithRetry(playerId, options.timeoutMs ?? 15000);
   return {
     player: data.player || (data as KingshotPlayer),
     fresh: typeof data.fresh === "boolean" ? data.fresh : null,
@@ -62,18 +69,11 @@ export async function getPlayerSnapshot(playerId: string, options: MightPulseReq
   };
 }
 export async function getPlayer(playerId: string): Promise<KingshotPlayer> {
-  const { response, data } = await fetchPlayer(playerId);
-  if (!response.ok) {
-    const error = new Error(data?.message || data?.error || "MightPulse could not find this player.") as ApiError;
-    error.status = response.status;
-    throw error;
-  }
+  const { data } = await fetchPlayerWithRetry(playerId);
   return data.player || (data as KingshotPlayer);
 }
 export async function verifyKingdom(playerId: string): Promise<KingdomVerification> {
-  const { response, data } = await fetchPlayer(playerId);
-  if (response.status === 404) return { notFound: true };
-  if (!response.ok) throw new Error(data?.message || data?.error || "Could not verify the player kingdom.");
+  const { data } = await fetchPlayerWithRetry(playerId);
   const player = data.player || (data as KingshotPlayer);
   const kingdomId = String(player.kid ?? player.kingdom_id ?? "").replace(/\D/g, "");
   if (!kingdomId) throw new Error("Kingdom verification returned no kingdom.");

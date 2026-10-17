@@ -9,16 +9,16 @@ test("classifies new, already-registered and reactivated players distinctly", ()
   assert.equal(makeSuccessOutcome("12345680", player, { registrationStatus: "REACTIVATED" }).kind, "reactivated");
 });
 
-test("classifies banned IDs and preserves a clear ban reason", () => {
+test("treats banned IDs as disabled and preserves the restriction reason", () => {
   const item = makeFailureOutcome({
     id: "415857658", code: "player_banned", banned: true,
     ban: { reason: "Abuse or invalid registration" },
     message: "This Player ID is blocked from registration. Reason: Abuse or invalid registration"
   });
-  assert.equal(item.kind, "banned");
-  assert.equal(item.label, "BLOCKED");
+  assert.equal(item.kind, "disabled");
+  assert.equal(item.label, "DISABLED");
   assert.equal(item.reason, "Abuse or invalid registration");
-  assert.equal(item.summary, "This Player ID cannot be enrolled under the current service rules.");
+  assert.equal(item.summary, "This Player ID is disabled for automatic redemption. Contact support if you need help re-enabling it.");
 });
 
 test("classifies disabled and already-active responses without treating them as generic failures", () => {
@@ -37,17 +37,17 @@ test("mixed multi-ID results preserve per-ID outcomes and aggregate counts", () 
     makeFailureOutcome({ id: "100005", message: "Player profile not found" })
   ];
   const summary = summarizeRegistrationOutcomes(items);
-  assert.deepEqual({ total: summary.total, active: summary.active, registered: summary.registered, existing: summary.existing, banned: summary.banned, disabled: summary.disabled, failed: summary.failed },
-    { total: 5, active: 2, registered: 1, existing: 1, banned: 1, disabled: 1, failed: 1 });
+  assert.deepEqual({ total: summary.total, active: summary.active, registered: summary.registered, existing: summary.existing, disabled: summary.disabled, failed: summary.failed },
+    { total: 5, active: 2, registered: 1, existing: 1, disabled: 2, failed: 1 });
   assert.match(summary.message, /5 Player IDs checked/);
   assert.match(summary.message, /2 active/);
-  assert.match(summary.message, /1 blocked/);
+  assert.match(summary.message, /2 disabled/);
   assert.equal(summary.needsAttention, true);
   assert.equal(registrationOutcomeHeadline(items), "Registration results");
 });
 
 test("single-ID summary keeps the individual headline", () => {
   const outcome = makeFailureOutcome({ id: "100006", banned: true, message: "blocked" });
-  assert.equal(registrationOutcomeHeadline([outcome]), "Registration blocked");
+  assert.equal(registrationOutcomeHeadline([outcome]), "Auto-redemption disabled");
   assert.equal(summarizeRegistrationOutcomes([outcome]).total, 1);
 });
