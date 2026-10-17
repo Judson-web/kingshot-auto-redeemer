@@ -110,7 +110,13 @@ flowchart LR
 
 The production service runs on Vercel, with Supabase/PostgreSQL providing durable application state. The TypeScript migration is in progress: TypeScript 5.9 type-checking is part of CI, but the repository still contains JavaScript/JSX modules. Do not treat the migration as complete until the remaining modules are converted and the full regression suite passes.
 
-The worker is coordinated through database-backed state rather than process-local memory. Worker sharding, leases, heartbeats, atomic claims, retry handling, and persistent redemption history are designed to prevent duplicate work across concurrent invocations.\n\n### Independent redemption journal (Neon)\n\nThe worker writes a durable intent to the separately hosted Neon PostgreSQL journal before calling the upstream redemption service. When the upstream result is known, it records that outcome in Neon before attempting the normal Supabase history write. If Supabase history persistence fails, later worker runs can retry the history write from Neon without repeating the game redemption request. The same journaling flow covers normal worker attempts and validation-canary attempts.\n\nNeon is a recovery aid, not a second source of truth: Supabase remains authoritative for application state and user-facing redemption history. If Neon is unavailable before an upstream call, the worker fails closed rather than making an unjournaled attempt. Ambiguous upstream transport failures are marked for review instead of being blindly retried. No design can guarantee recovery if the upstream accepts a redemption but both independent databases fail before the result is durably recorded; such cases require careful review.
+The worker is coordinated through database-backed state rather than process-local memory. Worker sharding, leases, heartbeats, atomic claims, retry handling, and persistent redemption history are designed to prevent duplicate work across concurrent invocations.
+
+### Independent redemption journal (Neon)
+
+The worker writes a durable intent to the separately hosted Neon PostgreSQL journal before calling the upstream redemption service. When the upstream result is known, it records that outcome in Neon before attempting the normal Supabase history write. If Supabase history persistence fails, later worker runs can retry the history write from Neon without repeating the game redemption request. The same journaling flow covers normal worker attempts and validation-canary attempts.
+
+Neon is a recovery aid, not a second source of truth: Supabase remains authoritative for application state and user-facing redemption history. If Neon is unavailable before an upstream call, the worker fails closed rather than making an unjournaled attempt. Ambiguous upstream transport failures are marked for review instead of being blindly retried. No design can guarantee recovery if the upstream accepts a redemption but both independent databases fail before the result is durably recorded; such cases require careful review.
 
 Player lookups can refresh the stored profile of an already-registered Player ID when fresh provider data is available. This does not reset the scheduler's kingdom-validation cooldown.
 
@@ -289,7 +295,8 @@ The `/developer` portal uses the existing admin passkey/session to create and re
 | Frontend | React 19 + Vite 6 |
 | Runtime | Node.js 24.x + TypeScript 5.9 |
 | Deployment | Vercel |
-| Primary database | Supabase PostgreSQL (source of truth) |\n| Redemption recovery journal | Neon PostgreSQL via `@neondatabase/serverless` |
+| Primary database | Supabase PostgreSQL (source of truth) |
+| Redemption recovery journal | Neon PostgreSQL via `@neondatabase/serverless` |
 | Storage | Supabase Storage |
 | Automation | GitHub Actions |
 | Recovery | Private GitHub archive + encrypted DR vault; check archive README for live checkpoint/backup status |
