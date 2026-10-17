@@ -58,10 +58,15 @@ export default async function developerApi(req: RequestLike, res: ResponseLike, 
   const rid = requestId(res);
   res.setHeader("Cache-Control", "private, no-store");
   res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
-  res.setHeader("Access-Control-Expose-Headers", "X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset");
+  // Only the documented bearer-key API is intentionally cross-origin. Cookie-backed
+  // key management and admin-player routes stay same-origin and never advertise CORS.
+  const publicApiRoute = path === "player" || path === "redeem";
+  if (publicApiRoute) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    res.setHeader("Access-Control-Expose-Headers", "X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset");
+  }
   if (req.method === "OPTIONS") { res.status(204).json({}); return; }
   const developerToken = developerSession(req);
   const adminTokenHash = developerToken ? sha256(developerToken) : "";
