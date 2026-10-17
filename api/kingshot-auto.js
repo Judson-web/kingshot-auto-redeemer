@@ -1,3 +1,4 @@
+import { neon } from "@neondatabase/serverless";
 import {redeemKingshot} from"../internal/kingshot/redeem.js";
 import { revalidatePlayer } from "../internal/kingshot/kingdom-validation.js";
 import { broadcastPush } from "../internal/push-notifications.js";
@@ -100,7 +101,40 @@ async function recordRedemptionSafely(rpcClient,payload){
  throw new Error("Redemption outcome could not be durably recorded after retry: "+String(lastError?.message||lastError).slice(0,180));
 }
 
+const NEON_RECOVERY_URL=String(process.env.NEON_RECOVERY_DATABASE_URL||"").trim();
+const neonJournal=NEON_RECOVERY_URL?neon(NEON_RECOVERY_URL):null;
+async function journalStart(playerId,code){
+ if(!neonJournal)throw new Error("Independent recovery journal is not configured; refusing redemption.");
+ const rows=await neonJournal.query("insert into public.redemption_journal(player_id,gift_code,state) values($1,$2,'in_flight') on conflict(player_id,gift_code) do update set state='in_flight',status=null,err_code=null,message=null,last_error=null,updated_at=now() where public.redemption_journal.state in ('supabase_recorded','cancelled') returning id",[String(playerId),String(code)]);
+ if(!rows.length)throw new Error("Recovery journal already has an unresolved attempt; redemption blocked.");
+ return rows[0].id;
+}
+async function journalCancel(playerId,code,reason){
+ if(!neonJournal)return;
+ await neonJournal.query("update public.redemption_journal set state='cancelled',last_error=$3,updated_at=now() where player_id=$1 and upper(gift_code)=upper($2) and state='in_flight'",[String(playerId),String(code),String(reason||"Supabase claim declined").slice(0,240)]);
+}
+async function journalResult(playerId,code,status,errCode,message){
+ if(!neonJournal)throw new Error("Independent recovery journal unavailable after upstream response; operator review required.");
+ await neonJournal.query("update public.redemption_journal set state='result_recorded',status=$3,err_code=$4,message=$5,updated_at=now(),last_error=null where player_id=$1 and upper(gift_code)=upper($2) and state='in_flight'",[String(playerId),String(code),String(status),errCode??null,String(message||"").slice(0,240)]);
+}
+async function drainNeonRecoveryJournal(rpcClient){
+ if(!neonJournal)return {disabled:true,recovered:0,failed:0};
+ const rows=await neonJournal.query("select id,player_id,gift_code,status,err_code,message from public.redemption_journal where state='result_recorded' order by updated_at asc limit 50");
+ let recovered=0,failed=0;
+ for(const row of rows){
+  try{
+   await recordRedemptionSafely(rpcClient,{p_player_id:String(row.player_id),p_code:String(row.gift_code),p_status:String(row.status),p_err_code:row.err_code??null,p_message:String(row.message||"Recovered from independent Neon journal")});
+   await neonJournal.query("update public.redemption_journal set state='supabase_recorded',attempts=attempts+1,last_error=null,updated_at=now() where id=$1",[row.id]);recovered++;
+  }catch(error){
+   await neonJournal.query("update public.redemption_journal set attempts=attempts+1,last_error=$2,updated_at=now() where id=$1",[row.id,String(error?.message||error).slice(0,240)]).catch(()=>{});failed++;
+  }
+ }
+ if(rows.length)console.warn("Neon redemption journal recovery:",{found:rows.length,recovered,failed});
+ return {recovered,failed};
+}
+
 async function drainRedemptionRecoveryQueue(rpcClient){
+ await drainNeonRecoveryJournal(rpcClient).catch(error=>console.error("Neon recovery drain failed:",error?.message||error));
  const rows=await rpcClient("list_kingshot_redemption_recovery_queue",{p_limit:50});
  let recovered=0,failed=0;
  for(const row of Array.isArray(rows)?rows:[]){
@@ -137,11 +171,13 @@ const kingdomState=await revalidatePlayer(player,{rpc:rpcClient,notify:sendDisco
   return {attempted:0,success:0,alreadyHandled:codes.length,skipped:0,kingdomCheck,kingdomChanged,handledCodeCounts};
  }
 
- const claimed=await rpcClient("claim_kingshot_redemption",{p_player_id:player.player_id,p_code:item.code});
- if(!claimed)return {attempted:0,success:0,alreadyHandled:0,skipped:1,kingdomCheck,kingdomChanged};
+ const neonIntentId=await journalStart(player.player_id,item.code);
+ let claimed;
+ try{claimed=await rpcClient("claim_kingshot_redemption",{p_player_id:player.player_id,p_code:item.code});}catch(error){await journalCancel(player.player_id,item.code,"Supabase claim unavailable: "+String(error?.message||error).slice(0,180));throw error;}
+ if(!claimed){await journalCancel(player.player_id,item.code,"Supabase redemption claim declined");return {attempted:0,success:0,alreadyHandled:0,skipped:1,kingdomCheck,kingdomChanged};}
 
  const recoveryClaim=await rpcClient("begin_kingshot_redemption_recovery",{p_player_id:String(player.player_id),p_code:item.code});
- if(!recoveryClaim)return {attempted:0,success:0,alreadyHandled:1,skipped:1,kingdomCheck,kingdomChanged,recoveryBlocked:true};
+ if(!recoveryClaim){await journalCancel(player.player_id,item.code,"Supabase recovery claim declined");return {attempted:0,success:0,alreadyHandled:1,skipped:1,kingdomCheck,kingdomChanged,recoveryBlocked:true};}
  const redemptionStartedAt=Date.now();
  let d;
  try{
@@ -149,6 +185,7 @@ const kingdomState=await revalidatePlayer(player,{rpc:rpcClient,notify:sendDisco
  }catch(error){
   // The upstream may have accepted the request before the connection failed.
   // Preserve an explicit review marker; never automatically replay this attempt.
+  await neonJournal?.query("update public.redemption_journal set state='needs_review',last_error=$3,updated_at=now() where player_id=$1 and upper(gift_code)=upper($2) and state='in_flight'",[String(player.player_id),String(item.code),String(error?.message||error).slice(0,240)]).catch(queueError=>console.error("Could not mark Neon outcome uncertain:",queueError?.message||queueError));
   await rpcClient("mark_kingshot_redemption_recovery_uncertain",{p_player_id:String(player.player_id),p_code:item.code,p_error:String(error?.message||error).slice(0,240)}).catch(queueError=>console.error("Could not mark uncertain redemption:",queueError?.message||queueError));
   throw error;
  }
@@ -156,9 +193,11 @@ const kingdomState=await revalidatePlayer(player,{rpc:rpcClient,notify:sendDisco
  const status=String(d?.status||"ERROR").toUpperCase();
  const message=d?.message||d?.error||"";
  const persistencePayload={p_player_id:String(player.player_id),p_code:item.code,p_status:status,p_err_code:d?.errCode??null,p_message:(d?.errorCategory?"["+d.errorCategory+"] ":"")+message};
+ await journalResult(player.player_id,item.code,status,d?.errCode??null,persistencePayload.p_message);
  await rpcClient("complete_kingshot_redemption_recovery",{p_player_id:String(player.player_id),p_code:item.code,p_status:status,p_err_code:d?.errCode??null,p_message:persistencePayload.p_message});
  await recordRedemptionSafely(rpcClient,persistencePayload);
  await rpcClient("resolve_kingshot_redemption_recovery",{p_player_id:String(player.player_id),p_code:item.code}).catch(error=>console.error("Recovery queue resolve failed:",error?.message||error));
+ await neonJournal.query("update public.redemption_journal set state='supabase_recorded',attempts=attempts+1,last_error=null,updated_at=now() where player_id=$1 and upper(gift_code)=upper($2) and state='result_recorded'",[String(player.player_id),String(item.code)]).catch(error=>console.error("Neon journal acknowledgement failed:",error?.message||error));
 
  const discoveryAt=Number.isFinite(item.discoveredAt)?item.discoveredAt:null;
  const redemptionTelemetry={code:item.code,resultAt:new Date(completedAt).toISOString(),status,redemptionLatencyMs:Math.max(0,completedAt-redemptionStartedAt),discoveryToResultMs:discoveryAt==null?null:Math.max(0,completedAt-discoveryAt)};
