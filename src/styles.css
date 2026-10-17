@@ -2615,3 +2615,78 @@ body:has(.support-float-panel.support-chat-panel) .ks-install-prompt{display:non
 .ks-outcome-slide-icon{overflow:hidden;flex:0 0 52px;width:52px;height:52px;border-radius:16px}
 .ks-outcome-avatar{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}
 .ks-outcome-slide-icon:has(.ks-outcome-avatar){background:#171521;border:1px solid rgba(180,157,255,.18)}
+
+
+/* Compact registration outcome cards: keep identity and status, remove excess height. */
+.ks-outcome-panel{border-radius:22px!important}
+.ks-outcome-header{gap:12px!important;padding:17px 18px!important}
+.ks-outcome-head-icon{width:48px!important;height:48px!important;flex:0 0 48px!important;border-radius:14px!important}
+.ks-outcome-head-copy{gap:4px!important}
+.ks-outcome-head-copy h2{font-size:clamp(20px,4.5vw,28px)!important;line-height:1.12!important}
+.ks-outcome-head-copy p{font-size:13px!important;line-height:1.45!important;margin:2px 0 0!important}
+.ks-outcome-kicker{font-size:9px!important;letter-spacing:.12em!important}
+.ks-outcome-count{min-width:54px!important;padding:8px 7px!important;border-radius:13px!important}
+.ks-outcome-count b{font-size:20px!important}
+.ks-outcome-count small{font-size:8px!important}
+.ks-outcome-summary{gap:6px!important;padding:10px 14px!important}
+.ks-outcome-summary>span{padding:5px 8px!important;font-size:11px!important}
+.ks-outcome-slide{min-height:0!important;gap:10px!important;padding:15px 16px!important}
+.ks-outcome-slide-icon{width:46px!important;height:46px!important;flex-basis:46px!important;border-radius:13px!important}
+.ks-outcome-avatar{width:100%!important;height:100%!important}
+.ks-outcome-player-heading{gap:8px!important}
+.ks-outcome-identity h3{font-size:clamp(18px,4.5vw,25px)!important;line-height:1.18!important}
+.ks-outcome-player-meta{font-size:12px!important;margin:3px 0!important}
+.ks-outcome-player-id{font-size:10px!important}
+.ks-outcome-badge{padding:5px 8px!important;font-size:9px!important;white-space:nowrap!important}
+.ks-outcome-description{font-size:13px!important;line-height:1.5!important;margin:8px 0 0!important}
+.ks-outcome-reason{gap:4px!important;margin-top:10px!important;padding:10px 12px!important;border-radius:13px!important}
+.ks-outcome-reason small{font-size:9px!important}
+.ks-outcome-reason span{font-size:12px!important;line-height:1.4!important}
+.ks-outcome-pagination{min-height:39px!important;padding:7px 14px!important}
+.ks-outcome-footer{gap:8px!important;padding:10px 14px!important}
+.ks-outcome-footer p{font-size:11px!important;line-height:1.45!important}
+@media(max-width:600px){
+ .ks-outcome-header{gap:9px!important;padding:13px 13px!important}
+ .ks-outcome-head-icon{width:39px!important;height:39px!important;flex-basis:39px!important;border-radius:12px!important}
+ .ks-outcome-head-copy h2{font-size:21px!important}
+ .ks-outcome-head-copy p{font-size:12px!important}
+ .ks-outcome-kicker{font-size:8px!important;letter-spacing:.08em!important}
+ .ks-outcome-count{min-width:45px!important;padding:6px 5px!important}
+ .ks-outcome-count b{font-size:18px!important}
+ .ks-outcome-summary{padding:8px 11px!important}
+ .ks-outcome-slide{gap:9px!important;padding:12px 12px!important}
+ .ks-outcome-slide-icon{width:39px!important;height:39px!important;flex-basis:39px!important;border-radius:11px!important}
+ .ks-outcome-identity h3{font-size:20px!important}
+ .ks-outcome-description{font-size:12px!important;margin-top:6px!important}
+ .ks-outcome-reason{margin-top:8px!important;padding:8px 10px!important}
+ .ks-outcome-footer{padding:9px 11px!important}
+}
+
+/* A chat-first support window: minimal new-ticket form and one unified composer bar. */
+.support-float-panel.support-chat-panel .support-float-body:not(.support-chat-active)>form{gap:8px!important}
+.support-float-panel.support-chat-panel .support-topic-field{margin:0!important}
+.support-float-panel.support-chat-panel .support-topic-label{font-size:8px!important;letter-spacing:.13em!important;margin-bottom:4px!important}
+.support-float-panel.support-chat-panel .support-topic-trigger{min-height:43px!important}
+.support-float-panel.support-chat-panel .support-topic-selected small{display:none!important}
+.support-float-panel.support-chat-panel .support-topic-selected b{font-size:13px!important}
+.support-float-panel.support-chat-panel .support-float-body:not(.support-chat-active)>form>label{gap:4px!important}
+.support-float-panel.support-chat-panel .support-float-body:not(.support-chat-active)>form>label>input{min-height:40px!important}
+.support-float-panel.support-chat-panel .support-float-body:not(.support-chat-active)>form .support-composer>textarea{min-height:76px!important;max-height:150px!important}
+.support-float-panel.support-chat-panel .support-composer-toolbar{display:flex!important;align-items:center!important;gap:7px!important;padding:5px 7px!important}
+.support-float-panel.support-chat-panel .support-composer-hint{display:none!important}
+.support-float-panel.support-chat-panel .support-message-count{margin-left:auto!important;white-space:nowrap!important}
+.support-float-panel.support-chat-panel .support-attach-button,
+.support-float-panel.support-chat-panel .support-composer-send{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;flex:0 0 34px!important;border-radius:10px!important}
+.support-float-panel.support-chat-panel .support-attach-button{border:1px solid #344259!important;background:#151f2d!important;color:#b9c9e2!important}
+.support-float-panel.support-chat-panel .support-composer-send{border:1px solid #8c79ff!important;background:#7158e8!important;color:#fff!important;cursor:pointer!important}
+.support-float-panel.support-chat-panel .support-composer-send:disabled{opacity:.42!important;cursor:not-allowed!important}
+.support-float-panel.support-chat-panel .support-float-body.support-chat-active>form .support-composer{overflow:hidden!important}
+.support-float-panel.support-chat-panel .support-float-body.support-chat-active>form .support-composer>textarea{min-height:58px!important;max-height:120px!important}
+.support-float-panel.support-chat-panel .support-chat-notice{animation:supportNoticeFade 2.8s ease both!important}
+@keyframes supportNoticeFade{0%,65%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-3px);visibility:hidden}}
+@media(max-width:600px){
+ .support-float-panel.support-chat-panel .support-float-body:not(.support-chat-active)>form .support-composer>textarea{min-height:65px!important;max-height:120px!important}
+ .support-float-panel.support-chat-panel .support-composer-toolbar{gap:6px!important}
+ .support-float-panel.support-chat-panel .support-attach-button,.support-float-panel.support-chat-panel .support-composer-send{width:32px!important;height:32px!important;flex-basis:32px!important}
+}
+@media(prefers-reduced-motion:reduce){.support-float-panel.support-chat-panel .support-chat-notice{animation:none!important}}
