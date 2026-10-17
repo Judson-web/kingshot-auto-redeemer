@@ -193,7 +193,7 @@ const kingdomState=await revalidatePlayer(player,{rpc:rpcClient,notify:sendDisco
  const status=String(d?.status||"ERROR").toUpperCase();
  const message=d?.message||d?.error||"";
  const persistencePayload={p_player_id:String(player.player_id),p_code:item.code,p_status:status,p_err_code:d?.errCode??null,p_message:(d?.errorCategory?"["+d.errorCategory+"] ":"")+message};
- await journalResult(player.player_id,item.code,status,d?.errCode??null,persistencePayload.p_message);
+ try{await journalResult(player.player_id,item.code,status,d?.errCode??null,persistencePayload.p_message);}catch(error){console.error("Neon result journal write failed; falling back to Supabase history:",String(error?.message||error).slice(0,240));}
  await rpcClient("complete_kingshot_redemption_recovery",{p_player_id:String(player.player_id),p_code:item.code,p_status:status,p_err_code:d?.errCode??null,p_message:persistencePayload.p_message});
  await recordRedemptionSafely(rpcClient,persistencePayload);
  await rpcClient("resolve_kingshot_redemption_recovery",{p_player_id:String(player.player_id),p_code:item.code}).catch(error=>console.error("Recovery queue resolve failed:",error?.message||error));
