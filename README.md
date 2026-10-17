@@ -173,7 +173,7 @@ Recovery material is designed around the minimum state needed to restore missing
 - snapshot metadata
 - SHA-256 integrity data
 
-It does not contain Discord IDs, authentication credentials, passkeys, session tokens, or redemption history.
+It does not contain Discord IDs, authentication credentials, session tokens, or redemption history.
 
 Recovery is fail-closed. A recovery workflow validates the snapshot, compares it with Supabase, and inserts only missing records. Existing live records are not overwritten.
 
