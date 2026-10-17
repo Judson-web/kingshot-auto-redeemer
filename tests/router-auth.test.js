@@ -49,7 +49,7 @@ test("worker enforces bans before redemption and fails closed when ban lookup fa
   const source = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
   assert.match(source, /kingshot_player_bans\?select=player_id/);
   assert.match(source, /Unable to verify player bans before redemption/);
-  assert.match(source, /const eligiblePlayers=assignedPlayers\.filter\(player=>!bannedIds\.has/);
+  assert.match(source, /const eligiblePlayers=assignedPlayers\.filter\(player=>.*bannedIds\.has/);\n  assert.match(source, /player\?\.enabled!==false/);
   assert.match(source, /runWorkerShard\(slot,codes,eligiblePlayers/);
   assert.match(source, /bannedPlayersSkipped/);
 });
