@@ -23,7 +23,7 @@ Create and revoke keys at https://kingshot-autoredeemer.vercel.app/developer. Th
     curl "https://kingshot-autoredeemer.vercel.app/api/v3/players/43180889" \
       -H "Authorization: Bearer $KINGSHOT_API_KEY"
 
-Success responses contain data and meta. Metadata includes apiVersion, requestId, timestamp, rateLimit and provider freshness fields fetchedAt, providerFresh, providerAgeSeconds and stale. Player fields may be null.
+Success responses contain data and meta. Metadata includes apiVersion, requestId, timestamp, rateLimit and provider freshness fields fetchedAt, providerFresh, providerAgeSeconds and stale. Player fields may be null. Reads use bounded timeouts and at most one retry for transient network/5xx failures; not-found, provider rate-limit and authentication/configuration errors are not automatically retried.
 
 ## V3 manual redemption
 
@@ -38,7 +38,7 @@ Success responses contain data and meta. Metadata includes apiVersion, requestId
       -H "Content-Type: application/json" \
       -d '{"playerId":"43180889","code":"EXAMPLECODE","kid":"1125"}'
 
-playerId must be 5–20 digits, code must contain 1–64 letters/digits/underscores/hyphens, and kid must contain 1–10 digits. Unknown fields are rejected. Inspect data.ok, data.status, data.message, data.errorCategory and data.errCode. HTTP 200 means the operation completed, not necessarily that rewards were granted. A timeout may have an ambiguous upstream outcome; do not blindly retry. V3 does not guarantee idempotent execution.
+playerId must be 5–20 digits, code must contain 1–64 letters/digits/underscores/hyphens, and kid must contain 1–10 digits. Unknown fields are rejected. Inspect data.ok, data.status, data.message, data.errorCategory and data.errCode. HTTP 200 means the operation completed, not necessarily that rewards were granted. A timeout may have an ambiguous upstream outcome; do not blindly retry. V3 does not guarantee idempotent execution and never automatically retries redemptions.
 
 ## V3 errors
 
@@ -49,7 +49,7 @@ Errors have this shape:
       "meta": { "apiVersion": "3", "requestId": "server-generated-id", "timestamp": "2026-10-17T12:00:00.000Z" }
     }
 
-Typical statuses: 400 invalid input; 401 missing/invalid/revoked key; 404 not found; 405 unsupported method; 415 wrong content type; 429 quota exceeded; 502 provider error; 503 configuration/authorization unavailable; 504 timeout. Check Retry-After on 429 and use bounded backoff.
+Typical statuses: 400 invalid input; 401 missing/invalid/revoked key; 404 not found; 405 unsupported method; 415 wrong content type; 429 quota exceeded; 502 invalid provider response/provider unavailable; 503 configuration/authorization/provider rate limit unavailable; 504 timeout. Check Retry-After on 429 and use bounded backoff.
 
 ## V1 compatibility
 

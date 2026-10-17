@@ -35,7 +35,9 @@ The playerId path parameter must be a string containing 5–20 digits.
     curl "https://kingshot-autoredeemer.vercel.app/api/v3/players/43180889" \
       -H "Authorization: Bearer $KINGSHOT_API_KEY"
 
-Success responses contain data and meta. The data object has playerId, name, kingdomId, power, townCenterLevel and avatarUrl. Some fields may be null. Metadata includes apiVersion, requestId, timestamp, and upstream freshness fields fetchedAt, providerFresh, providerAgeSeconds and stale. The provider may return cached data, so do not assume every response reflects a real-time lookup.
+Success responses contain data and meta. The data object has playerId, name, kingdomId, power, townCenterLevel and avatarUrl. Fields that are missing or invalid at the provider may be null. Metadata includes apiVersion, requestId, timestamp, and provider freshness fields fetchedAt, providerFresh, providerAgeSeconds and stale. The provider may return cached data, so do not assume every response reflects a real-time lookup.
+
+V3 bounds each upstream player-read attempt and retries at most once after a transient network or 5xx failure. It does not retry player-not-found, authentication/configuration failures or provider rate limits. If the bounded attempts fail, the API returns a structured error rather than waiting on an unbounded provider request. A 504 means the provider read did not complete within the bounded time budget; use bounded client backoff for another lookup.
 
 ## V3 manual redemption
 
@@ -54,7 +56,7 @@ The JSON body must contain exactly these string fields:
 | code | 1–64 letters, digits, underscores or hyphens |
 | kid | 1–10 digits |
 
-Unknown properties and non-string field values are rejected. A completed redemption operation returns HTTP 200 and places the actual game result in data.ok, data.status, data.message, data.errorCategory and data.errCode. HTTP 200 means the operation completed, not that rewards were necessarily granted. V3 does not promise idempotent or exactly-once execution; an upstream timeout may leave an ambiguous outcome, so do not automatically retry it.
+Unknown properties and non-string field values are rejected. A completed redemption operation returns HTTP 200 and places the actual game result in data.ok, data.status, data.message, data.errorCategory and data.errCode. HTTP 200 means the operation completed, not that rewards were necessarily granted. V3 does not promise idempotent or exactly-once execution; an upstream timeout may leave an ambiguous outcome, so do not automatically retry it. Unlike player lookup, redemption requests are never automatically retried by V3.
 
 ## V3 error format
 
@@ -80,11 +82,11 @@ Errors have a stable nested shape:
 | 405 | Unsupported HTTP method |
 | 415 | Redemption request must use application/json |
 | 429 | Per-key or per-IP limit exceeded |
-| 502 | Upstream provider unavailable |
-| 503 | Authorization, trusted-IP or provider configuration unavailable |
+| 502 | Invalid provider response or provider unavailable |
+| 503 | Authorization, trusted-IP, provider authentication/configuration or provider rate-limit issue |
 | 504 | Upstream player lookup or redemption timed out |
 
-Responses include X-Request-Id and X-API-Version. Quota headers include X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset when available. On 429, honor Retry-After and use bounded backoff. Include the request ID in support reports, never the API key.
+Responses include X-Request-Id and X-API-Version. Quota headers include X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-RateLimit-Daily-Limit and X-RateLimit-Daily-Remaining when available. On 429, honor Retry-After and use bounded backoff. Include the request ID in support reports, never the API key.
 
 ## Rate limits
 
