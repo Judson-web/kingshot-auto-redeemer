@@ -100,6 +100,21 @@ async function recordRedemptionSafely(rpcClient,payload){
  throw new Error("Redemption outcome could not be durably recorded after retry: "+String(lastError?.message||lastError).slice(0,180));
 }
 
+async function drainRedemptionRecoveryQueue(rpcClient){
+ const rows=await rpcClient("list_kingshot_redemption_recovery_queue",{p_limit:50});
+ let recovered=0,failed=0;
+ for(const row of Array.isArray(rows)?rows:[]){
+  try{
+   await recordRedemptionSafely(rpcClient,{p_player_id:String(row.player_id),p_code:String(row.gift_code),p_status:String(row.status),p_err_code:row.err_code??null,p_message:String(row.message||"Recovered durable redemption result")});
+   await rpcClient("finish_kingshot_redemption_recovery",{p_id:Number(row.id),p_ok:true,p_error:null}); recovered++;
+  }catch(error){
+   await rpcClient("finish_kingshot_redemption_recovery",{p_id:Number(row.id),p_ok:false,p_error:String(error?.message||error).slice(0,240)}).catch(()=>{}); failed++;
+  }
+ }
+ if(rows?.length)console.log("Redemption recovery queue:",{found:rows.length,recovered,failed});
+ return {recovered,failed};
+}
+
 async function redeemForPlayer(player,codes,rpcClient=rpc){
 const kingdomState=await revalidatePlayer(player,{rpc:rpcClient,notify:sendDiscordEvent});
  const kingdomCheck=Boolean(kingdomState.revalidated);
@@ -125,12 +140,25 @@ const kingdomState=await revalidatePlayer(player,{rpc:rpcClient,notify:sendDisco
  const claimed=await rpcClient("claim_kingshot_redemption",{p_player_id:player.player_id,p_code:item.code});
  if(!claimed)return {attempted:0,success:0,alreadyHandled:0,skipped:1,kingdomCheck,kingdomChanged};
 
+ const recoveryClaim=await rpcClient("begin_kingshot_redemption_recovery",{p_player_id:String(player.player_id),p_code:item.code});
+ if(!recoveryClaim)return {attempted:0,success:0,alreadyHandled:1,skipped:1,kingdomCheck,kingdomChanged,recoveryBlocked:true};
  const redemptionStartedAt=Date.now();
- const d=await redeemKingshot({playerId:player.player_id,code:item.code,kid:player.kingdom_id});
+ let d;
+ try{
+  d=await redeemKingshot({playerId:player.player_id,code:item.code,kid:player.kingdom_id});
+ }catch(error){
+  // The upstream may have accepted the request before the connection failed.
+  // Preserve an explicit review marker; never automatically replay this attempt.
+  await rpcClient("mark_kingshot_redemption_recovery_uncertain",{p_player_id:String(player.player_id),p_code:item.code,p_error:String(error?.message||error).slice(0,240)}).catch(queueError=>console.error("Could not mark uncertain redemption:",queueError?.message||queueError));
+  throw error;
+ }
  const completedAt=Date.now();
  const status=String(d?.status||"ERROR").toUpperCase();
  const message=d?.message||d?.error||"";
- await recordRedemptionSafely(rpcClient,{p_player_id:player.player_id,p_code:item.code,p_status:status,p_err_code:d?.errCode??null,p_message:(d?.errorCategory?"["+d.errorCategory+"] ":"")+message});
+ const persistencePayload={p_player_id:String(player.player_id),p_code:item.code,p_status:status,p_err_code:d?.errCode??null,p_message:(d?.errorCategory?"["+d.errorCategory+"] ":"")+message};
+ await rpcClient("complete_kingshot_redemption_recovery",{p_player_id:String(player.player_id),p_code:item.code,p_status:status,p_err_code:d?.errCode??null,p_message:persistencePayload.p_message});
+ await recordRedemptionSafely(rpcClient,persistencePayload);
+ await rpcClient("resolve_kingshot_redemption_recovery",{p_player_id:String(player.player_id),p_code:item.code}).catch(error=>console.error("Recovery queue resolve failed:",error?.message||error));
 
  const discoveryAt=Number.isFinite(item.discoveredAt)?item.discoveredAt:null;
  const redemptionTelemetry={code:item.code,resultAt:new Date(completedAt).toISOString(),status,redemptionLatencyMs:Math.max(0,completedAt-redemptionStartedAt),discoveryToResultMs:discoveryAt==null?null:Math.max(0,completedAt-discoveryAt)};
@@ -161,6 +189,7 @@ export default async function handler(req,res){
   const requestedCodes=Array.isArray(body?.codes)?body.codes:[];
   const players=Array.isArray(body?.players)?body.players:[];
   try{
+   await drainRedemptionRecoveryQueue(rpc);
    const adminRows=await rpc("list_kingshot_admin_gift_codes",{});
    const suppressedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.suppressed===true).map(row=>String(row?.code||"").trim().toUpperCase()).filter(Boolean));
    const verifiedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(r=>r?.validation_status==="verified"&&r?.active!==false&&r?.suppressed!==true).map(r=>String(r?.code||"").trim().toUpperCase()));
