@@ -299,7 +299,7 @@ const pushWorker=read("public/sw.js");
 const supportChat=read("lib/support-chat.js");
 const bansMigration=read("supabase/migrations/20261017120000_admin_player_database_and_push_audience.sql");
 assertCheck("Configured Discord owner is returned as explicit admin kind",
- developerAuth.includes('kind:role') && developerAuth.includes('OWNER_DISCORD_ID="871756466900598815"'));
+ developerAuth.includes('kind:role') && developerAuth.includes('OWNER_DISCORD_ID = "871756466900598815"'));
 assertCheck("Admin player database is routed and protected by server-side admin session",
  read("src/main.jsx").includes('location.pathname==="/admin/players"?<AdminPlayersApp/>') &&
  adminData.includes('kingshot_admin_list_players') &&
