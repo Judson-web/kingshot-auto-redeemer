@@ -13,6 +13,16 @@ test("normalizes persisted statuses and code keys without changing display casin
   assert.deepEqual([...handled].sort(), ["HANGUL2026", "VIP777", "WELLDONE"]);
 });
 
+test("treats concierge recharge-money errors as handled for that player only", () => {
+  const codes = [{ code: "VIP1017" }, { code: "KS1017" }];
+  const handled = getHandledGiftCodes([
+    { gift_code: "VIP1017", status: "RECHARGE_MONEY ERROR" }
+  ]);
+  assert.equal(selectNextOutstandingCode(codes, handled)?.code, "KS1017");
+  // This does not invalidate the code globally; another player can still verify it.
+  assert.equal(handled.has("VIP1017"), true);
+});
+
 test("moves to the next code after a handled player-specific error", () => {
   const codes = [{ code: "Hangul2026" }, { code: "WELLDONE" }, { code: "VIP777" }];
   const handled = getHandledGiftCodes([
