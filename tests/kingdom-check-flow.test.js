@@ -7,6 +7,9 @@ import {
   summarizeKingdomCheckResults
 } from "../internal/kingshot/kingdom-check-flow.js";
 
+const keyPoolSource = await readFile(new URL("../lib/mightpulse-key-pool.js", import.meta.url), "utf8");
+const keySlotMigration = await readFile(new URL("../supabase/migrations/20261018170000_mightpulse_key_slot_consistency.sql", import.meta.url), "utf8");
+
 test("kingdom-check batches sort numeric player IDs and cap batch size", () => {
   const batch = selectKingdomCheckBatch([
     { player_id: "100" },
@@ -56,7 +59,8 @@ test("kingdom-check summary distinguishes cooldown deferrals from errors and sta
     stale: 1,
     errors: 1,
     deferred: 1,
-    validated: 2
+    validated: 2,
+    retryAfterMs: 0
   });
 });
 
@@ -72,6 +76,25 @@ test("manual kingdom-check endpoint uses bounded keyset batches and counts defer
   assert.match(apiSource, /kingdomSummary\.deferred/);
   assert.match(validationSource, /return \{ deferred: true \}/);
   assert.match(workflowSource, /BATCH_SIZE=20/);
-  assert.match(workflowSource, /Waiting 90 seconds, then retrying this same batch once/);
+  assert.match(workflowSource, /RETRY_AFTER_MS/);
+  assert.match(workflowSource, /then retrying this same batch once/);
   assert.match(workflowSource, /Batch cursor did not advance/);
+});
+
+test("shared key-pool failures distinguish schema mismatches from genuine cooldowns", () => {
+  assert.match(keySlotMigration, /'kss1'/);
+  assert.match(keySlotMigration, /'kss10'/);
+  assert.match(keySlotMigration, /'kss'/);
+  assert.match(keyPoolSource, /INVALID_KEY_SLOT/);
+  assert.match(keyPoolSource, /key-slot IDs are rejected by the shared quota schema/);
+  assert.match(keyPoolSource, /UPSTREAM_RATE_LIMIT/);
+});
+
+test("manual retry timing follows upstream quota-reset metadata", () => {
+  const summary = summarizeKingdomCheckResults([
+    { deferred: true, retryAfterMs: 45_000 },
+    { deferred: true, retryAfterMs: 12_000 }
+  ]);
+  assert.equal(summary.deferred, 2);
+  assert.equal(summary.retryAfterMs, 45_000);
 });
