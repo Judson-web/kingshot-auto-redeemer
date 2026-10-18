@@ -200,7 +200,7 @@ function recordVisitorPageView(){
  try{
   if(!window.fetch||!window.sessionStorage)return;
   const path=location.pathname;
-  if(!path||path.startsWith("/api/")||path==="/push"||path==="/message"||path==="/developer"||path==="/dev"||path==="/devsupport"||path==="/admin/players")return;
+  if(!path||path.startsWith("/api/")||path==="/push"||path==="/message"||path==="/developer"||path==="/dev"||path==="/devsupport"||path==="/admin/players"||path==="/admin/maintenance")return;
   const key="ks_telemetry_seen:"+path;
   if(sessionStorage.getItem(key))return;
   sessionStorage.setItem(key,"1");
