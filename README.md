@@ -225,6 +225,8 @@ The repository includes security regression checks, database privilege checks, a
 
 The production edge sets a restrictive Content Security Policy, HSTS, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, a referrer policy, and a Permissions Policy. CSP permits HTTPS images for external game avatars; this is intentionally broader than the font policy. These controls reduce risk but are not a substitute for authenticated API testing or a full penetration test.
 
+Equipped MightPulse avatar frames are resolved from the public profile page because the documented player API schema does not expose frame metadata. The browser talks only to the same-origin `/api/kingshot-player?frame=profile` route; server-side requests use fixed MightPulse hosts, strict numeric ID/asset validation, bounded timeouts, per-IP rate limits, and cache headers. Frame PNGs are proxied through the existing `/api/kingshot-player?frame=asset` handler, so this feature does not add a CORS exception, loosen the Content Security Policy, or consume another serverless-function slot. Profiles with no frame and upstream failures fall back to the ordinary avatar.
+
 Privileged operational endpoints require server-side authentication. The public website does not expose privileged credentials or signing material.
 
 ### Rate limiting

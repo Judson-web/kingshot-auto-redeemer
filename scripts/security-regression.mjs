@@ -25,6 +25,26 @@ if(cspHeader){
  }
 }
 
+const frameRoute=read("api/kingshot-player.ts");
+const frameParser=read("lib/mightpulse-avatar-frame.js");
+const manualUi=read("src/main.jsx");
+const resultUiCss=read("src/styles.css");
+assertCheck("MightPulse avatar frames use a same-origin proxy without weakening CORS or CSP",
+ manualUi.includes('fetch("/api/kingshot-player?frame=profile&id="') &&
+ manualUi.includes('"/api/kingshot-player?frame=asset&asset="') &&
+ frameRoute.includes('https://www.mightpulse.com/player/" + playerId') &&
+ frameRoute.includes('https://www.mightpulse.com/assets/icons/skin_icon_') &&
+ frameRoute.includes('rateLimit(req, res, "mightpulse-frame-profile"') && frameRoute.includes('rateLimit(req, res, "mightpulse-frame-image"') &&
+ frameRoute.includes("Cache-Control") &&
+ !frameRoute.includes("Access-Control-Allow-Origin") &&
+ frameParser.includes('hostname !== "www.mightpulse.com"') &&
+ cspHeader?.value.includes("connect-src 'self'") &&
+ !cspHeader?.value.includes("https://www.mightpulse.com"));
+assertCheck("Manual redemption is one compact player card without redundant footer actions",
+ manualUi.includes("ks-result-compact") && manualUi.includes("REDEMPTION RESULT") &&
+ !manualUi.includes("Copy reference") && !manualUi.includes("Redeem another code") &&
+ resultUiCss.includes(".ks-result-compact"));
+
 const auto=read("api/kingshot-auto.js");
 const worker=read("internal/kingshot/worker.ts");
 const workerCode=auto+"\n"+worker;
