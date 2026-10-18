@@ -76,14 +76,14 @@ function makePng(route="auto"){
  privacy:["YOUR","PRIVACY","DATA HANDLING EXPLAINED"]
 };
  const card=cards[String(route)]||cards.auto;
- text(card[0],480,180,8,white);text(card[1],480,255,8,light);text(card[2],480,355,4,muted);
+ text(card[0],480,180,8,white);text(card[1],480,255,8,light);text(card[2],480,355,card[2].length>26?3:4,muted);
  // A page-specific accent panel makes every share card distinguishable even in compact previews.
  rect(480,420,Math.min(450,card[2].length*20),4,purple);
  rect(480,432,170,2,edge);
  // Distinct page glyphs inside the brand tile, using the same vector-like line primitives.
  if(route==="info"){line(245,245,245,330,10,light);line(245,287,288,287,8,light);line(245,287,245,265,8,light)}
  else if(route==="developer"){line(190,270,160,305,10,light);line(160,305,190,340,10,light);line(280,270,310,305,10,light);line(310,305,280,340,10,light);line(205,345,265,265,7,light)}
- else if(route==="profile"){line(235,250,235,250,35,light);rect(205,275,62,30,light);rect(190,315,92,44,light)}
+ else if(route==="profile"){rect(218,235,44,36,light);rect(205,275,62,30,light);rect(190,315,92,44,light)}
  else if(route==="support"||route==="message"){rect(178,250,112,68,light);line(205,318,190,340,8,light);line(205,318,228,318,8,light);rect(195,270,12,5,bg);rect(218,270,12,5,bg);rect(241,270,12,5,bg)}
  else if(route==="push"){rect(205,250,76,72,light);rect(220,235,46,12,light);rect(225,330,36,9,light);line(235,220,250,220,6,light)}
  else if(route==="codes"){rect(190,270,100,65,light);line(190,270,240,245,8,light);line(290,270,240,245,8,light);line(240,245,240,335,8,light);line(220,340,260,340,7,light)}
