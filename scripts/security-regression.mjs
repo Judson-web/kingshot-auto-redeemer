@@ -42,8 +42,8 @@ assertCheck("MightPulse avatar frames use a same-origin proxy without weakening 
   frameParser.includes("resolveMightPulseProfileUid") &&
   frameRoute.includes("api/search?q=") &&
   frameRoute.includes("https://api.mightpulse.com/v1/players/") &&
-  frameRoute.includes("resolveMightPulseProfileUid(await apiResponse.json(), playerId)") &&
-  frameRoute.includes("resolveMightPulseProfileUid(await searchResponse.json(), playerId)") &&
+  frameRoute.includes("resolveMightPulseProfileUid(JSON.parse(body), playerId)") &&
+  frameRoute.includes("resolveMightPulseProfileUid(JSON.parse(body), playerId)") &&
  cspHeader?.value.includes("connect-src 'self'") &&
  !cspHeader?.value.includes("https://www.mightpulse.com"));
 assertCheck("Manual redemption is one compact player card without redundant footer actions",
