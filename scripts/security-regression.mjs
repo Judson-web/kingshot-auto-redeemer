@@ -206,7 +206,7 @@ assertCheck("Push console has no separate passkey UI and points to the existing 
 assertCheck("Push console validates the existing Discord session and owner identity server-side",
  customMessage.includes('__Host-ks_developer_session') &&
  customMessage.includes('kingshot_developer_account_session_get') &&
- customMessage.includes('discordId===OWNER_DISCORD_ID') &&
+ customMessage.includes('return isDiscordOwner(user,OWNER_DISCORD_ID);') &&
  customMessage.includes('action==="CHECK"'));
 assertCheck("Legacy developer passkey endpoint cannot create sessions",
  legacyDeveloperLogin.includes("Legacy developer passkey authentication has been retired.") &&
@@ -216,16 +216,15 @@ assertCheck("Legacy developer passkey endpoint cannot create sessions",
  legacyPasskeyMigration.includes("drop table if exists private.kingshot_developer_access_keys") &&
  legacyPasskeyMigration.includes("drop function if exists public.kingshot_developer_create_session_with_key(text,text)"));
 assertCheck("Modern admin authentication has request rate limiting",
- developerAuth.includes('rateLimit(req,res,"developer-account-auth",8,900000)'));
+ /const protectedAuthActions=new Set\(\[[\s\S]*?"profile-oauth"[\s\S]*?\]\);\s*if\(protectedAuthActions\.has\(action\)&&!rateLimit\(req,res,"developer-account-auth:"\+action,8,900000\)\)/.test(developerAuth) && developerAuth.indexOf("protectedAuthActions.has(action)") < developerAuth.indexOf('if(action==="profile-link-url")'));
 assertCheck("Admin data requires a stored owner session before privileged work",
  adminData.includes('const COOKIE="__Host-ks_owner_session"') &&
  adminData.includes("const session=getCookie(req);if(!session)return res.status(401)") &&
  adminData.includes('rpc("kingshot_developer_account_session_get",{p_token_hash:hash(session)})'));
 assertCheck("Admin data verifies the configured Discord owner identity",
  adminData.includes("OWNER_DISCORD_ID") &&
- adminData.includes('x?.provider==="discord"') &&
- adminData.includes('owner.app_metadata.providers.includes("discord")') &&
- adminData.includes("discordId!==OWNER_DISCORD_ID"));
+ adminData.includes('import { isDiscordOwner } from "./discord-identity.js";') &&
+ adminData.includes("!isDiscordOwner(owner,OWNER_DISCORD_ID)"));
 assertCheck("Owner sessions use secure HttpOnly cookies and cryptographic randomness",
  developerAuth.includes('OWNER_COOKIE+"="+encodeURIComponent(v)+"; Max-Age="+age+"; Path=/; HttpOnly; Secure; SameSite=Strict') &&
  developerAuth.includes("crypto.randomBytes(32).toString("));
