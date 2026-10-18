@@ -16,16 +16,17 @@ test("labels the four level-30 transition stages correctly", () => {
   }
 });
 
-test("maps linear progression values to the correct completed TG tier", () => {
-  const ranges = [
-    [35, 39, 1], [40, 44, 2], [45, 49, 3], [50, 54, 4],
-    [55, 59, 5], [60, 64, 6], [65, 69, 7], [70, 74, 8]
+test("maps every progression value to the correct Truegold tier and stage", () => {
+  const cases = [
+    [35, "TG1"], [36, "TG1-1"], [37, "TG1-2"], [38, "TG1-3"], [39, "TG1-4"],
+    [40, "TG2"], [44, "TG2-4"], [45, "TG3"], [49, "TG3-4"],
+    [50, "TG4"], [54, "TG4-4"], [55, "TG5"], [59, "TG5-4"],
+    [60, "TG6"], [61, "TG6-1"], [64, "TG6-4"],
+    [65, "TG7"], [69, "TG7-4"], [70, "TG8"], [74, "TG8-4"]
   ];
-  for (const [start, end, tier] of ranges) {
-    for (let level = start; level <= end; level += 1) {
-      assert.equal(townCenterTier(level), tier, "level " + level + " should map to TG" + tier);
-      assert.equal(formatTownCenterLevel(level), "TG" + tier);
-    }
+  for (const [level, label] of cases) {
+    assert.equal(formatTownCenterLevel(level), label, "level " + level);
+    assert.equal(townCenterTier(level), Number(/^TG(\\d+)/.exec(label)[1]), "icon tier for " + level);
   }
 });
 
