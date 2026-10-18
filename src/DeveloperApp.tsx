@@ -51,7 +51,7 @@ console.log(result.data.playerId, result.data.name);`;
   const paragraph: React.CSSProperties = { color: "#aeb8ca", lineHeight: 1.7, margin: "8px 0 0", fontSize: 14 };
   const codeStyle: React.CSSProperties = { margin: 0, overflowX: "auto", padding: 15, borderRadius: 11, background: "#080a0f", color: "#d5d8ff", fontSize: 12, lineHeight: 1.75, whiteSpace: "pre" };
   const accordion = (id: string, title: string, body: React.ReactNode) => <section style={{ ...card, padding: 0, overflow: "hidden" }}><button type="button" onClick={() => setExpanded(expanded === id ? "" : id)} aria-expanded={expanded === id} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: 17, textAlign: "left", background: "transparent", color: "#f2f5fb", border: 0, font: "inherit", cursor: "pointer" }}><ChevronRight size={16} style={{ transform: expanded === id ? "rotate(90deg)" : "none", transition: "transform .15s" }}/><b style={{ flex: 1 }}>{title}</b></button>{expanded === id && <div style={{ padding: "0 18px 18px" }}>{body}</div>}</section>;
-  return <main className="dev-dashboard" aria-labelledby="developer-docs-title" style={{ minHeight: "100vh", background: "#0b0e14", color: "#f2f5fb", fontFamily: "inherit" }}>
+  return <main className="dev-dashboard ks-dev-route" aria-labelledby="developer-docs-title" style={{ minHeight: "100vh", background: "#0b0e14", color: "#f2f5fb", fontFamily: "inherit" }}>
     <style>{`
       .dev-dashboard *{box-sizing:border-box}
       .dev-topbar{position:sticky;top:0;z-index:20;background:rgba(11,14,20,.88);backdrop-filter:blur(16px);border-bottom:1px solid #252c38}
@@ -151,6 +151,100 @@ console.log(result.data.playerId, result.data.name);`;
       #developer-account button{min-height:38px}
       #developer-account button:focus-visible{outline:2px solid #aeb4ff;outline-offset:3px}
       .dev-dashboard ::selection{background:#777ff066;color:#fff}
+
+      /* Scoped structural reset: neutralize site-wide positioning and sizing rules on this route. */
+      .ks-dev-route{display:block!important;position:relative!important;isolation:isolate!important;width:100%!important;max-width:none!important;min-height:100vh!important;margin:0!important;padding:0!important;overflow-x:clip!important;overflow-y:visible!important;line-height:1.5!important;background:#090c12!important}
+      .ks-dev-route .dev-topbar,.ks-dev-route .dev-topbar-inner,.ks-dev-route .dev-shell,.ks-dev-route .dev-overview,.ks-dev-route .dev-overview>div,.ks-dev-route .dev-layout,.ks-dev-route .dev-content,.ks-dev-route .dev-doc-grid,.ks-dev-route .dev-card,.ks-dev-route .dev-sidebar,.ks-dev-route .dev-footer{box-sizing:border-box!important;float:none!important;clear:both!important;transform:none!important}
+      .ks-dev-route .dev-topbar{display:block!important;position:sticky!important;top:0!important;z-index:100!important;width:100%!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;overflow:visible!important;background:rgba(9,12,18,.96)!important;border-bottom:1px solid #ffffff14!important;backdrop-filter:blur(16px)!important}
+      .ks-dev-route .dev-shell{display:block!important;position:relative!important;width:100%!important;max-width:1320px!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0 auto!important;padding-left:clamp(14px,3vw,38px)!important;padding-right:clamp(14px,3vw,38px)!important;overflow:visible!important}
+      .ks-dev-route .dev-topbar-inner{display:flex!important;position:relative!important;align-items:center!important;justify-content:flex-start!important;flex-flow:row nowrap!important;gap:12px!important;width:100%!important;min-height:64px!important;height:auto!important;max-height:none!important;margin:0 auto!important;padding-top:9px!important;padding-bottom:9px!important;overflow:visible!important}
+      .ks-dev-route .dev-brand-mark{display:grid!important;position:relative!important;place-items:center!important;flex:0 0 38px!important;width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;max-width:38px!important;max-height:38px!important;margin:0!important;padding:0!important;overflow:hidden!important;border-radius:10px!important}
+      .ks-dev-route .dev-brand-mark img{display:block!important;position:static!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important;transform:none!important}
+      .ks-dev-route .dev-brand-copy{display:block!important;position:static!important;flex:1 1 auto!important;width:auto!important;min-width:0!important;height:auto!important;max-height:none!important;margin:0!important;padding:0!important;overflow:hidden!important}
+      .ks-dev-route .dev-brand-copy>div{display:block!important;position:static!important;width:auto!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;overflow:visible!important;transform:none!important;line-height:1.35!important;white-space:normal!important}
+      .ks-dev-route .dev-top-nav{display:flex!important;position:static!important;flex:0 0 auto!important;align-items:center!important;justify-content:flex-end!important;gap:3px!important;width:auto!important;min-width:0!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0 0 0 auto!important;padding:0!important;overflow:visible!important}
+      .ks-dev-route .dev-nav-link{display:inline-flex!important;position:static!important;align-items:center!important;justify-content:center!important;flex:none!important;width:auto!important;height:auto!important;min-height:36px!important;max-height:none!important;margin:0!important;padding:8px 10px!important;border:1px solid transparent!important;border-radius:9px!important;font-size:12px!important;line-height:1.3!important;white-space:nowrap!important;transform:none!important}
+      .ks-dev-route .dev-page{display:block!important;position:relative!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding-top:clamp(25px,4vw,48px)!important;padding-bottom:56px!important;overflow:visible!important}
+      .ks-dev-route .dev-overview{display:flex!important;position:relative!important;flex-direction:row!important;align-items:flex-end!important;justify-content:space-between!important;gap:20px!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0 0 25px!important;padding:0!important;overflow:visible!important}
+      .ks-dev-route .dev-overview>div{display:block!important;position:static!important;flex:1 1 auto!important;min-width:0!important;width:auto!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;overflow:visible!important}
+      .ks-dev-route .dev-eyebrow{display:inline-flex!important;position:static!important;width:auto!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:7px 10px!important;line-height:1.3!important;white-space:normal!important;overflow:visible!important}
+      .ks-dev-route .dev-page-title{display:block!important;position:static!important;width:auto!important;min-width:0!important;height:auto!important;min-height:0!important;max-height:none!important;margin:14px 0 11px!important;padding:0!important;overflow:visible!important;clip:auto!important;white-space:normal!important;transform:none!important;font-size:clamp(30px,4vw,46px)!important;line-height:1.08!important;letter-spacing:-.055em!important;font-weight:760!important;text-wrap:balance!important}
+      .ks-dev-route .dev-overview .dev-muted{display:block!important;position:static!important;width:auto!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;overflow:visible!important;white-space:normal!important;line-height:1.7!important;font-size:13px!important}
+      .ks-dev-route .dev-version-pill{display:inline-flex!important;position:static!important;align-items:center!important;flex:0 0 auto!important;width:auto!important;height:auto!important;min-height:0!important;max-width:100%!important;max-height:none!important;margin:0 0 3px!important;padding:9px 12px!important;white-space:nowrap!important;transform:none!important}
+      .ks-dev-route .dev-stat-grid{display:grid!important;position:relative!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:13px!important;align-items:stretch!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0 0 21px!important;padding:0!important;overflow:visible!important}
+      .ks-dev-route .dev-stat{display:block!important;position:relative!important;min-width:0!important;width:auto!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:17px!important;overflow:hidden!important;border:1px solid #ffffff14!important;border-radius:14px!important;background:linear-gradient(150deg,#151b27,#10141c)!important;transform:none!important}
+      .ks-dev-route .dev-stat-label,.ks-dev-route .dev-stat-value,.ks-dev-route .dev-stat-detail{display:block!important;position:static!important;width:auto!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;overflow:visible!important;transform:none!important;white-space:normal!important}
+      .ks-dev-route .dev-stat-value{margin-top:8px!important;font-size:clamp(13px,1.45vw,18px)!important;line-height:1.5!important;overflow-wrap:anywhere!important}
+      .ks-dev-route .dev-stat-detail{margin-top:5px!important;color:#8995aa!important;font-size:11px!important;line-height:1.55!important}
+      .ks-dev-route .dev-section-nav{display:flex!important;position:relative!important;flex-flow:row wrap!important;align-items:stretch!important;gap:8px!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0 0 21px!important;padding:0 0 3px!important;overflow:visible!important}
+      .ks-dev-route .dev-section-nav a{display:inline-flex!important;position:static!important;flex:0 0 auto!important;align-items:center!important;justify-content:flex-start!important;gap:7px!important;min-width:0!important;width:auto!important;height:auto!important;min-height:38px!important;max-height:none!important;margin:0!important;padding:9px 11px!important;border:1px solid #ffffff15!important;border-radius:9px!important;background:#121722!important;line-height:1.35!important;white-space:normal!important;transform:none!important}
+      .ks-dev-route .dev-layout{display:grid!important;position:relative!important;grid-template-columns:minmax(270px,.78fr) minmax(0,1.8fr)!important;align-items:start!important;gap:20px!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;overflow:visible!important}
+      .ks-dev-route .dev-sidebar{display:block!important;position:sticky!important;top:82px!important;min-width:0!important;width:auto!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;overflow:visible!important}
+      .ks-dev-route .dev-content{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:15px!important;min-width:0!important;width:auto!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;overflow:visible!important}
+      .ks-dev-route .dev-doc-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;align-items:start!important;gap:15px!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;overflow:visible!important}
+      .ks-dev-route .dev-doc-grid>section,.ks-dev-route .dev-doc-grid>div{position:relative!important;min-width:0!important;width:auto!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;overflow:visible!important}
+      .ks-dev-route .dev-doc-grid>#api-reference{grid-column:1/-1!important}
+      .ks-dev-route .dev-card{display:block!important;position:relative!important;min-width:0!important;width:auto!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:clamp(16px,2vw,23px)!important;overflow:hidden!important;border:1px solid #ffffff14!important;border-radius:15px!important;background:linear-gradient(150deg,#151b26,#11151d)!important;transform:none!important}
+      .ks-dev-route .dev-card-head{display:flex!important;position:static!important;align-items:center!important;gap:10px!important;width:auto!important;height:auto!important;min-height:0!important;margin:0 0 10px!important;padding:0!important;overflow:visible!important}
+      .ks-dev-route .dev-card-title{display:block!important;position:static!important;width:auto!important;height:auto!important;min-width:0!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;overflow:visible!important;white-space:normal!important;line-height:1.35!important}
+      .ks-dev-route .dev-feature-card h2{display:block!important;position:static!important;width:auto!important;height:auto!important;min-height:0!important;max-height:none!important;margin:10px 0 9px!important;padding:0!important;overflow:visible!important;white-space:normal!important;font-size:clamp(23px,2.2vw,30px)!important;line-height:1.16!important;letter-spacing:-.04em!important}
+      .ks-dev-route .dev-code{display:block!important;position:relative!important;width:100%!important;min-width:0!important;max-width:100%!important;height:auto!important;max-height:480px!important;margin:0!important;padding:13px!important;overflow:auto!important;white-space:pre!important;overflow-wrap:normal!important;line-height:1.7!important;font-size:12px!important}
+      .ks-dev-route .dev-code code{display:inline!important;position:static!important;white-space:pre!important;overflow-wrap:normal!important}
+      .ks-dev-route .dev-endpoint{display:flex!important;position:relative!important;flex-flow:row wrap!important;align-items:center!important;gap:9px!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:11px!important;overflow:visible!important}
+      .ks-dev-route .dev-endpoint>code{display:block!important;position:static!important;flex:1 1 150px!important;min-width:0!important;width:auto!important;height:auto!important;margin:0!important;padding:0!important;overflow-wrap:anywhere!important;white-space:normal!important}
+      .ks-dev-route button:focus-visible,.ks-dev-route a:focus-visible,.ks-dev-route input:focus-visible{outline:2px solid #b2b8ff!important;outline-offset:3px!important}
+      .ks-dev-route .dev-footer{display:flex!important;position:static!important;flex-flow:row wrap!important;justify-content:space-between!important;align-items:center!important;gap:12px!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:28px 0 0!important;padding:20px 0 0!important;overflow:visible!important}
+      @media(max-width:1000px){
+        .ks-dev-route .dev-layout{grid-template-columns:minmax(0,1fr)!important;gap:16px!important}
+        .ks-dev-route .dev-sidebar{position:static!important;top:auto!important}
+        .ks-dev-route .dev-version-pill{margin-top:0!important}
+      }
+      @media(max-width:760px){
+        .ks-dev-route .dev-shell{padding-left:15px!important;padding-right:15px!important}
+        .ks-dev-route .dev-topbar-inner{min-height:56px!important;gap:8px!important}
+        .ks-dev-route .dev-brand-mark{width:33px!important;height:33px!important;min-width:33px!important;max-width:33px!important;flex-basis:33px!important}
+        .ks-dev-route .dev-brand-copy>div:first-child{font-size:12px!important}
+        .ks-dev-route .dev-brand-copy>div:last-child{font-size:9px!important}
+        .ks-dev-route .dev-top-nav{gap:2px!important;overflow-x:auto!important;scrollbar-width:none!important}
+        .ks-dev-route .dev-top-nav::-webkit-scrollbar{display:none!important}
+        .ks-dev-route .dev-nav-link{font-size:10px!important;padding:7px 5px!important;min-height:31px!important}
+        .ks-dev-route .dev-page{padding-top:24px!important;padding-bottom:calc(34px + env(safe-area-inset-bottom,0px))!important}
+        .ks-dev-route .dev-overview{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;gap:12px!important;margin-bottom:18px!important}
+        .ks-dev-route .dev-overview>div{width:100%!important;flex:0 1 auto!important}
+        .ks-dev-route .dev-page-title{font-size:clamp(28px,7.5vw,37px)!important;line-height:1.08!important;margin:12px 0 9px!important}
+        .ks-dev-route .dev-version-pill{margin:0!important;align-self:flex-start!important}
+        .ks-dev-route .dev-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;margin-bottom:17px!important}
+        .ks-dev-route .dev-stat{padding:13px!important}
+        .ks-dev-route .dev-stat:last-child{grid-column:1/-1!important}
+        .ks-dev-route .dev-stat-value{font-size:14px!important}
+        .ks-dev-route .dev-section-nav{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;margin-bottom:17px!important}
+        .ks-dev-route .dev-section-nav a{display:flex!important;min-height:40px!important;width:auto!important;padding:9px!important;font-size:11px!important;line-height:1.3!important}
+        .ks-dev-route .dev-layout,.ks-dev-route .dev-doc-grid{grid-template-columns:minmax(0,1fr)!important;gap:13px!important}
+        .ks-dev-route .dev-doc-grid>#api-reference{grid-column:auto!important}
+        .ks-dev-route .dev-card{padding:16px!important}
+        .ks-dev-route .dev-feature-card h2{font-size:23px!important}
+        .ks-dev-route .dev-code{font-size:11px!important;max-height:420px!important;padding:11px!important}
+        .ks-dev-route .dev-endpoint{align-items:flex-start!important}
+        .ks-dev-route .dev-endpoint>code{flex:1 1 100%!important}
+        .ks-dev-route .dev-footer{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:8px!important}
+        .ks-dev-route #developer-account{width:100%!important;max-width:100%!important;margin:0!important;padding:16px!important}
+      }
+      @media(max-width:430px){
+        .ks-dev-route .dev-shell{padding-left:12px!important;padding-right:12px!important}
+        .ks-dev-route .dev-brand-copy{display:none!important}
+        .ks-dev-route .dev-top-nav{flex:1 1 auto!important;justify-content:flex-end!important;min-width:0!important}
+        .ks-dev-route .dev-nav-link{font-size:10px!important;padding:7px 5px!important}
+        .ks-dev-route .dev-page-title{font-size:clamp(27px,8vw,34px)!important}
+        .ks-dev-route .dev-stat{padding:11px!important}
+        .ks-dev-route .dev-stat-label{font-size:10px!important}
+        .ks-dev-route .dev-stat-value{font-size:12px!important}
+        .ks-dev-route .dev-stat-detail{font-size:10px!important}
+        .ks-dev-route .dev-section-nav a{padding:8px!important;font-size:10px!important}
+        .ks-dev-route .dev-card{padding:14px!important}
+        .ks-dev-route .dev-code{font-size:10px!important}
+      }
+      @media(prefers-reduced-motion:reduce){.ks-dev-route *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
       @media(max-width:1040px){
         .dev-dashboard .dev-layout{grid-template-columns:minmax(0,1fr);gap:18px}
         .dev-dashboard .dev-sidebar{position:static;order:0}
