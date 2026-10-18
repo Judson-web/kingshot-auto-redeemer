@@ -44,6 +44,61 @@ const RATE_LIMIT_COOLDOWN_FALLBACK_MS = 60_000;
 let mightPulseCooldownUntil = 0;
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+let mightPulseUsageCheckUntil = 0;
+let mightPulseUsageCheckInFlight: Promise<void> | null = null;
+
+/**
+ * /v1/usage is uncounted by MightPulse. Refresh it occasionally and persist the
+ * observed headroom so the shared request RPC accounts for key usage outside
+ * this app as well as requests reserved by other Vercel instances.
+ */
+async function refreshMightPulseUsage(rpc: Rpc, key: string): Promise<void> {
+  if (Date.now() < mightPulseUsageCheckUntil) return;
+  if (!mightPulseUsageCheckInFlight) {
+    mightPulseUsageCheckInFlight = (async () => {
+      // Include a small overlap window for requests that were reserved but may
+      // not yet have appeared in the upstream usage snapshot.
+      const observedAt = new Date(Date.now() - 10_000).toISOString();
+      try {
+        const response = await fetch("https://api.mightpulse.com/v1/usage", {
+          headers: { Authorization: "Bearer " + key },
+          signal: AbortSignal.timeout(5000)
+        });
+        if (!response.ok) throw Error("usage endpoint returned HTTP " + response.status);
+        const data = await response.json().catch(() => null) as {
+          minute?: { remaining?: number; resets_at?: string };
+          daily?: { remaining?: number; resets_at?: string };
+        } | null;
+        const minuteRemaining = Number(data?.minute?.remaining);
+        const dayRemaining = Number(data?.daily?.remaining);
+        const minuteResetAt = Date.parse(String(data?.minute?.resets_at || ""));
+        const dayResetAt = Date.parse(String(data?.daily?.resets_at || ""));
+        if (!Number.isFinite(minuteRemaining) || minuteRemaining < 0 ||
+            !Number.isFinite(dayRemaining) || dayRemaining < 0 ||
+            !Number.isFinite(minuteResetAt) || !Number.isFinite(dayResetAt)) {
+          throw Error("usage endpoint returned an invalid allowance snapshot");
+        }
+        await rpc("record_mightpulse_api_usage", {
+          p_observed_at: observedAt,
+          p_minute_remaining: Math.floor(minuteRemaining),
+          p_minute_resets_at: new Date(minuteResetAt).toISOString(),
+          p_day_remaining: Math.floor(dayRemaining),
+          p_day_resets_at: new Date(dayResetAt).toISOString()
+        });
+      } catch (error) {
+        // Fail over to the shared static budget if usage telemetry is unavailable.
+        console.warn("MightPulse usage preflight unavailable; using shared request budget:",
+          String((error as Error)?.message || error).slice(0, 160));
+      } finally {
+        mightPulseUsageCheckUntil = Date.now() + 30_000;
+      }
+    })().finally(() => {
+      mightPulseUsageCheckInFlight = null;
+    });
+  }
+  await mightPulseUsageCheckInFlight;
+}
+
 function resetBoundary(now = Date.now()) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Kolkata",
@@ -86,6 +141,7 @@ async function fetchCurrentPlayer(playerId: string, rpc: Rpc): Promise<FreshPlay
       throw Error("MightPulse rate-limit cooldown active; validation deferred to the next cycle.");
     }
     try {
+      await refreshMightPulseUsage(rpc, key);
       const reservation = await rpc("claim_mightpulse_api_request", { p_mark_cooldown_seconds: 0 }) as {
         claimed?: boolean;
         reason?: string;
