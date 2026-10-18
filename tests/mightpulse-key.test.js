@@ -9,10 +9,10 @@ const paths = [
   "../api/kingshot-player.ts",
 ];
 
-test("MightPulse API key 2 takes precedence while preserving legacy fallbacks", async () => {
-  const selector = /process\.env\.MIGHTPULSE_API_KEY_2\s*\|\|\s*process\.env\.MIGHTPULSE_API_KEY\s*\|\|\s*process\.env\.KSS_API_KEY/;
+test("MightPulse API key 3 takes priority, with safe legacy fallbacks", async () => {
+  const selector = /process\.env\.MIGHTPULSE_API_KEY_3\s*\|\|\s*process\.env\.MIGHTPULSE_API_KEY_2\s*\|\|\s*process\.env\.MIGHTPULSE_API_KEY\s*\|\|\s*process\.env\.KSS_API_KEY/;
   for (const path of paths) {
     const source = await readFile(new URL(path, import.meta.url), "utf8");
-    assert.match(source, selector, "Expected source to prefer MIGHTPULSE_API_KEY_2 and preserve legacy fallbacks");
+    assert.match(source, selector, "Expected key 3 > key 2 > legacy key > KSS fallback");
   }
 });
