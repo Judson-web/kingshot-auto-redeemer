@@ -38,7 +38,7 @@ test("fourth worker shard is consistent across application and durable slot migr
 test("kingdom rate limits defer to the next cycle instead of sleeping the worker pool", () => {
   assert.match(validationSource, /MightPulse shared key-pool cooldown active/);
   assert.match(validationSource, /mightPulseCooldownUntil/);
-  assert.match(validationSource, /AbortSignal\.timeout\(10000\)/);
+  assert.match(validationSource, /timeoutMs: 10_000/);
   assert.doesNotMatch(validationSource, /RATE_LIMIT_BACKOFF_MS/);
 });
 
