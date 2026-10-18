@@ -14,6 +14,7 @@ export interface KingdomValidationResult {
   kingdomChanged?: boolean;
   stale?: boolean;
   revalidationError?: number;
+  deferred?: boolean;
 }
 
 interface FreshPlayer {
@@ -214,7 +215,15 @@ export async function revalidatePlayer(
       throw error;
     }
   } catch (error) {
-    console.error("Kingshot player validation failed:", player?.player_id, error instanceof Error ? error.message : error);
+    const message = String(error instanceof Error ? error.message : error);
+    const status = Number((error as MightPulseFetchError)?.status || 0);
+    // Cooldown/headroom means the upstream was intentionally not queried (or
+    // refused the request). This is deferred work, not a bad player record.
+    if (status === 429 || /all configured MightPulse keys are in cooldown|shared key-pool cooldown active|no reserved request headroom|temporarily unavailable or out of request headroom/i.test(message)) {
+      console.warn("Kingshot kingdom validation deferred by MightPulse cooldown.");
+      return { deferred: true };
+    }
+    console.error("Kingshot player validation failed:", player?.player_id, message);
     return { revalidationError: 1 };
   }
 }
