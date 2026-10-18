@@ -33,18 +33,18 @@ function outcome(kind, data) {
 
   if (kind === "registered") {
     summary = data.verificationPending
-      ? "Registration is saved. Some profile details are still being verified."
+      ? "Registration saved. Some profile details are still being verified."
       : data.stale
-        ? "Registration is saved, but the latest player profile could not be refreshed."
-        : "This Player ID is registered and eligible for automatic gift-code checks.";
+        ? "Registration saved, but the latest profile could not be refreshed."
+        : "Registered for automatic gift-code checks.";
   } else if (kind === "existing") {
-    summary = "No changes needed — this Player ID is already registered.";
+    summary = "No action needed.";
   } else if (kind === "reactivated") {
-    summary = "The previous registration is active again for automatic redemption.";
+    summary = "Auto-redemption is active again.";
   } else if (kind === "disabled") {
-    summary = "This Player ID is disabled for automatic redemption. Contact support if you need help re-enabling it.";
+    summary = "Auto-redemption is disabled. Contact support if you think this is a mistake.";
   } else {
-    summary = summary.replace(/^PLAYER ID BANNED\s*·\s*/i, "").replace(/\s*reason\s*:[\s\S]*/i, "").trim() || "The Player ID could not be registered. Check the details or contact support.";
+    summary = summary.replace(/^PLAYER ID BANNED\s*·\s*/i, "").replace(/\s*reason\s*:[\s\S]*/i, "").trim() || "Registration failed. Check the Player ID or contact support.";
   }
 
   return {
@@ -136,7 +136,7 @@ export function summarizeRegistrationOutcomes(outcomes = []) {
 
   const message = counts.total === 1
     ? outcomes[0]?.summary || "No registration result was returned."
-    : `${counts.total} Player IDs checked · ${parts.join(" · ") || "No results"}.`;
+    : "Review each player below.";
   const allRestricted = counts.total > 0 && counts.disabled === counts.total;
   const allActive = counts.total > 0 && counts.active === counts.total;
   const needsAttention = counts.disabled + counts.failed > 0;

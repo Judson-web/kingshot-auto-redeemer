@@ -1,4 +1,5 @@
 import { verifyKingdom, type KingdomVerification } from "./mightpulse.js";
+import { syncRegisteredPlayerProfile } from "./player.js";
 
 export interface RegisterPlayerInput { playerId?: unknown; kingdomId?: unknown; playerName?: unknown; avatarUrl?: unknown; }
 export interface RegisterPlayerResult { registered: boolean; alreadyRegistered: boolean; registrationStatus: string; kingdomVerified: boolean; verificationPending?: boolean; stale?: boolean; verifiedKingdomId?: string; player?: unknown; }
@@ -41,6 +42,9 @@ export async function registerPlayer(input: ReturnType<typeof normalizeRegistrat
    return { registered: true, alreadyRegistered: Boolean(result?.already_registered), registrationStatus: result?.registration_status || (result?.already_registered ? "ALREADY_REGISTERED" : "NEW"), kingdomVerified: false, stale: true, player: result?.player || result };
   }
   await rpc("record_kingshot_kingdom_revalidation", { p_player_id: input.playerId, p_kingdom_id: verified.kingdomId, p_player_name: verified.name || input.playerName || null, p_avatar_url: verified.avatarUrl || input.avatarUrl || null });
+  if (verified.player) {
+   try { await syncRegisteredPlayerProfile(input.playerId, verified.player); } catch { /* Registration succeeds even if profile metadata is temporarily unavailable. */ }
+  }
   return { registered: true, alreadyRegistered: Boolean(result?.already_registered), registrationStatus: result?.registration_status || (result?.already_registered ? "ALREADY_REGISTERED" : "NEW"), kingdomVerified: true, verifiedKingdomId: verified.kingdomId, player: result?.player || result };
  } catch {
   return { registered: true, alreadyRegistered: Boolean(result?.already_registered), registrationStatus: result?.registration_status || (result?.already_registered ? "ALREADY_REGISTERED" : "NEW"), kingdomVerified: false, verificationPending: true, player: result?.player || result };

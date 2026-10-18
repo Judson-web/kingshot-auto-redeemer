@@ -19,6 +19,7 @@ export interface KingdomVerification {
   kingdomId?: string;
   name?: string | null;
   avatarUrl?: string | null;
+  player?: KingshotPlayer;
 }
 interface ApiError extends Error { status?: number; }
 export interface MightPulseRequestOptions {
@@ -77,5 +78,5 @@ export async function verifyKingdom(playerId: string): Promise<KingdomVerificati
   const player = data.player || (data as KingshotPlayer);
   const kingdomId = String(player.kid ?? player.kingdom_id ?? "").replace(/\D/g, "");
   if (!kingdomId) throw new Error("Kingdom verification returned no kingdom.");
-  return { kingdomId, name: player.nick_name || player.name || player.nickname || null, avatarUrl: player.avatar_url || player.avatar || player.avatarUrl || null };
+  return { kingdomId, name: player.nick_name || player.name || player.nickname || null, avatarUrl: player.avatar_url || player.avatar || player.avatarUrl || null, player };
 }

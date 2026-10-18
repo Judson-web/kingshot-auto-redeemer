@@ -18,7 +18,7 @@ test("treats banned IDs as disabled and preserves the restriction reason", () =>
   assert.equal(item.kind, "disabled");
   assert.equal(item.label, "DISABLED");
   assert.equal(item.reason, "Abuse or invalid registration");
-  assert.equal(item.summary, "This Player ID is disabled for automatic redemption. Contact support if you need help re-enabling it.");
+  assert.equal(item.summary, "Auto-redemption is disabled. Contact support if you think this is a mistake.");
 });
 
 test("classifies disabled and already-active responses without treating them as generic failures", () => {
@@ -39,9 +39,7 @@ test("mixed multi-ID results preserve per-ID outcomes and aggregate counts", () 
   const summary = summarizeRegistrationOutcomes(items);
   assert.deepEqual({ total: summary.total, active: summary.active, registered: summary.registered, existing: summary.existing, disabled: summary.disabled, failed: summary.failed },
     { total: 5, active: 2, registered: 1, existing: 1, disabled: 2, failed: 1 });
-  assert.match(summary.message, /5 Player IDs checked/);
-  assert.match(summary.message, /2 active/);
-  assert.match(summary.message, /2 disabled/);
+  assert.equal(summary.message, "Review each player below.");
   assert.equal(summary.needsAttention, true);
   assert.equal(registrationOutcomeHeadline(items), "Registration results");
 });
