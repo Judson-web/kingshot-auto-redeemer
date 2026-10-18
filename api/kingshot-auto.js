@@ -229,7 +229,11 @@ export default async function handler(req,res){
   const requestedCodes=Array.isArray(body?.codes)?body.codes:[];
   const players=Array.isArray(body?.players)?body.players:[];
   try{
-   await drainRedemptionRecoveryQueue(rpc);
+   // Recovery queues are global, not shard-local. Drain them once per cycle
+   // instead of making all four shards scan and race over the same queue.
+   // Slot 0 is the designated recovery drainer; the other shards preserve
+   // their runtime for the player partition assigned to them.
+   if(slot===0)await drainRedemptionRecoveryQueue(rpc);
    const adminRows=await rpc("list_kingshot_admin_gift_codes",{});
    const suppressedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.suppressed===true).map(row=>String(row?.code||"").trim().toUpperCase()).filter(Boolean));
    const verifiedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(r=>r?.validation_status==="verified"&&r?.active!==false&&r?.suppressed!==true).map(r=>String(r?.code||"").trim().toUpperCase()));
