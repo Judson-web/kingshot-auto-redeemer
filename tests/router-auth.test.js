@@ -88,8 +88,8 @@ test("push console reuses the existing account session instead of offering passk
   assert.match(ui, /href="\/developer\?next=%2Fpush"/);
   assert.match(endpoint, /__Host-ks_developer_session/);
   assert.match(endpoint, /kingshot_developer_account_session_get/);
-  assert.match(endpoint, /isDiscordOwner\\(user,OWNER_DISCORD_ID\\)/);
-  assert.doesNotMatch(endpoint, /user\\?\\.user_metadata\\?\\.(?:provider_id|sub|id)/);
+  assert.match(endpoint, /isDiscordOwner\(user,OWNER_DISCORD_ID\)/);
+  assert.doesNotMatch(endpoint, /user\?\.user_metadata\?\.(?:provider_id|sub|id)/);
   assert.match(legacy, /Legacy developer passkey authentication has been retired/);
   assert.doesNotMatch(legacy, /kingshot_developer_create_session_with_key|req\.body\?\.accessKey/);
 });
