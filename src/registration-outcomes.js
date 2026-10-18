@@ -38,7 +38,7 @@ function outcome(kind, data) {
         ? "Registration is saved, but the latest player profile could not be refreshed."
         : "This Player ID is registered and eligible for automatic gift-code checks.";
   } else if (kind === "existing") {
-    summary = "Already enrolled. No duplicate registration was created.";
+    summary = "No changes needed — this Player ID is already registered.";
   } else if (kind === "reactivated") {
     summary = "The previous registration is active again for automatic redemption.";
   } else if (kind === "disabled") {

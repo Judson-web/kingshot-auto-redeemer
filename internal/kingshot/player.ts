@@ -17,11 +17,16 @@ async function syncRegisteredPlayerProfile(playerId: string, player: KingshotPla
   const avatarUrl = String(player.avatar_url || player.avatar || player.avatarUrl || "").trim().slice(0, 500);
   const { name: allianceName, tag: allianceTag } = allianceDetails(player);
   const power = playerPower(player);
+  const rawTownCenterLevel = player.town_center_level ?? player.tc_level ?? player.townCenterLevel ?? player.town_center;
+  const townCenterLevel = rawTownCenterLevel == null ? "" : String(rawTownCenterLevel).trim();
   const payload: Record<string, string> = { updated_at: new Date().toISOString() };
   if (kingdomId) payload.kingdom_id = kingdomId;
   if (playerName) payload.player_name = playerName;
   if (avatarUrl) payload.avatar_url = avatarUrl;
   if (power !== null) payload.player_power = String(power);
+  // The provider uses a numeric progression value. Ignore unknown text formats so
+  // an unexpected upstream value cannot make the whole profile PATCH fail.
+  if (/^\\d{1,3}$/.test(townCenterLevel)) payload.town_center_level = townCenterLevel;
   if (allianceName) payload.alliance_name = allianceName;
   if (allianceTag) payload.alliance_tag = allianceTag;
   if (Object.keys(payload).length === 1) return;

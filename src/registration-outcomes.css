@@ -1,0 +1,23 @@
+.ks-outcome-single .ks-outcome-header{
+  grid-template-columns:48px minmax(0,1fr)!important;
+  padding:16px 18px!important;
+}
+.ks-outcome-single .ks-outcome-count{display:none!important}
+.ks-outcome-single .ks-outcome-track-wrap{margin-top:0!important}
+.ks-outcome-single .ks-outcome-slide{min-height:0!important;padding:15px 18px!important}
+.ks-outcome-single .ks-outcome-player-heading{align-items:center}
+.ks-outcome-single .ks-outcome-identity h3{font-size:clamp(19px,4.5vw,26px)!important}
+.ks-outcome-single .ks-outcome-player-meta{font-size:13px!important;line-height:1.6!important}
+@media(max-width:600px){
+  .ks-outcome-single .ks-outcome-header{
+    grid-template-columns:39px minmax(0,1fr)!important;
+    padding:15px 14px!important;
+  }
+  .ks-outcome-single .ks-outcome-head-copy h2{font-size:clamp(21px,5.5vw,26px)!important}
+  .ks-outcome-single .ks-outcome-slide{gap:11px!important;padding:14px!important}
+  .ks-outcome-single .ks-outcome-slide-icon{width:46px!important;height:46px!important;flex-basis:46px!important}
+  .ks-outcome-single .ks-outcome-player-heading{display:block}
+  .ks-outcome-single .ks-outcome-identity h3{font-size:20px!important}
+  .ks-outcome-single .ks-outcome-player-meta{font-size:12px!important;line-height:1.75!important}
+  .ks-outcome-single .ks-outcome-player-id{font-size:11px!important}
+}
