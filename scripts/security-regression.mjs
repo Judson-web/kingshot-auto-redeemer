@@ -105,8 +105,8 @@ assertCheck(
  redemptionHistory.includes("selectNextOutstandingCode")
 );
 assertCheck(
- "Worker pool fans redemption work across three internal shards",
- auto.includes("const WORKER_COUNT=3;") &&
+ "Worker pool fans redemption work across four internal shards",
+ auto.includes("const WORKER_COUNT=4;") &&
  workerCode.includes("runWorkerShard") &&
  auto.includes("Promise.all(assignments.map")
 );
@@ -132,7 +132,7 @@ assertCheck(
  "Worker pool preserves bounded per-shard concurrency",
  auto.includes("const PLAYER_CONCURRENCY=2;") &&
  workerCode.includes("runWithConcurrency(assigned, player => redeemForPlayer(player, codes), options.concurrency, { deadline })") &&
- auto.includes("WORKER_MAX_RUNTIME_MS=4*60*1000")
+ auto.includes("WORKER_MAX_RUNTIME_MS=3*60*1000")
 );
 assertCheck(
  "Worker heartbeat keeps long cycles observable",

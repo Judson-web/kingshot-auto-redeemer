@@ -43,11 +43,11 @@ async function rpc(name,body){
 
 import {extractPageCodes, extractPublicSourceCodes, mergeCodes, normalizeCodes} from "../internal/kingshot/gift-codes.js";
 import { getHandledGiftCodes, selectNextOutstandingCode } from "../internal/kingshot/redemption-history.js";
-const WORKER_COUNT=3;
-// Keep aggregate upstream pressure bounded: 3 shards × 2 concurrent redemptions.
+const WORKER_COUNT=4;
+// Four durable shards × two concurrent redemptions keep each shard small while bounding upstream pressure.
 const PLAYER_CONCURRENCY=2;
 const KINGDOM_VALIDATION_CONCURRENCY=3;
-const WORKER_MAX_RUNTIME_MS=4*60*1000;
+const WORKER_MAX_RUNTIME_MS=3*60*1000;
 const DISCORD_WEBHOOK_URL=process.env.DISCORD_KINGSHOT_WEBHOOK_URL||process.env.DISCORD_SCRAPER_WEBHOOK_URL;
 async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
  if(!DISCORD_WEBHOOK_URL)return;
@@ -418,7 +418,7 @@ export default async function handler(req,res){
    return (Number.isFinite(left)?left:0)-(Number.isFinite(right)?right:0);
   });
   currentStage="kingdom-revalidation";
-  const validationDeadline=Date.now()+150000;
+  const validationDeadline=Date.now()+75000;
 
   // Phase 1: kingdom revalidation is completed BEFORE any redemption worker
   // starts. This prevents the 05:30 IST reset burst from competing with the
@@ -438,7 +438,7 @@ export default async function handler(req,res){
    if(result?.player?.kingdom_id)validPlayers.push(result.player);
    return a;
   },{checked:0,changed:0,stale:0,errors:0,deferred:0});
-  console.log("Kingshot kingdom check:",{players:list.length,...kingdomSummary,validationBudgetMs:150000,validPlayers:validPlayers.length});
+  console.log("Kingshot kingdom check:",{players:list.length,...kingdomSummary,validationBudgetMs:75000,validPlayers:validPlayers.length});
   // One canary per cycle. The real endpoint can consume the reward on this player.
   const pendingCandidates=persistedCodeRows.filter(r=>r&&r.validation_status==="pending"&&r.suppressed!==true).map(r=>({code:String(r.code||"").trim()})).filter(r=>r.code&&!expiredCodes.has(r.code.toUpperCase())&&codes.some(c=>c.code.toUpperCase()===r.code.toUpperCase()));
   const canaryCandidate=pendingCandidates[0];let verificationAttempt=null;
@@ -516,7 +516,7 @@ export default async function handler(req,res){
      method:"POST",
      headers:childHeaders,
      body:JSON.stringify({codes:activeCodes,players:assigned}),
-     signal:AbortSignal.timeout(120000)
+     signal:AbortSignal.timeout(WORKER_MAX_RUNTIME_MS+15000)
     });
     const payload=await response.json().catch(()=>({}));
     if(!response.ok)throw Error(payload?.error||"Worker shard returned HTTP "+response.status);
