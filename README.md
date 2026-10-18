@@ -371,6 +371,8 @@ npm run typecheck
 
 ## ✦ Environment & secrets
 
+The MightPulse upstream key pool accepts `MIGHTPULSE_API_KEY_3`, `MIGHTPULSE_API_KEY_2`, and the legacy `MIGHTPULSE_API_KEY`, plus independently issued numbered KSS credentials `KSS_API_KEY_2` through `KSS_API_KEY_10`. Configure only keys you actually hold; in this deployment, numbered KSS slots through `_6` are the supported intended range, and `_7` through `_10` may remain unset. Identical secret values are deduplicated automatically. The unnumbered `KSS_API_KEY` slot is intentionally not supported because it was unused/redundant. Never paste API key values into GitHub, issues, or chat; set them only in Vercel's server-side environment and redeploy after changes.
+
 Production secrets are configured through the deployment environment and repository secret stores. Keep production and local-development credentials separate, grant each secret only the access it needs, and rotate a credential immediately if it is exposed.
 
 Anything shipped to the browser is public—even if its name looks like an environment variable. Only non-sensitive public configuration belongs in client-side build variables.
