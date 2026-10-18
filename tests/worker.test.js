@@ -37,3 +37,7 @@ test("kingdom rate limits defer to the next cycle instead of sleeping the worker
   assert.match(validationSource, /AbortSignal\.timeout\(10000\)/);
   assert.doesNotMatch(validationSource, /RATE_LIMIT_BACKOFF_MS/);
 });
+
+test("global recovery queue is drained by one designated shard, not all four", () => {
+  assert.match(autoSource, /if\s*\(slot\s*===\s*0\)\s*await\s+drainRedemptionRecoveryQueue\(rpc\)/);
+});
