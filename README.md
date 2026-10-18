@@ -215,6 +215,10 @@ The repository includes security regression checks, database privilege checks, a
 
 The production edge sets a restrictive Content Security Policy, HSTS, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, a referrer policy, and a Permissions Policy. CSP permits HTTPS images for external game avatars; this is intentionally broader than the font policy. These controls reduce risk but are not a substitute for authenticated API testing or a full penetration test.
 
+The production deployment also applies a Content Security Policy and standard browser security headers, including HTTP Strict Transport Security (HSTS). The vulnerability disclosure contact is published at [security.txt](https://kingshot-autoredeemer.vercel.app/.well-known/security.txt).
+
+A scheduled [OWASP ZAP baseline scan](https://github.com/Judson-web/kingshot-auto-redeemer/actions/workflows/zap-baseline.yml) performs passive dynamic checks against the public production site on pull requests, on demand, and weekly. Reports are retained as GitHub Actions artifacts for review; the baseline is advisory and does not currently block merges on findings. It complements, rather than replaces, code-level regression tests and a deeper authorized security assessment.
+
 Privileged operational endpoints require server-side authentication. The public website does not expose privileged credentials or signing material.
 
 ### Rate limiting
