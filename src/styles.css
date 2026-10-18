@@ -2768,7 +2768,7 @@ body:has(.support-float-panel.support-chat-panel) .ks-install-prompt{display:non
   position:absolute!important;
   left:50%!important;
   top:50%!important;
-  width:180%!important;
+  width:255%!important;
   height:auto!important;
   max-width:none!important;
   aspect-ratio:288 / 214;
@@ -2779,12 +2779,12 @@ body:has(.support-float-panel.support-chat-panel) .ks-install-prompt{display:non
   z-index:4!important;
   /* Transparent central opening reveals the avatar under the frame artwork. */
   -webkit-mask-image:linear-gradient(#000 0 0),linear-gradient(#000 0 0);
-  -webkit-mask-size:100% 100%,54% 72%;
+  -webkit-mask-size:100% 100%,38% 51%;
   -webkit-mask-position:center,center;
   -webkit-mask-repeat:no-repeat,no-repeat;
   -webkit-mask-composite:xor;
   mask-image:linear-gradient(#000 0 0),linear-gradient(#000 0 0);
-  mask-size:100% 100%,54% 72%;
+  mask-size:100% 100%,38% 51%;
   mask-position:center,center;
   mask-repeat:no-repeat,no-repeat;
   mask-composite:exclude;
