@@ -5,6 +5,7 @@ import { broadcastPush } from "../internal/push-notifications.js";
 
 const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
 const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
+const APP_ORIGIN=process.env.VERCEL_URL?"https://"+process.env.VERCEL_URL:"https://kingshot-autoredeemer.vercel.app";
 const GIFT_SOURCE_URL="https://kingshot.net/api/gift-codes";
 const PUBLIC_GIFT_SOURCES=[
  // Keep only sources whose active-code sections have a useful signal-to-noise ratio.
@@ -210,7 +211,7 @@ export default async function handler(req,res){
  let currentStage="request-authentication";
  const cronSecret=process.env.CRON_SECRET;
  const schedulerToken=req.headers["x-kingshot-scheduler-token"];
- const requestUrl=new URL(req.url||"/","https://kingshot-autoredeemer.vercel.app");
+ const requestUrl=new URL(req.url||"/",APP_ORIGIN);
  const mode=requestUrl.searchParams.get("mode");
  const slot=Number(requestUrl.searchParams.get("slot"));
 
@@ -498,7 +499,7 @@ export default async function handler(req,res){
   }
 
   // Phase 2: only the already-validated players enter the redemption pool.
-  const workerUrlBase="https://"+(req.headers["x-forwarded-host"]||req.headers.host||"kingshot-autoredeemer.vercel.app")+"/api/kingshot-auto?mode=worker&slot=";
+  const workerUrlBase=APP_ORIGIN+"/api/kingshot-auto?mode=worker&slot=";
   const childHeaders={"content-type":"application/json"};
   if(cronSecret)childHeaders.authorization="Bearer "+cronSecret;
   else if(schedulerToken)childHeaders["x-kingshot-scheduler-token"]=String(schedulerToken);
