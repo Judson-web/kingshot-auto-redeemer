@@ -1,6 +1,6 @@
 import React,{useCallback,useEffect,useMemo,useState}from"react";
 import{allianceDisplayName,formatPower,playerDisplayName}from"../lib/player-display.js";
-import TownCenterLevel from"./components/TownCenterLevel.tsx";
+import TownCenterLevel from"./components/TownCenterLevel";
 import{Activity,AlertCircle,ArrowLeft,Ban,CheckCircle2,Clock3,Database,Gift,LoaderCircle,RefreshCw,Search,ShieldCheck,ShieldOff,UserRound,Wifi,WifiOff}from"lucide-react";
 
 type Player=Record<string,any>&{player_id?:string;player_name?:string;kingdom_id?:string;enabled?:boolean;created_at?:string;updated_at?:string;avatar_url?:string;stale?:boolean};
