@@ -60,3 +60,17 @@ test("resolves the internal UID from the authenticated API wrapper", () => {
     governor_id: 17261055,
   }, "17261054"), null);
 });
+
+test("resolves the internal UID when MightPulse wraps the player record", () => {
+  assert.equal(resolveMightPulseProfileUid({
+    player: { uid: 4751274, fid: 17261054 },
+  }, "17261054"), "4751274");
+
+  assert.equal(resolveMightPulseProfileUid({
+    data: { player: { id: 4751274, governor_id: "17261054" } },
+  }, "17261054"), "4751274");
+
+  assert.equal(resolveMightPulseProfileUid({
+    data: { results: [{ id: 4751274, fid: "17261054" }] },
+  }, "17261054"), "4751274");
+});
