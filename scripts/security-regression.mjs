@@ -31,7 +31,7 @@ const manualUi=read("src/main.jsx");
 const resultUiCss=read("src/styles.css");
 assertCheck("MightPulse avatar frames use a same-origin proxy without weakening CORS or CSP",
  manualUi.includes('fetch("/api/kingshot-player?frame=profile&id="') &&
-  manualUi.includes("player?.governor_id||player?.fid") &&
+  manualUi.includes("playerId||player?.fid||player?.governor_id") &&
  manualUi.includes('"/api/kingshot-player?frame=asset&asset="') &&
  frameRoute.includes('https://www.mightpulse.com/player/" + profileUid') &&
  frameRoute.includes('https://www.mightpulse.com/assets/icons/skin_icon_') &&
