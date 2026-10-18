@@ -824,3 +824,16 @@
  .support-float-panel.support-chat-panel *,
  .support-float-panel.support-chat-panel{scroll-behavior:auto!important;animation:none!important;transition:none!important}
 }
+
+/* Mobile support interaction fix: keep the scrim below the drawer in one isolated stack. */
+.support-float-root{isolation:isolate!important}
+.support-float-root>.support-float-backdrop{
+ z-index:0!important;
+ pointer-events:auto!important;
+}
+.support-float-root>.support-float-panel.support-chat-panel{
+ z-index:1!important;
+ pointer-events:auto!important;
+}
+/* Keep every interactive child above decorative layers and available to touch input. */
+.support-float-panel.support-chat-panel>*{pointer-events:auto}
