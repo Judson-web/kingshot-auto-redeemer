@@ -22,11 +22,11 @@
     },
     {
       "source": "/developer",
-      "destination": "/index.html"
+      "destination": "/developer.html"
     },
     {
       "source": "/profile",
-      "destination": "/index.html"
+      "destination": "/profile.html"
     },
     {
       "source": "/dev",
@@ -34,7 +34,7 @@
     },
     {
       "source": "/info",
-      "destination": "/index.html"
+      "destination": "/info.html"
     },
     {
       "source": "/manual",
@@ -78,31 +78,31 @@
     },
     {
       "source": "/terms",
-      "destination": "/index.html"
+      "destination": "/terms.html"
     },
     {
       "source": "/privacy",
-      "destination": "/index.html"
+      "destination": "/privacy.html"
     },
     {
       "source": "/message",
-      "destination": "/index.html"
+      "destination": "/message.html"
     },
     {
       "source": "/gift-codes",
-      "destination": "/index.html"
+      "destination": "/gift-codes.html"
     },
     {
       "source": "/push",
-      "destination": "/index.html"
+      "destination": "/push.html"
     },
     {
       "source": "/push/",
-      "destination": "/index.html"
+      "destination": "/push.html"
     },
     {
       "source": "/devsupport",
-      "destination": "/index.html"
+      "destination": "/devsupport.html"
     },
     {
       "source": "/admin/maintenance",
