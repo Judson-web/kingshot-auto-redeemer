@@ -37,7 +37,12 @@ async function getMightPulseAvatarFrame(playerId: string): Promise<AvatarFrame> 
    // The profile page path uses MightPulse's internal UID, not the governor/FID.
    const searchUrl = "https://www.mightpulse.com/api/search?q=" + encodeURIComponent(playerId) + "&limit=40&live=0";
    const searchResponse = await fetch(searchUrl, {
-    headers: { Accept: "application/json" },
+    headers: {
+     Accept: "application/json",
+     "Accept-Language": "en-US,en;q=0.9",
+     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+     Referer: "https://www.mightpulse.com/",
+    },
     signal: AbortSignal.timeout(AVATAR_FRAME_TIMEOUT_MS),
    });
    const searchFinalUrl = new URL(searchResponse.url || searchUrl);
@@ -55,7 +60,12 @@ async function getMightPulseAvatarFrame(playerId: string): Promise<AvatarFrame> 
    } else {
     const profileUrl = "https://www.mightpulse.com/player/" + profileUid;
     const upstream = await fetch(profileUrl, {
-     headers: { Accept: "text/html,application/xhtml+xml" },
+     headers: {
+      Accept: "text/html,application/xhtml+xml",
+      "Accept-Language": "en-US,en;q=0.9",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+      Referer: "https://www.mightpulse.com/",
+     },
      signal: AbortSignal.timeout(AVATAR_FRAME_TIMEOUT_MS),
     });
     const finalUrl = new URL(upstream.url || profileUrl);
