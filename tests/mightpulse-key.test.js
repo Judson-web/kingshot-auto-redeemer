@@ -10,9 +10,9 @@ const paths = [
 ];
 
 test("MightPulse API key 2 takes precedence while preserving legacy fallbacks", async () => {
-  const selector = /process\\.env\\.MIGHTPULSE_API_KEY_2\\s*\\|\\|\\s*process\\.env\\.MIGHTPULSE_API_KEY\\s*\\|\\|\\s*process\\.env\\.KSS_API_KEY/;
+  const selector = /process\.env\.MIGHTPULSE_API_KEY_2\s*\|\|\s*process\.env\.MIGHTPULSE_API_KEY\s*\|\|\s*process\.env\.KSS_API_KEY/;
   for (const path of paths) {
     const source = await readFile(new URL(path, import.meta.url), "utf8");
-    assert.match(source, selector, `${path} must prefer MIGHTPULSE_API_KEY_2 and retain legacy fallback keys`);
+    assert.match(source, selector, \`\${path} must prefer MIGHTPULSE_API_KEY_2 and retain legacy fallback keys\`);
   }
 });
