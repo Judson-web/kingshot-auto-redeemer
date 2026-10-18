@@ -39,7 +39,8 @@ interface Notify {
 const RESET_HOUR = 5;
 const RESET_MINUTE = 30;
 const RETRYABLE = /timeout|timed out|abort|429|rate limit|too many requests|502|503|504/i;
-const RATE_LIMIT_BACKOFF_MS = [15000, 30000, 60000];
+const RATE_LIMIT_COOLDOWN_FALLBACK_MS = 60_000;
+let mightPulseCooldownUntil = 0;
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 function resetBoundary(now = Date.now()) {
@@ -79,11 +80,14 @@ async function fetchCurrentPlayer(playerId: string): Promise<FreshPlayer> {
   if (!key) throw Error("MightPulse API key is not configured on the server.");
   let lastError: (Error & { status?: number; retryAfterMs?: number }) | null = null;
 
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (Date.now() < mightPulseCooldownUntil) {
+      throw Error("MightPulse rate-limit cooldown active; validation deferred to the next cycle.");
+    }
     try {
       const response = await fetch("https://api.mightpulse.com/v1/players/" + encodeURIComponent(playerId) + "?include=base", {
         headers: { Authorization: "Bearer " + key },
-        signal: AbortSignal.timeout(15000)
+        signal: AbortSignal.timeout(10000)
       });
       const data = await response.json().catch(() => ({})) as {
         player?: KingshotPlayer;
@@ -106,14 +110,17 @@ async function fetchCurrentPlayer(playerId: string): Promise<FreshPlayer> {
       const message = String(lastError.message || "");
       const rateLimited = status === 429 || /rate[_ -]?limited|rate limit|too many requests/i.test(message);
       const retryable = RETRYABLE.test(message) || [429, 502, 503, 504].includes(status);
-      if (attempt < 2 && retryable) {
-        if (rateLimited) {
-          const base = RATE_LIMIT_BACKOFF_MS[Math.min(attempt, RATE_LIMIT_BACKOFF_MS.length - 1)];
-          const jitter = Math.floor(Math.random() * 2000);
-          await sleep(Math.min(90000, Number(lastError.retryAfterMs) || base) + jitter);
-        } else {
-          await sleep(750 * (attempt + 1));
-        }
+      if (rateLimited) {
+        // A 429 must not hold the whole worker cycle for 15/30/60 seconds.
+        // Remaining due players defer safely to the next cycle without more
+        // upstream requests from this invocation.
+        const requestedCooldown = Number(lastError.retryAfterMs) || RATE_LIMIT_COOLDOWN_FALLBACK_MS;
+        const cooldownMs = Math.min(90_000, Math.max(15_000, requestedCooldown));
+        mightPulseCooldownUntil = Math.max(mightPulseCooldownUntil, Date.now() + cooldownMs);
+        throw lastError;
+      }
+      if (attempt < 1 && retryable) {
+        await sleep(600);
         continue;
       }
       throw error;
