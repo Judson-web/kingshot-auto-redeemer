@@ -52,7 +52,7 @@ test("successful registration outcomes include formatted power and alliance tag"
   }, { registrationStatus: "NEW" });
   assert.equal(item.name, "Sparky [WIND]");
   assert.equal(item.power, "411.85M");
-  assert.equal(item.kingdom, 280);
+  assert.equal(item.kingdom, "280");
   assert.equal(item.allianceName, "The Wind");
   assert.equal(item.allianceTag, "WIND");
 });
@@ -64,7 +64,7 @@ test("failed registration preserves profile details already retrieved", () => {
   });
   assert.equal(item.name, "Sparky [WIND]");
   assert.equal(item.power, "123.00M");
-  assert.equal(item.kingdom, 280);
+  assert.equal(item.kingdom, "280");
 });
 
 test("single-ID summary keeps the individual headline", () => {
