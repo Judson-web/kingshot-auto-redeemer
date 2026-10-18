@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { extractMightPulseAvatarFrame, resolveMightPulseProfileUid, validateFrameAssetId } from "../lib/mightpulse-avatar-frame.js";
+import { extractMightPulseAvatarFrame, extractMightPulseAvatarFrameFromPlayerData, resolveMightPulseProfileUid, validateFrameAssetId } from "../lib/mightpulse-avatar-frame.js";
 
 test("extracts the equipped avatar frame ID and readable label", () => {
   const html = '<div class="gov-portrait has-frame"><img class="gov-avatar-frame" id="profileAvatarFrame" alt="Cosmic Heart Avatar Frame" src="https://www.mightpulse.com/assets/icons/skin_icon_6080310.png" title="Cosmic Heart Avatar Frame"></div>';
@@ -73,4 +73,29 @@ test("resolves the internal UID when MightPulse wraps the player record", () => 
   assert.equal(resolveMightPulseProfileUid({
     data: { results: [{ id: 4751274, fid: "17261054" }] },
   }, "17261054"), "4751274");
+});
+
+
+test("extracts equipped avatar frame from MightPulse player JSON", () => {
+  assert.deepEqual(extractMightPulseAvatarFrameFromPlayerData({
+    uid: 4751274,
+    fid: 17261054,
+    skins: [
+      { id: 6080310, name: "Cosmic Heart Avatar Frame", icon: "/assets/icons/skin_icon_6080310.png", skintype: 4 },
+      { id: 6080123, name: "City Skin", icon: "/assets/icons/skin_icon_6080123.png", skintype: 1 },
+    ],
+  }), { assetId: "6080310", name: "Cosmic Heart Avatar Frame" });
+});
+
+test("rejects absent, starter, untrusted, or mismatched avatar frames in player JSON", () => {
+  assert.equal(extractMightPulseAvatarFrameFromPlayerData({ skins: [] }), null);
+  assert.equal(extractMightPulseAvatarFrameFromPlayerData({
+    skins: [{ id: 6080010, name: "Starter Avatar Frame", icon: "/assets/icons/skin_icon_6080010.png", skintype: 4 }],
+  }), null);
+  assert.equal(extractMightPulseAvatarFrameFromPlayerData({
+    skins: [{ id: 6080310, name: "Cosmic Heart Avatar Frame", icon: "https://evil.example/assets/icons/skin_icon_6080310.png", skintype: 4 }],
+  }), null);
+  assert.equal(extractMightPulseAvatarFrameFromPlayerData({
+    skins: [{ id: 6080311, name: "Cosmic Heart Avatar Frame", icon: "/assets/icons/skin_icon_6080310.png", skintype: 4 }],
+  }), null);
 });

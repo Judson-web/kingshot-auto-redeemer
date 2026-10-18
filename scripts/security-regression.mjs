@@ -33,7 +33,7 @@ assertCheck("MightPulse avatar frames use a same-origin proxy without weakening 
  manualUi.includes('fetch("/api/kingshot-player?frame=profile&id="') &&
   manualUi.includes("playerId||player?.fid||player?.governor_id") &&
  manualUi.includes('"/api/kingshot-player?frame=asset&asset="') &&
- frameRoute.includes('https://www.mightpulse.com/player/" + profileUid') &&
+ frameRoute.includes('https://www.mightpulse.com/api/players/" + profileUid') &&
  frameRoute.includes('https://www.mightpulse.com/assets/icons/skin_icon_') &&
  frameRoute.includes('rateLimit(req, res, "mightpulse-frame-profile"') && frameRoute.includes('rateLimit(req, res, "mightpulse-frame-image"') &&
  frameRoute.includes("Cache-Control") &&

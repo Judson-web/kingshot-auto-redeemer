@@ -4,7 +4,7 @@ import developerApiV3 from "../lib/developer-api-v3.js";
 import developerAuth from "../lib/developer-auth.js";
 import developerAccount from "../lib/developer-account.js";
 import { isValidPlayerId, lookupPlayer, normalizePlayerId, PlayerLookupError } from "../internal/kingshot/player.js";
-import { extractMightPulseAvatarFrame, resolveMightPulseProfileUid, validateFrameAssetId } from "../lib/mightpulse-avatar-frame.js";
+import { extractMightPulseAvatarFrameFromPlayerData, resolveMightPulseProfileUid, validateFrameAssetId } from "../lib/mightpulse-avatar-frame.js";
 interface RequestLike { url?: string; method?: string; query?: Record<string, unknown>; headers: Record<string, string | string[] | undefined>; body?: Record<string, unknown>; }
 interface ResponseLike { status(code: number): ResponseLike; json(body: unknown): ResponseLike; send(body: unknown): ResponseLike; end(body?: unknown): ResponseLike; setHeader(name: string, value: string): void; }
 function sendError(res: ResponseLike, status: number, code: string, message: string, requestId: string): void { res.setHeader("X-Request-Id", requestId); res.status(status).json({ error: message, code, meta: { requestId, timestamp: new Date().toISOString() } }); }
@@ -24,23 +24,19 @@ function setAvatarFrameHeaders(res: ResponseLike, cacheControl: string): void {
  res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
 }
 
-async function getMightPulseAvatarFrame(playerId: string, trace = false): Promise<AvatarFrame> {
+async function getMightPulseAvatarFrame(playerId: string): Promise<AvatarFrame> {
  const cached = avatarFrameCache.get(playerId);
- if (!trace && cached && cached.expiresAt > Date.now()) return cached.frame;
+ if (cached && cached.expiresAt > Date.now()) return cached.frame;
  const active = avatarFrameInFlight.get(playerId);
- if (!trace && active) return active;
+ if (active) return active;
 
  const request = (async (): Promise<AvatarFrame> => {
   let frame: AvatarFrame = null;
   let ttl = 60_000;
-  const traceInfo: Record<string, unknown> = { stage: "start" };
   try {
-   // The profile route uses MightPulse's internal UID, not the governor/FID.
-   // Prefer the authenticated API wrapper (which explicitly returns uid), then fall back
-   // to the public site's exact-ID search if the API key is unavailable or the read fails.
+   // The public player API maps a governor ID to MightPulse's internal UID.
    let profileUid: string | null = null;
    const apiKey = process.env.MIGHTPULSE_API_KEY || process.env.KSS_API_KEY;
-   traceInfo.apiKeyConfigured = Boolean(apiKey);
    if (apiKey) {
     try {
      const apiUrl = "https://api.mightpulse.com/v1/players/" + encodeURIComponent(playerId) + "?include=base";
@@ -50,25 +46,28 @@ async function getMightPulseAvatarFrame(playerId: string, trace = false): Promis
      });
      const apiFinalUrl = new URL(apiResponse.url || apiUrl);
      const apiContentType = apiResponse.headers.get("content-type") || "";
-     traceInfo.apiStatus = apiResponse.status;
-     traceInfo.apiHostValid = apiFinalUrl.protocol === "https:" && apiFinalUrl.hostname === "api.mightpulse.com";
-     traceInfo.apiContentType = apiContentType.slice(0, 80);
-     if (apiResponse.ok && apiFinalUrl.protocol === "https:" &&
-         apiFinalUrl.hostname === "api.mightpulse.com" &&
-         apiContentType.toLowerCase().includes("application/json")) {
-      profileUid = resolveMightPulseProfileUid(await apiResponse.json(), playerId);
-      traceInfo.apiUidFound = Boolean(profileUid);
-     } else {
-      traceInfo.apiResponseAccepted = false;
+     const apiLength = Number(apiResponse.headers.get("content-length") || 0);
+     if (
+      apiResponse.ok &&
+      apiFinalUrl.protocol === "https:" &&
+      apiFinalUrl.hostname === "api.mightpulse.com" &&
+      !apiFinalUrl.port &&
+      !apiFinalUrl.username &&
+      !apiFinalUrl.password &&
+      apiContentType.toLowerCase().includes("application/json") &&
+      !(apiLength > MAX_AVATAR_PROFILE_BYTES)
+     ) {
+      const body = await apiResponse.text();
+      if (body.length <= MAX_AVATAR_PROFILE_BYTES) {
+       profileUid = resolveMightPulseProfileUid(JSON.parse(body), playerId);
+      }
      }
-    } catch (error) {
-     traceInfo.apiErrorKind = error instanceof Error ? error.name : "unknown";
-     // Fall through to the public site search below.
+    } catch {
+     // Fall back to the public site's exact-ID search.
     }
    }
 
    if (!profileUid) {
-    traceInfo.stage = "public-search";
     try {
      const searchUrl = "https://www.mightpulse.com/api/search?q=" + encodeURIComponent(playerId) + "&limit=40&live=0";
      const searchResponse = await fetch(searchUrl, {
@@ -82,68 +81,76 @@ async function getMightPulseAvatarFrame(playerId: string, trace = false): Promis
      });
      const searchFinalUrl = new URL(searchResponse.url || searchUrl);
      const searchContentType = searchResponse.headers.get("content-type") || "";
-     traceInfo.searchStatus = searchResponse.status;
-     traceInfo.searchHostValid = searchFinalUrl.protocol === "https:" && searchFinalUrl.hostname === "www.mightpulse.com";
-     traceInfo.searchContentType = searchContentType.slice(0, 80);
-     if (searchResponse.ok && searchFinalUrl.protocol === "https:" &&
-         searchFinalUrl.hostname === "www.mightpulse.com" &&
-         searchContentType.toLowerCase().includes("application/json")) {
-      profileUid = resolveMightPulseProfileUid(await searchResponse.json(), playerId);
-      traceInfo.searchUidFound = Boolean(profileUid);
-     } else {
-      traceInfo.searchResponseAccepted = false;
+     const searchLength = Number(searchResponse.headers.get("content-length") || 0);
+     if (
+      searchResponse.ok &&
+      searchFinalUrl.protocol === "https:" &&
+      searchFinalUrl.hostname === "www.mightpulse.com" &&
+      !searchFinalUrl.port &&
+      !searchFinalUrl.username &&
+      !searchFinalUrl.password &&
+      searchContentType.toLowerCase().includes("application/json") &&
+      !(searchLength > MAX_AVATAR_PROFILE_BYTES)
+     ) {
+      const body = await searchResponse.text();
+      if (body.length <= MAX_AVATAR_PROFILE_BYTES) {
+       profileUid = resolveMightPulseProfileUid(JSON.parse(body), playerId);
+      }
      }
-    } catch (error) {
-     traceInfo.searchErrorKind = error instanceof Error ? error.name : "unknown";
-     // The frame is optional; a missing UID falls back to the plain avatar.
+    } catch {
+     // Optional decoration must never make player lookup fail.
     }
    }
+
    if (!profileUid) {
-    traceInfo.stage = "uid-unresolved";
     ttl = 2 * 60_000;
    } else {
-    traceInfo.stage = "profile-fetch";
-    const profileUrl = "https://www.mightpulse.com/player/" + profileUid;
-    const upstream = await fetch(profileUrl, {
+    // The profile HTML is only a shell; its public JSON contains the equipped skins.
+    const playerDataUrl = "https://www.mightpulse.com/api/players/" + profileUid;
+    const upstream = await fetch(playerDataUrl, {
      headers: {
-      Accept: "text/html,application/xhtml+xml",
+      Accept: "application/json",
       "Accept-Language": "en-US,en;q=0.9",
       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
       Referer: "https://www.mightpulse.com/",
      },
      signal: AbortSignal.timeout(AVATAR_FRAME_TIMEOUT_MS),
     });
-    const finalUrl = new URL(upstream.url || profileUrl);
-    const contentLength = Number(upstream.headers.get("content-length") || 0);
+    const finalUrl = new URL(upstream.url || playerDataUrl);
     const contentType = upstream.headers.get("content-type") || "";
-    traceInfo.profileStatus = upstream.status;
-    traceInfo.profileHostValid = finalUrl.protocol === "https:" && finalUrl.hostname === "www.mightpulse.com";
-    traceInfo.profileContentType = contentType.slice(0, 100);
+    const contentLength = Number(upstream.headers.get("content-length") || 0);
     if (
      upstream.ok &&
      finalUrl.protocol === "https:" &&
      finalUrl.hostname === "www.mightpulse.com" &&
-     (!contentType || contentType.toLowerCase().includes("text/html") || contentType.toLowerCase().includes("application/xhtml+xml")) &&
+     !finalUrl.port &&
+     !finalUrl.username &&
+     !finalUrl.password &&
+     contentType.toLowerCase().includes("application/json") &&
      !(contentLength > MAX_AVATAR_PROFILE_BYTES)
     ) {
-     const html = await upstream.text();
-     traceInfo.profileHtmlBytes = html.length;
-     if (html.length <= MAX_AVATAR_PROFILE_BYTES) frame = extractMightPulseAvatarFrame(html);
-     traceInfo.frameParsed = Boolean(frame);
-     traceInfo.stage = frame ? "frame-found" : "profile-html-has-no-frame";
+     const body = await upstream.text();
+     if (body.length <= MAX_AVATAR_PROFILE_BYTES) {
+      const profile = JSON.parse(body) as Record<string, unknown>;
+      const nestedProfile = profile.player && typeof profile.player === "object"
+       ? profile.player as Record<string, unknown> : {};
+      const returnedUid = String(profile.uid ?? nestedProfile.uid ?? "").trim();
+      const returnedGovernorId = String(
+       profile.fid ?? profile.governor_id ?? nestedProfile.fid ?? nestedProfile.governor_id ?? ""
+      ).trim();
+      // Require both IDs to match before accepting upstream-provided frame metadata.
+      if (returnedUid === profileUid && returnedGovernorId === playerId) {
+       frame = extractMightPulseAvatarFrameFromPlayerData(profile);
+      }
+     }
      ttl = frame ? 60 * 60_000 : 5 * 60_000;
-    } else {
-     traceInfo.stage = "profile-response-rejected";
     }
    }
-  } catch (error) {
-   traceInfo.stage = "unexpected-error";
-   traceInfo.errorKind = error instanceof Error ? error.name : "unknown";
-   // Optional decoration must never turn a working player lookup into an error.
+  } catch {
+   // The optional frame must never change the redemption outcome.
    ttl = 60_000;
   }
-  if (trace) console.warn("[avatar-frame-trace]", traceInfo);
-  if (!trace) avatarFrameCache.set(playerId, { frame, expiresAt: Date.now() + ttl });
+  avatarFrameCache.set(playerId, { frame, expiresAt: Date.now() + ttl });
   return frame;
  })();
 
@@ -207,8 +214,7 @@ async function handleMightPulseFrameRequest(req: RequestLike, res: ResponseLike,
    sendError(res, 400, "invalid_player_id", "Player ID must contain 5–20 digits.", requestId);
    return;
   }
-  const trace = requestUrl.searchParams.get("trace") === "1";
-  const frame = await getMightPulseAvatarFrame(playerId, trace);
+  const frame = await getMightPulseAvatarFrame(playerId);
   setAvatarFrameHeaders(res, "no-store");
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.status(200).json({ frame });
