@@ -24,9 +24,10 @@ function setAvatarFrameHeaders(res: ResponseLike, cacheControl: string): void {
  res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
 }
 
-async function getMightPulseAvatarFrame(playerId: string): Promise<AvatarFrame> {
+async function getMightPulseAvatarFrame(playerId: string, forceRefresh = false): Promise<AvatarFrame> {
+ if (forceRefresh) avatarFrameCache.delete(playerId);
  const cached = avatarFrameCache.get(playerId);
- if (cached && cached.expiresAt > Date.now()) return cached.frame;
+ if (!forceRefresh && cached && cached.expiresAt > Date.now()) return cached.frame;
  const active = avatarFrameInFlight.get(playerId);
  if (active) return active;
 
@@ -214,7 +215,8 @@ async function handleMightPulseFrameRequest(req: RequestLike, res: ResponseLike,
    sendError(res, 400, "invalid_player_id", "Player ID must contain 5–20 digits.", requestId);
    return;
   }
-  const frame = await getMightPulseAvatarFrame(playerId);
+  const forceRefresh = requestUrl.searchParams.get("refresh") === "1";
+  const frame = await getMightPulseAvatarFrame(playerId, forceRefresh);
   setAvatarFrameHeaders(res, "no-store");
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.status(200).json({ frame });
