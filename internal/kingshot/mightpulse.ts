@@ -1,4 +1,5 @@
 import { withBoundedProviderReadRetry } from "../../lib/api-v3/retry.js";
+import { fetchMightPulse } from "../../lib/mightpulse-key-pool.js";
 const MIGHTPULSE_BASE_URL = "https://api.mightpulse.com/v1/players/";
 
 export interface KingshotPlayer {
@@ -26,17 +27,12 @@ export interface MightPulseRequestOptions {
   /** Per-attempt timeout. Defaults to 15 seconds for existing non-V3 callers. */
   timeoutMs?: number;
 }
-function getKey(): string {
-  const key = process.env.MIGHTPULSE_API_KEY_3 || process.env.MIGHTPULSE_API_KEY_2 || process.env.MIGHTPULSE_API_KEY || process.env.KSS_API_KEY;
-  if (!key) throw new Error("MightPulse API key is not configured on the server.");
-  return key;
-}
 async function fetchPlayer(playerId: string, timeoutMs = 15000) {
-  const key = getKey();
-  const response = await fetch(MIGHTPULSE_BASE_URL + encodeURIComponent(playerId) + "?include=base", {
-    headers: { Authorization: "Bearer " + key },
-    signal: AbortSignal.timeout(Math.max(250, Math.min(30000, timeoutMs)))
-  });
+  const response = await fetchMightPulse(
+    MIGHTPULSE_BASE_URL + encodeURIComponent(playerId) + "?include=base",
+    {},
+    { timeoutMs }
+  );
   const data = (await response.json().catch(() => ({}))) as {
     player?: KingshotPlayer; fresh?: boolean; cached_at?: string | null; age_seconds?: number | null;
     message?: string; error?: string; [key: string]: unknown;

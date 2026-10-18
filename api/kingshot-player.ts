@@ -1,4 +1,5 @@
 import { rateLimit } from "../lib/request-rate-limit.js";
+import { fetchMightPulse } from "../lib/mightpulse-key-pool.js";
 import developerApi from "../lib/developer-api.js";
 import developerApiV3 from "../lib/developer-api-v3.js";
 import developerAuth from "../lib/developer-auth.js";
@@ -37,14 +38,13 @@ async function getMightPulseAvatarFrame(playerId: string, forceRefresh = false):
   try {
    // The public player API maps a governor ID to MightPulse's internal UID.
    let profileUid: string | null = null;
-   const apiKey = process.env.MIGHTPULSE_API_KEY_3 || process.env.MIGHTPULSE_API_KEY_2 || process.env.MIGHTPULSE_API_KEY || process.env.KSS_API_KEY;
-   if (apiKey) {
+   const hasMightPulseKey = [process.env.MIGHTPULSE_API_KEY_3, process.env.MIGHTPULSE_API_KEY_2, process.env.MIGHTPULSE_API_KEY, process.env.KSS_API_KEY].some(value => Boolean(String(value || "").trim()));
+   if (hasMightPulseKey) {
     try {
      const apiUrl = "https://api.mightpulse.com/v1/players/" + encodeURIComponent(playerId) + "?include=base";
-     const apiResponse = await fetch(apiUrl, {
-      headers: { Accept: "application/json", Authorization: "Bearer " + apiKey },
-      signal: AbortSignal.timeout(AVATAR_FRAME_TIMEOUT_MS),
-     });
+     const apiResponse = await fetchMightPulse(apiUrl, {
+      headers: { Accept: "application/json" },
+     }, { timeoutMs: AVATAR_FRAME_TIMEOUT_MS });
      const apiFinalUrl = new URL(apiResponse.url || apiUrl);
      const apiContentType = apiResponse.headers.get("content-type") || "";
      const apiLength = Number(apiResponse.headers.get("content-length") || 0);
