@@ -26,6 +26,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Run tests
         run: npm test
+      - name: Run security regression guardrails
+        run: node scripts/security-regression.mjs
       - name: TypeScript check
         run: npm run typecheck
       - name: Production build
