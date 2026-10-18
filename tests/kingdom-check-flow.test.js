@@ -88,6 +88,8 @@ test("shared key-pool failures distinguish schema mismatches from genuine cooldo
   assert.match(keyPoolSource, /INVALID_KEY_SLOT/);
   assert.match(keyPoolSource, /key-slot IDs are rejected by the shared quota schema/);
   assert.match(keyPoolSource, /UPSTREAM_RATE_LIMIT/);
+  assert.match(keyPoolSource, /MightPulse rejected every configured key that could be attempted/);
+  assert.match(keyPoolSource, /const allRateLimited =/);
 });
 
 test("manual retry timing follows upstream quota-reset metadata", () => {
