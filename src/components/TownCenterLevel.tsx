@@ -1,4 +1,5 @@
 import React,{useState}from"react";
+import"./town-center-level.css";
 
 type Props={value:unknown;className?:string};
 function tierFor(value:unknown):number|null{
