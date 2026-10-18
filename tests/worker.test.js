@@ -51,7 +51,7 @@ test("MightPulse key pool uses atomic per-key reservations and bounded per-key c
   assert.match(mightPulsePerKeyMigration, /interval '60 seconds'/i);
   assert.match(mightPulsePerKeyMigration, /4500/);
   assert.match(mightPulsePerKeyMigration, /security definer/i);
-  assert.match(mightPulsePerKeyMigration, /grant execute on function public\\.claim_mightpulse_api_key_request\\(text, integer\\) to service_role/i);
+  assert.ok(mightPulsePerKeyMigration.includes("grant execute on function public.claim_mightpulse_api_key_request(text, integer) to service_role"));
   assert.match(mightPulsePerKeyMigration, /enable row level security/i);
 });
 
