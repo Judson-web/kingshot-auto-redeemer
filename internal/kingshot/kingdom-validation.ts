@@ -121,7 +121,13 @@ async function fetchCurrentPlayer(playerId: string, rpc: Rpc): Promise<FreshPlay
       lastError = error as MightPulseFetchError;
       const status = Number(lastError.status || 0);
       const message = String(lastError.message || "");
-      if (lastError.localBudgetDenied) throw lastError;
+      if (lastError.localBudgetDenied) {
+        // Cache shared denials in this warm instance so the remaining players
+        // don't each incur another Supabase RPC during the same worker cycle.
+        const deferMs = Math.min(90_000, Math.max(1_000, Number(lastError.retryAfterMs) || RATE_LIMIT_COOLDOWN_FALLBACK_MS));
+        mightPulseCooldownUntil = Math.max(mightPulseCooldownUntil, Date.now() + deferMs);
+        throw lastError;
+      }
       const rateLimited = status === 429 || /rate[_ -]?limited|rate limit|too many requests/i.test(message);
       const retryable = RETRYABLE.test(message) || [429, 502, 503, 504].includes(status);
       if (rateLimited) {
