@@ -1,3 +1,5 @@
+import { allianceDetails, formatPower, playerDisplayName, playerPower } from "../lib/player-display.js";
+
 const LABELS = {
   registered: "REGISTERED",
   existing: "ALREADY ACTIVE",
@@ -50,6 +52,9 @@ function outcome(kind, data) {
     name: name || "",
     kingdom: text(data.kingdom) || "—",
     avatar: text(data.avatar),
+    power: text(data.power) || "—",
+    allianceName: text(data.allianceName),
+    allianceTag: text(data.allianceTag),
     kind,
     label: LABELS[kind],
     headline: HEADLINES[kind],
@@ -69,11 +74,20 @@ export function makeSuccessOutcome(id, player = {}, result = {}) {
   else if (status.includes("REACTIVATED") || status.includes("RE-ENABLED")) kind = "reactivated";
   else if (result.alreadyRegistered || status.includes("ALREADY") || status.includes("EXISTING")) kind = "existing";
 
+  const profile = {
+    ...(result.player && typeof result.player === "object" ? result.player : {}),
+    ...(player && typeof player === "object" ? player : {}),
+    alliance: player?.alliance ?? result.player?.alliance
+  };
+  const alliance = allianceDetails(profile);
   return outcome(kind, {
     id,
-    name: player.nick_name || player.name || player.nickname || result.player?.player_name || "",
-    kingdom: result.verifiedKingdomId || player.kid || player.kingdom_id || "—",
-    avatar: player.avatar_url || player.avatar || player.avatarUrl || result.player?.avatar_url || "",
+    name: playerDisplayName(profile, ""),
+    kingdom: result.verifiedKingdomId || profile.kid || profile.kingdom_id || "—",
+    avatar: profile.avatar_url || profile.avatar || profile.avatarUrl || "",
+    power: formatPower(playerPower(profile)),
+    allianceName: alliance.name,
+    allianceTag: alliance.tag,
     message: result.error || result.message,
     reason: result.ban?.reason || result.reason,
     code: result.code,
@@ -82,7 +96,7 @@ export function makeSuccessOutcome(id, player = {}, result = {}) {
   });
 }
 
-export function makeFailureOutcome({ id, message, code, banned, disabled, alreadyRegistered, ban, reason } = {}) {
+export function makeFailureOutcome({ id, message, code, banned, disabled, alreadyRegistered, ban, reason, player } = {}) {
   const normalizedMessage = text(message) || "The Player ID could not be registered. Check the details or contact support.";
   const lower = normalizedMessage.toLowerCase();
   let kind = "failed";
@@ -90,8 +104,16 @@ export function makeFailureOutcome({ id, message, code, banned, disabled, alread
   else if (disabled || code === "player_disabled" || /auto.?redemption.*disabled|player.*disabled|registration.*disabled/.test(lower)) kind = "disabled";
   else if (alreadyRegistered || code === "already_registered" || /already registered|already enrolled/.test(lower)) kind = "existing";
 
+  const profile = player && typeof player === "object" ? player : {};
+  const alliance = allianceDetails(profile);
   return outcome(kind, {
     id,
+    name: playerDisplayName(profile, ""),
+    kingdom: profile.kid || profile.kingdom_id || "—",
+    avatar: profile.avatar_url || profile.avatar || profile.avatarUrl || "",
+    power: formatPower(playerPower(profile)),
+    allianceName: alliance.name,
+    allianceTag: alliance.tag,
     message: normalizedMessage,
     code,
     reason: reason || ban?.reason || readReason(normalizedMessage)

@@ -25,10 +25,12 @@ test("V3 redemption validation rejects extra fields, wrong types and malformed v
 test("V3 player contract normalizes values and rejects provider ID mismatches", () => {
   assert.deepEqual(normalizeV3PlayerData({
     player_id: "43180889", nick_name: "  Sharkyo\n", kid: 280, power: "411851257",
-    town_center_level: "69", avatar_url: "https://example.com/avatar.png"
+    town_center_level: "69", avatar_url: "https://example.com/avatar.png",
+    alliance: { name: "The Wind", abbr: "WIND" }
   }, "43180889"), {
     playerId: "43180889", name: "Sharkyo", kingdomId: "280", power: 411851257,
-    townCenterLevel: 69, avatarUrl: "https://example.com/avatar.png"
+    townCenterLevel: 69, avatarUrl: "https://example.com/avatar.png",
+    allianceName: "The Wind", allianceTag: "WIND"
   });
   assert.equal(normalizeV3PlayerData({ player_id: "43180889", avatar_url: "http://example.com/a.png" }, "43180889").avatarUrl, null);
   assert.throws(() => normalizeV3PlayerData({ player_id: "99999999" }, "43180889"), { code: "provider_player_mismatch" });

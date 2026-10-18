@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { getPlayer } from "../internal/kingshot/mightpulse.js";
+import { allianceDetails } from "./player-display.js";
 import { redeemKingshot } from "../internal/kingshot/redeem.js";
 
 type HeaderValue = string | string[] | undefined;
@@ -160,13 +161,16 @@ export default async function developerApi(req: RequestLike, res: ResponseLike, 
       const id = url.searchParams.get("id")?.trim() || "";
       if (!/^\d{5,20}$/.test(id)) { apiError(res, 400, "invalid_player_id", "Provide a player ID containing 5–20 digits.", rid); return; }
       const player = await getPlayer(id);
+      const alliance = allianceDetails(player);
       res.status(200).json({ data: {
         playerId: String(player.governor_id || player.fid || player.id || id),
         name: String(player.nick_name || player.name || player.nickname || "").slice(0, 120),
         kingdomId: String(player.kid ?? player.kingdom_id ?? ""),
         power: player.power ?? null,
         townCenterLevel: player.town_center_level ?? player.tc_level ?? null,
-        avatarUrl: String(player.avatar_url || player.avatar || player.avatarUrl || "").slice(0, 500) || null
+        avatarUrl: String(player.avatar_url || player.avatar || player.avatarUrl || "").slice(0, 500) || null,
+        allianceName: alliance.name || null,
+        allianceTag: alliance.tag || null
       }, meta: { requestId: rid, timestamp: new Date().toISOString(), fetchedAt: new Date().toISOString(), source: "mightpulse", stale: false, remaining: authorization.remaining, dailyRemaining: authorization.daily_remaining } });
     } catch (error) {
       const status = (error as { status?: number } | null)?.status;

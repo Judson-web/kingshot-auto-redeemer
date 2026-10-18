@@ -46,6 +46,27 @@ test("mixed multi-ID results preserve per-ID outcomes and aggregate counts", () 
   assert.equal(registrationOutcomeHeadline(items), "Registration results");
 });
 
+test("successful registration outcomes include formatted power and alliance tag", () => {
+  const item = makeSuccessOutcome("12345678", {
+    nick_name: "Sparky", kid: 280, power: "411851257", alliance: { name: "The Wind", abbr: "WIND" }
+  }, { registrationStatus: "NEW" });
+  assert.equal(item.name, "Sparky [WIND]");
+  assert.equal(item.power, "411.85M");
+  assert.equal(item.kingdom, 280);
+  assert.equal(item.allianceName, "The Wind");
+  assert.equal(item.allianceTag, "WIND");
+});
+
+test("failed registration preserves profile details already retrieved", () => {
+  const item = makeFailureOutcome({
+    id: "12345678", message: "Registration service unavailable",
+    player: { nick_name: "Sparky", kid: 280, power: 123000000, alliance: { abbr: "WIND" } }
+  });
+  assert.equal(item.name, "Sparky [WIND]");
+  assert.equal(item.power, "123.00M");
+  assert.equal(item.kingdom, 280);
+});
+
 test("single-ID summary keeps the individual headline", () => {
   const outcome = makeFailureOutcome({ id: "100006", banned: true, message: "blocked" });
   assert.equal(registrationOutcomeHeadline([outcome]), "Auto-redemption disabled");

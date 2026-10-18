@@ -35,7 +35,7 @@ The playerId path parameter must be a string containing 5–20 digits.
     curl "https://kingshot-autoredeemer.vercel.app/api/v3/players/43180889" \
       -H "Authorization: Bearer $KINGSHOT_API_KEY"
 
-Success responses contain data and meta. The data object has playerId, name, kingdomId, power, townCenterLevel and avatarUrl. Fields that are missing or invalid at the provider may be null. Metadata includes apiVersion, requestId, timestamp, and provider freshness fields fetchedAt, providerFresh, providerAgeSeconds and stale. The provider may return cached data, so do not assume every response reflects a real-time lookup.
+Success responses contain data and meta. The data object has playerId, name, kingdomId, power, townCenterLevel, avatarUrl, allianceName and allianceTag. The alliance fields are nullable when the provider has no alliance data. Fields that are missing or invalid at the provider may be null. Metadata includes apiVersion, requestId, timestamp, and provider freshness fields fetchedAt, providerFresh, providerAgeSeconds and stale. The provider may return cached data, so do not assume every response reflects a real-time lookup.
 
 V3 bounds each upstream player-read attempt and retries at most once after a transient network or 5xx failure. It does not retry player-not-found, authentication/configuration failures or provider rate limits. If the bounded attempts fail, the API returns a structured error rather than waiting on an unbounded provider request. A 504 means the provider read did not complete within the bounded time budget; use bounded client backoff for another lookup.
 

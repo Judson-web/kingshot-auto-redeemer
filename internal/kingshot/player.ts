@@ -1,4 +1,5 @@
 import { getPlayer, getPlayerSnapshot, type KingshotPlayer } from "./mightpulse.js";
+import { allianceDetails, playerPower } from "../../lib/player-display.js";
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wocxvtptqapietlteshr.supabase.co";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
@@ -14,10 +15,15 @@ async function syncRegisteredPlayerProfile(playerId: string, player: KingshotPla
   const kingdomId = String(player.kid ?? player.kingdom_id ?? "").replace(/\D/g, "");
   const playerName = String(player.nick_name || player.name || player.nickname || "").trim().slice(0, 120);
   const avatarUrl = String(player.avatar_url || player.avatar || player.avatarUrl || "").trim().slice(0, 500);
+  const { name: allianceName, tag: allianceTag } = allianceDetails(player);
+  const power = playerPower(player);
   const payload: Record<string, string> = { updated_at: new Date().toISOString() };
   if (kingdomId) payload.kingdom_id = kingdomId;
   if (playerName) payload.player_name = playerName;
   if (avatarUrl) payload.avatar_url = avatarUrl;
+  if (power !== null) payload.player_power = String(power);
+  if (allianceName) payload.alliance_name = allianceName;
+  if (allianceTag) payload.alliance_tag = allianceTag;
   if (Object.keys(payload).length === 1) return;
 
   const response = await fetch(

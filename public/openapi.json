@@ -470,6 +470,20 @@
                   "null"
                 ],
                 "format": "uri"
+              },
+              "allianceName": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Current alliance name, when available."
+              },
+              "allianceTag": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Current alliance abbreviation/tag, when available."
               }
             }
           },
@@ -705,6 +719,20 @@
                   "null"
                 ],
                 "format": "uri"
+              },
+              "allianceName": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Current alliance name, when available."
+              },
+              "allianceTag": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Current alliance abbreviation/tag, when available."
               }
             },
             "additionalProperties": false
