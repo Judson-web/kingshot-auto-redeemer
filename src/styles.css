@@ -2871,3 +2871,70 @@ body:has(.support-float-panel.support-chat-panel) .ks-install-prompt{display:non
   .ks-result-compact .ks-result-copy p{font-size:11px!important}
 }
 @media(prefers-reduced-motion:reduce){.ks-result-compact{animation:none!important}}
+
+
+/* Support drawer accessibility and layout refinement. */
+.support-float-trigger:focus-visible,
+.support-float-panel button:focus-visible,
+.support-float-panel a:focus-visible,
+.support-float-panel input:focus-visible,
+.support-float-panel textarea:focus-visible,
+.support-float-panel [tabindex]:focus-visible{
+  outline:3px solid #d5c9ff!important;
+  outline-offset:3px!important;
+  box-shadow:0 0 0 5px rgba(126,103,255,.22)!important;
+}
+.support-float-trigger{min-width:48px;min-height:48px}
+.support-float-backdrop{position:fixed;inset:0;background:rgba(3,5,11,.68);backdrop-filter:blur(3px);z-index:-1}
+.support-float-panel.support-chat-panel{
+  width:min(430px,calc(100vw - 24px))!important;
+  height:min(720px,calc(100dvh - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)))!important;
+  max-height:calc(100dvh - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))!important;
+  display:flex!important;flex-direction:column!important;overflow:hidden!important;
+  border:1px solid #414a60!important;border-radius:22px!important;
+  box-shadow:0 24px 90px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.025)!important;
+}
+.support-float-panel.support-chat-panel .support-float-head{flex:0 0 auto!important;min-height:76px!important;padding:15px!important;gap:12px!important}
+.support-float-panel.support-chat-panel .support-float-head b{font-size:15px!important;line-height:1.3!important;overflow-wrap:anywhere}
+.support-float-panel.support-chat-panel .support-float-head small{font-size:10px!important;line-height:1.5!important;letter-spacing:.045em!important;overflow-wrap:anywhere}
+.support-float-panel.support-chat-panel .support-drawer-close{width:44px!important;height:44px!important;flex:0 0 44px!important;border-radius:12px!important}
+.support-float-panel.support-chat-panel .support-float-body{display:flex!important;flex:1 1 0!important;flex-direction:column!important;min-height:0!important;overflow:hidden!important;padding:0 15px!important}
+.support-float-panel.support-chat-panel .support-float-body>form{display:flex!important;flex:1 1 auto!important;flex-direction:column!important;min-height:0!important;gap:12px!important;overflow-y:auto!important;overscroll-behavior:contain!important;padding:14px 0!important}
+.support-float-panel.support-chat-panel .support-chat-messages{flex:1 1 0!important;min-height:90px!important;max-height:none!important;height:auto!important;scrollbar-width:thin!important;scrollbar-color:#4a5570 transparent!important}
+.support-float-panel.support-chat-panel .support-chat-message{font-size:14px!important;line-height:1.6!important}
+.support-float-panel.support-chat-panel .support-chat-message p{font-size:14px!important;line-height:1.6!important}
+.support-float-panel.support-chat-panel .support-topic-label,
+.support-float-panel.support-chat-panel .support-message-label{font-size:11px!important;line-height:1.4!important;letter-spacing:.07em!important}
+.support-float-panel.support-chat-panel .support-topic-trigger{min-height:54px!important;padding:10px 12px!important}
+.support-float-panel.support-chat-panel .support-topic-selected b{font-size:14px!important;line-height:1.4!important}
+.support-float-panel.support-chat-panel .support-topic-option{min-height:54px!important;padding:10px 12px!important}
+.support-float-panel.support-chat-panel .support-topic-option b{font-size:13px!important;line-height:1.4!important}
+.support-float-panel.support-chat-panel .support-topic-option small{font-size:11px!important;line-height:1.5!important}
+.support-float-panel.support-chat-panel .support-float-body>form>label{font-size:11px!important;line-height:1.5!important;letter-spacing:.04em!important}
+.support-float-panel.support-chat-panel .support-float-body>form>label>input{min-height:46px!important;font-size:16px!important}
+.support-float-panel.support-chat-panel .support-composer>textarea{min-height:100px!important;max-height:180px!important;font-size:16px!important;line-height:1.55!important;padding:14px!important}
+.support-float-panel.support-chat-panel .support-composer-toolbar{min-height:48px!important}
+.support-float-panel.support-chat-panel .support-attach-button,
+.support-float-panel.support-chat-panel .support-composer-send{width:44px!important;height:44px!important;flex-basis:44px!important}
+.support-float-panel.support-chat-panel .support-float-foot{flex:0 0 auto!important;display:flex!important;align-items:flex-start!important;gap:8px!important;padding:11px 15px calc(11px + env(safe-area-inset-bottom,0px))!important;font-size:11px!important;line-height:1.5!important}
+.support-float-panel.support-chat-panel .support-float-foot svg{flex:0 0 15px!important;margin-top:2px!important}
+.support-float-panel.support-chat-panel .support-float-error{font-size:13px!important;line-height:1.55!important}
+.support-float-panel.support-chat-panel .support-chat-notice{font-size:12px!important;line-height:1.55!important}
+@media(max-width:600px){
+ .support-float-root{left:0!important;right:0!important;bottom:0!important;align-items:stretch!important;pointer-events:none!important;z-index:10050!important}
+ .support-float-root>.support-float-trigger{pointer-events:auto!important;align-self:flex-end!important;margin:0 14px calc(14px + env(safe-area-inset-bottom,0px)) 0!important}
+ .support-float-root>.support-float-backdrop{pointer-events:auto!important}
+ .support-float-panel.support-chat-panel{position:fixed!important;left:8px!important;right:8px!important;bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;top:max(8px,env(safe-area-inset-top,0px))!important;width:auto!important;height:auto!important;max-height:none!important;max-width:none!important;border-radius:20px!important}
+ .support-float-panel.support-chat-panel .support-float-head{min-height:70px!important;padding:12px!important}
+ .support-float-panel.support-chat-panel .support-float-body{padding:0 12px!important}
+ .support-float-panel.support-chat-panel .support-float-body>form{padding:12px 0!important}
+ .support-float-panel.support-chat-panel .support-chat-messages{padding:14px 2px!important}
+ .support-float-panel.support-chat-panel .support-float-foot{padding:9px 12px calc(9px + env(safe-area-inset-bottom,0px))!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .support-float-panel.support-chat-panel,.support-float-trigger,.support-float-panel.support-chat-panel *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
+@media(forced-colors:active){
+ .support-float-panel.support-chat-panel,.support-float-trigger,.support-float-panel.support-chat-panel button{border:1px solid ButtonText!important}
+ .support-float-panel.support-chat-panel button:focus-visible,.support-float-trigger:focus-visible{outline:3px solid Highlight!important}
+}
