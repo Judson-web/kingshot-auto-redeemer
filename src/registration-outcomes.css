@@ -91,3 +91,80 @@
  .ks-outcome-single .ks-outcome-tc img{width:26px!important;height:26px!important}
  .ks-outcome-single .ks-outcome-player-id{font-size:10px!important}
 }
+
+
+/* A single result is a profile card, not a one-item carousel. Reserve space
+   for the existing decorative avatar frame without changing its dimensions. */
+.ks-outcome-track-single{
+  display:block!important;
+  overflow:visible!important;
+  scroll-snap-type:none!important;
+  scroll-behavior:auto!important;
+  overscroll-behavior:initial!important;
+}
+.ks-outcome-slide-single{
+  display:flex!important;
+  flex:0 0 auto!important;
+  width:100%!important;
+  box-sizing:border-box!important;
+  align-items:center!important;
+  min-height:0!important;
+  padding:12px 16px 14px!important;
+  scroll-snap-align:none!important;
+}
+.ks-outcome-single .ks-outcome-slide-single>.ks-outcome-slide-icon{
+  display:flex!important;
+  flex:0 0 94px!important;
+  width:94px!important;
+  height:82px!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
+.ks-outcome-single .ks-outcome-slide-content{flex:1 1 0!important;min-width:0!important}
+.ks-outcome-single .ks-outcome-player-heading{display:block!important;min-width:0!important}
+.ks-outcome-single .ks-outcome-identity{width:100%!important;min-width:0!important}
+.ks-outcome-single .ks-outcome-identity h3{
+  margin:0 0 5px!important;
+  color:#f5f2ff!important;
+  font-size:clamp(17px,4.4vw,22px)!important;
+  font-weight:750!important;
+  line-height:1.25!important;
+  letter-spacing:-.025em!important;
+  overflow-wrap:anywhere!important;
+}
+.ks-outcome-single .ks-outcome-player-meta{
+  display:flex!important;
+  align-items:center!important;
+  flex-wrap:wrap!important;
+  gap:2px 5px!important;
+  margin:0!important;
+  color:#b6b8c9!important;
+  font-size:12px!important;
+  font-weight:500!important;
+  line-height:1.5!important;
+}
+.ks-outcome-single .ks-outcome-tc{display:inline-flex!important;align-items:center!important;gap:3px!important;white-space:nowrap!important}
+.ks-outcome-single .ks-outcome-tc img{width:27px!important;height:27px!important;object-fit:contain!important}
+.ks-outcome-single .ks-outcome-player-id{
+  display:block!important;
+  margin-top:5px!important;
+  color:#aaaabd!important;
+  font-size:11px!important;
+  font-weight:550!important;
+  line-height:1.4!important;
+  overflow-wrap:anywhere!important;
+}
+.ks-outcome-single .ks-outcome-description,.ks-outcome-single .ks-outcome-reason{margin-top:7px!important}
+@media(max-width:600px){
+  .ks-outcome-single .ks-outcome-slide-single{padding:10px 12px 12px!important;gap:5px!important}
+  .ks-outcome-single .ks-outcome-slide-single>.ks-outcome-slide-icon{
+    flex-basis:94px!important;width:94px!important;height:76px!important;
+  }
+  .ks-outcome-single .ks-outcome-identity h3{font-size:clamp(16px,4.5vw,20px)!important}
+  .ks-outcome-single .ks-outcome-player-meta{font-size:11px!important;line-height:1.45!important}
+  .ks-outcome-single .ks-outcome-tc img{width:25px!important;height:25px!important}
+  .ks-outcome-single .ks-outcome-player-id{font-size:11px!important;margin-top:4px!important}
+}
