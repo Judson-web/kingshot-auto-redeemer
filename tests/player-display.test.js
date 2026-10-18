@@ -11,7 +11,7 @@ test("player names show a single alliance tag using provider alliance objects", 
 
 test("alliance metadata falls back to stored flat columns and avoids duplicate tags", () => {
   assert.equal(playerDisplayName({ player_name: "[WIND] Sharkyo", alliance_tag: "WIND" }), "[WIND] Sharkyo");
-  assert.equal(allianceDisplayName({ alliance_name: "The Wind", alliance_tag: "[WIND]" }), "[WIND] The Wind");
+  assert.equal(allianceDisplayName({ alliance_name: "The Wind", alliance_tag: "[WIND]" }), "The Wind [WIND]");
   assert.equal(playerDisplayName({}, "Unknown player"), "Unknown player");
 });
 
