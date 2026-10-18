@@ -41,6 +41,7 @@ assertCheck("MightPulse avatar frames use a same-origin proxy without weakening 
  frameParser.includes('hostname !== "www.mightpulse.com"') &&
   frameParser.includes("resolveMightPulseProfileUid") &&
   frameRoute.includes("api/search?q=") &&
+  frameRoute.includes("https://api.mightpulse.com/v1/players/") &&
   frameRoute.includes("resolveMightPulseProfileUid(searchData, playerId)") &&
  cspHeader?.value.includes("connect-src 'self'") &&
  !cspHeader?.value.includes("https://www.mightpulse.com"));

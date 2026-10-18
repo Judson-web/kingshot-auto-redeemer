@@ -34,27 +34,52 @@ async function getMightPulseAvatarFrame(playerId: string): Promise<AvatarFrame> 
   let frame: AvatarFrame = null;
   let ttl = 60_000;
   try {
-   // The profile page path uses MightPulse's internal UID, not the governor/FID.
-   const searchUrl = "https://www.mightpulse.com/api/search?q=" + encodeURIComponent(playerId) + "&limit=40&live=0";
-   const searchResponse = await fetch(searchUrl, {
-    headers: {
-     Accept: "application/json",
-     "Accept-Language": "en-US,en;q=0.9",
-     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-     Referer: "https://www.mightpulse.com/",
-    },
-    signal: AbortSignal.timeout(AVATAR_FRAME_TIMEOUT_MS),
-   });
-   const searchFinalUrl = new URL(searchResponse.url || searchUrl);
-   if (
-    !searchResponse.ok ||
-    searchFinalUrl.protocol !== "https:" ||
-    searchFinalUrl.hostname !== "www.mightpulse.com" ||
-    !(searchResponse.headers.get("content-type") || "").toLowerCase().includes("application/json")
-   ) throw new Error("MightPulse player search unavailable.");
+   // The profile route uses MightPulse's internal UID, not the governor/FID.
+   // Prefer the authenticated API wrapper (which explicitly returns uid), then fall back
+   // to the public site's exact-ID search if the API key is unavailable or the read fails.
+   let profileUid: string | null = null;
+   const apiKey = process.env.MIGHTPULSE_API_KEY || process.env.KSS_API_KEY;
+   if (apiKey) {
+    try {
+     const apiUrl = "https://api.mightpulse.com/v1/players/" + encodeURIComponent(playerId) + "?include=base";
+     const apiResponse = await fetch(apiUrl, {
+      headers: { Accept: "application/json", Authorization: "Bearer " + apiKey },
+      signal: AbortSignal.timeout(AVATAR_FRAME_TIMEOUT_MS),
+     });
+     const apiFinalUrl = new URL(apiResponse.url || apiUrl);
+     const apiContentType = apiResponse.headers.get("content-type") || "";
+     if (apiResponse.ok && apiFinalUrl.protocol === "https:" &&
+         apiFinalUrl.hostname === "api.mightpulse.com" &&
+         apiContentType.toLowerCase().includes("application/json")) {
+      profileUid = resolveMightPulseProfileUid(await apiResponse.json(), playerId);
+     }
+    } catch {
+     // Fall through to the public site search below.
+    }
+   }
 
-   const searchData = await searchResponse.json();
-   const profileUid = resolveMightPulseProfileUid(searchData, playerId);
+   if (!profileUid) {
+    try {
+     const searchUrl = "https://www.mightpulse.com/api/search?q=" + encodeURIComponent(playerId) + "&limit=40&live=0";
+     const searchResponse = await fetch(searchUrl, {
+      headers: {
+       Accept: "application/json",
+       "Accept-Language": "en-US,en;q=0.9",
+       "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+       Referer: "https://www.mightpulse.com/",
+      },
+      signal: AbortSignal.timeout(AVATAR_FRAME_TIMEOUT_MS),
+     });
+     const searchFinalUrl = new URL(searchResponse.url || searchUrl);
+     if (searchResponse.ok && searchFinalUrl.protocol === "https:" &&
+         searchFinalUrl.hostname === "www.mightpulse.com" &&
+         (searchResponse.headers.get("content-type") || "").toLowerCase().includes("application/json")) {
+      profileUid = resolveMightPulseProfileUid(await searchResponse.json(), playerId);
+     }
+    } catch {
+     // The frame is optional; a missing UID falls back to the plain avatar.
+    }
+   }
    if (!profileUid) {
     ttl = 2 * 60_000;
    } else {

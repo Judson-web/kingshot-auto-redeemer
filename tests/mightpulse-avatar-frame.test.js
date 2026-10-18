@@ -48,3 +48,15 @@ test("does not resolve a partial or unrelated governor ID", () => {
   assert.equal(resolveMightPulseProfileUid({ results: [{ uid: "https://evil.example", fid: 17261054 }] }, "17261054"), null);
   assert.equal(resolveMightPulseProfileUid({ results: [] }, "17261054"), null);
 });
+
+test("resolves the internal UID from the authenticated API wrapper", () => {
+  assert.equal(resolveMightPulseProfileUid({
+    uid: 4751274,
+    governor_id: 17261054,
+    player: { fid: 17261054 },
+  }, "17261054"), "4751274");
+  assert.equal(resolveMightPulseProfileUid({
+    uid: 4751274,
+    governor_id: 17261055,
+  }, "17261054"), null);
+});
