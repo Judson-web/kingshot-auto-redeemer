@@ -2714,40 +2714,82 @@ body:has(.support-float-panel.support-chat-panel) .ks-install-prompt{display:non
   padding:1px 2px 11px!important;
   border-bottom:1px solid #252832!important;
 }
-.ks-result-compact .ks-avatar-frame-shell{
+
+/* Shared Kingshot avatar frame: match MightPulse's cut-out geometry at compact UI sizes. */
+.ks-player-portrait,
+.ks-avatar-frame-shell{
   position:relative;
-  display:block;
-  flex:0 0 50px;
-  width:50px;
-  height:50px;
+  display:grid;
+  place-items:center;
+  flex:none;
   isolation:isolate;
   overflow:visible;
+  box-sizing:border-box;
 }
-.ks-result-compact .ks-avatar-frame-shell .ks-avatar{
-  position:absolute;
-  z-index:0;
-  inset:4px;
+.ks-player-portrait .ks-player-avatar-base{
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  transform:translate(-50%,-50%)!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  display:grid!important;
+  place-items:center!important;
+  overflow:hidden!important;
+  border:0!important;
+  border-radius:6px!important;
+  background:#211e2d!important;
+  box-shadow:none!important;
+  z-index:1!important;
+  box-sizing:border-box!important;
+}
+.ks-player-portrait .ks-player-avatar-image{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  max-width:none!important;
+  object-fit:cover!important;
+  border-radius:inherit!important;
+}
+.ks-player-portrait .ks-player-avatar-fallback{
   display:grid;
-  width:auto;
-  height:auto;
-  aspect-ratio:1;
-  place-items:center;
-  overflow:hidden;
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:50%;
-  background:#211e2d;
-}
-.ks-result-compact .ks-avatar-frame-img{
-  position:absolute;
-  z-index:1;
-  inset:0;
-  display:block;
   width:100%;
   height:100%;
-  object-fit:contain;
-  pointer-events:none;
-  user-select:none;
+  place-items:center;
+  color:#c5b8ed;
+  font-size:.95em;
+  font-weight:800;
 }
+.ks-player-portrait .ks-avatar-frame-img{
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  width:180%!important;
+  height:auto!important;
+  max-width:none!important;
+  aspect-ratio:288 / 214;
+  transform:translate(-50%,-50%)!important;
+  object-fit:fill!important;
+  pointer-events:none!important;
+  user-select:none!important;
+  z-index:4!important;
+  /* Transparent central opening reveals the avatar under the frame artwork. */
+  -webkit-mask-image:linear-gradient(#000 0 0),linear-gradient(#000 0 0);
+  -webkit-mask-size:100% 100%,54% 72%;
+  -webkit-mask-position:center,center;
+  -webkit-mask-repeat:no-repeat,no-repeat;
+  -webkit-mask-composite:xor;
+  mask-image:linear-gradient(#000 0 0),linear-gradient(#000 0 0);
+  mask-size:100% 100%,54% 72%;
+  mask-position:center,center;
+  mask-repeat:no-repeat,no-repeat;
+  mask-composite:exclude;
+}
+.ks-outcome-slide-icon{overflow:visible!important}
 .ks-result-compact .ks-result-player{
   min-width:0!important;
   flex:1!important;
@@ -2821,7 +2863,7 @@ body:has(.support-float-panel.support-chat-panel) .ks-install-prompt{display:non
 @media(max-width:640px){
   .ks-result-compact{padding:12px!important;gap:10px!important}
   .ks-result-compact .ks-result-identity{gap:10px!important;padding-bottom:9px!important}
-  .ks-result-compact .ks-avatar-frame-shell{flex-basis:48px;width:48px;height:48px}
+
   .ks-result-compact .ks-result-player b{font-size:13px}
   .ks-result-compact .ks-result-player span{font-size:10px;line-height:1.45}
   .ks-result-compact .ks-result-copy{padding:12px!important}

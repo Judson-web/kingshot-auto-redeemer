@@ -29,23 +29,29 @@ const frameRoute=read("api/kingshot-player.ts");
 const frameParser=read("lib/mightpulse-avatar-frame.js");
 const manualUi=read("src/main.jsx");
 const resultUiCss=read("src/styles.css");
-assertCheck("MightPulse avatar frames use a same-origin proxy without weakening CORS or CSP",
- manualUi.includes('fetch("/api/kingshot-player?frame=profile&id="') &&
+const frameComponent=read("src/components/KingshotAvatar.tsx");
+const adminPlayersUi=read("src/AdminPlayersApp.tsx");
+assertCheck("Equipped Kingshot avatar frames render app-wide through a safe same-origin proxy",
+ frameComponent.includes('"/api/kingshot-player?frame=profile&id="') &&
+  frameComponent.includes('"/api/kingshot-player?frame=asset&asset="') &&
+  frameComponent.includes("IntersectionObserver") &&
+  frameComponent.includes("mask-composite") &&
+  manualUi.includes("<KingshotAvatar") &&
   manualUi.includes("playerId||player?.fid||player?.governor_id") &&
- manualUi.includes('"/api/kingshot-player?frame=asset&asset="') &&
- frameRoute.includes('https://www.mightpulse.com/api/players/" + profileUid') &&
- frameRoute.includes('https://www.mightpulse.com/assets/icons/skin_icon_') &&
- frameRoute.includes('rateLimit(req, res, "mightpulse-frame-profile"') && frameRoute.includes('rateLimit(req, res, "mightpulse-frame-image"') &&
- frameRoute.includes("Cache-Control") &&
- !frameRoute.includes("Access-Control-Allow-Origin") &&
- frameParser.includes('hostname !== "www.mightpulse.com"') &&
+  adminPlayersUi.includes("<KingshotAvatar") &&
+  frameRoute.includes('https://www.mightpulse.com/api/players/" + profileUid') &&
+  frameRoute.includes('https://www.mightpulse.com/assets/icons/skin_icon_') &&
+  frameRoute.includes('rateLimit(req, res, "mightpulse-frame-profile"') &&
+  frameRoute.includes('rateLimit(req, res, "mightpulse-frame-image"') &&
+  frameRoute.includes("Cache-Control") &&
+  !frameRoute.includes("Access-Control-Allow-Origin") &&
+  frameParser.includes('hostname !== "www.mightpulse.com"') &&
   frameParser.includes("resolveMightPulseProfileUid") &&
   frameRoute.includes("api/search?q=") &&
   frameRoute.includes("https://api.mightpulse.com/v1/players/") &&
   frameRoute.includes("resolveMightPulseProfileUid(JSON.parse(body), playerId)") &&
-  frameRoute.includes("resolveMightPulseProfileUid(JSON.parse(body), playerId)") &&
- cspHeader?.value.includes("connect-src 'self'") &&
- !cspHeader?.value.includes("https://www.mightpulse.com"));
+  cspHeader?.value.includes("connect-src 'self'") &&
+  !cspHeader?.value.includes("https://www.mightpulse.com"));
 assertCheck("Manual redemption is one compact player card without redundant footer actions",
  manualUi.includes("ks-result-compact") && manualUi.includes("REDEMPTION RESULT") &&
  !manualUi.includes("Copy reference") && !manualUi.includes("Redeem another code") &&

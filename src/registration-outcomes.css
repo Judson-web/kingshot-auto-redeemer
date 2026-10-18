@@ -44,3 +44,6 @@
  .ks-outcome-single .ks-outcome-identity{min-width:0;flex:1}
 }
 @media(prefers-reduced-motion:reduce){.ks-outcome-panel{animation:none!important}.ks-outcome-track{scroll-behavior:auto}}
+
+/* Let the decorative frame extend beyond the avatar tile without clipping. */
+.ks-outcome-slide-icon{overflow:visible!important}
