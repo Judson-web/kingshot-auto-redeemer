@@ -43,7 +43,7 @@ async function getMightPulseAvatarFrame(playerId: string, forceRefresh = false):
     try {
      const apiUrl = "https://api.mightpulse.com/v1/players/" + encodeURIComponent(playerId) + "?include=base";
      const apiResponse = await fetchMightPulse(apiUrl, {
-      headers: { Accept: "application/json", Authorization: "Bearer " + apiKey },
+      headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(AVATAR_FRAME_TIMEOUT_MS),
      });
      const apiFinalUrl = new URL(apiResponse.url || apiUrl);
