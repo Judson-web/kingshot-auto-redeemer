@@ -146,7 +146,8 @@ export default function KingshotAvatar({
           alt=""
           aria-hidden="true"
           decoding="async"
-          loading="lazy"
+          loading="eager"
+          fetchPriority="high"
           onError={() => setFrameFailed(true)}
         />
       )}
