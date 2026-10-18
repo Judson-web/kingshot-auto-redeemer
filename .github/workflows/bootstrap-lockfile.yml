@@ -1,0 +1,35 @@
+name: Temporary npm lockfile bootstrap
+
+on:
+  push:
+    branches:
+      - security/host-owner-lockfile-hardening
+
+permissions:
+  contents: write
+
+jobs:
+  generate-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out hardening branch
+        uses: actions/checkout@v4
+        with:
+          ref: security/host-owner-lockfile-hardening
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+      - name: Resolve and lock dependencies without running install scripts
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Commit generated lockfile
+        run: |
+          git add package-lock.json
+          if git diff --cached --quiet -- package-lock.json; then
+            echo "package-lock.json is already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: add reproducible npm lockfile"
+          git push origin HEAD:security/host-owner-lockfile-hardening
