@@ -23,6 +23,7 @@ test("key pool defines all supported keys, deduplicates repeated secrets, and ne
     assert.ok(source.includes("process.env." + envName), "Missing key source " + envName);
   }
   assert.match(source, /seen\.has\(value\)/);
+  assert.match(source, /process\.env\["KSS_API_KEY_" \+ suffix\]/, "Numbered KSS key slots must be supported");
   assert.match(source, /claim_mightpulse_api_key_request/);
   assert.match(source, /record_mightpulse_api_key_usage/);
   assert.match(source, /status === 429/);
