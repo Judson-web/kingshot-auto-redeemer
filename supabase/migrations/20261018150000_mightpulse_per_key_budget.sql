@@ -34,7 +34,7 @@ declare
   v_now timestamptz := clock_timestamp();
   v_existing timestamptz;
 begin
-  if p_key_id is null or p_key_id not in ('key3', 'key2', 'legacy', 'kss')
+  if p_key_id not in ('key3', 'key2', 'legacy', 'kss')
      or p_observed_at is null
      or p_minute_remaining is null or p_minute_remaining < 0
      or p_minute_resets_at is null
@@ -93,7 +93,7 @@ declare
   v_retry_after_ms bigint;
   v_cooldown_seconds integer;
 begin
-  if p_key_id is null or p_key_id not in ('key3', 'key2', 'legacy', 'kss') then
+  if p_key_id not in ('key3', 'key2', 'legacy', 'kss') then
     return jsonb_build_object('claimed', false, 'reason', 'INVALID_KEY_SLOT', 'retry_after_ms', 60000);
   end if;
 
