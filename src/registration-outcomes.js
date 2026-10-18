@@ -53,7 +53,7 @@ function outcome(kind, data) {
     kingdom: text(data.kingdom) || "—",
     avatar: text(data.avatar),
     power: text(data.power) || "—",
-    townCenterLevel: text(data.townCenterLevel) || "—",
+    townCenterLevel: data.townCenterLevel ?? "—",
     allianceName: text(data.allianceName),
     allianceTag: text(data.allianceTag),
     kind,
