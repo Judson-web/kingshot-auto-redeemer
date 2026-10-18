@@ -132,7 +132,7 @@ export function needsKingdomResetCheck(lastCheckedAt: unknown, now = Date.now())
 }
 
 async function fetchCurrentPlayer(playerId: string, rpc: Rpc): Promise<FreshPlayer> {
-  const key = process.env.MIGHTPULSE_API_KEY || process.env.KSS_API_KEY;
+  const key = process.env.MIGHTPULSE_API_KEY_2 || process.env.MIGHTPULSE_API_KEY || process.env.KSS_API_KEY;
   if (!key) throw Error("MightPulse API key is not configured on the server.");
   let lastError: MightPulseFetchError | null = null;
 
