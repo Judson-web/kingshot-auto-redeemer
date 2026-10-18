@@ -47,3 +47,26 @@
 
 /* Let the decorative frame extend beyond the avatar tile without clipping. */
 .ks-outcome-slide-icon{overflow:visible!important}
+
+
+/* One-ID result: status is already stated in the header; keep the player identity compact. */
+.ks-outcome-single .ks-outcome-header{padding:12px 15px!important;gap:9px!important}
+.ks-outcome-single .ks-outcome-head-icon{width:38px!important;height:38px!important;flex-basis:38px!important}
+.ks-outcome-single .ks-outcome-slide{align-items:center!important;padding:10px 14px!important;gap:10px!important}
+.ks-outcome-single .ks-outcome-slide-icon{width:44px!important;height:44px!important;flex-basis:44px!important}
+.ks-outcome-single .ks-outcome-player-heading{display:flex!important;align-items:center!important;gap:8px!important}
+.ks-outcome-single .ks-outcome-identity{gap:3px!important}
+.ks-outcome-single .ks-outcome-identity h3{font-size:18px!important;line-height:1.2!important}
+.ks-outcome-single .ks-outcome-player-meta{font-size:11px!important;line-height:1.45!important;margin:1px 0!important}
+.ks-outcome-single .ks-outcome-badge{flex:0 0 auto!important;padding:4px 7px!important;font-size:8px!important}
+@media(max-width:600px){
+ .ks-outcome-single .ks-outcome-header{padding:11px 12px!important;gap:8px!important}
+ .ks-outcome-single .ks-outcome-head-icon{width:34px!important;height:34px!important;flex-basis:34px!important}
+ .ks-outcome-single .ks-outcome-head-copy h2{font-size:19px!important}
+ .ks-outcome-single .ks-outcome-head-copy p{display:none!important}
+ .ks-outcome-single .ks-outcome-slide{padding:9px 11px!important;gap:8px!important}
+ .ks-outcome-single .ks-outcome-slide-icon{width:42px!important;height:42px!important;flex-basis:42px!important}
+ .ks-outcome-single .ks-outcome-identity h3{font-size:17px!important}
+ .ks-outcome-single .ks-outcome-player-meta{font-size:10px!important;line-height:1.4!important}
+ .ks-outcome-single .ks-outcome-badge{font-size:7px!important;padding:4px 5px!important;letter-spacing:.03em!important}
+}
