@@ -8,7 +8,7 @@ alter table public.mightpulse_api_key_budget
 alter table public.mightpulse_api_key_budget
   add constraint mightpulse_api_key_budget_key_id_check
   check (key_id in (
-    'key3', 'key2', 'legacy', 'kss',
+    'key3', 'key2', 'legacy',
     'kss2', 'kss3', 'kss4', 'kss5', 'kss6',
     'kss7', 'kss8', 'kss9', 'kss10'
   ));
@@ -31,7 +31,7 @@ declare
   v_existing timestamptz;
 begin
   if p_key_id not in (
-    'key3', 'key2', 'legacy', 'kss', 'kss2', 'kss3', 'kss4',
+    'key3', 'key2', 'legacy', 'kss2', 'kss3', 'kss4',
     'kss5', 'kss6', 'kss7', 'kss8', 'kss9', 'kss10'
   ) or p_observed_at is null
      or p_minute_remaining is null or p_minute_remaining < 0
