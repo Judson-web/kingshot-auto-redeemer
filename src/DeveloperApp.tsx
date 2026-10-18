@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import DeveloperAccountPanel from "./DeveloperAccountPanel";
 import { Activity, BookOpen, Check, ChevronRight, Code2, Copy, ExternalLink, Gauge, KeyRound, ShieldCheck, Terminal } from "lucide-react";
+import { copyToClipboard } from "./utils/clipboard-feedback";
 
 const ORIGIN = "https://kingshot-autoredeemer.vercel.app";
 const endpoint = ORIGIN + "/api/v3/players/43180889";
@@ -8,7 +9,7 @@ const curlExample = 'curl "' + endpoint + '" \\\n  -H "Authorization: Bearer YOU
 
 function CopyButton({ value, label = "Copy" }: { value: string; label?: string }) {
   const [copied, setCopied] = useState(false);
-  return <button type="button" onClick={() => navigator.clipboard.writeText(value).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1600); }).catch(() => setCopied(false))} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, border: "1px solid #343e4d", borderRadius: 9, padding: "8px 11px", background: "#202633", color: "#e8ebf5", font: "inherit", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}><Copy size={14}/>{copied ? "Copied" : label}</button>;
+  return <button type="button" onClick={async () => { try { const feedbackLabel = label.replace(/^\s*copy\s*/i, "").trim() || "Text"; await copyToClipboard(value, feedbackLabel); setCopied(true); window.setTimeout(() => setCopied(false), 1600); } catch { setCopied(false); } }} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, border: "1px solid #343e4d", borderRadius: 9, padding: "8px 11px", background: "#202633", color: "#e8ebf5", font: "inherit", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}><Copy size={14}/>{copied ? "Copied" : label}</button>;
 }
 
 export default function DeveloperApp() {

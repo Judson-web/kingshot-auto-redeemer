@@ -42,6 +42,16 @@
 
 The public site has a floating support launcher for submitting a support ticket with a Player ID and message. It is a ticket workflow, not a promise of live-agent chat; replies are handled through the existing support process. The optional web-push setup checks permission and subscription state again when the page becomes active, so the prompt can return if that state changes after dismissal.
 
+## ✦ Redemption experience
+
+The Auto and Manual Redeem pages use the same compact navigation drawer on mobile, with an active-page state, keyboard dismissal, and background scroll locking.
+
+Manual redemption returns one status-led card rather than repeating the submitted code. The card uses player context, a status-specific headline and concise next step, and shows a copyable reference only when the service returns one. Automatic registration keeps independent swipeable cards for multiple Player IDs; each card has a visible state badge so **registered**, **already active**, **re-enabled**, **disabled**, **blocked**, and **needs attention** are distinguishable.
+
+Successful copy actions across the main site, gift-code manager, and developer tools emit the same accessible, short-lived confirmation (for example, **“Gift code copied successfully”**). Copy feedback is shown only after the browser confirms the clipboard write.
+
+Player profile rendering uses the avatar image and profile fields provided by the upstream service. Research of the documented public Kingshot player field sets found an avatar URL but no equipped avatar-frame ID or frame asset URL; the UI does not infer or fabricate a decorative frame. A true frame renderer can be added if the provider exposes a stable, authoritative field.
+
 ## ✦ Sign-in providers and roles
 
 The public `/profile` page supports GitHub and Discord sign-in for a regular user profile. Developer API access uses a separate Discord-based account/session on `/developer`; profile and developer identities are not assumed to be linked or merged. Only the developer portal displays the **DEVELOPER** or allowlisted **ADMIN** badge, and each developer account can manage only its own API keys.

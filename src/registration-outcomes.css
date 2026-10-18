@@ -21,3 +21,26 @@
   .ks-outcome-single .ks-outcome-player-meta{font-size:12px!important;line-height:1.75!important}
   .ks-outcome-single .ks-outcome-player-id{font-size:11px!important}
 }
+
+
+/* Compact, distinctly labelled swipe results on touch and desktop. */
+.ks-outcome-panel{overflow:hidden;animation:ks-outcome-panel-enter .24s cubic-bezier(.2,.75,.25,1) both}
+.ks-outcome-track{scroll-snap-type:x mandatory;scroll-behavior:smooth;overscroll-behavior-x:contain;scrollbar-width:none}
+.ks-outcome-track::-webkit-scrollbar{display:none}
+.ks-outcome-slide{scroll-snap-align:start;transition:border-color .18s,background .18s}
+.ks-outcome-badge{display:inline-flex;align-items:center;justify-content:center;max-width:100%;white-space:nowrap;padding:5px 8px;border:1px solid rgba(165,157,225,.24);border-radius:999px;font-size:8px;font-weight:850;letter-spacing:.08em;line-height:1.3}
+.ks-outcome-badge.badge-registered,.ks-outcome-badge.badge-reactivated{border-color:rgba(112,206,158,.32);background:rgba(44,131,88,.14);color:#9ce4bd}
+.ks-outcome-badge.badge-existing{border-color:rgba(131,154,213,.28);background:rgba(72,97,166,.13);color:#b4c6f5}
+.ks-outcome-badge.badge-disabled,.ks-outcome-badge.badge-banned{border-color:rgba(229,123,142,.34);background:rgba(149,42,62,.15);color:#f0a0b2}
+.ks-outcome-badge.badge-failed{border-color:rgba(231,189,101,.34);background:rgba(150,107,25,.13);color:#efce82}
+.ks-outcome-player-heading{gap:10px}
+.ks-outcome-player-meta{overflow-wrap:anywhere}
+@keyframes ks-outcome-panel-enter{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:600px){
+ .ks-outcome-summary{gap:6px!important;flex-wrap:wrap}
+ .ks-outcome-summary span{padding:5px 7px!important;font-size:10px!important}
+ .ks-outcome-badge{margin-top:2px;font-size:7px}
+ .ks-outcome-single .ks-outcome-player-heading{display:flex!important;align-items:flex-start!important;gap:8px}
+ .ks-outcome-single .ks-outcome-identity{min-width:0;flex:1}
+}
+@media(prefers-reduced-motion:reduce){.ks-outcome-panel{animation:none!important}.ks-outcome-track{scroll-behavior:auto}}

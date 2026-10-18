@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Check, CheckCircle, Clock3, Copy, Gift, LoaderCircle, LogOut, Plus, RefreshCw, Search, ShieldCheck, Trash2, X } from "lucide-react";
+import { copyToClipboard } from "./utils/clipboard-feedback";
 
 const api = (body) => fetch("/api/custom-message", {
   method: "POST",
@@ -230,7 +231,7 @@ export default function GiftCodesApp() {
                   {item.validation_message && <p style={{ color: "#9aa4b6", fontSize: 11, lineHeight: 1.45, margin: "7px 0 0", overflowWrap: "anywhere" }}>{item.validation_message}</p>}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6, flexWrap: "wrap" }}>
-                  <button type="button" title={`Copy ${item.code}`} aria-label={`Copy ${item.code}`} style={{ ...button, minHeight: 34, padding: "8px 10px" }} disabled={busy} onClick={() => { if (!navigator.clipboard?.writeText) { setError("Clipboard access is unavailable."); return; } navigator.clipboard.writeText(item.code).then(() => setNotice(`Copied ${item.code}.`), () => setError("Clipboard access was unavailable.")); }}><Copy size={14}/></button>
+                  <button type="button" title={`Copy ${item.code}`} aria-label={`Copy ${item.code}`} style={{ ...button, minHeight: 34, padding: "8px 10px" }} disabled={busy} onClick={async () => { try { await copyToClipboard(item.code, "Gift code"); setNotice(""); setError(""); } catch { setError("Clipboard access was unavailable."); } }}><Copy size={14}/></button>
                   <button type="button" title={effective ? "Remove from active pool" : "Queue player verification"} aria-label={effective ? "Mark inactive" : "Queue player verification"} style={{ ...button, minHeight: 34, padding: "8px 10px", opacity: item.suppressed || isExpired(item) || item.validation_status === "pending" ? .5 : 1 }} disabled={busy || item.suppressed || isExpired(item) || item.validation_status === "pending"} onClick={() => run("GIFT_CODE_UPDATE", { code: item.code, active: !effective, expiresAt: effective ? new Date().toISOString() : item.expires_at || null })}>{effective ? <Clock3 size={14}/> : <Check size={14}/>}<span>{effective ? "Deactivate" : "Re-verify"}</span></button>
                   <button type="button" title="Block this code until manually restored" aria-label={`Block ${item.code}`} style={{ ...button, minHeight: 34, padding: "8px 10px", color: "#f0aab5", borderColor: "#56303a" }} disabled={busy || item.suppressed} onClick={() => { if (window.confirm(`Block ${item.code} from the active pool and prevent scraper reactivation?`)) run("GIFT_CODE_DELETE", { code: item.code }); }}><Trash2 size={14}/></button>
                 </div>
