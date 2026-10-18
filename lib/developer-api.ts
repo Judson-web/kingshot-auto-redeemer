@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { getPlayer } from "../internal/kingshot/mightpulse.js";
 import { allianceDetails } from "./player-display.js";
 import { redeemKingshot } from "../internal/kingshot/redeem.js";
+import { isValidV1PlayerId, isValidV1RedemptionInput } from "./developer-api-v1-validation.js";
 
 type HeaderValue = string | string[] | undefined;
 interface RequestLike { method?: string; url?: string; headers: Record<string, HeaderValue>; body?: Record<string, unknown>; query?: Record<string, unknown>; }
@@ -106,7 +107,7 @@ export default async function developerApi(req: RequestLike, res: ResponseLike, 
     try {
       await rpc<unknown>("kingshot_developer_list_keys", { p_admin_token_hash: adminTokenHash });
       const id = new URL(req.url || "/", "https://local.invalid").searchParams.get("id")?.trim() || "";
-      if (!/^\\d{5,20}$/.test(id)) { res.status(400).json({ error: "Provide a player ID containing 5–20 digits." }); return; }
+      if (!isValidV1PlayerId(id)) { res.status(400).json({ error: "Provide a player ID containing 5–20 digits." }); return; }
       const player = await getPlayer(id);
       res.status(200).json({ player });
     } catch (error) {
@@ -133,7 +134,7 @@ export default async function developerApi(req: RequestLike, res: ResponseLike, 
       const playerId = String(req.body?.playerId || "").trim();
       const code = String(req.body?.code || "").trim();
       const kid = String(req.body?.kid || "").trim();
-      if (!/^\\d{5,20}$/.test(playerId) || !/^[A-Za-z0-9_-]{1,64}$/.test(code) || !/^\\d{1,10}$/.test(kid)) {
+      if (!isValidV1RedemptionInput(playerId, code, kid)) {
         apiError(res, 400, "invalid_redemption_input", "Provide playerId (5–20 digits), code (1–64 safe characters), and kid (1–10 digits).", rid); return;
       }
       const result = await redeemKingshot({ playerId, code, kid });
