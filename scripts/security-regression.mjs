@@ -31,13 +31,17 @@ const manualUi=read("src/main.jsx");
 const resultUiCss=read("src/styles.css");
 assertCheck("MightPulse avatar frames use a same-origin proxy without weakening CORS or CSP",
  manualUi.includes('fetch("/api/kingshot-player?frame=profile&id="') &&
+  manualUi.includes("player?.fid||player?.governor_id") &&
  manualUi.includes('"/api/kingshot-player?frame=asset&asset="') &&
- frameRoute.includes('https://www.mightpulse.com/player/" + playerId') &&
+ frameRoute.includes('https://www.mightpulse.com/player/" + profileUid') &&
  frameRoute.includes('https://www.mightpulse.com/assets/icons/skin_icon_') &&
  frameRoute.includes('rateLimit(req, res, "mightpulse-frame-profile"') && frameRoute.includes('rateLimit(req, res, "mightpulse-frame-image"') &&
  frameRoute.includes("Cache-Control") &&
  !frameRoute.includes("Access-Control-Allow-Origin") &&
  frameParser.includes('hostname !== "www.mightpulse.com"') &&
+  frameParser.includes("resolveMightPulseProfileUid") &&
+  frameRoute.includes("api/search?q=") &&
+  frameRoute.includes("resolveMightPulseProfileUid(searchData, playerId)") &&
  cspHeader?.value.includes("connect-src 'self'") &&
  !cspHeader?.value.includes("https://www.mightpulse.com"));
 assertCheck("Manual redemption is one compact player card without redundant footer actions",

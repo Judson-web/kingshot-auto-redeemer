@@ -4,7 +4,7 @@ import developerApiV3 from "../lib/developer-api-v3.js";
 import developerAuth from "../lib/developer-auth.js";
 import developerAccount from "../lib/developer-account.js";
 import { isValidPlayerId, lookupPlayer, normalizePlayerId, PlayerLookupError } from "../internal/kingshot/player.js";
-import { extractMightPulseAvatarFrame, validateFrameAssetId } from "../lib/mightpulse-avatar-frame.js";
+import { extractMightPulseAvatarFrame, resolveMightPulseProfileUid, validateFrameAssetId } from "../lib/mightpulse-avatar-frame.js";
 interface RequestLike { url?: string; method?: string; query?: Record<string, unknown>; headers: Record<string, string | string[] | undefined>; body?: Record<string, unknown>; }
 interface ResponseLike { status(code: number): ResponseLike; json(body: unknown): ResponseLike; send(body: unknown): ResponseLike; end(body?: unknown): ResponseLike; setHeader(name: string, value: string): void; }
 function sendError(res: ResponseLike, status: number, code: string, message: string, requestId: string): void { res.setHeader("X-Request-Id", requestId); res.status(status).json({ error: message, code, meta: { requestId, timestamp: new Date().toISOString() } }); }
@@ -34,24 +34,44 @@ async function getMightPulseAvatarFrame(playerId: string): Promise<AvatarFrame> 
   let frame: AvatarFrame = null;
   let ttl = 60_000;
   try {
-   const profileUrl = "https://www.mightpulse.com/player/" + playerId;
-   const upstream = await fetch(profileUrl, {
-    headers: { Accept: "text/html,application/xhtml+xml" },
+   // The profile page path uses MightPulse's internal UID, not the governor/FID.
+   const searchUrl = "https://www.mightpulse.com/api/search?q=" + encodeURIComponent(playerId) + "&limit=40&live=0";
+   const searchResponse = await fetch(searchUrl, {
+    headers: { Accept: "application/json" },
     signal: AbortSignal.timeout(AVATAR_FRAME_TIMEOUT_MS),
    });
-   const finalUrl = new URL(upstream.url || profileUrl);
-   const contentLength = Number(upstream.headers.get("content-length") || 0);
-   const contentType = upstream.headers.get("content-type") || "";
+   const searchFinalUrl = new URL(searchResponse.url || searchUrl);
    if (
-    upstream.ok &&
-    finalUrl.protocol === "https:" &&
-    finalUrl.hostname === "www.mightpulse.com" &&
-    (!contentType || /text\/html|application\/xhtml\+xml/i.test(contentType)) &&
-    !(contentLength > MAX_AVATAR_PROFILE_BYTES)
-   ) {
-    const html = await upstream.text();
-    if (html.length <= MAX_AVATAR_PROFILE_BYTES) frame = extractMightPulseAvatarFrame(html);
-    ttl = frame ? 60 * 60_000 : 5 * 60_000;
+    !searchResponse.ok ||
+    searchFinalUrl.protocol !== "https:" ||
+    searchFinalUrl.hostname !== "www.mightpulse.com" ||
+    !(searchResponse.headers.get("content-type") || "").toLowerCase().includes("application/json")
+   ) throw new Error("MightPulse player search unavailable.");
+
+   const searchData = await searchResponse.json();
+   const profileUid = resolveMightPulseProfileUid(searchData, playerId);
+   if (!profileUid) {
+    ttl = 2 * 60_000;
+   } else {
+    const profileUrl = "https://www.mightpulse.com/player/" + profileUid;
+    const upstream = await fetch(profileUrl, {
+     headers: { Accept: "text/html,application/xhtml+xml" },
+     signal: AbortSignal.timeout(AVATAR_FRAME_TIMEOUT_MS),
+    });
+    const finalUrl = new URL(upstream.url || profileUrl);
+    const contentLength = Number(upstream.headers.get("content-length") || 0);
+    const contentType = upstream.headers.get("content-type") || "";
+    if (
+     upstream.ok &&
+     finalUrl.protocol === "https:" &&
+     finalUrl.hostname === "www.mightpulse.com" &&
+     (!contentType || contentType.toLowerCase().includes("text/html") || contentType.toLowerCase().includes("application/xhtml+xml")) &&
+     !(contentLength > MAX_AVATAR_PROFILE_BYTES)
+    ) {
+     const html = await upstream.text();
+     if (html.length <= MAX_AVATAR_PROFILE_BYTES) frame = extractMightPulseAvatarFrame(html);
+     ttl = frame ? 60 * 60_000 : 5 * 60_000;
+    }
    }
   } catch {
    // Optional decoration must never turn a working player lookup into an error.
@@ -122,9 +142,7 @@ async function handleMightPulseFrameRequest(req: RequestLike, res: ResponseLike,
    return;
   }
   const frame = await getMightPulseAvatarFrame(playerId);
-  setAvatarFrameHeaders(res, frame
-   ? "public, max-age=300, s-maxage=1800, stale-while-revalidate=21600"
-   : "public, max-age=60, s-maxage=300, stale-while-revalidate=300");
+  setAvatarFrameHeaders(res, "no-store");
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.status(200).json({ frame });
   return;

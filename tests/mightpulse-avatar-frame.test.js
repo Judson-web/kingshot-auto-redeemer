@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { extractMightPulseAvatarFrame, validateFrameAssetId } from "../lib/mightpulse-avatar-frame.js";
+import { extractMightPulseAvatarFrame, resolveMightPulseProfileUid, validateFrameAssetId } from "../lib/mightpulse-avatar-frame.js";
 
 test("extracts the equipped avatar frame ID and readable label", () => {
   const html = '<div class="gov-portrait has-frame"><img class="gov-avatar-frame" id="profileAvatarFrame" alt="Cosmic Heart Avatar Frame" src="https://www.mightpulse.com/assets/icons/skin_icon_6080310.png" title="Cosmic Heart Avatar Frame"></div>';
@@ -32,4 +32,19 @@ test("validates frame assets as digits only", () => {
   for (const assetId of ["123", "abc6080310", "6080310?url=https://evil.example", "../6080310", "1234567890123", ""]) {
     assert.equal(validateFrameAssetId(assetId), null);
   }
+});
+
+test("resolves the MightPulse internal UID by exact governor ID", () => {
+  assert.equal(resolveMightPulseProfileUid({
+    results: [
+      { uid: 4751274, fid: 17261054, nick_name: "GAX" },
+      { uid: 4751275, fid: 17261055, nick_name: "Other" },
+    ],
+  }, "17261054"), "4751274");
+});
+
+test("does not resolve a partial or unrelated governor ID", () => {
+  assert.equal(resolveMightPulseProfileUid({ results: [{ uid: 4751274, fid: 17261054 }] }, "1726105"), null);
+  assert.equal(resolveMightPulseProfileUid({ results: [{ uid: "https://evil.example", fid: 17261054 }] }, "17261054"), null);
+  assert.equal(resolveMightPulseProfileUid({ results: [] }, "17261054"), null);
 });
