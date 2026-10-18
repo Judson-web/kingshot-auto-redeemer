@@ -1,3 +1,4 @@
+import { isDiscordOwner } from "../lib/discord-identity.js";
 import crypto from"node:crypto";
 import {rateLimit}from"../lib/request-rate-limit.js";
 function parseConfiguredDestinations(){
@@ -54,11 +55,7 @@ async function validSession(req){
   });
   if(!userResponse.ok)return false;
   const user=await userResponse.json();
-  const providers=Array.isArray(user?.app_metadata?.providers)?user.app_metadata.providers:[];
-  const identities=Array.isArray(user?.identities)?user.identities:[];
-  const discord=identities.find(identity=>identity?.provider==="discord");
-  const discordId=String(discord?.identity_data?.provider_id||discord?.identity_data?.sub||discord?.identity_data?.id||discord?.identity_data?.user_id||discord?.id||user?.user_metadata?.provider_id||user?.user_metadata?.sub||user?.user_metadata?.id||"");
-  return (providers.includes("discord")||Boolean(discord))&&discordId===OWNER_DISCORD_ID;
+  return isDiscordOwner(user,OWNER_DISCORD_ID);
  }catch{return false}
 }
 function clean(v,max){return String(v??"").trim().slice(0,max)}
@@ -104,6 +101,7 @@ async function resolveDestinationNames(){
 export default async function handler(req,res){
  res.setHeader("Cache-Control","no-store");
  if(req.method!=="POST")return res.status(405).json({error:"Method not allowed"});
+  if(!rateLimit(req,res,"custom-message-post",60,60000))return res.status(429).json({error:"Too many requests. Retry shortly."});
  try{
   const body=req.body||{},action=String(body.action||"").toUpperCase();
   if(action==="LOGIN")return res.status(410).json({error:"Separate console login has been retired. Use the existing verified Discord developer session."});
