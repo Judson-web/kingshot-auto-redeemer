@@ -8,6 +8,7 @@ const autoSource = await readFile(new URL("../api/kingshot-auto.js", import.meta
 const validationSource = await readFile(new URL("../internal/kingshot/kingdom-validation.ts", import.meta.url), "utf8");
 const workerMigration = await readFile(new URL("../supabase/migrations/20261018121000_add_fourth_kingshot_worker_slot.sql", import.meta.url), "utf8");
 const mightPulseBudgetMigration = await readFile(new URL("../supabase/migrations/20261018130000_global_mightpulse_rate_budget.sql", import.meta.url), "utf8");
+const mightPulseUsageMigration = await readFile(new URL("../supabase/migrations/20261018140000_mightpulse_usage_headroom.sql", import.meta.url), "utf8");
 
 test("worker assignment uses deterministic player bucketing", () => {
   assert.match(workerSource, /function workerBucket|const workerBucket/);
@@ -49,6 +50,17 @@ test("MightPulse validation reserves from a shared conservative API budget", () 
   assert.match(mightPulseBudgetMigration, /security definer/i);
   assert.match(mightPulseBudgetMigration, /grant execute on function public\.claim_mightpulse_api_request\(integer\) to service_role/i);
   assert.match(mightPulseBudgetMigration, /enable row level security/i);
+});
+
+test("MightPulse usage preflight shares upstream headroom and reset windows", () => {
+  assert.ok(validationSource.includes("/v1/usage"));
+  assert.ok(validationSource.includes("record_mightpulse_api_usage"));
+  assert.ok(validationSource.includes("mightPulseUsageCheckInFlight"));
+  assert.ok(mightPulseUsageMigration.includes("usage_minute_resets_at"));
+  assert.ok(mightPulseUsageMigration.includes("usage_day_resets_at"));
+  assert.ok(mightPulseUsageMigration.includes("UPSTREAM_DAY_BUDGET_EXHAUSTED"));
+  assert.ok(mightPulseUsageMigration.toLowerCase().includes("for update"));
+  assert.ok(mightPulseUsageMigration.includes("record_mightpulse_api_usage"));
 });
 
 test("global recovery queue is drained by one designated shard, not all four", () => {
