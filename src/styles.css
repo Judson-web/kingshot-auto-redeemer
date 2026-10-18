@@ -2983,3 +2983,67 @@ body:has(.support-float-panel.support-chat-panel) .ks-install-prompt{display:non
 .ks-nav-drawer a:focus-visible,.ks-nav-drawer button:focus-visible,.ks-nav-scrim:focus-visible{outline:3px solid #d2c5ff!important;outline-offset:3px!important}
 @media(max-width:420px){.ks-nav-drawer{width:min(340px,calc(100vw - 28px))!important;padding-left:13px!important;padding-right:13px!important}.ks-nav-drawer-link{grid-template-columns:40px minmax(0,1fr) 16px!important;gap:10px!important;padding:9px!important}.ks-nav-drawer-icon{width:40px!important;height:40px!important}}
 @media(prefers-reduced-motion:reduce){.ks-nav-drawer-link{transition:none!important}}
+
+
+/* Auto registration — tighter mobile composition and shared manual-redeem loading treatment. */
+.ks-app .ks-register-box{margin-top:16px;gap:6px}
+.ks-app .ks-register-box{padding:6px}
+.ks-app .ks-register-box .ks-register-field{padding:10px 12px}
+.ks-app .ks-register-box .ks-submit{min-height:48px}
+.ks-app .ks-register-box>.ks-submit.register-loading{
+ display:flex;align-items:center;justify-content:center;gap:10px;
+ min-height:50px;padding:8px 14px;position:relative;overflow:hidden;
+ border:1px solid rgba(255,255,255,.12);
+ background:linear-gradient(135deg,#a57a3d,#79572e);
+ box-shadow:0 8px 22px rgba(140,97,45,.18);
+ opacity:1;cursor:wait;
+}
+.ks-app .ks-register-box>.ks-submit.register-loading .manual-spinner{
+ position:relative;width:26px;height:26px;display:grid;place-items:center;flex:none;
+}
+.ks-app .ks-register-box>.ks-submit.register-loading .manual-spinner svg{
+ position:relative;z-index:2;animation:manual-spin .9s linear infinite;
+}
+.ks-app .ks-register-box>.ks-submit.register-loading .manual-spinner:before{
+ content:"";position:absolute;inset:0;border:1px solid rgba(255,255,255,.24);border-radius:50%;
+}
+.ks-app .ks-register-box>.ks-submit.register-loading .manual-spinner:after{
+ content:"";position:absolute;inset:2px;border-radius:50%;border:1px solid rgba(255,255,255,.1);
+ box-shadow:0 0 14px rgba(255,255,255,.08);animation:manual-pulse 1.3s ease-in-out infinite;
+}
+.ks-app .ks-register-box>.ks-submit.register-loading .manual-spinner>span{
+ position:absolute;top:0;left:50%;width:4px;height:4px;margin-left:-2px;border-radius:50%;
+ background:#fff;box-shadow:0 0 8px rgba(255,255,255,.8);animation:manual-orbit 1.2s linear infinite;
+}
+.ks-app .ks-register-box>.ks-submit.register-loading .manual-submit-label{
+ display:flex;flex-direction:column;align-items:flex-start;gap:2px;line-height:1.05;
+}
+.ks-app .ks-register-box>.ks-submit.register-loading .manual-submit-label strong{
+ font-size:12px;font-weight:700;letter-spacing:.01em;
+}
+.ks-app .ks-register-box>.ks-submit.register-loading .manual-submit-label small{
+ font-size:9px;font-weight:500;color:rgba(255,255,255,.72);letter-spacing:.01em;
+}
+.ks-app .ks-register-box>.ks-submit.register-loading:before{
+ content:"";position:absolute;inset:0;pointer-events:none;
+ background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);
+ transform:translateX(-100%);animation:manual-sheen 1.5s ease-in-out infinite;
+}
+@media(max-width:680px){
+ .ks-app .ks-auto-hero{padding-bottom:24px}
+ .ks-app .ks-register-box{margin-top:14px;padding:5px;gap:6px}
+ .ks-app .ks-register-box .ks-register-field{padding:10px 11px;min-height:72px}
+ .ks-app .ks-register-box>.ks-submit{height:48px;min-height:48px}
+ .ks-app .ks-register-box>.ks-submit.register-loading{height:50px;min-height:50px}
+ .ks-app .ks-auto-how{padding-top:20px}
+ .ks-app .ks-auto-how .section-title{margin-bottom:12px}
+}
+@media(max-width:430px){
+ .ks-app .ks-register-box{margin-top:12px;padding:5px}
+ .ks-app .ks-register-box .ks-register-field{min-height:70px}
+}
+@media(prefers-reduced-motion:reduce){
+ .ks-app .ks-register-box>.ks-submit.register-loading:before{animation:none}
+ .ks-app .ks-register-box>.ks-submit.register-loading .manual-spinner,
+ .ks-app .ks-register-box>.ks-submit.register-loading .manual-spinner>*{animation:none}
+}
