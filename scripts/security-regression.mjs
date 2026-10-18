@@ -35,7 +35,7 @@ assertCheck("Equipped Kingshot avatar frames render app-wide through a safe same
  frameComponent.includes('"/api/kingshot-player?frame=profile&id="') &&
   frameComponent.includes('"/api/kingshot-player?frame=asset&asset="') &&
   frameComponent.includes("IntersectionObserver") &&
-  frameComponent.includes("mask-composite") &&
+  resultUiCss.includes("mask-composite:exclude") &&
   manualUi.includes("<KingshotAvatar") &&
   manualUi.includes("playerId||player?.fid||player?.governor_id") &&
   adminPlayersUi.includes("<KingshotAvatar") &&
