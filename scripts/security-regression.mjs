@@ -112,7 +112,7 @@ assertCheck(
 );
 assertCheck(
  "Worker shard fan-out uses a deployment origin, never request host headers",
- auto.includes('const APP_ORIGIN=process.env.VERCEL_URL?"https://"+process.env.VERCEL_URL:"https://kingshot-autoredeemer.vercel.app";') &&
+ auto.includes('const APP_ORIGIN=process.env.VERCEL_ENV==="production"&&process.env.VERCEL_PROJECT_PRODUCTION_URL?"https://"+process.env.VERCEL_PROJECT_PRODUCTION_URL:process.env.VERCEL_URL?"https://"+process.env.VERCEL_URL:"https://kingshot-autoredeemer.vercel.app";') &&
  auto.includes('const workerUrlBase=APP_ORIGIN+"/api/kingshot-auto?mode=worker&slot=";') &&
  !auto.includes('req.headers["x-forwarded-host"]') &&
  !auto.includes('req.headers.host||"kingshot-autoredeemer.vercel.app"')

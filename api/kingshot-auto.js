@@ -5,7 +5,7 @@ import { broadcastPush } from "../internal/push-notifications.js";
 
 const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
 const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
-const APP_ORIGIN=process.env.VERCEL_URL?"https://"+process.env.VERCEL_URL:"https://kingshot-autoredeemer.vercel.app";
+const APP_ORIGIN=process.env.VERCEL_ENV==="production"&&process.env.VERCEL_PROJECT_PRODUCTION_URL?"https://"+process.env.VERCEL_PROJECT_PRODUCTION_URL:process.env.VERCEL_URL?"https://"+process.env.VERCEL_URL:"https://kingshot-autoredeemer.vercel.app";
 const GIFT_SOURCE_URL="https://kingshot.net/api/gift-codes";
 const PUBLIC_GIFT_SOURCES=[
  // Keep only sources whose active-code sections have a useful signal-to-noise ratio.
