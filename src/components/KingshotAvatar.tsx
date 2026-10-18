@@ -2,6 +2,24 @@ import React, { useEffect, useRef, useState } from "react";
 
 type Frame = { assetId: string; name: string } | null;
 type CacheEntry = { frame: Frame; expiresAt: number };
+const STORAGE_PREFIX = "ks-avatar-frame:v1:";
+const STORAGE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+function readPersistentFrame(id: string): CacheEntry | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_PREFIX + id);
+    if (!raw) return null;
+    const value = JSON.parse(raw) as CacheEntry;
+    if (!value || typeof value.expiresAt !== "number" || value.expiresAt <= Date.now()) {
+      localStorage.removeItem(STORAGE_PREFIX + id);
+      return null;
+    }
+    if (value.frame && !FRAME_ID.test(String(value.frame.assetId || ""))) return null;
+    return value;
+  } catch { return null; }
+}
+function persistFrame(id: string, frame: Frame, ttl: number) {
+  try { localStorage.setItem(STORAGE_PREFIX + id, JSON.stringify({ frame, expiresAt: Date.now() + Math.min(ttl, STORAGE_TTL_MS) })); } catch { /* Private browsing/storage limits must not break avatars. */ }
+}
 type Props = {
   playerId?: string | number | null;
   avatarUrl?: string | null;
@@ -19,9 +37,14 @@ const frameRequests = new Map<string, Promise<Frame>>();
 const PLAYER_ID = /^\d{5,20}$/;
 const FRAME_ID = /^\d{6,12}$/;
 
-async function loadAvatarFrame(playerId: string): Promise<Frame> {
+async function loadAvatarFrame(playerId: string, forceRefresh = false): Promise<Frame> {
   const cached = frameCache.get(playerId);
-  if (cached && cached.expiresAt > Date.now()) return cached.frame;
+  if (!forceRefresh && cached && cached.expiresAt > Date.now()) return cached.frame;
+  if (!forceRefresh) {
+    const persistent = readPersistentFrame(playerId);
+    if (persistent) { frameCache.set(playerId, persistent); return persistent.frame; }
+  }
+  if (forceRefresh) { frameCache.delete(playerId); try { localStorage.removeItem(STORAGE_PREFIX + playerId); } catch {} }
   const active = frameRequests.get(playerId);
   if (active) return active;
 
@@ -30,7 +53,7 @@ async function loadAvatarFrame(playerId: string): Promise<Frame> {
     let ttl = 90_000;
     try {
       const response = await fetch(
-        "/api/kingshot-player?frame=profile&id=" + encodeURIComponent(playerId),
+        "/api/kingshot-player?frame=profile&id=" + encodeURIComponent(playerId) + (forceRefresh ? "&refresh=1" : ""),
         { credentials: "same-origin", cache: "no-store" }
       );
       if (response.ok) {
@@ -49,6 +72,7 @@ async function loadAvatarFrame(playerId: string): Promise<Frame> {
       ttl = 45_000;
     } finally {
       frameCache.set(playerId, { frame, expiresAt: Date.now() + ttl });
+      persistFrame(playerId, frame, frame ? STORAGE_TTL_MS : 15 * 60_000);
       frameRequests.delete(playerId);
     }
     return frame;
@@ -107,12 +131,14 @@ export default function KingshotAvatar({
     setFrameFailed(false);
     if (!shouldLoad || !PLAYER_ID.test(id)) return;
     let active = true;
-    void loadAvatarFrame(id).then((value) => {
-      if (active) setFrame(value);
-    });
-    return () => {
-      active = false;
+    const load = (force = false) => { void loadAvatarFrame(id, force).then((value) => { if (active) { setFrame(value); setFrameFailed(false); } }); };
+    load();
+    const onRefresh = (event: Event) => {
+      const detail = (event as CustomEvent<{ playerId?: string }>).detail;
+      if (String(detail?.playerId || "") === id) load(true);
     };
+    window.addEventListener("ks-avatar-frame-refresh", onRefresh);
+    return () => { active = false; window.removeEventListener("ks-avatar-frame-refresh", onRefresh); };
   }, [id, shouldLoad]);
 
   return (
