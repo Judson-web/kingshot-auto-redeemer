@@ -111,6 +111,13 @@ assertCheck(
  auto.includes("Promise.all(assignments.map")
 );
 assertCheck(
+ "Worker shard fan-out uses a deployment origin, never request host headers",
+ auto.includes('const APP_ORIGIN=process.env.VERCEL_URL?"https://"+process.env.VERCEL_URL:"https://kingshot-autoredeemer.vercel.app";') &&
+ auto.includes('const workerUrlBase=APP_ORIGIN+"/api/kingshot-auto?mode=worker&slot=";') &&
+ !auto.includes('req.headers["x-forwarded-host"]') &&
+ !auto.includes('req.headers.host||"kingshot-autoredeemer.vercel.app"')
+);
+assertCheck(
  "Worker shards use durable per-slot claims",
  workerCode.includes("claim_kingshot_worker_slot") &&
  workerCode.includes("finish_kingshot_worker_slot") &&
@@ -222,6 +229,12 @@ assertCheck("Admin data verifies the configured Discord owner identity",
 assertCheck("Owner sessions use secure HttpOnly cookies and cryptographic randomness",
  developerAuth.includes('OWNER_COOKIE+"="+encodeURIComponent(v)+"; Max-Age="+age+"; Path=/; HttpOnly; Secure; SameSite=Strict') &&
  developerAuth.includes("crypto.randomBytes(32).toString("));
+assertCheck("Discord owner ID is never derived from user-editable metadata",
+ developerAuth.includes('function discordIdOf(user:any)') &&
+ !developerAuth.includes("user?.user_metadata?.provider_id") &&
+ !developerAuth.includes("user?.user_metadata?.sub") &&
+ !developerAuth.includes("user?.user_metadata?.id") &&
+ developerAuth.includes('const OWNER_DISCORD_ID = "871756466900598815";'));
 assertCheck("Admin privileged RPCs require a hashed Discord session",
  adminData.includes('rpc("kingshot_admin_create_discord_session",{p_token_hash:tokenHash,p_user_id:ownerUserId})') &&
  adminData.includes('rpc("kingshot_admin_list_players",{p_token_hash:tokenHash})'));
