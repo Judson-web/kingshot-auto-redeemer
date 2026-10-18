@@ -49,7 +49,7 @@ jobs:
                 --header "Authorization: Bearer $CRON_SECRET" \
                 "$URL")"
 
-              printf '%s\n' "$BODY" | jq '{ok, mode, players, batchSize, checked, changed, stale, errors, deferred, validated, hasMore, skipped, reason}'
+              printf '%s\n' "$BODY" | jq '{ok, mode, players, batchSize, checked, changed, stale, errors, deferred, retryAfterMs, validated, hasMore, skipped, reason}'
 
               SKIPPED="$(printf '%s' "$BODY" | jq -r '.skipped // false')"
               if [ "$SKIPPED" = "true" ]; then
@@ -65,10 +65,19 @@ jobs:
 
               DEFERRED="$(printf '%s' "$BODY" | jq -r '.deferred // 0')"
               if [ "$DEFERRED" -gt 0 ]; then
+                RETRY_AFTER_MS="$(printf '%s' "$BODY" | jq -r '.retryAfterMs // 0')"
+                # Do not repeatedly invoke MightPulse while its own daily/minute budget remains exhausted.
+                if [ "$RETRY_AFTER_MS" -gt 120000 ]; then
+                  echo "MightPulse reports that budget headroom is unavailable for another 2 minutes or more. Stopping without advancing the cursor."
+                  exit 1
+                fi
                 if [ "$COOLDOWN_RETRIED" -eq 0 ]; then
                   COOLDOWN_RETRIED=1
-                  echo "MightPulse deferred $DEFERRED players. Waiting 90 seconds, then retrying this same batch once."
-                  sleep 90
+                  SLEEP_SECONDS=$(( (RETRY_AFTER_MS + 999) / 1000 ))
+                  if [ "$SLEEP_SECONDS" -lt 15 ]; then SLEEP_SECONDS=15; fi
+                  if [ "$SLEEP_SECONDS" -gt 90 ]; then SLEEP_SECONDS=90; fi
+                  echo "MightPulse deferred $DEFERRED players. Waiting $SLEEP_SECONDS seconds, then retrying this same batch once."
+                  sleep "$SLEEP_SECONDS"
                   continue
                 fi
                 echo "Kingdom check remains deferred after cooldown retry. Stopping without advancing the cursor so this batch can be retried later."
