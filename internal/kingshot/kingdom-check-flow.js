@@ -56,12 +56,15 @@ export function selectKingdomCheckBatch(players, options = {}) {
 
 export function summarizeKingdomCheckResults(results) {
   return (Array.isArray(results) ? results : []).reduce((summary, result) => {
-    if (result?.deferred || result?.deadlineSkipped) summary.deferred++;
+    if (result?.deferred || result?.deadlineSkipped) {
+      summary.deferred++;
+      summary.retryAfterMs = Math.max(summary.retryAfterMs, Number(result?.retryAfterMs) || 0);
+    }
     if (result?.revalidationError) summary.errors++;
     if (result?.stale) summary.stale++;
     if (result?.revalidated) summary.checked++;
     if (result?.kingdomChanged) summary.changed++;
     if (result?.player?.kingdom_id) summary.validated++;
     return summary;
-  }, { checked: 0, changed: 0, stale: 0, errors: 0, deferred: 0, validated: 0 });
+  }, { checked: 0, changed: 0, stale: 0, errors: 0, deferred: 0, validated: 0, retryAfterMs: 0 });
 }
