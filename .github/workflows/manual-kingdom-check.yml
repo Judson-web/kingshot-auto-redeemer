@@ -3,17 +3,109 @@ name: Manual Kingdom Check
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: manual-kingdom-check
+  cancel-in-progress: false
+
 jobs:
   kingdom-check:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
-      - name: Trigger protected kingdom check
+      - name: Trigger protected kingdom-check batches
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           set -euo pipefail
           test -n "$CRON_SECRET"
-          curl --fail-with-body --silent --show-error \
-            --request POST \
-            --header "Authorization: Bearer $CRON_SECRET" \
-            "https://kingshot-autoredeemer.vercel.app/api/kingshot-auto?mode=kingdom-check"
+
+          AFTER=""
+          HAS_MORE="true"
+          BATCH_SIZE=20
+          TOTAL_PLAYERS=0
+          TOTAL_CHECKED=0
+          TOTAL_CHANGED=0
+          TOTAL_STALE=0
+          TOTAL_ERRORS=0
+          TOTAL_DEFERRED=0
+          TOTAL_VALIDATED=0
+
+          while [ "$HAS_MORE" = "true" ]; do
+            COOLDOWN_RETRIED=0
+            LOCK_RETRIES=0
+
+            while true; do
+              URL="https://kingshot-autoredeemer.vercel.app/api/kingshot-auto?mode=kingdom-check&batch-size=$BATCH_SIZE&notify-summary=false"
+              if [ -n "$AFTER" ]; then
+                ENCODED_AFTER="$(jq -rn --arg value "$AFTER" '$value | @uri')"
+                URL="$URL&after=$ENCODED_AFTER"
+              fi
+
+              BODY="$(curl --fail-with-body --silent --show-error \
+                --request POST \
+                --header "Authorization: Bearer $CRON_SECRET" \
+                "$URL")"
+
+              printf '%s\n' "$BODY" | jq '{ok, mode, players, batchSize, checked, changed, stale, errors, deferred, validated, hasMore, skipped, reason}'
+
+              SKIPPED="$(printf '%s' "$BODY" | jq -r '.skipped // false')"
+              if [ "$SKIPPED" = "true" ]; then
+                if [ "$LOCK_RETRIES" -lt 3 ]; then
+                  LOCK_RETRIES=$((LOCK_RETRIES + 1))
+                  echo "Another worker cycle holds the lock; retrying batch in 30 seconds ($LOCK_RETRIES/3)."
+                  sleep 30
+                  continue
+                fi
+                echo "Could not acquire the kingdom-check lock after three retries."
+                exit 1
+              fi
+
+              DEFERRED="$(printf '%s' "$BODY" | jq -r '.deferred // 0')"
+              if [ "$DEFERRED" -gt 0 ]; then
+                if [ "$COOLDOWN_RETRIED" -eq 0 ]; then
+                  COOLDOWN_RETRIED=1
+                  echo "MightPulse deferred $DEFERRED players. Waiting 90 seconds, then retrying this same batch once."
+                  sleep 90
+                  continue
+                fi
+                echo "Kingdom check remains deferred after cooldown retry. Stopping without advancing the cursor so this batch can be retried later."
+                exit 1
+              fi
+              break
+            done
+
+            TOTAL_PLAYERS=$((TOTAL_PLAYERS + $(printf '%s' "$BODY" | jq -r '.players // 0')))
+            TOTAL_CHECKED=$((TOTAL_CHECKED + $(printf '%s' "$BODY" | jq -r '.checked // 0')))
+            TOTAL_CHANGED=$((TOTAL_CHANGED + $(printf '%s' "$BODY" | jq -r '.changed // 0')))
+            TOTAL_STALE=$((TOTAL_STALE + $(printf '%s' "$BODY" | jq -r '.stale // 0')))
+            TOTAL_ERRORS=$((TOTAL_ERRORS + $(printf '%s' "$BODY" | jq -r '.errors // 0')))
+            TOTAL_DEFERRED=$((TOTAL_DEFERRED + $(printf '%s' "$BODY" | jq -r '.deferred // 0')))
+            TOTAL_VALIDATED=$((TOTAL_VALIDATED + $(printf '%s' "$BODY" | jq -r '.validated // 0')))
+
+            NEXT_AFTER="$(printf '%s' "$BODY" | jq -r '.nextCursor // ""')"
+            HAS_MORE="$(printf '%s' "$BODY" | jq -r '.hasMore // false')"
+            if [ "$HAS_MORE" = "true" ] && { [ -z "$NEXT_AFTER" ] || [ "$NEXT_AFTER" = "$AFTER" ]; }; then
+              echo "Batch cursor did not advance; refusing to loop indefinitely."
+              exit 1
+            fi
+            AFTER="$NEXT_AFTER"
+          done
+
+          echo "Manual kingdom-check summary:"
+          jq -n \
+            --argjson players "$TOTAL_PLAYERS" \
+            --argjson checked "$TOTAL_CHECKED" \
+            --argjson changed "$TOTAL_CHANGED" \
+            --argjson stale "$TOTAL_STALE" \
+            --argjson errors "$TOTAL_ERRORS" \
+            --argjson deferred "$TOTAL_DEFERRED" \
+            --argjson validated "$TOTAL_VALIDATED" \
+            '{players:$players, checked:$checked, changed:$changed, stale:$stale, errors:$errors, deferred:$deferred, validated:$validated}'
+
+          if [ "$TOTAL_ERRORS" -gt 0 ]; then
+            echo "One or more players had genuine kingdom-validation errors."
+            exit 1
+          fi
