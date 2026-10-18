@@ -1,6 +1,7 @@
 import { neon } from "@neondatabase/serverless";
 import {redeemKingshot} from"../internal/kingshot/redeem.js";
 import { revalidatePlayer } from "../internal/kingshot/kingdom-validation.js";
+import { selectKingdomCheckBatch, summarizeKingdomCheckResults } from "../internal/kingshot/kingdom-check-flow.js";
 import { broadcastPush } from "../internal/push-notifications.js";
 
 const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
@@ -47,6 +48,7 @@ const WORKER_COUNT=4;
 // Four durable shards × two concurrent redemptions keep each shard small while bounding upstream pressure.
 const PLAYER_CONCURRENCY=2;
 const KINGDOM_VALIDATION_CONCURRENCY=3;
+const MANUAL_KINGDOM_VALIDATION_CONCURRENCY=2;
 const WORKER_MAX_RUNTIME_MS=3*60*1000;
 const DISCORD_WEBHOOK_URL=process.env.DISCORD_KINGSHOT_WEBHOOK_URL||process.env.DISCORD_SCRAPER_WEBHOOK_URL;
 async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
@@ -290,13 +292,12 @@ export default async function handler(req,res){
  }
  if(!authorized)return res.status(401).json({error:"Unauthorized"});
 
- // Manual diagnostic mode: validate every registered player against MightPulse
- // without discovering codes, claiming redemptions, or starting worker shards.
+ // Manual diagnostic mode: process a stable, bounded batch of registered players
+ // against MightPulse. Keyset pagination avoids skipping records if stale players
+ // are removed between calls. This mode never discovers codes or starts redemption.
  if(mode==="kingdom-check"){
   let manualWorkerToken=null;
   try{
-   // Reuse the global worker lock so a manual validation cannot overlap a
-   // scheduled redemption cycle. This mode never discovers codes or redeems.
    const lock=await rpc("claim_kingshot_worker_run",{});
    if(!lock?.claimed)return res.status(200).json({ok:true,mode:"kingdom-check",skipped:true,reason:"WORKER_ALREADY_RUNNING"});
    manualWorkerToken=lock.token;
@@ -304,40 +305,75 @@ export default async function handler(req,res){
 
    const players=await rpc("list_kingshot_autoredeem_players",{});
    const list=Array.isArray(players)?players:[];
-   const results=await runWithConcurrency(list,player=>revalidatePlayer(player,{rpc,notify:sendDiscordEvent},{force:true}),KINGDOM_VALIDATION_CONCURRENCY);
-   const summary=results.reduce((a,result)=>{
-    if(result?.revalidationError){a.errors++;return a;}
-    if(result?.stale){a.stale++;return a;}
-    if(result?.revalidated)a.checked++;
-    if(result?.kingdomChanged)a.changed++;
-    if(result?.player?.kingdom_id)a.validated++;
-    return a;
-   },{checked:0,changed:0,stale:0,errors:0,validated:0});
-   const status=summary.errors||summary.stale?"COMPLETED_WITH_WARNINGS":"COMPLETED";
+   const requestedBatchSize=requestUrl.searchParams.has("batch-size")
+    ? Number(requestUrl.searchParams.get("batch-size"))
+    : undefined;
+   const batch=selectKingdomCheckBatch(list,{
+    after:requestUrl.searchParams.get("after"),
+    batchSize:requestedBatchSize
+   });
+   const results=await runWithConcurrency(
+    batch.players,
+    player=>revalidatePlayer(player,{rpc,notify:sendDiscordEvent},{force:true}),
+    MANUAL_KINGDOM_VALIDATION_CONCURRENCY
+   );
+   const summary=summarizeKingdomCheckResults(results);
+   const status=summary.errors||summary.stale||summary.deferred
+    ?"COMPLETED_WITH_WARNINGS"
+    :"COMPLETED";
+   const runSummary={
+    mode:"kingdom-check",
+    players:batch.players.length,
+    batchSize:batch.batchSize,
+    after:batch.after,
+    nextCursor:batch.nextCursor,
+    hasMore:batch.hasMore,
+    remainingCount:batch.remainingCount,
+    ...summary
+   };
    await rpc("finish_kingshot_worker_run",{
     p_token:manualWorkerToken,
     p_status:status,
     p_error:null,
-    p_summary:{mode:"kingdom-check",players:list.length,...summary}
+    p_summary:runSummary
    }).catch(error=>console.error("Manual worker state update failed:",error?.message||error));
    manualWorkerToken=null;
-   console.log("Kingshot manual kingdom check:",{players:list.length,...summary});
-   await sendDiscordEvent({title:"🔍 Manual kingdom check",description:"A forced kingdom revalidation completed without starting redemption.",fields:[
-    {name:"Players",value:String(list.length),inline:true},
-    {name:"Checked",value:String(summary.checked),inline:true},
-    {name:"Kingdom changes",value:String(summary.changed),inline:true},
-    {name:"Stale accounts",value:String(summary.stale),inline:true},
-    {name:"Errors",value:String(summary.errors),inline:true},
-    {name:"Validated",value:String(summary.validated),inline:true}
-   ],color:summary.errors||summary.stale?0xFEE75C:0x57F287});
-   return res.status(200).json({ok:true,mode:"kingdom-check",forced:true,...summary,players:list.length});
+   console.log("Kingshot manual kingdom check:",runSummary);
+
+   if(requestUrl.searchParams.get("notify-summary")!=="false"){
+    await sendDiscordEvent({title:"🔍 Manual kingdom check batch",description:"A bounded batch of forced kingdom revalidation completed without starting redemption.",fields:[
+     {name:"Batch players",value:String(batch.players.length),inline:true},
+     {name:"Checked",value:String(summary.checked),inline:true},
+     {name:"Kingdom changes",value:String(summary.changed),inline:true},
+     {name:"Stale accounts",value:String(summary.stale),inline:true},
+     {name:"Errors",value:String(summary.errors),inline:true},
+     {name:"Deferred (cooldown/budget)",value:String(summary.deferred),inline:true},
+     {name:"Validated",value:String(summary.validated),inline:true},
+     {name:"More batches",value:batch.hasMore?"Yes":"No",inline:true}
+    ],color:summary.errors||summary.stale||summary.deferred?0xFEE75C:0x57F287});
+   }
+   return res.status(200).json({
+    ok:true,
+    mode:"kingdom-check",
+    forced:true,
+    ...summary,
+    players:batch.players.length,
+    batchSize:batch.batchSize,
+    nextCursor:batch.nextCursor,
+    hasMore:batch.hasMore,
+    remainingCount:batch.remainingCount
+   });
   }catch(error){
    console.error("Manual kingdom check failed:",error);
-   if(manualWorkerToken)await rpc("finish_kingshot_worker_run",{p_token:manualWorkerToken,p_status:"FAILED",p_error:error?.message||"Manual kingdom check failed.",p_summary:{mode:"kingdom-check",errorCategory:classifyScraperError(error)}}).catch(releaseError=>console.error("Manual worker failure state update failed:",releaseError?.message||releaseError));
+   if(manualWorkerToken)await rpc("finish_kingshot_worker_run",{
+    p_token:manualWorkerToken,
+    p_status:"FAILED",
+    p_error:error?.message||"Manual kingdom check failed.",
+    p_summary:{mode:"kingdom-check",errorCategory:classifyScraperError(error)}
+   }).catch(releaseError=>console.error("Manual worker failure state update failed:",releaseError?.message||releaseError));
    return res.status(502).json({ok:false,mode:"kingdom-check",error:error?.message||"Manual kingdom check failed.",errorCategory:classifyScraperError(error)});
   }
  }
-
  let workerToken=null;
  try{
   currentStage="worker-run-lock";
@@ -431,7 +467,7 @@ export default async function handler(req,res){
   const kingdomResults=await runWithConcurrency(validationPlayers,player=>revalidatePlayer(player,{rpc,notify:sendDiscordEvent}),KINGDOM_VALIDATION_CONCURRENCY,{deadline:validationDeadline});
   const validPlayers=[];
   const kingdomSummary=kingdomResults.reduce((a,result)=>{
-   if(result?.deadlineSkipped){a.deferred++;return a;}
+   if(result?.deadlineSkipped||result?.deferred){a.deferred++;return a;}
    if(result?.revalidationError){
     a.errors++;
     return a;
@@ -487,7 +523,7 @@ export default async function handler(req,res){
   console.log("Kingshot code validation gate:",{pending:pendingCandidates.length,verificationAttempt,verifiedForWorkers:activeCodes.map(c=>c.code)});
 
 
-  if(kingdomSummary.checked||kingdomSummary.changed||kingdomSummary.stale||kingdomSummary.errors){
+  if(kingdomSummary.checked||kingdomSummary.changed||kingdomSummary.stale||kingdomSummary.errors||kingdomSummary.deferred){
    await sendDiscordEvent({
     title:"🔍 Kingdom check",
     description:"Kingdom revalidation completed before the redemption worker pool started.",
@@ -496,9 +532,10 @@ export default async function handler(req,res){
      {name:"Kingdom changes",value:String(kingdomSummary.changed),inline:true},
      {name:"Stale accounts",value:String(kingdomSummary.stale),inline:true},
      {name:"Check errors",value:String(kingdomSummary.errors),inline:true},
+     {name:"Deferred (cooldown/budget)",value:String(kingdomSummary.deferred),inline:true},
      {name:"Validated for redemption",value:String(validPlayers.length),inline:true}
     ],
-    color:kingdomSummary.errors||kingdomSummary.stale?0xFEE75C:0x57F287
+    color:kingdomSummary.errors||kingdomSummary.stale||kingdomSummary.deferred?0xFEE75C:0x57F287
    });
   }
 
@@ -584,7 +621,7 @@ export default async function handler(req,res){
   },{})).sort((x,y)=>y.count-x.count).slice(0,8);
   console.log("Kingshot auto worker pool:",{workers:WORKER_COUNT,assignments:assignments.map(x=>x.length),workerFailures:workerFailures.length,attempted:totals.attempted,success:totals.success,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures});
   const summary={source:"multi-source",sources:sourceResults.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,verificationAttempt,...totals,workerFailures:workerFailures.length,shardFailureDiagnostics,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures,codeTelemetry};
-  await rpc("finish_kingshot_worker_run",{p_token:workerToken,p_status:totals.errors||totals.stale?"COMPLETED_WITH_WARNINGS":"COMPLETED",p_error:null,p_summary:summary}).catch(error=>console.error("Worker state update failed:",error?.message||error));
+  await rpc("finish_kingshot_worker_run",{p_token:workerToken,p_status:totals.errors||totals.stale||kingdomSummary.errors||kingdomSummary.deferred||workerFailures.length?"COMPLETED_WITH_WARNINGS":"COMPLETED",p_error:null,p_summary:summary}).catch(error=>console.error("Worker state update failed:",error?.message||error));
   const anomalyReasons=[];
   if(totals.errors||workerFailures.length)anomalyReasons.push("worker errors");
   if(totals.deadlineSkipped)anomalyReasons.push("worker deadline deferrals");
