@@ -80,6 +80,8 @@ function makePng(route="auto"){
  // A page-specific accent panel makes every share card distinguishable even in compact previews.
  rect(480,420,Math.min(450,card[2].length*20),4,purple);
  rect(480,432,170,2,edge);
+ // Clear the shared emblem area first so each route gets a crisp, distinct pictogram.
+ rect(112,205,255,245,rgb(12,13,19));
  // Distinct page glyphs inside the brand tile, using the same vector-like line primitives.
  if(route==="info"){line(245,245,245,330,10,light);line(245,287,288,287,8,light);line(245,287,245,265,8,light)}
  else if(route==="developer"){line(190,270,160,305,10,light);line(160,305,190,340,10,light);line(280,270,310,305,10,light);line(310,305,280,340,10,light);line(205,345,265,265,7,light)}
