@@ -27,7 +27,7 @@ export interface MightPulseRequestOptions {
   timeoutMs?: number;
 }
 function getKey(): string {
-  const key = process.env.MIGHTPULSE_API_KEY || process.env.KSS_API_KEY;
+  const key = process.env.MIGHTPULSE_API_KEY_3 || process.env.MIGHTPULSE_API_KEY_2 || process.env.MIGHTPULSE_API_KEY || process.env.KSS_API_KEY;
   if (!key) throw new Error("MightPulse API key is not configured on the server.");
   return key;
 }
