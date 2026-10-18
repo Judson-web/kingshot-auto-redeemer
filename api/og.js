@@ -32,8 +32,18 @@ function makePng(route="auto"){
 };
  const pal=palettes[String(route)]||palettes.home;
  const bg=pal[0],panel=pal[1],edge=pal[2],purple=pal[3],light=pal[4],white=rgb(245,245,248),muted=rgb(164,166,180);
- rect(0,0,W,H,bg);rect(38,38,W-76,H-76,panel);
- rect(82,155,320,320,rgb(24,18,42));rect(96,169,292,292,rgb(12,13,19));
+ // Premium share-card composition: layered midnight canvas, inset frame and warm metallic accents.
+ rect(0,0,W,H,bg);
+ for(let y=0;y<H;y++){const t=y/H;const col=[Math.round(bg[0]+(panel[0]-bg[0])*t),Math.round(bg[1]+(panel[1]-bg[1])*t),Math.round(bg[2]+(panel[2]-bg[2])*t)];rect(0,y,W,1,col)}
+ rect(24,24,W-48,H-48,edge);rect(27,27,W-54,H-54,panel);
+ // Soft architectural bands and fine grid marks add depth without cluttering small previews.
+ rect(28,28,5,H-56,purple);rect(33,28,2,H-56,light);
+ for(let i=0;i<9;i++){rect(710+i*48,64,1,502,edge);rect(690,82+i*54,465,1,edge)}
+ rect(72,112,340,386,rgb(24,18,42));rect(84,124,316,362,rgb(12,13,19));
+ rect(91,131,302,348,edge);rect(96,136,292,338,rgb(12,13,19));
+ // Gold corner details frame the emblem like a premium game insignia.
+ line(108,151,150,151,3,light);line(108,151,108,193,3,light);line(376,151,334,151,3,light);line(376,151,376,193,3,light);
+ line(108,459,150,459,3,light);line(108,459,108,417,3,light);line(376,459,334,459,3,light);line(376,459,376,417,3,light);
  for(let i=0;i<5;i++){line(125+i*2,185,375+i*2,185,2,[72+i*12,55+i*10,145+i*18])}
  // stylized K
  line(165,235,165,385,28,white);line(182,305,300,235,28,white);line(182,310,302,385,28,white);
@@ -76,12 +86,18 @@ function makePng(route="auto"){
  privacy:["YOUR","PRIVACY","DATA HANDLING EXPLAINED"]
 };
  const card=cards[String(route)]||cards.auto;
- text(card[0],480,180,8,white);text(card[1],480,255,8,light);text(card[2],480,355,card[2].length>26?3:4,muted);
- // A page-specific accent panel makes every share card distinguishable even in compact previews.
- rect(480,420,Math.min(450,card[2].length*20),4,purple);
- rect(480,432,170,2,edge);
- // Clear the shared emblem area first so each route gets a crisp, distinct pictogram.
- rect(112,205,255,245,rgb(12,13,19));
+ // Typography is deliberately oversized and left-aligned for legibility in Discord, WhatsApp and X.
+ rect(462,120,7,12,light);rect(476,120,7,12,purple);
+ text("KINGSHOT",462,151,5,muted);
+ text(card[0],462,205,8,white);
+ text(card[1],462,285,8,light);
+ text(card[2],462,370,card[2].length>26?3:4,muted);
+ rect(462,430,520,2,edge);rect(462,430,Math.min(250,card[2].length*8),4,purple);
+ text("KINGSHOT AUTO REDEEMER",462,466,2,white);
+ // Small status pill reinforces the product purpose without competing with the headline.
+ rect(900,76,220,38,edge);rect(903,79,214,32,panel);rect(917,92,8,8,light);text("COMMUNITY TOOL",936,91,2,muted);
+ // Clear the emblem area for a crisp, page-specific pictogram.
+ rect(104,200,280,220,rgb(12,13,19));
  // Distinct page glyphs inside the brand tile, using the same vector-like line primitives.
  if(route==="info"){line(245,245,245,330,10,light);line(245,287,288,287,8,light);line(245,287,245,265,8,light)}
  else if(route==="developer"){line(190,270,160,305,10,light);line(160,305,190,340,10,light);line(280,270,310,305,10,light);line(310,305,280,340,10,light);line(205,345,265,265,7,light)}
@@ -99,6 +115,7 @@ function makePng(route="auto"){
 }
 export default function handler(req,res){
  res.setHeader("Content-Type","image/png");res.setHeader("Cache-Control","public, max-age=86400, s-maxage=2592000, stale-while-revalidate=604800");
+ res.setHeader("X-Content-Type-Options","nosniff");
  const route=new URL(req.url,"http://localhost").searchParams.get("route")||"auto";
  res.status(200).end(makePng(route));
 }
