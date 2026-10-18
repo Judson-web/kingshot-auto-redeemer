@@ -5,13 +5,13 @@ import { allianceDetails, allianceDisplayName, formatPower, playerDisplayName, p
 test("player names show a single alliance tag using provider alliance objects", () => {
   const player = { nick_name: "  Sharkyo  ", alliance: { name: "The Wind", abbr: "WIND" } };
   assert.equal(playerDisplayName(player), "[WIND] Sharkyo");
-  assert.equal(allianceDisplayName(player), "[WIND] The Wind");
+  assert.equal(allianceDisplayName(player), "The Wind [WIND]");
   assert.deepEqual(allianceDetails(player), { name: "The Wind", tag: "WIND" });
 });
 
 test("alliance metadata falls back to stored flat columns and avoids duplicate tags", () => {
-  assert.equal(playerDisplayName({ player_name: "[WIND] Sharkyo", alliance_tag: "WIND" }), "Sharkyo [WIND]");
-  assert.equal(allianceDisplayName({ alliance_name: "The Wind", alliance_tag: "[WIND]" }), "[WIND] The Wind");
+  assert.equal(playerDisplayName({ player_name: "[WIND] Sharkyo", alliance_tag: "WIND" }), "[WIND] Sharkyo");
+  assert.equal(allianceDisplayName({ alliance_name: "The Wind", alliance_tag: "[WIND]" }), "The Wind [WIND]");
   assert.equal(playerDisplayName({}, "Unknown player"), "Unknown player");
 });
 

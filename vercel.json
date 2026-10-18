@@ -105,6 +105,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/admin/maintenance",
+      "destination": "/index.html"
+    },
+    {
       "source": "/admin/players",
       "destination": "/index.html"
     }
