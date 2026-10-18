@@ -7,6 +7,7 @@ const scraperSource = await readFile(new URL("../internal/kingshot/scraper.ts", 
 const autoSource = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
 const validationSource = await readFile(new URL("../internal/kingshot/kingdom-validation.ts", import.meta.url), "utf8");
 const workerMigration = await readFile(new URL("../supabase/migrations/20261018121000_add_fourth_kingshot_worker_slot.sql", import.meta.url), "utf8");
+const mightPulseBudgetMigration = await readFile(new URL("../supabase/migrations/20261018130000_global_mightpulse_rate_budget.sql", import.meta.url), "utf8");
 
 test("worker assignment uses deterministic player bucketing", () => {
   assert.match(workerSource, /function workerBucket|const workerBucket/);
@@ -36,6 +37,18 @@ test("kingdom rate limits defer to the next cycle instead of sleeping the worker
   assert.match(validationSource, /mightPulseCooldownUntil/);
   assert.match(validationSource, /AbortSignal\.timeout\(10000\)/);
   assert.doesNotMatch(validationSource, /RATE_LIMIT_BACKOFF_MS/);
+});
+
+test("MightPulse validation reserves from a shared conservative API budget", () => {
+  assert.match(validationSource, /claim_mightpulse_api_request/);
+  assert.match(validationSource, /localBudgetDenied/);
+  assert.match(validationSource, /p_mark_cooldown_seconds/);
+  assert.match(mightPulseBudgetMigration, /for update/i);
+  assert.match(mightPulseBudgetMigration, /interval '60 seconds'/i);
+  assert.match(mightPulseBudgetMigration, /4500/);
+  assert.match(mightPulseBudgetMigration, /security definer/i);
+  assert.match(mightPulseBudgetMigration, /grant execute on function public\.claim_mightpulse_api_request\(integer\) to service_role/i);
+  assert.match(mightPulseBudgetMigration, /enable row level security/i);
 });
 
 test("global recovery queue is drained by one designated shard, not all four", () => {

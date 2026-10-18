@@ -39,6 +39,7 @@ interface Notify {
 const RESET_HOUR = 5;
 const RESET_MINUTE = 30;
 const RETRYABLE = /timeout|timed out|abort|429|rate limit|too many requests|502|503|504/i;
+type MightPulseFetchError = Error & { status?: number; retryAfterMs?: number; localBudgetDenied?: boolean };
 const RATE_LIMIT_COOLDOWN_FALLBACK_MS = 60_000;
 let mightPulseCooldownUntil = 0;
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -75,16 +76,28 @@ export function needsKingdomResetCheck(lastCheckedAt: unknown, now = Date.now())
   return current.afterReset && !previous.afterReset;
 }
 
-async function fetchCurrentPlayer(playerId: string): Promise<FreshPlayer> {
+async function fetchCurrentPlayer(playerId: string, rpc: Rpc): Promise<FreshPlayer> {
   const key = process.env.MIGHTPULSE_API_KEY || process.env.KSS_API_KEY;
   if (!key) throw Error("MightPulse API key is not configured on the server.");
-  let lastError: (Error & { status?: number; retryAfterMs?: number }) | null = null;
+  let lastError: MightPulseFetchError | null = null;
 
   for (let attempt = 0; attempt < 2; attempt++) {
     if (Date.now() < mightPulseCooldownUntil) {
       throw Error("MightPulse rate-limit cooldown active; validation deferred to the next cycle.");
     }
     try {
+      const reservation = await rpc("claim_mightpulse_api_request", { p_mark_cooldown_seconds: 0 }) as {
+        claimed?: boolean;
+        reason?: string;
+        retry_after_ms?: number;
+      };
+      if (!reservation?.claimed) {
+        const error = Error("MightPulse shared request budget deferred this validation (" + String(reservation?.reason || "BUDGET_UNAVAILABLE") + ").") as MightPulseFetchError;
+        error.status = 429;
+        error.retryAfterMs = Number(reservation?.retry_after_ms) || RATE_LIMIT_COOLDOWN_FALLBACK_MS;
+        error.localBudgetDenied = true;
+        throw error;
+      }
       const response = await fetch("https://api.mightpulse.com/v1/players/" + encodeURIComponent(playerId) + "?include=base", {
         headers: { Authorization: "Bearer " + key },
         signal: AbortSignal.timeout(10000)
@@ -105,9 +118,16 @@ async function fetchCurrentPlayer(playerId: string): Promise<FreshPlayer> {
       }
       return { player: data.player || data as KingshotPlayer };
     } catch (error) {
-      lastError = error as Error & { status?: number; retryAfterMs?: number };
+      lastError = error as MightPulseFetchError;
       const status = Number(lastError.status || 0);
       const message = String(lastError.message || "");
+      if (lastError.localBudgetDenied) {
+        // Cache shared denials in this warm instance so the remaining players
+        // don't each incur another Supabase RPC during the same worker cycle.
+        const deferMs = Math.min(90_000, Math.max(1_000, Number(lastError.retryAfterMs) || RATE_LIMIT_COOLDOWN_FALLBACK_MS));
+        mightPulseCooldownUntil = Math.max(mightPulseCooldownUntil, Date.now() + deferMs);
+        throw lastError;
+      }
       const rateLimited = status === 429 || /rate[_ -]?limited|rate limit|too many requests/i.test(message);
       const retryable = RETRYABLE.test(message) || [429, 502, 503, 504].includes(status);
       if (rateLimited) {
@@ -117,6 +137,9 @@ async function fetchCurrentPlayer(playerId: string): Promise<FreshPlayer> {
         const requestedCooldown = Number(lastError.retryAfterMs) || RATE_LIMIT_COOLDOWN_FALLBACK_MS;
         const cooldownMs = Math.min(90_000, Math.max(15_000, requestedCooldown));
         mightPulseCooldownUntil = Math.max(mightPulseCooldownUntil, Date.now() + cooldownMs);
+        await rpc("claim_mightpulse_api_request", {
+          p_mark_cooldown_seconds: Math.ceil(cooldownMs / 1000)
+        }).catch(cooldownError => console.error("MightPulse shared cooldown update failed:", cooldownError?.message || cooldownError));
         throw lastError;
       }
       if (attempt < 1 && retryable) {
@@ -137,7 +160,7 @@ export async function revalidatePlayer(
   const { rpc, notify } = dependencies;
   try {
     const persistFreshPlayer = async (current: KingdomValidationPlayer, manual = false) => {
-      const fresh = await fetchCurrentPlayer(current.player_id);
+      const fresh = await fetchCurrentPlayer(current.player_id, rpc);
       if (fresh.notFound) {
         await rpc("mark_kingshot_player_stale", { p_player_id: current.player_id, p_reason: "MIGHTPULSE_PLAYER_NOT_FOUND" });
         if (!manual) {
