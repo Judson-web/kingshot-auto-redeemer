@@ -72,7 +72,8 @@ test("manual kingdom-check endpoint uses bounded keyset batches and counts defer
   assert.match(apiSource, /selectKingdomCheckBatch/);
   assert.match(apiSource, /summarizeKingdomCheckResults/);
   assert.match(apiSource, /MANUAL_KINGDOM_VALIDATION_CONCURRENCY=2/);
-  assert.match(apiSource, /result\?\.deadlineSkipped\|\|result\?\.deferred/);
+  assert.match(apiSource, /result\?\.deadlineSkipped/);
+  assert.match(apiSource, /if\(result\?\.deferred\)/);
   assert.match(apiSource, /kingdomSummary\.deferred/);
   assert.match(validationSource, /return \{ deferred: true, retryAfterMs:/);
   assert.match(workflowSource, /BATCH_SIZE=20/);
