@@ -72,9 +72,11 @@ test("manual kingdom-check endpoint uses bounded keyset batches and counts defer
   assert.match(apiSource, /selectKingdomCheckBatch/);
   assert.match(apiSource, /summarizeKingdomCheckResults/);
   assert.match(apiSource, /MANUAL_KINGDOM_VALIDATION_CONCURRENCY=2/);
-  assert.match(apiSource, /result\?\.deadlineSkipped\|\|result\?\.deferred/);
+  assert.match(apiSource, /result\?\.deadlineSkipped/);
+  assert.match(apiSource, /if\(result\?\.deferred\)/);
   assert.match(apiSource, /kingdomSummary\.deferred/);
-  assert.match(validationSource, /return \{ deferred: true, retryAfterMs:/);
+  assert.match(validationSource, /deferred: true/);
+  assert.match(validationSource, /retryAfterMs:/);
   assert.match(workflowSource, /BATCH_SIZE=20/);
   assert.match(workflowSource, /RETRY_AFTER_MS/);
   assert.match(workflowSource, /then retrying this same batch once/);
@@ -138,4 +140,12 @@ test("kingdom check response and logging guardrails stay in place", async () => 
   assert.match(validationSource, /isKingdomValidationDeferred\(error\)/);
   assert.match(validationSource, /reason: message\.slice\(0, 200\)/);
   assert.doesNotMatch(validationSource, /console\.error\("Kingshot player validation failed:", player\?\.player_id/);
+});
+
+
+test("coordinator keeps stored-kingdom players eligible when revalidation is deferred", async () => {
+  const apiSource = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
+  assert.match(apiSource, /if\(result\?\.deadlineSkipped\)\{a\.deferred\+\+;return a;\}/);
+  assert.match(apiSource, /if\(result\?\.deferred\)\{\s*a\.deferred\+\+;[\s\S]*?if\(result\?\.player\?\.kingdom_id\)validPlayers\.push\(result\.player\);\s*return a;/);
+  assert.match(apiSource, /if\(!kingdomState\.player\?\.kingdom_id\)return \{attempted:0,success:0,alreadyHandled:0,skipped:1,revalidationError:1,kingdomCheck,kingdomChanged\}/);
 });
