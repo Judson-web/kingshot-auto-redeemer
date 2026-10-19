@@ -100,3 +100,42 @@ test("manual retry timing follows upstream quota-reset metadata", () => {
   assert.equal(summary.deferred, 2);
   assert.equal(summary.retryAfterMs, 45_000);
 });
+
+
+test("MightPulse quota exhaustion and cooldown variants defer kingdom validation", async () => {
+  const { isKingdomValidationDeferred, getKingdomValidationRetryAfterMs } =
+    await import("../internal/kingshot/kingdom-validation-errors.js");
+  const cases = [
+    { message: "All configured MightPulse keys are cooling down or have no reserved request headroom.", retryAfterMs: 45000 },
+    { message: "All configured MightPulse keys are rate limited or have no reserved request headroom.", status: 429, retryAfterMs: 30000 },
+    { message: "MightPulse daily request budget is exhausted for all configured keys.", retryAfterMs: 3600000 },
+    { message: "MightPulse shared key-pool cooldown active; validation deferred to the next cycle." },
+    { message: "no reserved request headroom" },
+    { message: "too many requests", status: 429 }
+  ];
+  for (const error of cases) {
+    assert.equal(isKingdomValidationDeferred(error), true, error.message);
+  }
+  assert.equal(getKingdomValidationRetryAfterMs(cases[0]), 45000);
+  assert.equal(getKingdomValidationRetryAfterMs({ retryAfterMs: -4 }), 0);
+  assert.equal(getKingdomValidationRetryAfterMs({ retryAfterMs: "not-a-number" }), 0);
+});
+
+test("kingdom validation does not mask credential and schema failures as quota deferrals", async () => {
+  const { isKingdomValidationDeferred } =
+    await import("../internal/kingshot/kingdom-validation-errors.js");
+  assert.equal(isKingdomValidationDeferred(new Error("MightPulse key kss6 was rejected with HTTP 403.")), false);
+  assert.equal(isKingdomValidationDeferred(new Error("MightPulse key-slot IDs are rejected by the shared quota schema; apply the KSS key-slot consistency migration.")), false);
+  assert.equal(isKingdomValidationDeferred(new Error("MightPulse returned no kingdom for this player.")), false);
+});
+
+test("kingdom check response and logging guardrails stay in place", async () => {
+  const apiSource = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
+  const validationSource = await readFile(new URL("../internal/kingshot/kingdom-validation.ts", import.meta.url), "utf8");
+  assert.match(apiSource, /const restrictedPlayersSkipped=assignedPlayers\.length-eligiblePlayers\.length;/);
+  assert.match(apiSource, /bannedPlayersSkipped:restrictedPlayersSkipped/);
+  assert.doesNotMatch(apiSource, /bannedPlayersSkipped\s*[,}]/);
+  assert.match(validationSource, /isKingdomValidationDeferred\(error\)/);
+  assert.match(validationSource, /reason: message\.slice\(0, 200\)/);
+  assert.doesNotMatch(validationSource, /console\.error\("Kingshot player validation failed:", player\?\.player_id/);
+});
