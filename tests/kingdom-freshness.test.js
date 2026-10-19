@@ -104,3 +104,14 @@ test("429 honors bounded Retry-After and timeout or server errors retry after fi
   assert.equal(getKingdomRetryAfterAtMs({ reason: "UPSTREAM_5XX", status: 503, nowMs: now }), now + 300_000);
   assert.equal(getKingdomRetryAfterAtMs({ reason: "UNKNOWN", nowMs: now }), now + 600_000);
 });
+
+
+test("a pre-reset snapshot younger than the provider refresh window waits for refresh eligibility", () => {
+  const now = Date.parse("2026-10-19T00:05:00.000Z");
+  const cachedAt = Date.parse("2026-10-18T23:59:00.000Z");
+  assert.equal(getKingdomRetryAfterAtMs({
+    reason: "PRE_RESET_CACHE",
+    snapshot: { cached_at: new Date(cachedAt).toISOString(), age_seconds: 360 },
+    nowMs: now
+  }), cachedAt + 3_695_000);
+});
