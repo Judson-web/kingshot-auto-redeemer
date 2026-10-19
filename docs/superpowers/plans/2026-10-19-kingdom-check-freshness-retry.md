@@ -91,7 +91,7 @@
 - [ ] **Step 2: Run** `node --test tests/kingdom-check-retry-migration.test.js` and confirm it fails before the migration exists.
 - [ ] **Step 3: Write the additive migration**. Do not edit old migrations or write directly to production.
 - [x] **Step 4: Run focused static migration/security tests and disposable PostgreSQL integration**. `.github/workflows/kingdom-check-migration-test.yml` applies the actual versioned migration to a throwaway PostgreSQL 17 database and exercises scheduled/manual claims, retry-after deferrals/bounds, retry clearing on success, kingdom-change event recording, and service-role-only execute privileges. No production database was modified.
-- [ ] **Step 5: Add a concurrent-session assertion** to the disposable PostgreSQL workflow so two simultaneous claims for the same eligible player produce exactly one successful claim. Until that test is added and green, do not claim the concurrency race has been exercised end-to-end; the migration still locks the player row with `FOR UPDATE`.
+- [x] **Step 5: Verify concurrent claims and retry lifecycle** in disposable PostgreSQL CI. Two independent sessions request a claim for the same eligible player simultaneously; the workflow passes only when exactly one claim succeeds. The same workflow validates retry windows, revalidation clearing, event recording, and least-privilege grants.
 - [ ] **Step 6: Commit** as `feat: persist kingdom validation retry windows`.
 
 ### Task 4: Route every fetch through the correct claim/defer lifecycle
