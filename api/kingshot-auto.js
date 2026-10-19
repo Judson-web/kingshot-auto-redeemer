@@ -467,7 +467,15 @@ export default async function handler(req,res){
   const kingdomResults=await runWithConcurrency(validationPlayers,player=>revalidatePlayer(player,{rpc,notify:sendDiscordEvent}),KINGDOM_VALIDATION_CONCURRENCY,{deadline:validationDeadline});
   const validPlayers=[];
   const kingdomSummary=kingdomResults.reduce((a,result)=>{
-   if(result?.deadlineSkipped||result?.deferred){a.deferred++;return a;}
+   if(result?.deadlineSkipped){a.deferred++;return a;}
+   if(result?.deferred){
+    a.deferred++;
+    // Uncertain provider freshness is not evidence that an existing registered
+    // player is invalid. Keep eligible records with a stored kingdom in the
+    // redemption pool; players without a kingdom remain ineligible below.
+    if(result?.player?.kingdom_id)validPlayers.push(result.player);
+    return a;
+   }
    if(result?.revalidationError){
     a.errors++;
     return a;
