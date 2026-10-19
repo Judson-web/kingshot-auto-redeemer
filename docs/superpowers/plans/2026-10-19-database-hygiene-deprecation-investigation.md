@@ -78,3 +78,12 @@
 - Private session/key-budget data remain inaccessible to untrusted roles.
 - `DEP0169` has an evidence-backed attribution and a narrow fix, or a clear finding that no safe in-repository fix is justified.
 - All required tests and security/CI gates pass.
+
+
+## Investigation findings (2026-10-19)
+
+- Vercel grouped runtime errors reported 493 `DEP0169` occurrences across 80 users over the available seven-day window, with the last reported occurrence at `2026-10-19T08:58:34Z`. The grouped cluster named `/api/discord-tools/[...path]` and `/api/kingshot-player`.
+- A read of available recent raw logs showed the warning on `GET /api/v3/redemptions` at `2026-10-19T08:58:35Z`, but the only message was Node's deprecation notice and the generic instruction to run with `--trace-deprecation`; it did not contain an application stack.
+- Inspected first-party route code and the shared handlers it dispatches to. The searched in-repository code uses the WHATWG `URL` API and did not reveal a call to `url.parse()`. GitHub code search did not locate a first-party call site.
+- Attempted a recent Vercel runtime-log query, but the Hobby retention window returned a log-API error for a one-hour range; a 30-minute query returned only the generic warning event without an actionable stack. The current evidence cannot identify whether the warning originates in Vercel instrumentation or a transitive dependency.
+- **Decision:** no source or dependency change was made. Do not suppress the warning or broadly upgrade dependencies. Revisit only when a trace stack or more detailed runtime log identifies the concrete caller and a narrow compatible repair can be verified.
