@@ -146,3 +146,41 @@ main.admin-players-page .ap-table th{top:0;z-index:2}
 @media(max-width:620px){
  main.admin-players-page .ap-table-wrap{max-height:min(36vh,280px);max-height:min(36dvh,280px)}
 }
+
+/* Keep the database route's canvas painted even when mobile viewport units differ. */
+html.admin-players-active,body.admin-players-active,#root:has(main.admin-players-page){
+ min-height:100%;
+ background:#080a11;
+}
+body.admin-players-active{
+ min-height:100vh;
+ min-height:100dvh;
+ background:radial-gradient(ellipse at 6% -8%,#8069ff24,transparent 34rem),radial-gradient(ellipse at 100% 22%,#3f74b512,transparent 28rem),#080a11;
+ background-attachment:fixed;
+}
+main.admin-players-page{
+ min-height:100vh;
+ min-height:100dvh;
+ min-height:-webkit-fill-available;
+ background-color:#080a11;
+ background-attachment:fixed;
+}
+main.admin-players-page .ap-refresh-control{display:grid;gap:8px;min-width:0;flex:1 1 100%}
+main.admin-players-page .ap-refresh-control>.ap-action{width:100%;justify-content:center}
+main.admin-players-page .ap-refresh-progress{
+ display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+ padding:10px 12px;border:1px solid #9b8cff35;border-radius:11px;
+ background:linear-gradient(100deg,#8174ff12,#4f6caa08);
+}
+main.admin-players-page .ap-refresh-progress>span{
+ position:relative;display:block;flex:0 0 100%;height:5px;overflow:hidden;
+ border-radius:99px;background:#ffffff12;
+}
+main.admin-players-page .ap-refresh-progress>span:after{
+ content:"";position:absolute;inset:0;width:38%;border-radius:inherit;
+ background:linear-gradient(90deg,#a79aff,#6853e6);
+ animation:ap-refresh-indeterminate 1.25s ease-in-out infinite;
+}
+main.admin-players-page .ap-refresh-progress small{color:#b9b3e8;font-size:10px;line-height:1.5}
+@keyframes ap-refresh-indeterminate{from{transform:translateX(-110%)}to{transform:translateX(270%)}}
+@media(prefers-reduced-motion:reduce){main.admin-players-page .ap-refresh-progress>span:after{animation:none;width:100%;opacity:.65}}
