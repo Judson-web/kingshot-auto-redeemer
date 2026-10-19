@@ -139,3 +139,11 @@ test("kingdom check response and logging guardrails stay in place", async () => 
   assert.match(validationSource, /reason: message\.slice\(0, 200\)/);
   assert.doesNotMatch(validationSource, /console\.error\("Kingshot player validation failed:", player\?\.player_id/);
 });
+
+
+test("coordinator keeps stored-kingdom players eligible when revalidation is deferred", async () => {
+  const apiSource = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
+  assert.match(apiSource, /if\(result\?\.deadlineSkipped\)\{a\.deferred\+\+;return a;\}/);
+  assert.match(apiSource, /if\(result\?\.deferred\)\{\s*a\.deferred\+\+;[\s\S]*?if\(result\?\.player\?\.kingdom_id\)validPlayers\.push\(result\.player\);\s*return a;/);
+  assert.match(apiSource, /if\(!kingdomState\.player\?\.kingdom_id\)return \{attempted:0,success:0,alreadyHandled:0,skipped:1,revalidationError:1,kingdomCheck,kingdomChanged\}/);
+});
