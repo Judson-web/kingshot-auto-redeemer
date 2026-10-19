@@ -1,5 +1,6 @@
 import type { KingshotPlayer } from "./mightpulse.js";
 import { fetchMightPulse } from "../../lib/mightpulse-key-pool.js";
+import { getKingdomValidationRetryAfterMs, isKingdomValidationDeferred } from "./kingdom-validation-errors.js";
 
 export interface KingdomValidationPlayer {
   player_id: string;
@@ -217,14 +218,14 @@ export async function revalidatePlayer(
     }
   } catch (error) {
     const message = String(error instanceof Error ? error.message : error);
-    const status = Number((error as MightPulseFetchError)?.status || 0);
     // Cooldown/headroom means the upstream was intentionally not queried (or
-    // refused the request). This is deferred work, not a bad player record.
-    if (status === 429 || /all configured MightPulse keys are in cooldown|shared key-pool cooldown active|no reserved request headroom|temporarily unavailable or out of request headroom/i.test(message)) {
-      console.warn("Kingshot kingdom validation deferred by MightPulse cooldown.");
-      return { deferred: true, retryAfterMs: Math.max(0, Number((error as MightPulseFetchError)?.retryAfterMs) || 0) };
+    // refused the request). It is deferred work, not a bad player record.
+    if (isKingdomValidationDeferred(error)) {
+      console.warn("Kingshot kingdom validation deferred by MightPulse quota/cooldown.");
+      return { deferred: true, retryAfterMs: getKingdomValidationRetryAfterMs(error) };
     }
-    console.error("Kingshot player validation failed:", player?.player_id, message);
+    // Avoid putting player identifiers or provider response bodies in runtime logs.
+    console.error("Kingshot player validation failed:", { reason: message.slice(0, 200) });
     return { revalidationError: 1 };
   }
 }
