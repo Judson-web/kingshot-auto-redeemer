@@ -93,7 +93,7 @@ export function evaluateMightPulseSnapshot(snapshot, nowMs = Date.now()) {
 /**
  * @param {{
  *   reason?: string,
- *   snapshot?: { cached_at?: string | null, age_seconds?: number | null } | null,
+ *   snapshot?: { cached_at?: unknown, age_seconds?: unknown } | null,
  *   status?: number,
  *   retryAfterMs?: number,
  *   nowMs?: number
