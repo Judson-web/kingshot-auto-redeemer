@@ -133,3 +133,16 @@ main.admin-players-page .ap-empty{line-height:1.7}
  main.admin-players-page .ap-section-title{gap:9px}
  main.admin-players-page .ap-section-title h3{line-height:1.5}
 }
+
+/* Keep long redemption histories inside their own scrollable card. */
+main.admin-players-page .ap-table-wrap{
+ max-height:min(42vh,360px);
+ max-height:min(42dvh,360px);
+ overflow:auto;
+ overscroll-behavior:contain;
+ scrollbar-gutter:stable;
+}
+main.admin-players-page .ap-table th{top:0;z-index:2}
+@media(max-width:620px){
+ main.admin-players-page .ap-table-wrap{max-height:min(36vh,280px);max-height:min(36dvh,280px)}
+}
