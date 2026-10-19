@@ -1,0 +1,51 @@
+name: Kingdom Check Migration Integration
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20261019100000_kingdom_check_durable_retry.sql"
+      - "tests/sql/kingdom-check-fixture.sql"
+      - "tests/sql/kingdom-check-assertions.sql"
+      - ".github/workflows/kingdom-check-migration-test.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migration-integration:
+    name: Apply and exercise migration on disposable PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: migration-test
+          POSTGRES_DB: migration_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d migration_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:migration-test@localhost:5432/migration_test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check PostgreSQL client
+        run: psql --version
+
+      - name: Prepare minimal pre-migration schema
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/sql/kingdom-check-fixture.sql
+
+      - name: Apply versioned migration
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261019100000_kingdom_check_durable_retry.sql
+
+      - name: Exercise claims, retry windows, and least-privilege grants
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/sql/kingdom-check-assertions.sql
