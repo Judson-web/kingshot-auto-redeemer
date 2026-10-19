@@ -18,6 +18,7 @@ export interface KingdomValidationResult {
   stale?: boolean;
   revalidationError?: number;
   deferred?: boolean;
+  deferredReason?: string;
   retryAfterMs?: number;
 }
 
