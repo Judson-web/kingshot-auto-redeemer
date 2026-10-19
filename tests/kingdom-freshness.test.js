@@ -29,8 +29,8 @@ test("reset cycle uses the inclusive 05:30 Asia/Kolkata boundary", () => {
 });
 
 test("reset-check eligibility waits until after reset when last check was previous cycle", () => {
-  assert.equal(needsKingdomResetCheck("2026-10-18T23:00:00.000Z", Date.parse("2026-10-19T00:29:59.000Z")), false);
-  assert.equal(needsKingdomResetCheck("2026-10-18T23:00:00.000Z", Date.parse("2026-10-19T00:30:00.000Z")), true);
+  assert.equal(needsKingdomResetCheck("2026-10-18T23:00:00.000Z", Date.parse("2026-10-18T23:59:59.000Z")), false);
+  assert.equal(needsKingdomResetCheck("2026-10-18T23:00:00.000Z", Date.parse("2026-10-19T00:00:00.000Z")), true);
   assert.equal(needsKingdomResetCheck("not-a-date", Date.parse("2026-10-19T00:30:00.000Z")), true);
 });
 
