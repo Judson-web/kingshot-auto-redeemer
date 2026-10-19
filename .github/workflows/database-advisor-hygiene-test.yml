@@ -1,0 +1,65 @@
+name: Database Advisor Hygiene Migration Integration
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20261019103000_database_advisor_hygiene.sql"
+      - "tests/sql/database-advisor-hygiene-fixture.sql"
+      - "tests/sql/database-advisor-hygiene-assertions.sql"
+      - ".github/workflows/database-advisor-hygiene-test.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migration-integration:
+    name: Apply migration and verify RLS/index invariants
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: migration-test
+          POSTGRES_DB: migration_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d migration_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:migration-test@localhost:5432/migration_test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check PostgreSQL client
+        run: psql --version
+
+      - name: Prepare pre-migration schema and audited policies
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/sql/database-advisor-hygiene-fixture.sql
+
+      - name: Apply versioned migration
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261019103000_database_advisor_hygiene.sql
+
+      - name: Verify effective policy and least-privilege invariants
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/sql/database-advisor-hygiene-assertions.sql
+
+      - name: Prove mismatched broad policy aborts before cleanup
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          alter policy "Public profiles are readable" on public.profiles using (id is not null);
+          create policy "Users can view their own profile" on public.profiles for select to authenticated
+            using ((select auth.uid() as uid) = id);
+          SQL
+          if psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261019103000_database_advisor_hygiene.sql; then
+            echo "ERROR: migration unexpectedly accepted a policy definition mismatch"
+            exit 1
+          fi
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "select 1 / case when exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'profiles' and policyname = 'Users can view their own profile') then 1 else 0 end as mismatch_guard_preserved_policy"
