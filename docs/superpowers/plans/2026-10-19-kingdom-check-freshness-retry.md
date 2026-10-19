@@ -17,6 +17,7 @@
 - If freshness cannot be established, do not mutate kingdom/player state, mark stale, suppress redemption, or send kingdom-change/deletion notifications.
 - Honor existing shared key-pool cooldowns and provider quota limits; never increase limits or bypass them for a forced/manual check.
 - A single upstream 404 defers for six hours; it does not mean the player was deleted.
+- A freshness/quota/transient deferral must not change the stored kingdom or suppress redemption solely because revalidation was inconclusive: return the existing record and keep it eligible when it already has a usable stored kingdom and remains otherwise enabled/non-stale. A player without a usable stored kingdom remains ineligible.
 - Persist retry-after in `public.kingshot_autoredeem`; the database claim remains atomic across serverless instances.
 - Service-only RPCs revoke execution from `public`, `anon`, and `authenticated`, grant only `service_role`, and retain explicit `search_path`.
 - Do not make production database writes or alter Neon during implementation testing; verify SQL with isolated tests/development branch and use versioned migrations for rollout.
@@ -68,7 +69,7 @@
 - [ ] **Step 2: Run** `node --test tests/kingdom-validation.test.js` and confirm the new cases fail against current behavior.
 - [ ] **Step 3: Preserve the response envelope** in `fetchCurrentPlayer`; map HTTP statuses into explicit, typed outcomes without treating 404 as stale/deleted.
 - [ ] **Step 4: Apply freshness validation before extracting/using kingdom fields**. Return a deferred result for all invalid/ambiguous snapshots. No invalid response may call `record_kingshot_kingdom_revalidation`, `mark_kingshot_player_stale`, or `notify`.
-- [ ] **Step 5: Add tests proving a single 404 defers without a stale RPC or notification**, including the path where the existing player record has no `kingdom_id`.
+- [ ] **Step 5: Add tests proving a single 404 defers without a stale RPC or notification**, including the path where the existing player record has no `kingdom_id`. Assert deferred results retain the original player record and do not mutate the stored kingdom; a player with a stored kingdom remains available to the redemption phase.
 - [ ] **Step 6: Run focused tests, typecheck, and commit** as `fix: validate MightPulse snapshot freshness`.
 
 ### Task 3: Persist retry-after and make claims respect the durable window
@@ -104,12 +105,14 @@
 **Interfaces:**
 - Scheduled calls use `claim_kingshot_kingdom_reset_check`.
 - Forced/manual calls use `claim_kingshot_kingdom_manual_check`.
-- A failed freshness check or upstream 404 calls `defer_kingshot_kingdom_reset_check` with the absolute timestamp returned by the retry helper.
+- A failed freshness check, HTTP 404, HTTP 429/quota cooldown, timeout, or transient 5xx calls `defer_kingshot_kingdom_reset_check` with the absolute timestamp returned by the retry helper.
+- A deferred result retains `player: current` and a bounded `deferredReason`; the coordinator counts it as deferred but still includes the existing player in the redemption phase when `kingdom_id` is already usable. `deadlineSkipped` remains a separate exclusion, and players without a usable kingdom remain ineligible.
 - On successful persistence, the revalidation RPC clears retry-after and the existing kingdom-change event/notification path remains unchanged.
 
 - [ ] **Step 1: Add failing orchestration tests** that assert a claim is taken before any MightPulse request—including players without a kingdom—and both scheduled and force/manual paths honor durable retry windows.
+- [ ] **Step 1a: Add a coordinator regression test** showing a freshness/quota/transient deferral increments the deferral count while preserving redemption eligibility for an existing non-stale player with a stored kingdom; deadline skips and players without a kingdom stay excluded.
 - [ ] **Step 2: Add a regression test** that two invocations cannot fetch/process the same player while a claim is active.
-- [ ] **Step 3: Integrate freshness deferral with the atomic defer RPC**. If the defer RPC fails, do not immediately release the claim and create a hot retry loop; let the existing claim expire and emit a bounded operational reason. For unrelated transient exceptions, preserve the ordinary release behavior.
+- [ ] **Step 3: Integrate freshness deferral with the atomic defer RPC** and update `api/kingshot-auto.js` so a deferred result is counted independently from a deadline skip but keeps an existing eligible player in `validPlayers`. If the defer RPC fails, do not immediately release the claim and create a hot retry loop; let the existing claim expire and emit a bounded operational reason. For unrelated, non-deferred exceptions, preserve the ordinary release behavior.
 - [ ] **Step 4: Verify 429 uses the key-pool's longer retry signal when present** and no retry calculation shortens an existing shared cooldown.
 - [ ] **Step 5: Verify valid data clears retry-after**, updates `last_kingdom_check_at`, and preserves the existing kingdom-change notification only when the validated kingdom truly differs.
 - [ ] **Step 6: Run** `node --test tests/kingdom-validation.test.js tests/kingdom-check-flow.test.js tests/kingdom-check-retry-migration.test.js` and commit as `fix: persist and enforce kingdom check deferrals`.
