@@ -122,11 +122,12 @@ export function getKingdomRetryAfterAtMs({ reason, snapshot, status, retryAfterM
 
   const cachedAtMs = parseEpoch(snapshot?.cached_at);
   const ageSeconds = snapshot?.age_seconds;
-  if (label === "STALE_CACHE" && Number.isFinite(cachedAtMs) && typeof ageSeconds === "number" && Number.isFinite(ageSeconds) && ageSeconds >= 0 && ageSeconds < 3600) {
+  const waitingForProviderRefresh = label === "STALE_CACHE" || label === "PRE_RESET_CACHE";
+  if (waitingForProviderRefresh && Number.isFinite(cachedAtMs) && typeof ageSeconds === "number" && Number.isFinite(ageSeconds) && ageSeconds >= 0 && ageSeconds < 3600) {
     return Math.max(cachedAtMs + 3600 * 1000 + 95 * 1000, nowMs + 60 * 1000);
   }
 
-  if (label === "STALE_CACHE" && typeof ageSeconds === "number" && Number.isFinite(ageSeconds) && ageSeconds >= 3600) {
+  if (waitingForProviderRefresh && typeof ageSeconds === "number" && Number.isFinite(ageSeconds) && ageSeconds >= 3600) {
     return nowMs + 5 * 60 * 1000;
   }
 
