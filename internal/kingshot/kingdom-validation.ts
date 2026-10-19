@@ -1,8 +1,8 @@
 import type { KingshotPlayer } from "./mightpulse.js";
 import { fetchMightPulse } from "../../lib/mightpulse-key-pool.js";
-import { isKingdomValidationDeferred, getKingdomValidationRetryAfterMs } from "./kingdom-validation-errors.js";
+import { isKingdomValidationDeferred } from "./kingdom-validation-errors.js";
 import { evaluateMightPulseSnapshot, getKingdomRetryAfterAtMs, needsKingdomResetCheck } from "./kingdom-freshness.js";
-export { needsKingdomResetCheck } from "./kingdom-freshness.js";
+export { needsKingdomResetCheck };
 
 export interface KingdomValidationPlayer {
   player_id: string;
