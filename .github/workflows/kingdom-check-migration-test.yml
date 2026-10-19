@@ -49,3 +49,25 @@ jobs:
 
       - name: Exercise claims, retry windows, and least-privilege grants
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/sql/kingdom-check-assertions.sql
+
+      - name: Prove two concurrent claims cannot both succeed
+        shell: bash
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "insert into public.kingshot_autoredeem (player_id, enabled, stale, kingdom_id, last_kingdom_check_at, updated_at) values ('concurrent-claim-player', true, false, '200', clock_timestamp() - interval '2 days', clock_timestamp())"
+          psql "$DATABASE_URL" -X -A -t -v ON_ERROR_STOP=1 -c "select coalesce((public.claim_kingshot_kingdom_reset_check('concurrent-claim-player')->>'claimed')::boolean, false)" > /tmp/kingdom-claim-one.txt &
+          first_pid=$!
+          psql "$DATABASE_URL" -X -A -t -v ON_ERROR_STOP=1 -c "select coalesce((public.claim_kingshot_kingdom_reset_check('concurrent-claim-player')->>'claimed')::boolean, false)" > /tmp/kingdom-claim-two.txt &
+          second_pid=$!
+          wait "$first_pid"
+          wait "$second_pid"
+          first_result="$(tr -d '[:space:]' < /tmp/kingdom-claim-one.txt)"
+          second_result="$(tr -d '[:space:]' < /tmp/kingdom-claim-two.txt)"
+          echo "Concurrent claim results: $first_result and $second_result"
+          if [[ "$first_result" == "$second_result" ]]; then
+            echo "ERROR: exactly one concurrent claim must succeed"
+            exit 1
+          fi
+          if [[ "$first_result" != "true" && "$second_result" != "true" ]]; then
+            echo "ERROR: neither concurrent claim succeeded"
+            exit 1
+          fi
