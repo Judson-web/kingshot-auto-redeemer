@@ -90,6 +90,16 @@ export function evaluateMightPulseSnapshot(snapshot, nowMs = Date.now()) {
   return { valid: true, player, cachedAtMs, ageSeconds: snapshot.age_seconds };
 }
 
+/**
+ * @param {{
+ *   reason?: string,
+ *   snapshot?: { cached_at?: string | null, age_seconds?: number | null } | null,
+ *   status?: number,
+ *   retryAfterMs?: number,
+ *   nowMs?: number
+ * }} options
+ * @returns {number} Absolute retry timestamp in milliseconds since epoch.
+ */
 export function getKingdomRetryAfterAtMs({ reason, snapshot, status, retryAfterMs, nowMs = Date.now() } = {}) {
   const numericStatus = Number(status || 0);
   const label = String(reason || "").toUpperCase();
