@@ -4,7 +4,7 @@
 
 **Goal:** Apply two narrowly evidence-backed Supabase hygiene fixes without changing effective access semantics, and trace the recurring Node `DEP0169` warning before deciding whether a code change is justified.
 
-**Architecture:** Keep database changes in a separate additive migration, guarded by explicit catalog checks, and verify policy/grant behavior in an isolated Supabase development branch. Investigate the runtime warning independently; replace a deprecated call only if its actual caller is attributable and a safe equivalent exists.
+**Architecture:** Keep database changes in a separate additive migration, guarded by explicit catalog checks, and verify policy/grant behavior in a disposable PostgreSQL 17 GitHub Actions job using a schema fixture. A paid Supabase branch is optional, not a gate. Investigate the runtime warning independently; replace a deprecated call only if its actual caller is attributable and a safe equivalent exists.
 
 **Tech Stack:** Supabase PostgreSQL/RLS, migration SQL, Node.js 24, npm dependency tree, Vercel runtime logs, existing security-regression checks.
 
@@ -47,7 +47,7 @@
 - [ ] **Step 2: Run** `node --test tests/database-advisor-hygiene-migration.test.js` and confirm it fails because the migration is absent.
 - [ ] **Step 3: Add the migration** in a transaction. Use stable index naming and an idempotent index creation. Place the role/predicate preconditions immediately before any policy drop.
 - [ ] **Step 4: Run focused static tests** and extend `scripts/security-regression.mjs` if the test suite does not already protect the RLS/grant/search-path invariants.
-- [ ] **Step 5: Verify in an isolated Supabase development branch**: query `pg_policies`, `pg_indexes`, role grants, and RLS flags before and after; assert the broad policy is unchanged, effective profile visibility is unchanged, and the session table remains client-inaccessible. Do not apply this migration to production during this task. If the tool cannot provide an isolated branch, stop before any write and report the limitation rather than substituting production.
+- [x] **Step 5: Verify in disposable PostgreSQL 17 CI**: `.github/workflows/database-advisor-hygiene-test.yml` applies the actual migration and checks the user_id index, unchanged broad profile-read policy, removal of the exact redundant policy, RLS and client privilege invariants, and preservation of the own-profile policy when the broad-policy precondition is deliberately changed. This does not write to production.
 - [ ] **Step 6: Run the full security regression and commit** as `fix: add developer session user index safely`.
 
 ### Task 2: Trace and, only if safe, remediate DEP0169
@@ -73,7 +73,7 @@
 
 ## Completion Criteria
 
-- The developer session foreign key has a supporting index.
+- The developer session foreign key has a supporting index, and the migration's catalog guard/RLS invariants pass in disposable PostgreSQL integration CI.
 - The redundant profile policy is removed only when the expected policy state proves that removal preserves effective access; otherwise it remains and the mismatch is reported.
 - Private session/key-budget data remain inaccessible to untrusted roles.
 - `DEP0169` has an evidence-backed attribution and a narrow fix, or a clear finding that no safe in-repository fix is justified.
