@@ -170,6 +170,7 @@ declare
   v public.kingshot_autoredeem;
   v_old_kingdom text;
   v_changed boolean := false;
+  v_now timestamptz := clock_timestamp();
 begin
   select kingdom_id into v_old_kingdom
   from public.kingshot_autoredeem
