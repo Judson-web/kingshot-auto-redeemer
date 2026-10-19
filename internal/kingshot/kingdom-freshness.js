@@ -1,6 +1,5 @@
 const RESET_HOUR = 5;
 const RESET_MINUTE = 30;
-const IST_RESET_UTC_OFFSET_MINUTES = 330;
 const METADATA_CLOCK_TOLERANCE_MS = 5 * 60 * 1000;
 const MAX_PROVIDER_AGE_SECONDS = 60 * 60 + 90;
 const RETRY_AFTER_CAP_MS = 24 * 60 * 60 * 1000;
@@ -37,17 +36,14 @@ export function getResetCycle(nowMs = Date.now()) {
   const minute = Number(parts.minute);
   const afterReset = hour > RESET_HOUR || (hour === RESET_HOUR && minute >= RESET_MINUTE);
 
-  const localDateUtcMidnight = Date.UTC(year, month - 1, day);
-  const currentDateResetUtc = localDateUtcMidnight - IST_RESET_UTC_OFFSET_MINUTES * MINUTE_MS;
-  // India is UTC+05:30; date-local midnight therefore maps to the prior UTC date.
-  // Keep the active boundary aligned to 00:00 UTC for the same IST calendar date.
+  // 05:30 Asia/Kolkata is exactly 00:00 UTC on the same IST calendar date.
   const sameIstDateBoundary = Date.UTC(year, month - 1, day);
   const resetBoundaryMs = afterReset ? sameIstDateBoundary : sameIstDateBoundary - 24 * 60 * MINUTE_MS;
 
   return {
     dateKey: year + "-" + String(month).padStart(2, "0") + "-" + String(day).padStart(2, "0"),
     afterReset,
-    resetBoundaryMs: Number.isFinite(resetBoundaryMs) ? resetBoundaryMs : currentDateResetUtc
+    resetBoundaryMs
   };
 }
 
@@ -116,11 +112,15 @@ export function getKingdomRetryAfterAtMs({ reason, snapshot, status, retryAfterM
 
   const cachedAtMs = parseEpoch(snapshot?.cached_at);
   const ageSeconds = snapshot?.age_seconds;
-  if (Number.isFinite(cachedAtMs) && typeof ageSeconds === "number" && Number.isFinite(ageSeconds) && ageSeconds >= 0 && ageSeconds < 3600) {
-    return cachedAtMs + 3600 * 1000 + 95 * 1000;
+  if (label === "STALE_CACHE" && Number.isFinite(cachedAtMs) && typeof ageSeconds === "number" && Number.isFinite(ageSeconds) && ageSeconds >= 0 && ageSeconds < 3600) {
+    return Math.max(cachedAtMs + 3600 * 1000 + 95 * 1000, nowMs + 60 * 1000);
   }
 
-  if (label === "STALE_CACHE" && Number.isFinite(ageSeconds) && ageSeconds >= 3600) {
+  if (label === "STALE_CACHE" && typeof ageSeconds === "number" && Number.isFinite(ageSeconds) && ageSeconds >= 3600) {
+    return nowMs + 5 * 60 * 1000;
+  }
+
+  if (/CACHE_TOO_OLD/.test(label)) {
     return nowMs + 5 * 60 * 1000;
   }
 
