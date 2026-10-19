@@ -11,15 +11,16 @@ test("advisor hygiene migration only adds the missing developer-session foreign-
 
 test("profile policy cleanup verifies the exact broad policy before considering removal", () => {
   assert.match(sql, /Public profiles are readable/i);
-  assert.match(sql, /roles::text\s*=\s*'\{anon,authenticated\}'/i);
-  assert.match(sql, /cmd\s*=\s*'SELECT'/i);
-  assert.match(sql, /qual\s*=\s*'true'/i);
+  assert.match(sql, /v_public_policy\.roles::text\s*<>\s*'\{anon,authenticated\}'/i);
+  assert.match(sql, /v_public_policy\.cmd\s*<>\s*'SELECT'/i);
+  assert.match(sql, /coalesce\(v_public_policy\.qual, ''\)\s*<>\s*'true'/i);
   assert.match(sql, /raise exception/i);
 });
 
 test("own-profile policy is removed only when its known definition matches the audited predicate", () => {
   assert.match(sql, /Users can view their own profile/i);
-  assert.match(sql, /roles::text\s*=\s*'\{authenticated\}'/i);
+  assert.match(sql, /v_own_policy\.roles::text\s*<>\s*'\{authenticated\}'/i);
+  assert.match(sql, /v_own_policy\.cmd\s*<>\s*'SELECT'/i);
   assert.match(sql, /lower\s*\(\s*regexp_replace\s*\(/i);
   assert.match(sql, /auth\.uid\(\)/i);
   assert.match(sql, /drop policy/i);
