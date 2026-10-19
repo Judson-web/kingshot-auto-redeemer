@@ -1,6 +1,8 @@
 import type { KingshotPlayer } from "./mightpulse.js";
 import { fetchMightPulse } from "../../lib/mightpulse-key-pool.js";
-import { getKingdomValidationRetryAfterMs, isKingdomValidationDeferred } from "./kingdom-validation-errors.js";
+import { isKingdomValidationDeferred, getKingdomValidationRetryAfterMs } from "./kingdom-validation-errors.js";
+import { evaluateMightPulseSnapshot, getKingdomRetryAfterAtMs, needsKingdomResetCheck } from "./kingdom-freshness.js";
+export { needsKingdomResetCheck } from "./kingdom-freshness.js";
 
 export interface KingdomValidationPlayer {
   player_id: string;
@@ -20,8 +22,15 @@ export interface KingdomValidationResult {
 }
 
 interface FreshPlayer {
-  notFound?: boolean;
-  player?: KingshotPlayer;
+  status: number;
+  snapshot?: {
+    fresh?: unknown;
+    cached_at?: unknown;
+    age_seconds?: unknown;
+    player?: unknown;
+  };
+  retryAfterMs?: number;
+  errorMessage?: string;
 }
 
 interface KingdomRpcResult {
@@ -40,52 +49,22 @@ interface Notify {
   (event: { title: string; description?: string; fields?: Array<{ name: string; value: string; inline?: boolean }>; color?: number }): Promise<unknown>;
 }
 
-const RESET_HOUR = 5;
-const RESET_MINUTE = 30;
-const RETRYABLE = /timeout|timed out|abort|429|rate limit|too many requests|502|503|504/i;
+type FetchPlayer = (playerId: string) => Promise<FreshPlayer>;
+
+const RETRYABLE = /timeout|timed out|abort|429|rate limit|too many requests|502|503|504|temporarily unavailable/i;
 type MightPulseFetchError = Error & { status?: number; retryAfterMs?: number; localBudgetDenied?: boolean };
 const RATE_LIMIT_COOLDOWN_FALLBACK_MS = 60_000;
 let mightPulseCooldownUntil = 0;
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-function resetBoundary(now = Date.now()) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23"
-  }).formatToParts(new Date(now));
-  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
-  const year = Number(values.year);
-  const month = Number(values.month);
-  const day = Number(values.day);
-  const hour = Number(values.hour);
-  const minute = Number(values.minute);
-  return {
-    dateKey: year + "-" + String(month).padStart(2, "0") + "-" + String(day).padStart(2, "0"),
-    afterReset: hour > RESET_HOUR || (hour === RESET_HOUR && minute >= RESET_MINUTE)
-  };
-}
-
-export function needsKingdomResetCheck(lastCheckedAt: unknown, now = Date.now()): boolean {
-  if (!lastCheckedAt) return true;
-  const last = Date.parse(String(lastCheckedAt));
-  if (Number.isNaN(last)) return true;
-  const current = resetBoundary(now);
-  const previous = resetBoundary(last);
-  if (current.dateKey !== previous.dateKey) return current.afterReset;
-  return current.afterReset && !previous.afterReset;
-}
 
 async function fetchCurrentPlayer(playerId: string): Promise<FreshPlayer> {
   let lastError: MightPulseFetchError | null = null;
 
   for (let attempt = 0; attempt < 2; attempt++) {
     if (Date.now() < mightPulseCooldownUntil) {
-      throw Error("MightPulse shared key-pool cooldown active; validation deferred to the next cycle.");
+      const error = Error("MightPulse shared key-pool cooldown active; validation deferred to the next cycle.") as MightPulseFetchError;
+      error.retryAfterMs = mightPulseCooldownUntil - Date.now();
+      throw error;
     }
     try {
       const response = await fetchMightPulse(
@@ -95,28 +74,56 @@ async function fetchCurrentPlayer(playerId: string): Promise<FreshPlayer> {
       );
       const data = await response.json().catch(() => ({})) as {
         player?: KingshotPlayer;
+        fresh?: unknown;
+        cached_at?: unknown;
+        age_seconds?: unknown;
         message?: string;
         error?: string;
         [key: string]: unknown;
       };
-      if (response.status === 404) return { notFound: true };
+      const retryAfterSeconds = Number(response.headers.get("retry-after") || "0");
+      const retryAfterMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+        ? Math.min(24 * 60 * 60 * 1000, retryAfterSeconds * 1000)
+        : undefined;
+      if (response.status === 404) {
+        return {
+          status: 404,
+          retryAfterMs,
+          snapshot: {
+            fresh: data.fresh,
+            cached_at: data.cached_at,
+            age_seconds: data.age_seconds,
+            player: data.player
+          },
+          errorMessage: data?.message || data?.error || "MightPulse player was not found."
+        };
+      }
       if (!response.ok) {
         const error = Error(data?.message || data?.error || "MightPulse revalidation failed.") as MightPulseFetchError;
         error.status = response.status;
-        const retryAfter = Number(response.headers.get("retry-after") || "0");
-        if (Number.isFinite(retryAfter) && retryAfter > 0) error.retryAfterMs = Math.min(90_000, retryAfter * 1000);
+        error.retryAfterMs = retryAfterMs;
         throw error;
       }
-      return { player: data.player || data as KingshotPlayer };
+      // Keep the provider envelope intact. A bare player payload is not enough
+      // evidence for a reset-cycle state mutation.
+      return {
+        status: response.status,
+        snapshot: {
+          fresh: data.fresh,
+          cached_at: data.cached_at,
+          age_seconds: data.age_seconds,
+          player: data.player
+        }
+      };
     } catch (error) {
       lastError = error as MightPulseFetchError;
       const status = Number(lastError.status || 0);
       const message = String(lastError.message || "");
-      const rateLimited = status === 429 || /rate[_ -]?limited|rate limit|too many requests|no request headroom/i.test(message);
+      const rateLimited = status === 429 || /rate[_ -]?limited|rate limit|too many requests|no request headroom|daily request budget is exhausted/i.test(message);
       const retryable = RETRYABLE.test(message) || [429, 502, 503, 504].includes(status);
       if (rateLimited) {
-        // The key pool records a shared cooldown per limited key. Only enter a
-        // worker-level cooldown after every configured key has been tried.
+        // Keep the existing shared-key quota behavior. This only protects the
+        // current instance after the key pool has exhausted viable keys.
         const cooldownMs = Math.min(90_000, Math.max(15_000, Number(lastError.retryAfterMs) || RATE_LIMIT_COOLDOWN_FALLBACK_MS));
         mightPulseCooldownUntil = Math.max(mightPulseCooldownUntil, Date.now() + cooldownMs);
         throw lastError;
@@ -133,99 +140,174 @@ async function fetchCurrentPlayer(playerId: string): Promise<FreshPlayer> {
 
 export async function revalidatePlayer(
   player: KingdomValidationPlayer,
-  dependencies: { rpc: Rpc; notify: Notify },
+  dependencies: { rpc: Rpc; notify: Notify; fetchPlayer?: FetchPlayer; nowMs?: () => number },
   options: { force?: boolean } = {}
 ): Promise<KingdomValidationResult> {
   const { rpc, notify } = dependencies;
-  try {
-    const persistFreshPlayer = async (current: KingdomValidationPlayer, manual = false) => {
-      const fresh = await fetchCurrentPlayer(current.player_id);
-      if (fresh.notFound) {
-        await rpc("mark_kingshot_player_stale", { p_player_id: current.player_id, p_reason: "MIGHTPULSE_PLAYER_NOT_FOUND" });
-        if (!manual) {
-          await notify({
-            title: "🗑️ Deleted Kingshot account filtered",
-            description: "The scheduled kingdom-reset revalidation could not find this registered player. The registration is now stale and excluded from future auto-redeem cycles.",
-            fields: [
-              { name: "Player ID", value: String(current.player_id), inline: true },
-              { name: "Last kingdom", value: String(current.kingdom_id || "Unknown"), inline: true },
-              { name: "Check", value: "Reset-cycle player revalidation", inline: true }
-            ],
-            color: 0xFEE75C
-          });
-        }
-        return { stale: true } as KingdomValidationResult;
-      }
+  const nowMs = () => typeof dependencies.nowMs === "function" ? dependencies.nowMs!() : Date.now();
+  const manual = Boolean(options.force);
+  const fetchPlayer = dependencies.fetchPlayer || fetchCurrentPlayer;
+  let claimed = false;
 
-      const p = fresh.player || {};
-      const currentKingdom = String(p.kid ?? p.kingdom_id ?? "").replace(/\D/g, "");
-      if (!currentKingdom) throw Error("MightPulse returned no kingdom for this player.");
-      const result = await rpc("record_kingshot_kingdom_revalidation", {
-        p_player_id: current.player_id,
-        p_kingdom_id: currentKingdom,
-        p_player_name: p.nick_name || p.name || p.nickname || null,
-        p_avatar_url: p.avatar_url || p.avatar || p.avatarUrl || null
-      }) as KingdomRpcResult;
-
-      if (result?.kingdom_changed) {
-        console.log("Kingshot " + (manual ? "manual " : "") + "kingdom changed:", {
-          playerId: current.player_id,
-          from: result.old_kingdom_id,
-          to: result.new_kingdom_id
-        });
-        await notify({
-          title: "🔄 Kingdom changed",
-          description: manual ? "A manual kingdom check detected a registered player's kingdom change." : "A registered player's current Kingshot kingdom changed.",
-          fields: [
-            { name: "Player ID", value: String(current.player_id), inline: true },
-            { name: "Previous", value: String(result.old_kingdom_id || "Unknown"), inline: true },
-            { name: "Current", value: String(result.new_kingdom_id || currentKingdom), inline: true }
-          ],
-          color: 0x5865F2
-        });
-      }
-      return {
-        player: result?.player || current,
-        revalidated: true,
-        kingdomChanged: Boolean(result?.kingdom_changed)
-      };
+  const deferClaim = async (
+    reason: string,
+    details: { status?: number; snapshot?: FreshPlayer["snapshot"]; retryAfterMs?: number } = {}
+  ): Promise<KingdomValidationResult> => {
+    const retryAtMs = getKingdomRetryAfterAtMs({
+      reason,
+      status: details.status,
+      snapshot: details.snapshot,
+      retryAfterMs: details.retryAfterMs,
+      nowMs: nowMs()
+    });
+    try {
+      await rpc("defer_kingshot_kingdom_reset_check", {
+        p_player_id: player.player_id,
+        p_retry_after_at: new Date(retryAtMs).toISOString()
+      });
+      claimed = false;
+    } catch (error) {
+      // Do not release a claim when persisting the retry window failed; the
+      // lease expires naturally instead of allowing another immediate fetch.
+      console.error("Kingdom check defer persistence failed:", {
+        reason,
+        error: String(error instanceof Error ? error.message : error).slice(0, 160)
+      });
+    }
+    return {
+      player,
+      deferred: true,
+      retryAfterMs: Math.max(0, retryAtMs - nowMs()),
+      deferredReason: reason
     };
+  };
 
-    if (options.force) return await persistFreshPlayer(player, true);
-
-    if (!player.kingdom_id) {
-      const initial = await persistFreshPlayer(player);
-      if (initial.stale) return initial;
-      player = initial.player || player;
+  try {
+    if (!manual && player.kingdom_id && !needsKingdomResetCheck(player.last_kingdom_check_at, nowMs())) {
+      return { player, revalidated: false };
     }
 
-    if (!needsKingdomResetCheck(player.last_kingdom_check_at)) return { player, revalidated: false };
+    const claimName = manual
+      ? "claim_kingshot_kingdom_manual_check"
+      : "claim_kingshot_kingdom_reset_check";
+    const claim = await rpc(claimName, { p_player_id: player.player_id }) as KingdomRpcResult & {
+      deferred?: boolean;
+      retry_after_at?: string | null;
+      reason?: string;
+    };
+    if (!claim?.claimed) {
+      const retryAt = Date.parse(String(claim?.retry_after_at || ""));
+      if (claim?.deferred || (Number.isFinite(retryAt) && retryAt > nowMs())) {
+        return {
+          player,
+          deferred: true,
+          deferredReason: claim.reason || "RETRY_WINDOW",
+          retryAfterMs: Number.isFinite(retryAt) ? Math.max(0, retryAt - nowMs()) : 60_000
+        };
+      }
+      return { player, revalidated: false };
+    }
+    claimed = true;
 
-    const claim = await rpc("claim_kingshot_kingdom_reset_check", { p_player_id: player.player_id }) as KingdomRpcResult;
-    if (!claim?.claimed) return { player, revalidated: false };
-
-    let claimed = true;
+    let fetched: FreshPlayer;
     try {
-      const result = await persistFreshPlayer(player);
-      claimed = false;
-      return result;
+      fetched = await fetchPlayer(player.player_id);
     } catch (error) {
-      if (claimed) {
-        await rpc("release_kingshot_kingdom_reset_check", { p_player_id: player.player_id })
-          .catch(releaseError => console.error("Kingdom check claim release failed:", releaseError?.message || releaseError));
+      const fetchError = error as MightPulseFetchError;
+      const status = Number(fetchError?.status || 0);
+      const message = String(fetchError instanceof Error ? fetchError.message : error);
+      const quotaDeferred = isKingdomValidationDeferred(error);
+      const retryableStatus = status === 404 || status === 408 || status === 429 || status >= 500;
+      const retryableMessage = RETRYABLE.test(message) || /timeout|timed out|abort|temporarily unavailable/i.test(message);
+      if (quotaDeferred || retryableStatus || retryableMessage) {
+        const reason = status === 404 ? "NOT_FOUND"
+          : status === 429 || quotaDeferred ? "RATE_LIMITED"
+          : status >= 500 || status === 408 || retryableMessage ? "TIMEOUT"
+          : "TRANSIENT";
+        return await deferClaim(reason, { status, retryAfterMs: fetchError?.retryAfterMs });
       }
       throw error;
     }
+
+    if (fetched.status === 404) {
+      return await deferClaim("NOT_FOUND", {
+        status: 404,
+        snapshot: fetched.snapshot,
+        retryAfterMs: fetched.retryAfterMs
+      });
+    }
+    if (fetched.status === 429 || fetched.status === 408 || fetched.status >= 500) {
+      const reason = fetched.status === 429 ? "RATE_LIMITED" : fetched.status === 408 ? "TIMEOUT" : "UPSTREAM_5XX";
+      return await deferClaim(reason, {
+        status: fetched.status,
+        snapshot: fetched.snapshot,
+        retryAfterMs: fetched.retryAfterMs
+      });
+    }
+    if (fetched.status < 200 || fetched.status >= 300) {
+      throw Object.assign(new Error(fetched.errorMessage || "MightPulse revalidation failed."), { status: fetched.status });
+    }
+
+    const validation = evaluateMightPulseSnapshot(fetched.snapshot, nowMs());
+    if (!validation.valid) {
+      const snapshot = fetched.snapshot;
+      const cachedAt = typeof snapshot?.cached_at === "string" ? Date.parse(snapshot.cached_at) : NaN;
+      const age = snapshot?.age_seconds;
+      const reliableAge = Number.isFinite(cachedAt) && typeof age === "number" && Number.isFinite(age) && age >= 0;
+      const reason = validation.reason === "CACHE_TOO_OLD"
+        ? "CACHE_TOO_OLD"
+        : snapshot?.fresh === false && reliableAge && age < 3600
+          ? "STALE_CACHE"
+          : validation.reason || "INVALID_SNAPSHOT";
+      return await deferClaim(reason, { snapshot });
+    }
+
+    const p = validation.player as KingshotPlayer;
+    const currentKingdom = String(p.kid ?? p.kingdom_id ?? "").replace(/\D/g, "");
+    const result = await rpc("record_kingshot_kingdom_revalidation", {
+      p_player_id: player.player_id,
+      p_kingdom_id: currentKingdom,
+      p_player_name: p.nick_name || p.name || p.nickname || null,
+      p_avatar_url: p.avatar_url || p.avatar || p.avatarUrl || null
+    }) as KingdomRpcResult & { ok?: boolean; reason?: string };
+
+    if (result?.ok === false || !result?.player) {
+      claimed = false;
+      await rpc("release_kingshot_kingdom_reset_check", { p_player_id: player.player_id }).catch(() => {});
+      return { player, revalidationError: 1 };
+    }
+
+    claimed = false; // The successful RPC clears the database claim and retry window.
+    if (result?.kingdom_changed) {
+      console.log("Kingshot " + (manual ? "manual " : "") + "kingdom changed:", {
+        playerId: player.player_id,
+        from: result.old_kingdom_id,
+        to: result.new_kingdom_id
+      });
+      await notify({
+        title: "🔄 Kingdom changed",
+        description: manual ? "A manual kingdom check detected a registered player's kingdom change." : "A registered player's current Kingshot kingdom changed.",
+        fields: [
+          { name: "Player ID", value: String(player.player_id), inline: true },
+          { name: "Previous", value: String(result.old_kingdom_id || "Unknown"), inline: true },
+          { name: "Current", value: String(result.new_kingdom_id || currentKingdom), inline: true }
+        ],
+        color: 0x5865F2
+      }).catch(error => console.error("Kingdom change notification failed:", String(error?.message || error).slice(0, 160)));
+    }
+    return {
+      player: result.player,
+      revalidated: true,
+      kingdomChanged: Boolean(result?.kingdom_changed)
+    };
   } catch (error) {
     const message = String(error instanceof Error ? error.message : error);
-    // Cooldown/headroom means the upstream was intentionally not queried (or
-    // refused the request). It is deferred work, not a bad player record.
-    if (isKingdomValidationDeferred(error)) {
-      console.warn("Kingshot kingdom validation deferred by MightPulse quota/cooldown.");
-      return { deferred: true, retryAfterMs: getKingdomValidationRetryAfterMs(error) };
+    if (claimed) {
+      await rpc("release_kingshot_kingdom_reset_check", { p_player_id: player.player_id })
+        .catch(releaseError => console.error("Kingdom check claim release failed:", String(releaseError?.message || releaseError).slice(0, 160)));
     }
     // Avoid putting player identifiers or provider response bodies in runtime logs.
     console.error("Kingshot player validation failed:", { reason: message.slice(0, 200) });
-    return { revalidationError: 1 };
+    return { player, revalidationError: 1 };
   }
 }
