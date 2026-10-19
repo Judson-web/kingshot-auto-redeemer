@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const migrationPath = new URL("../supabase/migrations/20261019103000_database_advisor_hygiene.sql", import.meta.url);
+const migrationPath = new URL("../supabase/migrations/20261019095442_database_advisor_hygiene.sql", import.meta.url);
 const sql = await readFile(migrationPath, "utf8");
 
 test("advisor hygiene migration only adds the missing developer-session foreign-key index", () => {
