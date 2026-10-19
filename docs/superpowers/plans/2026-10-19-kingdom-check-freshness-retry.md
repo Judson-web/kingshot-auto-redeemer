@@ -20,7 +20,7 @@
 - A freshness/quota/transient deferral must not change the stored kingdom or suppress redemption solely because revalidation was inconclusive: return the existing record and keep it eligible when it already has a usable stored kingdom and remains otherwise enabled/non-stale. A player without a usable stored kingdom remains ineligible.
 - Persist retry-after in `public.kingshot_autoredeem`; the database claim remains atomic across serverless instances.
 - Service-only RPCs revoke execution from `public`, `anon`, and `authenticated`, grant only `service_role`, and retain explicit `search_path`.
-- Do not make production database writes or alter Neon during implementation testing; verify SQL with isolated tests/development branch and use versioned migrations for rollout.
+- Do not make production database writes or alter Neon during implementation testing. Validate SQL in disposable PostgreSQL 17 GitHub Actions jobs using fixtures for the relevant pre-migration schema; keep rollout changes in the versioned migration. A paid Supabase branch is optional, not a gate.
 - Do not perform a broad dependency upgrade or suppress `DEP0169` without identifying its source.
 
 ## Review Focus
@@ -90,8 +90,8 @@
 - [ ] **Step 1: Write migration-regression assertions** that require the column, retry check inside the row-locked claim, atomic deferral/release, successful-clear behavior, explicit search path, revoke from `public`/`anon`/`authenticated`, and grant to `service_role` only.
 - [ ] **Step 2: Run** `node --test tests/kingdom-check-retry-migration.test.js` and confirm it fails before the migration exists.
 - [ ] **Step 3: Write the additive migration**. Do not edit old migrations or write directly to production.
-- [ ] **Step 4: Run focused static migration/security tests**. Create or use an isolated Supabase development branch for database-level verification only after plan approval; apply the migration there and query the column, function definitions, and role execution privileges. Do not apply it to production during this task.
-- [ ] **Step 5: Test claim concurrency, due/future retry timestamps, the 24-hour bound, repeated deferrals, and successful retry clearing** against the isolated database when the environment supports concurrent SQL sessions. If not supported, report the limitation and retain static regression coverage; do not claim concurrency was proven.
+- [x] **Step 4: Run focused static migration/security tests and disposable PostgreSQL integration**. `.github/workflows/kingdom-check-migration-test.yml` applies the actual versioned migration to a throwaway PostgreSQL 17 database and exercises scheduled/manual claims, retry-after deferrals/bounds, retry clearing on success, kingdom-change event recording, and service-role-only execute privileges. No production database was modified.
+- [ ] **Step 5: Add a concurrent-session assertion** to the disposable PostgreSQL workflow so two simultaneous claims for the same eligible player produce exactly one successful claim. Until that test is added and green, do not claim the concurrency race has been exercised end-to-end; the migration still locks the player row with `FOR UPDATE`.
 - [ ] **Step 6: Commit** as `feat: persist kingdom validation retry windows`.
 
 ### Task 4: Route every fetch through the correct claim/defer lifecycle
@@ -135,4 +135,4 @@
 - Scheduled and manual requests cannot race or bypass durable retry eligibility.
 - A 404 no longer marks the player stale from one lookup.
 - Retry-after is persisted in Postgres, respected by atomic claims, and cleared by a successful validation.
-- All existing project gates pass, and the migration's grants/search paths are verified on an isolated database before deployment.
+- All existing project gates pass, and the migration's grants/search paths and retry lifecycle are verified in disposable PostgreSQL CI before deployment. Production rollout remains a separate versioned migration step.
