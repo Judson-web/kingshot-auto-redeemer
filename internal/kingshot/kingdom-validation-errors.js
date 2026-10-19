@@ -10,7 +10,7 @@ const DEFERRED_QUOTA_MESSAGE =
 
 export function isKingdomValidationDeferred(error) {
   const status = Number(error?.status || 0);
-  const message = String(error instanceof Error ? error.message : error ?? "");
+  const message = String(error instanceof Error ? error.message : typeof error === "string" ? error : error?.message ?? error ?? "");
   if (status === 429) return true;
   if (DEFERRED_QUOTA_MESSAGE.test(message)) return true;
   return false;
