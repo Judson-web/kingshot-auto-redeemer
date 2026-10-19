@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - "supabase/migrations/20261019103000_database_advisor_hygiene.sql"
+      - "supabase/migrations/20261019095442_database_advisor_hygiene.sql"
       - "tests/sql/database-advisor-hygiene-fixture.sql"
       - "tests/sql/database-advisor-hygiene-assertions.sql"
       - ".github/workflows/database-advisor-hygiene-test.yml"
@@ -45,7 +45,7 @@ jobs:
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/sql/database-advisor-hygiene-fixture.sql
 
       - name: Apply versioned migration
-        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261019103000_database_advisor_hygiene.sql
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261019095442_database_advisor_hygiene.sql
 
       - name: Verify effective policy and least-privilege invariants
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/sql/database-advisor-hygiene-assertions.sql
@@ -58,7 +58,7 @@ jobs:
           create policy "Users can view their own profile" on public.profiles for select to authenticated
             using ((select auth.uid() as uid) = id);
           SQL
-          if psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261019103000_database_advisor_hygiene.sql; then
+          if psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261019095442_database_advisor_hygiene.sql; then
             echo "ERROR: migration unexpectedly accepted a policy definition mismatch"
             exit 1
           fi
