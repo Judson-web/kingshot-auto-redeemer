@@ -133,3 +133,15 @@ test("failed deferral persistence does not release the claim into a hot retry lo
   assert.equal(result.deferred, true);
   assert.equal(h.calls.some(call => call.name === "release_kingshot_kingdom_reset_check"), false);
 });
+
+test("scheduled validation skips persisted retry windows without claim or provider calls", async () => {
+  const h = harness({ fetchPlayer: async () => { throw new Error("provider must not be called during retry window"); } });
+  const result = await revalidatePlayer(currentPlayer({
+    kingdom_check_retry_after_at: new Date(NOW + 300_000).toISOString()
+  }), h.dependencies);
+  assert.equal(result.revalidated, false);
+  assert.equal(result.deferred, undefined);
+  assert.equal(result.player.kingdom_id, "1125");
+  assert.equal(h.calls.length, 0);
+  assert.equal(h.notifications.length, 0);
+});
