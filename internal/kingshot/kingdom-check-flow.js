@@ -68,3 +68,49 @@ export function summarizeKingdomCheckResults(results) {
     return summary;
   }, { checked: 0, changed: 0, stale: 0, errors: 0, deferred: 0, validated: 0, retryAfterMs: 0 });
 }
+
+const DEFAULT_SCHEDULED_BATCH_SIZE = 6;
+const MAX_SCHEDULED_BATCH_SIZE = 12;
+
+/**
+ * Select a bounded, fair batch for the scheduled coordinator.
+ * Players inside a durable retry window are not candidates; the oldest kingdom
+ * check is processed first so successful checks naturally rotate through the pool.
+ */
+export function selectScheduledKingdomCheckBatch(players, options = {}) {
+  const rawNow = Number(options.nowMs);
+  const nowMs = Number.isFinite(rawNow) ? rawNow : Date.now();
+  const rawSize = Number(options.batchSize);
+  const batchSize = Number.isFinite(rawSize) && rawSize > 0
+    ? Math.min(MAX_SCHEDULED_BATCH_SIZE, Math.floor(rawSize))
+    : DEFAULT_SCHEDULED_BATCH_SIZE;
+  const byId = new Map();
+
+  for (const player of Array.isArray(players) ? players : []) {
+    const id = String(player?.player_id ?? "").trim();
+    if (id) byId.set(id, player);
+  }
+
+  const all = [...byId.values()];
+  const eligible = all
+    .filter(player => {
+      const retryAt = Date.parse(String(player?.kingdom_check_retry_after_at ?? ""));
+      return !Number.isFinite(retryAt) || retryAt <= nowMs;
+    })
+    .sort((left, right) => {
+      const leftChecked = Date.parse(String(left?.last_kingdom_check_at ?? ""));
+      const rightChecked = Date.parse(String(right?.last_kingdom_check_at ?? ""));
+      const leftOrder = Number.isFinite(leftChecked) ? leftChecked : 0;
+      const rightOrder = Number.isFinite(rightChecked) ? rightChecked : 0;
+      return leftOrder - rightOrder || comparePlayerIds(left?.player_id, right?.player_id);
+    });
+
+  const batch = eligible.slice(0, batchSize);
+  return {
+    players: batch,
+    batchSize,
+    eligibleCount: eligible.length,
+    queuedCount: Math.max(0, eligible.length - batch.length),
+    retryWaitingCount: all.length - eligible.length
+  };
+}
