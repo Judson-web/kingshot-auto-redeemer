@@ -61,7 +61,7 @@ test("missing or invalid ages on non-empty queues fail closed", () => {
 test("diagnostics query only recovery timestamps and do not return player or code identifiers", async () => {
   const health = await readFile(new URL("../lib/health.js", import.meta.url), "utf8");
   const watchdog = await readFile(new URL("../scripts/worker-watchdog.mjs", import.meta.url), "utf8");
-  const migration = await readFile(new URL("../supabase/migrations/20261020130000_track_recovery_attempt_start.sql", import.meta.url), "utf8");
+  const migration = await readFile(new URL("../supabase/migrations/20261020174017_track_recovery_attempt_start.sql", import.meta.url), "utf8");
   const recoveryQuery = health.slice(
     health.indexOf("async function recoveryQueueState"),
     health.indexOf("async function count(table)")
