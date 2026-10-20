@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import {
   normalizeKingdomCheckBatchOptions,
   selectKingdomCheckBatch,
+  selectScheduledKingdomCheckBatch,
   summarizeKingdomCheckResults
 } from "../internal/kingshot/kingdom-check-flow.js";
 
@@ -148,4 +149,34 @@ test("coordinator keeps stored-kingdom players eligible when revalidation is def
   assert.match(apiSource, /if\(result\?\.deadlineSkipped\)\{a\.deferred\+\+;return a;\}/);
   assert.match(apiSource, /if\(result\?\.deferred\)\{\s*a\.deferred\+\+;[\s\S]*?if\(result\?\.player\?\.kingdom_id\)validPlayers\.push\(result\.player\);\s*return a;/);
   assert.match(apiSource, /if\(!kingdomState\.player\?\.kingdom_id\)return \{attempted:0,success:0,alreadyHandled:0,skipped:1,revalidationError:1,kingdomCheck,kingdomChanged\}/);
+});
+
+test("scheduled kingdom validation skips retry windows and caps each cycle fairly", () => {
+  const nowMs = Date.parse("2026-10-20T05:00:00.000Z");
+  const players = Array.from({ length: 10 }, (_, index) => ({
+    player_id: String(index + 1),
+    last_kingdom_check_at: new Date(nowMs - (10 - index) * 60_000).toISOString(),
+    kingdom_check_retry_after_at: index < 3
+      ? new Date(nowMs + 5 * 60_000).toISOString()
+      : new Date(nowMs - 1).toISOString()
+  }));
+  const batch = selectScheduledKingdomCheckBatch(players, { nowMs, batchSize: 3 });
+
+  assert.deepEqual(batch.players.map(player => player.player_id), ["4", "5", "6"]);
+  assert.equal(batch.batchSize, 3);
+  assert.equal(batch.eligibleCount, 7);
+  assert.equal(batch.queuedCount, 4);
+  assert.equal(batch.retryWaitingCount, 3);
+  assert.equal(selectScheduledKingdomCheckBatch(players, { nowMs }).players.length, 6);
+  assert.equal(selectScheduledKingdomCheckBatch(players, { nowMs, batchSize: 100 }).players.length, 7);
+});
+
+test("scheduled coordinator uses bounded due-player batches and preserves unprocessed kingdom registrations", async () => {
+  const apiSource = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
+  assert.match(apiSource, /KINGDOM_SCHEDULED_VALIDATION_BATCH_SIZE=6/);
+  assert.match(apiSource, /selectScheduledKingdomCheckBatch\(duePlayers/);
+  assert.match(apiSource, /needsKingdomResetCheck\(player\?\.last_kingdom_check_at,validationNow\)/);
+  assert.match(apiSource, /const validPlayerMap=new Map\(list/);
+  assert.match(apiSource, /scheduledBatch\.queuedCount/);
+  assert.match(apiSource, /if\(result\?\.stale \|\| !result\?\.player\?\.kingdom_id\)validPlayerMap\.delete\(id\)/);
 });
