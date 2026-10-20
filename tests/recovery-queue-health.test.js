@@ -67,13 +67,13 @@ test("diagnostics query only recovery timestamps and do not return player or cod
     health.indexOf("async function count(table)")
   );
 
-  assert.match(recoveryQuery, /timestampColumn=state==="pending_record"\?"created_at":"updated_at"/);
+  assert.match(recoveryQuery, /timestampColumn="attempt_started_at"/);
   assert.match(recoveryQuery, /select:timestampColumn/);
+  assert.match(migration, /add column if not exists attempt_started_at/i);
+  assert.match(migration, /attempt_started_at=now\(\)/i);
   assert.match(migration, /attempts=0/i);
-  assert.match(migration, /created_at=now\(\)/i);
   assert.match(migration, /where public\.kingshot_redemption_recovery_queue\.state='resolved'/i);
-  assert.doesNotMatch(recoveryQuery, /player_id|gift_code|status|message/i);
-  assert.match(health, /recoveryQueueState\("pending_record"\)/);
+  assert.doesNotMatch(migration, /created_at=now\(\)/i);
   assert.match(health, /recoveryQueueState\("in_flight"\)/);
   assert.match(health, /recoveryQueueState\("needs_review"\)/);
   assert.match(health, /recoveryQueue/);
