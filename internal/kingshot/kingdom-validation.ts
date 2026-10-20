@@ -8,6 +8,7 @@ export interface KingdomValidationPlayer {
   player_id: string;
   kingdom_id?: string | number | null;
   last_kingdom_check_at?: string | null;
+  kingdom_check_retry_after_at?: string | null;
   [key: string]: unknown;
 }
 
@@ -184,6 +185,16 @@ export async function revalidatePlayer(
   };
 
   try {
+    // The scheduled coordinator runs every minute. Avoid one claim RPC per player
+    // while a durable retry window is still active; the full player row already
+    // includes this timestamp. Existing players remain eligible for redemption.
+    if (!manual) {
+      const retryAfterAt = Date.parse(String(player.kingdom_check_retry_after_at || ""));
+      if (Number.isFinite(retryAfterAt) && retryAfterAt > nowMs()) {
+        return { player, revalidated: false };
+      }
+    }
+
     if (!manual && player.kingdom_id && !needsKingdomResetCheck(player.last_kingdom_check_at, nowMs())) {
       return { player, revalidated: false };
     }
