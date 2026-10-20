@@ -190,3 +190,15 @@ test("scheduler timeout migration exceeds observed healthy cycle duration withou
   assert.match(migration, /timeout_milliseconds:=55000/);
   assert.doesNotMatch(migration, /schedule\s*:=/);
 });
+
+
+test("automatic Kingdom Check can be disabled without affecting manual checks or redemption", async () => {
+  const apiSource = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
+  assert.match(apiSource, /KINGDOM_AUTO_CHECK_ENABLED=String\(process\.env\.KINGDOM_AUTO_CHECK_ENABLED\?\?"true"\)/);
+  assert.match(apiSource, /const kingdomState=KINGDOM_AUTO_CHECK_ENABLED[\s\S]*automaticCheckDisabled:true/);
+  assert.match(apiSource, /const duePlayers=KINGDOM_AUTO_CHECK_ENABLED \? list\.filter/);
+  assert.match(apiSource, /const kingdomResults=KINGDOM_AUTO_CHECK_ENABLED[\s\S]*: \[\]/);
+  const manualBranch = apiSource.slice(apiSource.indexOf('if(mode==="kingdom-check")'), apiSource.indexOf('let workerToken=null;'));
+  assert.match(manualBranch, /revalidatePlayer\(player,\{rpc,notify:sendDiscordEvent\},\{force:true\}\)/);
+  assert.match(apiSource, /redeemKingshot\(\{playerId:player\.player_id,code:item\.code,kid:player\.kingdom_id\}\)/);
+});
