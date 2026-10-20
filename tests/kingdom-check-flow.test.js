@@ -181,3 +181,12 @@ test("scheduled coordinator uses bounded due-player batches and preserves unproc
   assert.match(apiSource, /scheduledBatch\.queuedCount/);
   assert.match(apiSource, /if\(result\?\.stale \|\| !result\?\.player\?\.kingdom_id\)validPlayerMap\.delete\(id\)/);
 });
+
+
+test("scheduler timeout migration exceeds observed healthy cycle duration without changing cadence", async () => {
+  const migration = await readFile(new URL("../supabase/migrations/20261020103000_increase_kingshot_scheduler_http_timeout.sql", import.meta.url), "utf8");
+  assert.match(migration, /kingshot-auto-redeem/);
+  assert.match(migration, /cron\.alter_job/);
+  assert.match(migration, /timeout_milliseconds:=55000/);
+  assert.doesNotMatch(migration, /schedule\s*:=/);
+});
