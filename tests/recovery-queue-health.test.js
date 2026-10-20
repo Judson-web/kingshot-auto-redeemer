@@ -7,9 +7,9 @@ import {
 } from "../lib/recovery-queue-health.js";
 
 const emptyQueue = {
-  pendingRecord: { count: 0, oldestUpdatedAt: null, oldestAgeSeconds: null },
-  inFlight: { count: 0, oldestUpdatedAt: null, oldestAgeSeconds: null },
-  needsReview: { count: 0, oldestUpdatedAt: null, oldestAgeSeconds: null },
+  pendingRecord: { count: 0, oldestAt: null, oldestAgeSeconds: null },
+  inFlight: { count: 0, oldestAt: null, oldestAgeSeconds: null },
+  needsReview: { count: 0, oldestAt: null, oldestAgeSeconds: null },
   unresolved: 0
 };
 
@@ -20,7 +20,7 @@ test("empty recovery queues do not fail the watchdog", () => {
 test("pending result records older than 15 minutes are reported", () => {
   const queue = {
     ...emptyQueue,
-    pendingRecord: { count: 2, oldestUpdatedAt: "2026-10-20T00:00:00Z", oldestAgeSeconds: RECOVERY_QUEUE_LIMITS.pendingRecordSeconds + 1 }
+    pendingRecord: { count: 2, oldestAt: "2026-10-20T00:00:00Z", oldestAgeSeconds: RECOVERY_QUEUE_LIMITS.pendingRecordSeconds + 1 }
   };
   assert.match(findStalledRecoveryQueue(queue).join("\n"), /pending_record recovery backlog/);
 });
@@ -28,7 +28,7 @@ test("pending result records older than 15 minutes are reported", () => {
 test("in-flight claims older than 10 minutes are reported", () => {
   const queue = {
     ...emptyQueue,
-    inFlight: { count: 1, oldestUpdatedAt: "2026-10-20T00:00:00Z", oldestAgeSeconds: RECOVERY_QUEUE_LIMITS.inFlightSeconds + 1 }
+    inFlight: { count: 1, oldestAt: "2026-10-20T00:00:00Z", oldestAgeSeconds: RECOVERY_QUEUE_LIMITS.inFlightSeconds + 1 }
   };
   assert.match(findStalledRecoveryQueue(queue).join("\n"), /in_flight recovery backlog/);
 });
@@ -36,8 +36,8 @@ test("in-flight claims older than 10 minutes are reported", () => {
 test("queue entries inside their grace windows do not trigger alerts", () => {
   const queue = {
     ...emptyQueue,
-    pendingRecord: { count: 3, oldestUpdatedAt: "2026-10-20T00:00:00Z", oldestAgeSeconds: RECOVERY_QUEUE_LIMITS.pendingRecordSeconds - 1 },
-    inFlight: { count: 2, oldestUpdatedAt: "2026-10-20T00:00:00Z", oldestAgeSeconds: RECOVERY_QUEUE_LIMITS.inFlightSeconds - 1 }
+    pendingRecord: { count: 3, oldestAt: "2026-10-20T00:00:00Z", oldestAgeSeconds: RECOVERY_QUEUE_LIMITS.pendingRecordSeconds - 1 },
+    inFlight: { count: 2, oldestAt: "2026-10-20T00:00:00Z", oldestAgeSeconds: RECOVERY_QUEUE_LIMITS.inFlightSeconds - 1 }
   };
   assert.deepEqual(findStalledRecoveryQueue(queue), []);
 });
@@ -45,14 +45,14 @@ test("queue entries inside their grace windows do not trigger alerts", () => {
 test("needs_review rows are visible but do not trigger automatic replay alerts", () => {
   const queue = {
     ...emptyQueue,
-    needsReview: { count: 4, oldestUpdatedAt: "2026-10-01T00:00:00Z", oldestAgeSeconds: 99 * 24 * 60 * 60 }
+    needsReview: { count: 4, oldestAt: "2026-10-01T00:00:00Z", oldestAgeSeconds: 99 * 24 * 60 * 60 }
   };
   assert.deepEqual(findStalledRecoveryQueue(queue), []);
 });
 
 test("missing or invalid ages on non-empty queues fail closed", () => {
-  const missingAge = { ...emptyQueue, pendingRecord: { count: 1, oldestUpdatedAt: null, oldestAgeSeconds: null } };
-  const invalidAge = { ...emptyQueue, inFlight: { count: 1, oldestUpdatedAt: null, oldestAgeSeconds: -1 } };
+  const missingAge = { ...emptyQueue, pendingRecord: { count: 1, oldestAt: null, oldestAgeSeconds: null } };
+  const invalidAge = { ...emptyQueue, inFlight: { count: 1, oldestAt: null, oldestAgeSeconds: -1 } };
   assert.match(findStalledRecoveryQueue(missingAge).join("\n"), /age is unavailable/);
   assert.match(findStalledRecoveryQueue(invalidAge).join("\n"), /age is invalid/);
   assert.match(findStalledRecoveryQueue(null).join("\n"), /metrics are missing/);
@@ -61,12 +61,17 @@ test("missing or invalid ages on non-empty queues fail closed", () => {
 test("diagnostics query only recovery timestamps and do not return player or code identifiers", async () => {
   const health = await readFile(new URL("../lib/health.js", import.meta.url), "utf8");
   const watchdog = await readFile(new URL("../scripts/worker-watchdog.mjs", import.meta.url), "utf8");
+  const migration = await readFile(new URL("../supabase/migrations/20261020130000_track_recovery_attempt_start.sql", import.meta.url), "utf8");
   const recoveryQuery = health.slice(
     health.indexOf("async function recoveryQueueState"),
     health.indexOf("async function count(table)")
   );
 
-  assert.match(recoveryQuery, /select:"updated_at"/);
+  assert.match(recoveryQuery, /timestampColumn=state==="pending_record"\?"created_at":"updated_at"/);
+  assert.match(recoveryQuery, /select:timestampColumn/);
+  assert.match(migration, /attempts=0/i);
+  assert.match(migration, /created_at=now\(\)/i);
+  assert.match(migration, /where public\.kingshot_redemption_recovery_queue\.state='resolved'/i);
   assert.doesNotMatch(recoveryQuery, /player_id|gift_code|status|message/i);
   assert.match(health, /recoveryQueueState\("pending_record"\)/);
   assert.match(health, /recoveryQueueState\("in_flight"\)/);
