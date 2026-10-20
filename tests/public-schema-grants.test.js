@@ -20,11 +20,11 @@ test("new public tables created on or after the Supabase Data API grant change h
       // public is the common migration search_path. Prefer schema qualification.
       const table = match[1];
       const qualifiedAcl = new RegExp(
-        String.raw`(?:grant\\s+[\\s\\S]*?\\s+on\\s+(?:table\\s+)?public\\s*\\.\\s*${table}\\b|revoke\\s+[\\s\\S]*?\\s+on\\s+(?:table\\s+)?public\\s*\\.\\s*${table}\\b)`,
+        String.raw`(?:grant\s+[\s\S]*?\s+on\s+(?:table\s+)?public\s*\.\s*${table}\b|revoke\s+[\s\S]*?\s+on\s+(?:table\s+)?public\s*\.\s*${table}\b)`,
         "i"
       );
       const tableAcl = new RegExp(
-        String.raw`(?:grant\\s+[\\s\\S]*?\\s+on\\s+(?:table\\s+)?${table}\\b|revoke\\s+[\\s\\S]*?\\s+on\\s+(?:table\\s+)?${table}\\b)`,
+        String.raw`(?:grant\s+[\s\S]*?\s+on\s+(?:table\s+)?${table}\b|revoke\s+[\s\S]*?\s+on\s+(?:table\s+)?${table}\b)`,
         "i"
       );
       if (!qualifiedAcl.test(sql) && !tableAcl.test(sql)) {
