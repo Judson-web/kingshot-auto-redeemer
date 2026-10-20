@@ -1,11 +1,19 @@
--- Keep created_at scoped to the current redemption attempt, so repeated
--- pending_record write retries cannot make a permanently failing item look fresh.
--- Reuse of a resolved player/code pair starts a new attempt clock and retry counter.
+-- Track the lifetime of the current redemption attempt independently from
+-- row creation time and retry touches, so repeated failed result writes stay visible.
+alter table public.kingshot_redemption_recovery_queue
+  add column if not exists attempt_started_at timestamptz not null default now();
+
+create index if not exists kingshot_redemption_recovery_attempt_age_idx
+  on public.kingshot_redemption_recovery_queue(state,attempt_started_at)
+  where state in ('pending_record','needs_review','in_flight');
+
 create or replace function public.begin_kingshot_redemption_recovery(p_player_id text,p_code text)
 returns boolean language plpgsql security definer set search_path=public as $$
 declare v_state text;
 begin
- insert into public.kingshot_redemption_recovery_queue(player_id,gift_code,state,status,err_code,message,attempts,last_error,created_at,updated_at)
+ insert into public.kingshot_redemption_recovery_queue(
+   player_id,gift_code,state,status,err_code,message,attempts,last_error,attempt_started_at,updated_at
+ )
  values(trim(p_player_id),trim(p_code),'in_flight',null,null,null,0,null,now(),now())
  on conflict(player_id,gift_code) do update
    set state='in_flight',
@@ -14,7 +22,7 @@ begin
        message=null,
        attempts=0,
        last_error=null,
-       created_at=now(),
+       attempt_started_at=now(),
        updated_at=now()
    where public.kingshot_redemption_recovery_queue.state='resolved';
 
