@@ -1,7 +1,7 @@
 import { neon } from "@neondatabase/serverless";
 import {redeemKingshot} from"../internal/kingshot/redeem.js";
-import { revalidatePlayer } from "../internal/kingshot/kingdom-validation.js";
-import { selectKingdomCheckBatch, summarizeKingdomCheckResults } from "../internal/kingshot/kingdom-check-flow.js";
+import { revalidatePlayer, needsKingdomResetCheck } from "../internal/kingshot/kingdom-validation.js";
+import { selectKingdomCheckBatch, selectScheduledKingdomCheckBatch, summarizeKingdomCheckResults } from "../internal/kingshot/kingdom-check-flow.js";
 import { broadcastPush } from "../internal/push-notifications.js";
 
 const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
@@ -48,6 +48,7 @@ const WORKER_COUNT=4;
 // Four durable shards × two concurrent redemptions keep each shard small while bounding upstream pressure.
 const PLAYER_CONCURRENCY=2;
 const KINGDOM_VALIDATION_CONCURRENCY=3;
+const KINGDOM_SCHEDULED_VALIDATION_BATCH_SIZE=6;
 const MANUAL_KINGDOM_VALIDATION_CONCURRENCY=2;
 const WORKER_MAX_RUNTIME_MS=3*60*1000;
 const DISCORD_WEBHOOK_URL=process.env.DISCORD_KINGSHOT_WEBHOOK_URL||process.env.DISCORD_SCRAPER_WEBHOOK_URL;
@@ -449,31 +450,34 @@ export default async function handler(req,res){
   for(const item of newCodes)await sendDiscordEvent({title:"🎁 New Kingshot gift code",description:"A candidate gift code was discovered by the multi-source scraper and is awaiting player verification.",fields:[{name:"Gift code",value:String(item.code),inline:true},{name:"Sources",value:String((item.sources||[item.source||"merged"]).join(", ")),inline:true},{name:"Confidence",value:Math.round(Number(item.confidence||0)*100)+"% "+String(item.confidenceTier||"unverified"),inline:true},{name:"Expires",value:item.expiresAt&&!Number.isNaN(item.expiresAt)?new Date(item.expiresAt).toISOString():"Not specified",inline:true}]});
   const players=await rpc("list_kingshot_autoredeem_players",{});
   const list=Array.isArray(players)?players:[];
-  // The 05:30 IST reset can make every account due at once. Process the least
-  // recently checked players first and enforce a bounded validation budget so
-  // a rate-limited upstream cannot hold the coordinator past Vercel's limit.
-  const validationPlayers=[...list].sort((a,b)=>{
-   const left=Date.parse(String(a?.last_kingdom_check_at||""));
-   const right=Date.parse(String(b?.last_kingdom_check_at||""));
-   return (Number.isFinite(left)?left:0)-(Number.isFinite(right)?right:0);
+  // The reset can make every account due at once. Validate a small rotating
+  // batch per minute so a slow provider cannot push this whole redemption cycle
+  // beyond pg_net's 30-second request timeout. Future retry deadlines are
+  // filtered before scheduling; successful checks naturally rotate by timestamp.
+  const validationNow=Date.now();
+  const duePlayers=list.filter(player=>
+   (!player?.kingdom_id || needsKingdomResetCheck(player?.last_kingdom_check_at,validationNow))
+  );
+  const scheduledBatch=selectScheduledKingdomCheckBatch(duePlayers,{
+   nowMs:validationNow,
+   batchSize:KINGDOM_SCHEDULED_VALIDATION_BATCH_SIZE
   });
+  const validationPlayers=scheduledBatch.players;
   currentStage="kingdom-revalidation";
-  const validationDeadline=Date.now()+75000;
+  const validationDeadline=Date.now()+25000;
 
-  // Phase 1: kingdom revalidation is completed BEFORE any redemption worker
-  // starts. This prevents the 05:30 IST reset burst from competing with the
-  // three redemption shards for Supabase/MightPulse capacity.
+  // Phase 1: revalidate only this bounded batch before the redemption workers.
+  // Everyone with an existing kingdom remains eligible unless an actual check
+  // proves the registration stale; queued/retrying players are not penalized.
   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
   const kingdomResults=await runWithConcurrency(validationPlayers,player=>revalidatePlayer(player,{rpc,notify:sendDiscordEvent}),KINGDOM_VALIDATION_CONCURRENCY,{deadline:validationDeadline});
-  const validPlayers=[];
+  const validPlayerMap=new Map(list
+   .filter(player=>player?.kingdom_id)
+   .map(player=>[String(player.player_id),player]));
   const kingdomSummary=kingdomResults.reduce((a,result)=>{
    if(result?.deadlineSkipped){a.deferred++;return a;}
    if(result?.deferred){
     a.deferred++;
-    // Uncertain provider freshness is not evidence that an existing registered
-    // player is invalid. Keep eligible records with a stored kingdom in the
-    // redemption pool; players without a kingdom remain ineligible below.
-    if(result?.player?.kingdom_id)validPlayers.push(result.player);
     return a;
    }
    if(result?.revalidationError){
@@ -483,10 +487,25 @@ export default async function handler(req,res){
    if(result?.stale){a.stale++;return a;}
    if(result?.revalidated)a.checked++;
    if(result?.kingdomChanged)a.changed++;
-   if(result?.player?.kingdom_id)validPlayers.push(result.player);
    return a;
   },{checked:0,changed:0,stale:0,errors:0,deferred:0});
-  console.log("Kingshot kingdom check:",{players:list.length,...kingdomSummary,validationBudgetMs:75000,validPlayers:validPlayers.length});
+  for(const result of kingdomResults){
+   const id=String(result?.player?.player_id||"");
+   if(!id)continue;
+   if(result?.stale || !result?.player?.kingdom_id)validPlayerMap.delete(id);
+   else validPlayerMap.set(id,result.player);
+  }
+  const validPlayers=[...validPlayerMap.values()];
+  console.log("Kingshot kingdom check:",{
+   players:list.length,
+   candidates:duePlayers.length,
+   scheduledBatch:validationPlayers.length,
+   queued:scheduledBatch.queuedCount,
+   retryWaiting:scheduledBatch.retryWaitingCount,
+   ...kingdomSummary,
+   validationBudgetMs:25000,
+   validPlayers:validPlayers.length
+  });
   // One canary per cycle. The real endpoint can consume the reward on this player.
   const pendingCandidates=persistedCodeRows.filter(r=>r&&r.validation_status==="pending"&&r.suppressed!==true).map(r=>({code:String(r.code||"").trim()})).filter(r=>r.code&&!expiredCodes.has(r.code.toUpperCase())&&codes.some(c=>c.code.toUpperCase()===r.code.toUpperCase()));
   const canaryCandidate=pendingCandidates[0];let verificationAttempt=null;
