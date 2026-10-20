@@ -49,6 +49,9 @@ const WORKER_COUNT=4;
 const PLAYER_CONCURRENCY=2;
 const KINGDOM_VALIDATION_CONCURRENCY=3;
 const KINGDOM_SCHEDULED_VALIDATION_BATCH_SIZE=6;
+// Temporary operational switch: disable background Kingdom Check without disabling redemption.
+// Manual mode=kingdom-check intentionally bypasses this flag.
+const KINGDOM_AUTO_CHECK_ENABLED=String(process.env.KINGDOM_AUTO_CHECK_ENABLED??"true").trim().toLowerCase()!=="false";
 const MANUAL_KINGDOM_VALIDATION_CONCURRENCY=2;
 const WORKER_MAX_RUNTIME_MS=3*60*1000;
 const DISCORD_WEBHOOK_URL=process.env.DISCORD_KINGSHOT_WEBHOOK_URL||process.env.DISCORD_SCRAPER_WEBHOOK_URL;
@@ -154,7 +157,9 @@ async function drainRedemptionRecoveryQueue(rpcClient){
 }
 
 async function redeemForPlayer(player,codes,rpcClient=rpc){
-const kingdomState=await revalidatePlayer(player,{rpc:rpcClient,notify:sendDiscordEvent});
+const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
+ ? await revalidatePlayer(player,{rpc:rpcClient,notify:sendDiscordEvent})
+ : {player,revalidated:false,kingdomChanged:false,stale:false,automaticCheckDisabled:true};
  const kingdomCheck=Boolean(kingdomState.revalidated);
  const kingdomChanged=Boolean(kingdomState.kingdomChanged);
  if(kingdomState.stale)return {attempted:0,success:0,alreadyHandled:0,skipped:1,stale:1,kingdomCheck,kingdomChanged};
@@ -455,9 +460,9 @@ export default async function handler(req,res){
   // beyond pg_net's 30-second request timeout. Future retry deadlines are
   // filtered before scheduling; successful checks naturally rotate by timestamp.
   const validationNow=Date.now();
-  const duePlayers=list.filter(player=>
+  const duePlayers=KINGDOM_AUTO_CHECK_ENABLED ? list.filter(player=>
    (!player?.kingdom_id || needsKingdomResetCheck(player?.last_kingdom_check_at,validationNow))
-  );
+  ) : [];
   const scheduledBatch=selectScheduledKingdomCheckBatch(duePlayers,{
    nowMs:validationNow,
    batchSize:KINGDOM_SCHEDULED_VALIDATION_BATCH_SIZE
@@ -470,7 +475,9 @@ export default async function handler(req,res){
   // Everyone with an existing kingdom remains eligible unless an actual check
   // proves the registration stale; queued/retrying players are not penalized.
   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
-  const kingdomResults=await runWithConcurrency(validationPlayers,player=>revalidatePlayer(player,{rpc,notify:sendDiscordEvent}),KINGDOM_VALIDATION_CONCURRENCY,{deadline:validationDeadline});
+  const kingdomResults=KINGDOM_AUTO_CHECK_ENABLED
+   ? await runWithConcurrency(validationPlayers,player=>revalidatePlayer(player,{rpc,notify:sendDiscordEvent}),KINGDOM_VALIDATION_CONCURRENCY,{deadline:validationDeadline})
+   : [];
   const validPlayerMap=new Map(list
    .filter(player=>player?.kingdom_id)
    .map(player=>[String(player.player_id),player]));
@@ -497,6 +504,7 @@ export default async function handler(req,res){
   }
   const validPlayers=[...validPlayerMap.values()];
   console.log("Kingshot kingdom check:",{
+   automaticChecksEnabled:KINGDOM_AUTO_CHECK_ENABLED,
    players:list.length,
    candidates:duePlayers.length,
    scheduledBatch:validationPlayers.length,
