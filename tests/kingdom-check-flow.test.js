@@ -144,10 +144,11 @@ test("kingdom check response and logging guardrails stay in place", async () => 
 });
 
 
-test("coordinator keeps stored-kingdom players eligible when revalidation is deferred", async () => {
+test("coordinator keeps stored-kingdom players eligible while checks are queued or deferred", async () => {
   const apiSource = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
   assert.match(apiSource, /if\(result\?\.deadlineSkipped\)\{a\.deferred\+\+;return a;\}/);
-  assert.match(apiSource, /if\(result\?\.deferred\)\{\s*a\.deferred\+\+;[\s\S]*?if\(result\?\.player\?\.kingdom_id\)validPlayers\.push\(result\.player\);\s*return a;/);
+  assert.match(apiSource, /const validPlayerMap=new Map\(list/);
+  assert.match(apiSource, /if\(result\?\.stale \|\| !result\?\.player\?\.kingdom_id\)validPlayerMap\.delete\(id\)/);
   assert.match(apiSource, /if\(!kingdomState\.player\?\.kingdom_id\)return \{attempted:0,success:0,alreadyHandled:0,skipped:1,revalidationError:1,kingdomCheck,kingdomChanged\}/);
 });
 
