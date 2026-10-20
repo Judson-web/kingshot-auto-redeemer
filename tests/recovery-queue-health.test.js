@@ -73,5 +73,5 @@ test("diagnostics query only recovery timestamps and do not return player or cod
   assert.match(health, /recoveryQueueState\("needs_review"\)/);
   assert.match(health, /recoveryQueue/);
   assert.match(watchdog, /findStalledRecoveryQueue/);
-  assert.match(watchdog, /searchParams\.set\("logs","1"\)/);
+  assert.match(watchdog, /searchParams\.set\("logs",\s*"1"\)/);
 });
