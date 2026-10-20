@@ -73,6 +73,9 @@ test("diagnostics query only recovery timestamps and do not return player or cod
   assert.match(migration, /attempt_started_at=now\(\)/i);
   assert.match(migration, /attempts=0/i);
   assert.match(migration, /where public\.kingshot_redemption_recovery_queue\.state='resolved'/i);
+  assert.match(migration, /returning id into v_id/i);
+  assert.match(migration, /return v_id is not null/i);
+  assert.doesNotMatch(migration, /select state into v_state/i);
   assert.doesNotMatch(migration, /created_at=now\(\)/i);
   assert.match(health, /recoveryQueueState\("in_flight"\)/);
   assert.match(health, /recoveryQueueState\("needs_review"\)/);
