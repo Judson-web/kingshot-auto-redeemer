@@ -171,13 +171,13 @@ async function fetchSourceUncached(rpc: Rpc, url: string, kind: string, source: 
       let data: any = null;
       try { data = JSON.parse(body); } catch {}
       const valid = Boolean(data && (kind === "api" ? data?.status === "success" : Array.isArray(data?.codes)));
-      const codes = valid ? (kind === "api" ? normalizeCodes(data) : extractAggregatorCodes(data)) : [];
+      const codes = valid ? (kind === "api" ? normalizeCodes(data).map(row => ({ ...row, source: "kingshot-net-api" })) : extractAggregatorCodes(data)) : [];
       const parseError = valid ? null : Error("Invalid API response");
       result = { source, data, codes, ok: valid, httpStatus: response.status, error: parseError?.message || null };
       await updateHealth(rpc, source, codes.length, parseError?.message || null);
       await recordRun(rpc, source, response.status, codes, valid, parseError);
     } else {
-      const codes = kind === "page" ? extractPageCodes(body) : extractPublicSourceCodes(body, source);
+      const codes = kind === "page" ? extractPageCodes(body, "kingshot-net-page") : extractPublicSourceCodes(body, source);
       const parseError = codes.length ? null : Error("No active gift codes parsed");
       result = { source, html: body, codes, ok: !parseError, httpStatus: response.status, error: parseError?.message || null };
       await updateHealth(rpc, source, codes.length, parseError?.message || null);
