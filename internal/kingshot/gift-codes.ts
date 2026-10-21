@@ -16,9 +16,9 @@ export function normalizeCodes(data: GiftCodeApiData | null | undefined): GiftCo
 export function decodeHtml(value: unknown): string { return String(value??"").replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;/gi,"'").replace(/&lt;/gi,"<").replace(/&gt;/gi,">"); }
 export function cleanPageLines(html: unknown): string[] { const text=decodeHtml(String(html??"").replace(/<script[\s\S]*?<\/script>/gi," ").replace(/<style[\s\S]*?<\/style>/gi," ").replace(/<\/(?:p|div|section|article|li|h[1-6]|button|a|br|tr|td|header|footer)>/gi,"\n").replace(/<[^>]+>/g," ")); return text.split(/\r?\n/).map(line=>line.replace(/\s+/g," ").trim()).filter(Boolean); }
 export function parseExternalExpiry(value: unknown): number | null { const raw=String(value??"").replace(/(\d)(st|nd|rd|th)\b/gi,"$1").replace(/,/g,"").trim(); const parsed=Date.parse(raw+" 23:59:59 UTC"); return Number.isNaN(parsed)?null:parsed; }
-export function extractPageCodes(html: unknown): GiftCodeRow[] {
+export function extractPageCodes(html: unknown, sourceName = "kingshot-net-page"): GiftCodeRow[] {
  const source=String(html??""); const seen=new Set<string>(); const rows:GiftCodeRow[]=[];
- const add=(value:unknown,expiresAt:number|null=null)=>{const code=decodeHtml(value).trim();const key=code.toUpperCase();if(!isLikelyGiftCode(code)||seen.has(key)||(expiresAt&&!Number.isNaN(expiresAt)&&expiresAt<=Date.now()))return;seen.add(key);rows.push({code,expiresAt,createdAt:0,source:"page"});};
+ const add=(value:unknown,expiresAt:number|null=null)=>{const code=decodeHtml(value).trim();const key=code.toUpperCase();if(!isLikelyGiftCode(code)||seen.has(key)||(expiresAt&&!Number.isNaN(expiresAt)&&expiresAt<=Date.now()))return;seen.add(key);rows.push({code,expiresAt,createdAt:0,source:sourceName});};
  const lines=cleanPageLines(source); const start=lines.findIndex(line=>/^Active Gift Codes$/i.test(line)); const end=lines.findIndex((line,index)=>index>start&&/^Expired Gift Codes$/i.test(line));
  if(start>=0){const stop=end>start?end:lines.length;for(let i=start+1;i<stop;i++){if(!/^Active$/i.test(lines[i]))continue;const codeLine=lines[i+1];if(!codeLine)continue;const expiryMatch=(lines[i+2]||"").match(/^Expires:\s*(\d{1,2}\/\d{1,2}\/\d{4})$/i);add(codeLine,expiryMatch?Date.parse(expiryMatch[1]+" 23:59:59 UTC"):null);}}
  return rows;
@@ -56,21 +56,53 @@ export function extractPublicSourceCodes(html: unknown, sourceName: string): Gif
  }
  return rows;
 }
+type SourceEvidence = { group: string; weight: number };
+const sourceEvidence: Record<string, SourceEvidence> = {
+  // These are endpoints of the same unfinished community site, not independent evidence.
+  "kingshot-api": { group: "kingshot.net", weight: 0.35 },
+  "kingshot-net-api": { group: "kingshot.net", weight: 0.35 },
+  "page": { group: "kingshot.net", weight: 0.35 },
+  "kingshot-page": { group: "kingshot.net", weight: 0.35 },
+  "kingshot-net-page": { group: "kingshot.net", weight: 0.35 },
+  "beebom": { group: "beebom.com", weight: 0.65 },
+  "pocketgamer": { group: "pocketgamer.com", weight: 0.65 },
+  "whiteout-bot-aggregator": { group: "whiteout-bot-aggregator", weight: 0.7 },
+  "verified-manual-fallback": { group: "verified-manual-fallback", weight: 0.8 },
+  "admin": { group: "admin", weight: 1 }
+};
+
+function getSourceEvidence(source: string): SourceEvidence {
+ return sourceEvidence[source] || { group: source || "unknown", weight: 0.35 };
+}
+
+function confidenceForSources(sources: string[]): number {
+ const weightsByGroup = new Map<string, number>();
+ for (const source of sources) {
+  const evidence = getSourceEvidence(source);
+  weightsByGroup.set(evidence.group, Math.max(weightsByGroup.get(evidence.group) || 0, evidence.weight));
+ }
+ const confidence = 1 - [...weightsByGroup.values()].reduce((remaining, weight) => remaining * (1 - weight), 1);
+ return Number(Math.min(0.99, confidence).toFixed(2));
+}
+
+/** Only medium- or high-confidence candidates may be announced or tested on a player. */
+export function isCredibleGiftCodeCandidate(row: GiftCodeRow | null | undefined): boolean {
+ return Boolean(row && Number.isFinite(Number(row.confidence)) && Number(row.confidence) >= 0.55);
+}
+
 export function mergeCodes(sources: GiftCodeRow[][]): GiftCodeRow[] {
  const map=new Map<string,GiftCodeRow>();
- const sourceWeights:Record<string,number>={"kingshot-api":0.8,"page":0.55,"beebom":0.65,"pocketgamer":0.65,"whiteout-bot-aggregator":0.7,"verified-manual-fallback":0.8,"admin":1};
  for(const row of sources.flat()){
   const key=row.code.toUpperCase();const source=row.source||"unknown";const existing=map.get(key);
   if(existing){
    const sourceSet=new Set([...(existing.sources||[existing.source||"unknown"]),source]);
    const sourcesList=[...sourceSet];
-   // Confidence is evidence-based: independent sources increase confidence,
-   // but repeated rows from the same source do not.
-   const confidence=Number(Math.min(0.99,1-sourcesList.reduce((remaining,name)=>remaining*(1-(sourceWeights[name]??0.35)),1)).toFixed(2));
+   // Distinct endpoints on the same host count as one piece of evidence.
+   const confidence=confidenceForSources(sourcesList);
    const confidenceTier=confidence>=0.8?"high":confidence>=0.55?"medium":"low";
    map.set(key,{...existing,expiresAt:existing.expiresAt||row.expiresAt,createdAt:existing.createdAt||row.createdAt,source:sourcesList.length>1?"multiple":existing.source,sources:sourcesList,confidence,confidenceTier});
   }else{
-   const confidence=sourceWeights[source]??0.35;
+   const confidence=confidenceForSources([source]);
    map.set(key,{...row,sources:[source],confidence,confidenceTier:confidence>=0.8?"high":confidence>=0.55?"medium":"low"});
   }
  }
