@@ -15,7 +15,7 @@ const PUBLIC_GIFT_SOURCES=[
 ];
 // Verified long-running fallback for codes that have been omitted from the upstream API feed.
 // Revalidated against public Kingshot code listings; the redemption endpoint remains the final authority.
-const VERIFIED_FALLBACK_CODES=[{code:"VIP777",expiresAt:Date.parse("2026-12-31T23:59:59Z"),createdAt:Date.parse("2026-08-03T00:00:00Z")},{code:"Hangul2026",expiresAt:null,createdAt:Date.parse("2026-10-09T00:00:00Z"),source:"verified-manual-fallback"}];
+const VERIFIED_FALLBACK_CODES=[{code:"VIP777",expiresAt:Date.parse("2026-12-31T23:59:59Z"),createdAt:Date.parse("2026-08-03T00:00:00Z"),source:"verified-manual-fallback"},{code:"Hangul2026",expiresAt:null,createdAt:Date.parse("2026-10-09T00:00:00Z"),source:"verified-manual-fallback"}];
 
 if(!SUPABASE_KEY)throw Error("Supabase service key is not configured on the server.");
 
@@ -42,7 +42,7 @@ async function rpc(name,body){
  return d;
 }
 
-import {extractPageCodes, extractPublicSourceCodes, mergeCodes, normalizeCodes} from "../internal/kingshot/gift-codes.js";
+import {extractPageCodes, extractPublicSourceCodes, mergeCodes, normalizeCodes, isCredibleGiftCodeCandidate} from "../internal/kingshot/gift-codes.js";
 import { getHandledGiftCodes, selectNextOutstandingCode } from "../internal/kingshot/redemption-history.js";
 const WORKER_COUNT=4;
 // Four durable shards × two concurrent redemptions keep each shard small while bounding upstream pressure.
@@ -424,6 +424,7 @@ export default async function handler(req,res){
   const codesDiscoveredAt=Date.now();
   console.log("Kingshot auto feed:",{apiActive:data?.data?.activeCount??null,apiCodes:apiCodes.map(x=>x.code),pageCodes:pageCodes.map(x=>x.code),publicSources:publicCodes.map(x=>({code:x.code,source:x.source})),adminCodes:adminCodes.map(x=>x.code),merged:codes.map(x=>x.code)});
   const knownCodes=new Set((Array.isArray(adminRows)?adminRows:[]).map(row=>String(row?.code||"").toUpperCase()));
+  const previouslyVerifiedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.validation_status==="verified"&&row?.active!==false&&row?.suppressed!==true).map(row=>String(row?.code||"").trim().toUpperCase()).filter(Boolean));
 
   const persistedCodeRows=await Promise.all(codes.map(item=>rpc("upsert_kingshot_gift_code",{
    p_code:item.code,
@@ -452,7 +453,7 @@ export default async function handler(req,res){
    remaining:activeCodes.map(x=>x.code)
   });
   const newCodes=activeCodes.filter(item=>!knownCodes.has(String(item.code).toUpperCase()));
-  for(const item of newCodes)await sendDiscordEvent({title:"🎁 New Kingshot gift code",description:"A candidate gift code was discovered by the multi-source scraper and is awaiting player verification.",fields:[{name:"Gift code",value:String(item.code),inline:true},{name:"Sources",value:String((item.sources||[item.source||"merged"]).join(", ")),inline:true},{name:"Confidence",value:Math.round(Number(item.confidence||0)*100)+"% "+String(item.confidenceTier||"unverified"),inline:true},{name:"Expires",value:item.expiresAt&&!Number.isNaN(item.expiresAt)?new Date(item.expiresAt).toISOString():"Not specified",inline:true}]});
+  for(const item of newCodes.filter(isCredibleGiftCodeCandidate))await sendDiscordEvent({title:"🎁 New Kingshot gift code",description:"A candidate gift code was discovered from a credible source and is awaiting player verification.",fields:[{name:"Gift code",value:String(item.code),inline:true},{name:"Sources",value:String((item.sources||[item.source||"merged"]).join(", ")),inline:true},{name:"Confidence",value:Math.round(Number(item.confidence||0)*100)+"% "+String(item.confidenceTier||"unverified"),inline:true},{name:"Expires",value:item.expiresAt&&!Number.isNaN(item.expiresAt)?new Date(item.expiresAt).toISOString():"Not specified",inline:true}]});
   const players=await rpc("list_kingshot_autoredeem_players",{});
   const list=Array.isArray(players)?players:[];
   // The reset can make every account due at once. Validate a small rotating
@@ -515,7 +516,7 @@ export default async function handler(req,res){
    validPlayers:validPlayers.length
   });
   // One canary per cycle. The real endpoint can consume the reward on this player.
-  const pendingCandidates=persistedCodeRows.filter(r=>r&&r.validation_status==="pending"&&r.suppressed!==true).map(r=>({code:String(r.code||"").trim()})).filter(r=>r.code&&!expiredCodes.has(r.code.toUpperCase())&&codes.some(c=>c.code.toUpperCase()===r.code.toUpperCase()));
+  const pendingCandidates=persistedCodeRows.filter(r=>r&&r.validation_status==="pending"&&r.suppressed!==true).map(r=>({code:String(r.code||"").trim()})).filter(r=>{const evidence=activeCodes.find(c=>c.code.toUpperCase()===r.code.toUpperCase());return Boolean(r.code&&evidence&&isCredibleGiftCodeCandidate(evidence)&&!expiredCodes.has(r.code.toUpperCase()));});
   const canaryCandidate=pendingCandidates[0];let verificationAttempt=null;
   if(canaryCandidate&&validPlayers.length){
    for(const player of validPlayers){
@@ -553,7 +554,7 @@ export default async function handler(req,res){
   const latestCodeRows=await rpc("list_kingshot_admin_gift_codes",{});
   const verifiedCodeSet=new Set((Array.isArray(latestCodeRows)?latestCodeRows:[]).filter(r=>r?.validation_status==="verified"&&r?.active!==false&&r?.suppressed!==true).map(r=>String(r?.code||"").trim().toUpperCase()));
   activeCodes=activeCodes.filter(c=>verifiedCodeSet.has(c.code.toUpperCase()));
-  const newlyAvailableCodes=newCodes.filter(item=>activeCodes.some(active=>active.code.toUpperCase()===item.code.toUpperCase()));
+  const newlyAvailableCodes=activeCodes.filter(item=>verifiedCodeSet.has(item.code.toUpperCase())&&!previouslyVerifiedCodes.has(item.code.toUpperCase()));
   if(newlyAvailableCodes.length){const listed=newlyAvailableCodes.map(item=>item.code).slice(0,5),extra=newlyAvailableCodes.length-listed.length;try{await broadcastPush({title:listed.length===1?"🎁 A new gift code is ready":"🎁 New gift codes are ready",body:"Verified and available: "+listed.join(", ")+(extra>0?" + "+extra+" more":"")+". Tap to view the codes and redeem your rewards.",url:"/manual?code="+encodeURIComponent(listed[0]),image:"https://kingshot-autoredeemer.vercel.app/api/og",tag:"new-gift-codes-"+[...listed].sort().join("-").slice(0,60)})}catch(error){console.error("New gift-code push notification failed:",error instanceof Error?error.message:error)}}
   console.log("Kingshot code validation gate:",{pending:pendingCandidates.length,verificationAttempt,verifiedForWorkers:activeCodes.map(c=>c.code)});
 
