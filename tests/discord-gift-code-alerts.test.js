@@ -17,13 +17,14 @@ test("candidate alert never claims a discovered code is valid", () => {
   assert.equal(alert.fields.find(item => item.name === "Evidence sources").value, "Kingshot.net API");
 });
 
-test("USAGE_LIMIT wording says the code is inconclusive, not invalid", () => {
+test("USAGE_LIMIT wording confirms code recognition and describes the limit", () => {
   const alert = buildGiftCodeValidationAlert({
     code: "lwaL5ZKx5", status: "USAGE_LIMIT", validationStatus: "usage_limit"
   });
-  assert.match(alert.title, /inconclusive/i);
-  assert.match(alert.description, /does not prove the code itself is invalid/i);
-  assert.match(alert.fields.find(item => item.name === "Next step").value, /Do not label this code invalid/i);
+  assert.match(alert.title, /code recognized.*redemption limit reached/i);
+  assert.match(alert.description, /recognized this code.*redemption limit has been reached/i);
+  assert.match(alert.description, /not a code-not-found or invalid-code result/i);
+  assert.match(alert.fields.find(item => item.name === "Next step").value, /do not mark it invalid/i);
 });
 
 test("only explicit invalid/expired responses get definitive rejection alert titles", () => {
