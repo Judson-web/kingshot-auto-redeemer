@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { extractPageCodes, extractPublicSourceCodes } from "../internal/kingshot/gift-codes.ts";
+import { extractPageCodes, extractPublicSourceCodes, mergeCodes, isCredibleGiftCodeCandidate } from "../internal/kingshot/gift-codes.ts";
 
 test("does not infer gift codes from generic copy/redeem page text", () => {
   const html = `
@@ -59,4 +59,48 @@ test("known webpage words are never accepted as gift codes", () => {
   for (const word of ["height", "Guides", "Mastery", "className", "buttons", "clipboard"]) {
     assert.equal(extractPublicSourceCodes(`<h2>Active Gift Codes</h2><p>${word}</p>`, "fixture").length, 0);
   }
+});
+
+
+test("Kingshot.net API and page endpoints count as one low-confidence source", () => {
+  const api = { code: "lwaL5ZKx5", expiresAt: null, createdAt: Date.now(), source: "kingshot-net-api" };
+  const page = { code: "lwaL5ZKx5", expiresAt: null, createdAt: Date.now(), source: "kingshot-net-page" };
+  const [candidate] = mergeCodes([[api], [page]]);
+  assert.equal(candidate.confidence, 0.35);
+  assert.equal(candidate.confidenceTier, "low");
+  assert.equal(isCredibleGiftCodeCandidate(candidate), false);
+});
+
+test("an uncorroborated Kingshot.net candidate is not eligible for announcement or player canary", () => {
+  const [candidate] = mergeCodes([[
+    { code: "lwaL5ZKx5", expiresAt: null, createdAt: Date.now(), source: "kingshot-net-api" }
+  ]]);
+  assert.equal(isCredibleGiftCodeCandidate(candidate), false);
+});
+
+test("one independently reputable active-code source remains eligible", () => {
+  const [candidate] = mergeCodes([[
+    { code: "AKeYD8gK8", expiresAt: null, createdAt: Date.now(), source: "beebom" }
+  ]]);
+  assert.equal(candidate.confidence, 0.65);
+  assert.equal(candidate.confidenceTier, "medium");
+  assert.equal(isCredibleGiftCodeCandidate(candidate), true);
+});
+
+test("duplicate records from one source do not artificially increase confidence", () => {
+  const [candidate] = mergeCodes([[
+    { code: "AKeYD8gK8", expiresAt: null, createdAt: Date.now(), source: "beebom" },
+    { code: "AKeYD8gK8", expiresAt: null, createdAt: Date.now(), source: "beebom" }
+  ]]);
+  assert.equal(candidate.confidence, 0.65);
+});
+
+test("two independent reputable sources increase confidence", () => {
+  const [candidate] = mergeCodes([
+    [{ code: "AKeYD8gK8", expiresAt: null, createdAt: Date.now(), source: "beebom" }],
+    [{ code: "AKeYD8gK8", expiresAt: null, createdAt: Date.now(), source: "pocketgamer" }]
+  ]);
+  assert.equal(candidate.confidence, 0.88);
+  assert.equal(candidate.confidenceTier, "high");
+  assert.equal(isCredibleGiftCodeCandidate(candidate), true);
 });
