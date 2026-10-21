@@ -28,11 +28,35 @@ const labels={
  TIMEOUT_RETRY:["Try again shortly.","The gift service is rate-limiting or temporarily unavailable."]
 };
 
+export function normalizeKingshotStatus(message: unknown, errCode: unknown): string {
+ const msg = String(message ?? "Unknown Error").trim().replace(/\.$/, "").replace(/[._-]+/g, " ").replace(/\s+/g, " ").toUpperCase();
+ const code = String(errCode ?? "").trim();
+ // Wrong-code outcomes are permanent. Normalize numeric and textual variants,
+ // including string-valued error codes, so they cannot fall through as retries.
+ if (code === "40014" || ["CDK NOT FOUND", "GIFT CODE NOT FOUND", "CODE NOT FOUND", "INVALID CODE", "INVALID GIFT CODE"].includes(msg)) return "CDK_NOT_FOUND";
+ if (msg === "RECEIVED" || (code === "40008" && msg.includes("RECEIVED"))) return "RECEIVED";
+ if (msg === "SAME TYPE EXCHANGE" || (code === "40011" && msg.includes("SAME TYPE"))) return "SAME TYPE EXCHANGE";
+ if (msg === "TIME ERROR" || code === "40007") return "TIME_ERROR";
+ if (msg === "USED" && code === "40005") return "USAGE_LIMIT";
+ if (msg === "TOO FREQUENT" || code === "40019") return "TIMEOUT_RETRY";
+ if (msg === "NOT LOGIN") return "LOGIN_EXPIRED_MID_PROCESS";
+ if (code === "40001" && msg.includes("NOT EXIST")) return "ROLE_NOT_EXIST";
+ if (msg === "ROLE NOT EXIST") return "ROLE_NOT_EXIST";
+ if (msg === "STATE MISMATCH") return "STATE_MISMATCH";
+ if (msg === "SIGN ERROR") return "SIGN_ERROR";
+ if (msg === "LOGIN EXPIRED MID PROCESS") return "LOGIN_EXPIRED_MID_PROCESS";
+ return msg;
+}
+
+function invalidInput(message: string): RedeemKingshotResult {
+ return { httpStatus: 400, ok: false, status: "INVALID_INPUT", errorCategory: "INVALID_INPUT", statusLabel: "Check your details.", message, error: message };
+}
+
 export async function redeemKingshot({playerId,code,kid}: RedeemKingshotInput): Promise<RedeemKingshotResult> {
  const fid=clean(playerId).replace(/\D/g,""),giftCode=clean(code),kingdom=clean(kid).replace(/\D/g,"");
- if(!/^\d{5,20}$/.test(fid))return {httpStatus:400,error:"Invalid player ID."};
- if(!/^\d{1,10}$/.test(kingdom))return {httpStatus:400,error:"Invalid kingdom ID."};
- if(!/^[A-Za-z0-9_-]{1,64}$/.test(giftCode))return {httpStatus:400,error:"Invalid gift code."};
+ if(!/^\d{5,20}$/.test(fid))return invalidInput("Enter a valid Kingshot Player ID (5–20 digits).");
+ if(!/^\d{1,10}$/.test(kingdom))return invalidInput("Could not resolve a valid kingdom for this player.");
+ if(!/^[A-Za-z0-9_-]{6,32}$/.test(giftCode))return invalidInput("Gift codes must be 6–32 letters, numbers, underscores, or hyphens.");
  const secret=process.env.KINGSHOT_API_SECRET;
  if(!secret)return {httpStatus:503,error:"Kingshot redemption secret is not configured on the server."};
  const payload={fid,cdk:giftCode,kid:kingdom,time:String(Math.floor(Date.now()/1000))};
@@ -62,15 +86,7 @@ export async function redeemKingshot({playerId,code,kid}: RedeemKingshotInput): 
   }
   if([429,502,503,504].includes(r.status))return {httpStatus:503,errorCategory:r.status===429?"RATE_LIMIT":"UPSTREAM_UNAVAILABLE",error:"Kingshot is rate-limiting or temporarily unavailable. Try again shortly."};
   const msg=String(d.msg||"Unknown Error").replace(/\.$/,"").toUpperCase();
-  let status=msg;
-  if(msg==="RECEIVED"&&d.err_code===40008)status="RECEIVED";
-  if(msg==="SAME TYPE EXCHANGE"&&d.err_code===40011)status="SAME TYPE EXCHANGE";
-  if(msg==="TIME ERROR"&&d.err_code===40007)status="TIME_ERROR";
-  if(msg==="CDK NOT FOUND"&&d.err_code===40014)status="CDK_NOT_FOUND";
-  if(msg==="USED"&&d.err_code===40005)status="USAGE_LIMIT";
-  if(msg==="TOO FREQUENT"&&d.err_code===40019)status="TIMEOUT_RETRY";
-  if(msg==="NOT LOGIN")status="LOGIN_EXPIRED_MID_PROCESS";
-  if(d.err_code===40001&&msg.includes("NOT EXIST"))status="ROLE_NOT_EXIST";
+  const status=normalizeKingshotStatus(d.msg, d.err_code);
   const [statusLabel,message]=labels[status]||[status,"Kingshot returned: "+msg];
   const ok=["SUCCESS","RECEIVED","SAME TYPE EXCHANGE"].includes(status);
   return {httpStatus:ok?200:400,ok,status,errorCategory:errorCategories[status]||"UPSTREAM_ERROR",statusLabel,message,errCode:d.err_code??null};
