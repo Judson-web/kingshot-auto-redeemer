@@ -780,3 +780,109 @@
     animation: none !important;
   }
 }
+
+/* Accordion cards use the same surfaces and dividers as the main API cards. */
+.dev-dashboard.ks-dev-route .dev-accordion {
+  padding: 0 !important;
+  border: 1px solid #30312b !important;
+  border-radius: 11px !important;
+  background: #11120f !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+.dev-dashboard.ks-dev-route .dev-accordion:hover {
+  border-color: #414137 !important;
+  background: #11120f !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+.dev-dashboard.ks-dev-route .dev-accordion-trigger {
+  display: flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+  width: 100% !important;
+  min-height: 52px !important;
+  margin: 0 !important;
+  padding: 14px 16px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #11120f !important;
+  color: #e8e7df !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1.5 !important;
+  text-align: left !important;
+  box-shadow: none !important;
+}
+.dev-dashboard.ks-dev-route .dev-accordion-trigger:hover {
+  background: #171814 !important;
+  filter: none !important;
+  transform: none !important;
+}
+.dev-dashboard.ks-dev-route .dev-accordion-trigger > svg {
+  flex: 0 0 auto !important;
+  color: #c8b27f !important;
+}
+.dev-dashboard.ks-dev-route .dev-accordion-trigger b {
+  min-width: 0 !important;
+  color: #e8e7df !important;
+  font-weight: 600 !important;
+}
+.dev-dashboard.ks-dev-route .dev-accordion > div {
+  padding: 0 16px 16px !important;
+}
+.dev-dashboard.ks-dev-route .dev-accordion p {
+  margin-top: 8px !important;
+  color: #a6a79e !important;
+  font-size: 12px !important;
+  line-height: 1.72 !important;
+}
+.dev-dashboard.ks-dev-route .dev-accordion code {
+  color: #ddc996 !important;
+  overflow-wrap: anywhere !important;
+}
+.dev-dashboard.ks-dev-route .dev-accordion [style*="border-bottom"] {
+  border-color: #34352f !important;
+}
+
+/* Small inline labels and the account role chip use warm neutrals, not the retired purple accent. */
+.dev-dashboard.ks-dev-route .dev-brand-copy span,
+.dev-dashboard.ks-dev-route #developer-account > div:first-child > div:nth-child(2) > div:first-child {
+  color: #c7b17d !important;
+}
+.dev-dashboard.ks-dev-route #developer-account > div:first-child > span {
+  border-color: #494437 !important;
+  background: #1c1a13 !important;
+  color: #e0d1a5 !important;
+}
+.dev-dashboard.ks-dev-route #developer-account .developer-auth-spinner {
+  color: #d4bd88 !important;
+}
+.dev-dashboard.ks-dev-route #developer-account .developer-new-key p {
+  color: #c9bc98 !important;
+}
+
+/* Keep all reusable code-copy actions on the site's warm-accent control treatment. */
+.dev-dashboard.ks-dev-route .dev-copy-button {
+  min-height: 35px !important;
+  padding: 8px 10px !important;
+  border: 1px solid #494231 !important;
+  border-radius: 8px !important;
+  background: #1a1913 !important;
+  color: #e0d1a5 !important;
+}
+.dev-dashboard.ks-dev-route .dev-copy-button:hover {
+  border-color: #86734d !important;
+  background: #242116 !important;
+  color: #f3e1b4 !important;
+}
+.dev-dashboard.ks-dev-route .dev-copy-button svg { color: #d4bd88 !important; }
+
+@media (max-width: 760px) {
+  .dev-dashboard.ks-dev-route .dev-accordion-trigger {
+    min-height: 48px !important;
+    padding: 12px 13px !important;
+  }
+  .dev-dashboard.ks-dev-route .dev-accordion > div { padding: 0 13px 14px !important; }
+}
