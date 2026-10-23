@@ -1,0 +1,476 @@
+/* Manual Redeem: form-first, restrained UI. Scoped so other routes are untouched. */
+.ks-manual-app {
+  color: #eeede9;
+  background: #0c0d0f;
+  background-image: none;
+}
+.ks-manual-app header,
+.ks-manual-app footer {
+  width: min(1040px, calc(100% - 40px));
+}
+.ks-manual-app header {
+  border-bottom-color: #242528;
+}
+.ks-manual-app .ks-brand-mark {
+  border-color: #343538;
+  box-shadow: none;
+}
+.ks-manual-app .primary-nav a {
+  font-size: 13px;
+  color: #98999e;
+}
+.ks-manual-app .primary-nav a:hover,
+.ks-manual-app .primary-nav a:focus-visible {
+  color: #f4f1e9;
+}
+.ks-manual-app main {
+  width: min(1040px, calc(100% - 40px));
+  overflow: visible;
+}
+.ks-manual-app .manual-page-hero {
+  width: min(620px, 100%);
+  margin: 0 auto;
+  padding: 52px 0 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 22px;
+  text-align: left;
+}
+.ks-manual-app .manual-hero-copy {
+  max-width: none;
+}
+.ks-manual-app .manual-page-hero .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 17px;
+  color: #a7a8ac;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .015em;
+  text-transform: none;
+}
+.ks-manual-app .manual-page-hero .eyebrow span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #c9a96e;
+  box-shadow: none;
+}
+.ks-manual-app .manual-page-hero h1 {
+  max-width: 100%;
+  margin: 0 0 12px;
+  color: #f1f0ec;
+  font-size: clamp(34px, 5vw, 46px);
+  line-height: 1.08;
+  font-weight: 680;
+  letter-spacing: -.052em;
+}
+.ks-manual-app .manual-page-hero h1 em {
+  color: inherit;
+  font-style: normal;
+}
+.ks-manual-app .manual-page-hero .hero-copy {
+  max-width: 530px;
+  margin: 0;
+  color: #a3a4a8;
+  font-size: 15px;
+  line-height: 1.65;
+}
+.ks-manual-app .manual-trust-row {
+  display: none;
+}
+.ks-manual-app .manual-redeem-form {
+  width: 100%;
+  margin: 0;
+  padding: 22px;
+  border: 1px solid #2c2d30;
+  border-radius: 14px;
+  background: #121315;
+  box-shadow: none;
+  box-sizing: border-box;
+}
+.ks-manual-app .manual-form-head {
+  margin: 0 0 18px;
+  padding: 0 0 16px;
+  align-items: flex-start;
+  border-bottom: 1px solid #292a2d;
+}
+.ks-manual-app .manual-form-kicker {
+  display: none;
+}
+.ks-manual-app .manual-form-head h2 {
+  margin: 0;
+  color: #efeee9;
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 650;
+  letter-spacing: -.025em;
+}
+.ks-manual-app .manual-form-head p {
+  margin: 5px 0 0;
+  color: #96979c;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ks-manual-app .manual-secure {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #a8a9a7;
+  font-size: 12px;
+  font-weight: 500;
+}
+.ks-manual-app .manual-secure svg {
+  color: #b9aa84;
+}
+.ks-manual-app .manual-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+.ks-manual-app .manual-field-card {
+  min-width: 0;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transition: none;
+}
+.ks-manual-app .manual-field-card label {
+  display: block;
+  margin: 0 0 8px;
+  color: #e1e0db;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.ks-manual-app .manual-field-card label i {
+  display: none;
+}
+.ks-manual-app .manual-field-card > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  margin: 0;
+  padding: 0 13px;
+  border: 1px solid #37383b;
+  border-radius: 9px;
+  background: #0c0d0f;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+.ks-manual-app .manual-field-card > div:focus-within,
+.ks-manual-app .manual-field-card:focus-within > div {
+  border-color: #a68d5c;
+  box-shadow: 0 0 0 3px rgb(198 166 108 / 12%);
+}
+.ks-manual-app .manual-field-card > div > svg {
+  flex: 0 0 auto;
+  color: #929398;
+}
+.ks-manual-app .manual-field-card input {
+  min-width: 0;
+  min-height: 46px;
+  padding: 0;
+  color: #f1f0ec;
+  font-size: 15px !important;
+  line-height: 1.4;
+}
+.ks-manual-app .manual-field-card input::placeholder {
+  color: #73747a;
+  opacity: 1;
+}
+.ks-manual-app .manual-field-card small {
+  display: block;
+  margin: 7px 0 0 !important;
+  color: #929398;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.ks-manual-app .manual-submit-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  margin-top: 22px;
+}
+.ks-manual-app .manual-submit-row > span {
+  color: #94959a;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.ks-manual-app .manual-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 12px 16px;
+  border: 1px solid #d7bc83;
+  border-radius: 9px;
+  background: #d7bc83;
+  box-shadow: none;
+  color: #211d15;
+  font-size: 14px;
+  font-weight: 700;
+  transition: background-color .15s ease, border-color .15s ease;
+}
+.ks-manual-app .manual-submit:hover:not(:disabled) {
+  border-color: #e3cc9b;
+  background: #e3cc9b;
+  transform: none;
+}
+.ks-manual-app .manual-submit:focus-visible {
+  outline: 3px solid rgb(215 188 131 / 38%);
+  outline-offset: 3px;
+}
+.ks-manual-app .manual-submit:disabled {
+  cursor: wait;
+  opacity: .68;
+}
+.ks-manual-app .manual-submit svg {
+  color: inherit;
+}
+.ks-manual-app .manual-spinner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+.ks-manual-app .manual-spinner > span {
+  display: none;
+}
+.ks-manual-app .manual-submit-label {
+  display: inline;
+}
+.ks-manual-app .manual-submit-label strong {
+  font: inherit;
+}
+.ks-manual-app .manual-submit-label small {
+  display: none;
+}
+.ks-manual-app .ks-error,
+.ks-manual-app .ks-player,
+.ks-manual-app .ks-result {
+  width: 100%;
+  margin: 0;
+  box-sizing: border-box;
+  box-shadow: none;
+}
+.ks-manual-app .ks-error {
+  padding: 14px 15px;
+  gap: 4px;
+  border: 1px solid #55373a;
+  border-radius: 10px;
+  background: #191113;
+  color: #e4b7b8;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.ks-manual-app .ks-error b {
+  color: #f1d0d0;
+  font-size: 13px;
+}
+.ks-manual-app .ks-player {
+  padding: 14px;
+  border-color: #30383a;
+  border-radius: 10px;
+  background: #121617;
+}
+.ks-manual-app .ks-player b {
+  font-size: 14px;
+}
+.ks-manual-app .ks-result-compact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #303236;
+  border-radius: 10px;
+  background: #121315;
+}
+.ks-manual-app .ks-result-identity {
+  padding-bottom: 13px;
+  border-bottom: 1px solid #292a2d;
+}
+.ks-manual-app .ks-result-copy {
+  min-width: 0;
+}
+.ks-manual-app .ks-result-kicker {
+  color: #a4a4a7;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .015em;
+}
+.ks-manual-app .ks-result-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  color: #efeee9;
+}
+.ks-manual-app .ks-result-status b {
+  font-size: 15px;
+}
+.ks-manual-app .ks-result-copy p {
+  margin: 7px 0 0;
+  color: #a3a4a8;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.ks-manual-app .ks-result-success .ks-result-status svg {
+  color: #83c59b;
+}
+.ks-manual-app .ks-result-claimed .ks-result-status svg,
+.ks-manual-app .ks-result-warning .ks-result-status svg {
+  color: #d7bc83;
+}
+.ks-manual-app .ks-result-error .ks-result-status svg {
+  color: #e28b8e;
+}
+.ks-manual-app .ks-how {
+  width: min(620px, 100%);
+  margin: 0 auto;
+  padding: 30px 0 54px;
+}
+.ks-manual-app .ks-how .section-title {
+  margin-bottom: 10px;
+}
+.ks-manual-app .ks-how .section-title > span {
+  display: none;
+}
+.ks-manual-app .ks-how .section-title h2 {
+  margin: 0;
+  color: #e9e8e3;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -.02em;
+}
+.ks-manual-app .ks-how .feature-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+.ks-manual-app .ks-how .feature-grid article {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
+  column-gap: 11px;
+  row-gap: 3px;
+  padding: 14px 0;
+  border: 0;
+  border-top: 1px solid #242528;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.ks-manual-app .ks-how .feature-grid article > svg {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  width: 17px;
+  height: 17px;
+  margin: 1px 0 0;
+  color: #b7a276;
+}
+.ks-manual-app .ks-how .feature-grid article b {
+  display: block;
+  color: #deddd8;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.ks-manual-app .ks-how .feature-grid article p {
+  margin: 0;
+  color: #929398;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.ks-manual-app footer {
+  padding-top: 22px;
+  padding-bottom: 20px;
+  border-top-color: #242528;
+}
+.ks-manual-app footer > span {
+  color: #88898d;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.ks-manual-app footer a {
+  color: #a4a4a7;
+}
+@media (max-width: 640px) {
+  .ks-manual-app header,
+  .ks-manual-app footer,
+  .ks-manual-app main {
+    width: calc(100% - 32px);
+  }
+  .ks-manual-app header {
+    height: 62px;
+  }
+  .ks-manual-app .manual-page-hero {
+    padding: 38px 0 10px;
+    gap: 19px;
+  }
+  .ks-manual-app .manual-page-hero .eyebrow {
+    margin-bottom: 13px;
+  }
+  .ks-manual-app .manual-page-hero h1 {
+    font-size: clamp(32px, 9vw, 40px);
+    line-height: 1.12;
+  }
+  .ks-manual-app .manual-page-hero .hero-copy {
+    font-size: 14px;
+  }
+  .ks-manual-app .manual-redeem-form {
+    padding: 17px;
+    border-radius: 12px;
+  }
+  .ks-manual-app .manual-form-head {
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 13px;
+  }
+  .ks-manual-app .manual-form-head h2 {
+    font-size: 17px;
+  }
+  .ks-manual-app .manual-secure {
+    font-size: 11px;
+  }
+  .ks-manual-app .manual-fields {
+    gap: 15px;
+  }
+  .ks-manual-app .manual-submit {
+    min-height: 48px;
+    font-size: 14px;
+  }
+  .ks-manual-app .ks-how {
+    padding: 25px 0 38px;
+  }
+  .ks-manual-app footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 11px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ks-manual-app * {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+  }
+}
