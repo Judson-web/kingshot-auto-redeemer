@@ -103,7 +103,7 @@ export default function GiftCodesApp() {
         setAuthed(false); setCodes([]);
       } else if (action === "GIFT_CODE_ADD") {
         setCode(""); setExpires(""); setConfirmManual(false);
-        setNotice(data.restored ? "Code restored and queued for player verification." : "Code added and queued for player verification.");
+        setNotice("Code manually approved and marked verified. Canary verification was skipped; Kingshot may still reject an expired or invalid code.");
         await load();
       } else if (action === "GIFT_CODE_UPDATE") {
         setNotice(extra.active === false ? "Code removed from the active pool." : "Code queued for player re-verification.");
@@ -192,12 +192,12 @@ export default function GiftCodesApp() {
         </section>
 
         <section aria-labelledby="add-code-heading" style={{ ...panel, padding: "clamp(16px, 3vw, 22px)", marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}><span style={{ display: "grid", placeItems: "center", width: 34, height: 34, borderRadius: 10, background: "#292442", color: "#c8b8ff" }}><Plus size={18}/></span><div><h2 id="add-code-heading" style={{ fontSize: 16, margin: 0 }}>Add a gift code</h2><p style={{ fontSize: 12, color: "#8b95a7", margin: "4px 0 0" }}>Manually add or restore a code from a trusted source.</p></div></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}><span style={{ display: "grid", placeItems: "center", width: 34, height: 34, borderRadius: 10, background: "#292442", color: "#c8b8ff" }}><Plus size={18}/></span><div><h2 id="add-code-heading" style={{ fontSize: 16, margin: 0 }}>Add a gift code</h2><p style={{ fontSize: 12, color: "#8b95a7", margin: "4px 0 0" }}>Manually add or restore a code from a trusted source. Confirmed manual codes are immediately marked verified.</p></div></div>
           <form onSubmit={(event) => { event.preventDefault(); run("GIFT_CODE_ADD", { code, expiresAt: expires ? new Date(expires).toISOString() : null, confirmManual }); }} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: 12, alignItems: "end" }}>
             <label style={{ color: "#c4cad6", fontSize: 12, fontWeight: 700 }}>Gift code<input required minLength={6} maxLength={32} pattern="[A-Za-z0-9_-]{6,32}" value={code} onChange={(event) => setCode(event.target.value.trim())} placeholder="e.g. Hangul2026" autoCapitalize="none" autoComplete="off" style={{ ...input, display: "block", marginTop: 7 }}/></label>
             <label style={{ color: "#c4cad6", fontSize: 12, fontWeight: 700 }}>Expiry date <span style={{ color: "#818b9e", fontWeight: 400 }}>(optional)</span><input type="datetime-local" value={expires} onChange={(event) => setExpires(event.target.value)} style={{ ...input, display: "block", marginTop: 7 }}/></label>
             <button type="submit" disabled={busy || !confirmManual} style={{ ...button, minHeight: 42, background: "#d8c49a", borderColor: "#d8c49a", color: "#17140e", opacity: busy || !confirmManual ? .55 : 1 }}><Plus size={15}/> Add code</button>
-            <label style={{ gridColumn: "1 / -1", display: "flex", alignItems: "flex-start", gap: 9, padding: 12, borderRadius: 10, background: "#0c1018", color: "#9da7b8", fontSize: 11, lineHeight: 1.5 }}><input type="checkbox" required checked={confirmManual} onChange={(event) => setConfirmManual(event.target.checked)} style={{ marginTop: 2, accentColor: "#b7a3f0" }}/><span><b style={{ color: "#d9deea" }}>Trusted-source confirmation</b><br/>I checked this code against a trusted Kingshot source. Manual entry does not guarantee that Kingshot will accept it.</span></label>
+            <label style={{ gridColumn: "1 / -1", display: "flex", alignItems: "flex-start", gap: 9, padding: 12, borderRadius: 10, background: "#0c1018", color: "#9da7b8", fontSize: 11, lineHeight: 1.5 }}><input type="checkbox" required checked={confirmManual} onChange={(event) => setConfirmManual(event.target.checked)} style={{ marginTop: 2, accentColor: "#b7a3f0" }}/><span><b style={{ color: "#d9deea" }}>Trusted-source confirmation</b><br/>I checked this code against a trusted Kingshot source and approve it for immediate redemption without canary verification. Kingshot may still reject an expired or invalid code.</span></label>
           </form>
         </section>
 
