@@ -538,3 +538,81 @@
   .info-app .info-cta-links a,
   .info-app .info-app article { transition: none !important; }
 }
+
+/* CTA link sizing guard: these are compact actions, never equal-height cards. */
+.info-app .info-cta-links {
+  display: flex !important;
+  flex: 0 0 auto !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+.info-app .info-cta-links > a {
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  align-self: flex-start !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  width: fit-content !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  margin: 0 !important;
+  padding: 0 11px !important;
+  border: 1px solid #454032 !important;
+  border-radius: 8px !important;
+  background: #181812 !important;
+  color: #d9c18b !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+.info-app .info-cta-links > a > svg {
+  flex: 0 0 14px !important;
+  width: 14px !important;
+  height: 14px !important;
+}
+.info-app .info-cta-links > a:hover {
+  border-color: #8b7952 !important;
+  background: #211f17 !important;
+  color: #f0dfb7 !important;
+  transform: none !important;
+}
+@media (max-width: 760px) {
+  .info-app .info-cta {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 15px !important;
+  }
+  .info-app .info-cta-links {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .info-app .info-cta-links > a {
+    flex: 0 0 auto !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+  }
+}
+@media (max-width: 360px) {
+  .info-app .info-cta-links > a {
+    max-width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+}
