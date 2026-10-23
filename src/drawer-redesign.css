@@ -236,3 +236,13 @@
     transition: none !important;
   }
 }
+
+/* The Support action shares the navigation-row geometry without inheriting browser button styling. */
+.ks-app .ks-nav-drawer button.ks-nav-drawer-link {
+  width: 100%;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
