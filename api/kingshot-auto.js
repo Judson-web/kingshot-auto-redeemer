@@ -43,7 +43,7 @@ async function rpc(name,body){
  return d;
 }
 
-import {extractPageCodes, extractPublicSourceCodes, mergeCodes, normalizeCodes, isCredibleGiftCodeCandidate} from "../internal/kingshot/gift-codes.js";
+import {extractPageCodes, extractPublicSourceCodes, mergeCodes, normalizeCodes, isCredibleGiftCodeCandidate, isCanaryEligibleGiftCodeCandidate} from "../internal/kingshot/gift-codes.js";
 import { getHandledGiftCodes, selectNextOutstandingCode } from "../internal/kingshot/redemption-history.js";
 const WORKER_COUNT=4;
 // Four durable shards × two concurrent redemptions keep each shard small while bounding upstream pressure.
@@ -517,7 +517,17 @@ export default async function handler(req,res){
    validPlayers:validPlayers.length
   });
   // One canary per cycle. The real endpoint can consume the reward on this player.
-  const pendingCandidates=persistedCodeRows.filter(r=>r&&r.validation_status==="pending"&&r.suppressed!==true).map(r=>({code:String(r.code||"").trim()})).filter(r=>{const evidence=activeCodes.find(c=>c.code.toUpperCase()===r.code.toUpperCase());return Boolean(r.code&&evidence&&isCredibleGiftCodeCandidate(evidence)&&!expiredCodes.has(r.code.toUpperCase()));});
+  const apiCandidateKeys=new Set(apiCodes.map(item=>String(item.code||"").trim().toUpperCase()));
+  const pageCandidateKeys=new Set(pageCodes.map(item=>String(item.code||"").trim().toUpperCase()));
+  const pendingCandidates=persistedCodeRows
+   .filter(r=>r&&r.validation_status==="pending"&&r.suppressed!==true)
+   .map(r=>({code:String(r.code||"").trim()}))
+   .filter(r=>{
+    const codeKey=r.code.toUpperCase();
+    const evidence=activeCodes.find(c=>c.code.toUpperCase()===codeKey);
+    const matchedFirstPartyApiAndPage=apiCandidateKeys.has(codeKey)&&pageCandidateKeys.has(codeKey);
+    return Boolean(r.code&&evidence&&isCanaryEligibleGiftCodeCandidate(evidence,matchedFirstPartyApiAndPage)&&!expiredCodes.has(codeKey));
+   });
   const canaryCandidate=pendingCandidates[0];let verificationAttempt=null;
   if(canaryCandidate&&validPlayers.length){
    for(const player of validPlayers){

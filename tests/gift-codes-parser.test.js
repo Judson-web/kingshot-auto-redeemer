@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { extractPageCodes, extractPublicSourceCodes, mergeCodes, isCredibleGiftCodeCandidate } from "../internal/kingshot/gift-codes.ts";
+import { extractPageCodes, extractPublicSourceCodes, mergeCodes, isCredibleGiftCodeCandidate, isCanaryEligibleGiftCodeCandidate } from "../internal/kingshot/gift-codes.ts";
 
 test("does not infer gift codes from generic copy/redeem page text", () => {
   const html = `
@@ -76,6 +76,17 @@ test("an uncorroborated Kingshot.net candidate is not eligible for announcement 
     { code: "lwaL5ZKx5", expiresAt: null, createdAt: Date.now(), source: "kingshot-net-api" }
   ]]);
   assert.equal(isCredibleGiftCodeCandidate(candidate), false);
+  assert.equal(isCanaryEligibleGiftCodeCandidate(candidate, false), false);
+});
+
+test("matching first-party API and active-page code can be canary-tested but remains low-confidence", () => {
+  const api = { code: "OFFICIALSTORE1023", expiresAt: null, createdAt: Date.now(), source: "kingshot-net-api" };
+  const page = { code: "OFFICIALSTORE1023", expiresAt: null, createdAt: Date.now(), source: "kingshot-net-page" };
+  const [candidate] = mergeCodes([[api], [page]]);
+  assert.equal(candidate.confidence, 0.35);
+  assert.equal(isCredibleGiftCodeCandidate(candidate), false);
+  assert.equal(isCanaryEligibleGiftCodeCandidate(candidate, true), true);
+  assert.equal(isCanaryEligibleGiftCodeCandidate(candidate, false), false);
 });
 
 test("one independently reputable active-code source remains eligible", () => {

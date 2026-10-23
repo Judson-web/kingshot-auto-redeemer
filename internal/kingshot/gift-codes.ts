@@ -85,9 +85,29 @@ function confidenceForSources(sources: string[]): number {
  return Number(Math.min(0.99, confidence).toFixed(2));
 }
 
-/** Only medium- or high-confidence candidates may be announced or tested on a player. */
+/** Only medium- or high-confidence candidates may be announced publicly. */
 export function isCredibleGiftCodeCandidate(row: GiftCodeRow | null | undefined): boolean {
  return Boolean(row && Number.isFinite(Number(row.confidence)) && Number(row.confidence) >= 0.55);
+}
+
+/**
+ * Lower-confidence codes may enter the isolated canary-validation step when
+ * the same code appears in both the JSON feed and explicitly parsed active
+ * section of the matching first-party page. This never marks the code verified:
+ * only the game's redemption response can do that.
+ */
+export function isCanaryEligibleGiftCodeCandidate(
+ row: GiftCodeRow | null | undefined,
+ matchedFirstPartyApiAndPage = false
+): boolean {
+ if (isCredibleGiftCodeCandidate(row)) return true;
+ return Boolean(
+  row &&
+  matchedFirstPartyApiAndPage &&
+  Array.isArray(row.sources) &&
+  row.sources.includes("kingshot-net-api") &&
+  row.sources.includes("kingshot-net-page")
+ );
 }
 
 export function mergeCodes(sources: GiftCodeRow[][]): GiftCodeRow[] {
