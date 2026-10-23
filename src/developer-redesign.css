@@ -1,0 +1,780 @@
+/* Developer API: sober documentation UI, consistent with the main charcoal / warm-gold design system. */
+.dev-dashboard.ks-dev-route {
+  --ks-dev-bg: #0c0d0b;
+  --ks-dev-surface: #11120f;
+  --ks-dev-surface-raised: #171814;
+  --ks-dev-border: #30312b;
+  --ks-dev-border-strong: #494437;
+  --ks-dev-ink: #eeede6;
+  --ks-dev-muted: #a6a79e;
+  --ks-dev-muted-soft: #888a81;
+  --ks-dev-gold: #d4bd88;
+  --ks-dev-gold-soft: #baa678;
+  display: block !important;
+  position: relative !important;
+  isolation: isolate !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  min-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: clip !important;
+  overflow-y: visible !important;
+  background: var(--ks-dev-bg) !important;
+  background-image: none !important;
+  color: var(--ks-dev-ink) !important;
+  font-family: inherit !important;
+  line-height: 1.55 !important;
+}
+.dev-dashboard.ks-dev-route * { box-sizing: border-box !important; }
+.dev-dashboard.ks-dev-route .dev-topbar {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 40 !important;
+  border: 0 !important;
+  border-bottom: 1px solid #292a25 !important;
+  border-radius: 0 !important;
+  background: rgb(13 14 12 / 94%) !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+.dev-dashboard.ks-dev-route .dev-shell {
+  width: min(1260px, 100%) !important;
+  max-width: 1260px !important;
+  margin: 0 auto !important;
+  padding-inline: clamp(14px, 3vw, 32px) !important;
+}
+.dev-dashboard.ks-dev-route .dev-topbar-inner {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  min-height: 66px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+.dev-dashboard.ks-dev-route .dev-brand-mark {
+  display: grid !important;
+  flex: 0 0 38px !important;
+  place-items: center !important;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  max-width: 38px !important;
+  border: 1px solid #3d3e35 !important;
+  border-radius: 10px !important;
+  background: #191a16 !important;
+  color: var(--ks-dev-gold) !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+.dev-dashboard.ks-dev-route .dev-brand-mark img {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
+.dev-dashboard.ks-dev-route .dev-brand-copy {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+.dev-dashboard.ks-dev-route .dev-brand-copy > div:first-child {
+  color: #e8e7df !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  letter-spacing: -.02em !important;
+}
+.dev-dashboard.ks-dev-route .dev-brand-copy > div:first-child span {
+  color: var(--ks-dev-gold) !important;
+}
+.dev-dashboard.ks-dev-route .dev-brand-copy > div:last-child {
+  margin-top: 3px !important;
+  color: #96978e !important;
+  font-size: 10px !important;
+  font-weight: 400 !important;
+  line-height: 1.45 !important;
+}
+.dev-dashboard.ks-dev-route .dev-top-nav {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 5px !important;
+  min-width: 0 !important;
+  margin-left: auto !important;
+  overflow: visible !important;
+}
+.dev-dashboard.ks-dev-route .dev-nav-link {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-height: 36px !important;
+  padding: 8px 10px !important;
+  border: 1px solid transparent !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #b7b7ad !important;
+  font-size: 11px !important;
+  font-weight: 550 !important;
+  line-height: 1.3 !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  transition: color .15s ease, background-color .15s ease, border-color .15s ease !important;
+}
+.dev-dashboard.ks-dev-route .dev-nav-link svg {
+  flex: 0 0 auto !important;
+  color: var(--ks-dev-gold) !important;
+}
+.dev-dashboard.ks-dev-route .dev-nav-link:hover {
+  border-color: #37362e !important;
+  background: #191a16 !important;
+  color: #f0dfb7 !important;
+}
+.dev-dashboard.ks-dev-route .dev-global-menu {
+  display: none !important;
+  flex: 0 0 40px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  min-width: 40px !important;
+  height: 40px !important;
+  padding: 0 !important;
+  border: 1px solid #3a3b33 !important;
+  border-radius: 9px !important;
+  background: #191a16 !important;
+  color: #e2d2aa !important;
+  cursor: pointer !important;
+}
+.dev-dashboard.ks-dev-route .dev-global-menu:hover {
+  border-color: #766747 !important;
+  background: #222119 !important;
+}
+.dev-dashboard.ks-dev-route .dev-global-menu svg { color: var(--ks-dev-gold) !important; }
+.dev-dashboard.ks-dev-route .dev-page {
+  width: min(1260px, 100%) !important;
+  max-width: 1260px !important;
+  margin: 0 auto !important;
+  padding: clamp(28px, 4vw, 48px) clamp(14px, 3vw, 32px) calc(48px + env(safe-area-inset-bottom, 0px)) !important;
+}
+.dev-dashboard.ks-dev-route .dev-overview {
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  gap: 24px !important;
+  min-width: 0 !important;
+  margin: 0 0 23px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+.dev-dashboard.ks-dev-route .dev-overview > div {
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.dev-dashboard.ks-dev-route .dev-eyebrow {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-height: 26px !important;
+  padding: 6px 9px !important;
+  border: 1px solid #48402f !important;
+  border-radius: 7px !important;
+  background: #191811 !important;
+  color: #c3ad7c !important;
+  font-size: 9px !important;
+  font-weight: 650 !important;
+  line-height: 1.45 !important;
+  letter-spacing: .08em !important;
+  text-transform: uppercase !important;
+}
+.dev-dashboard.ks-dev-route .dev-page-title {
+  display: block !important;
+  width: auto !important;
+  max-width: 25ch !important;
+  margin: 14px 0 12px !important;
+  padding: 0 !important;
+  color: #efeee8 !important;
+  font-size: clamp(32px, 4.2vw, 47px) !important;
+  font-weight: 650 !important;
+  line-height: 1.06 !important;
+  letter-spacing: -.05em !important;
+  text-wrap: balance !important;
+  overflow-wrap: anywhere !important;
+}
+.dev-dashboard.ks-dev-route .dev-overview .dev-muted {
+  max-width: 64ch !important;
+  margin: 0 !important;
+  color: var(--ks-dev-muted) !important;
+  font-size: 13px !important;
+  line-height: 1.72 !important;
+}
+.dev-dashboard.ks-dev-route .dev-version-pill {
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-height: 35px !important;
+  max-width: 100% !important;
+  margin: 0 0 4px !important;
+  padding: 8px 11px !important;
+  border: 1px solid #454033 !important;
+  border-radius: 8px !important;
+  background: #191a15 !important;
+  color: #e1d4b1 !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  box-shadow: none !important;
+}
+.dev-dashboard.ks-dev-route .dev-stat-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  align-items: stretch !important;
+  gap: 10px !important;
+  width: 100% !important;
+  margin: 0 0 20px !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+.dev-dashboard.ks-dev-route .dev-stat {
+  position: relative !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 16px !important;
+  border: 1px solid #30312b !important;
+  border-radius: 11px !important;
+  background: #11120f !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  transition: border-color .15s ease, background-color .15s ease !important;
+}
+.dev-dashboard.ks-dev-route .dev-stat:before {
+  content: none !important;
+}
+.dev-dashboard.ks-dev-route .dev-stat:hover {
+  border-color: #61553b !important;
+  background: #141510 !important;
+  transform: none !important;
+}
+.dev-dashboard.ks-dev-route .dev-stat-label {
+  color: #a4a59c !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+}
+.dev-dashboard.ks-dev-route .dev-stat-value {
+  margin-top: 8px !important;
+  color: #efeee8 !important;
+  font-size: clamp(14px, 1.5vw, 18px) !important;
+  font-weight: 620 !important;
+  line-height: 1.5 !important;
+  letter-spacing: -.018em !important;
+  overflow-wrap: anywhere !important;
+}
+.dev-dashboard.ks-dev-route .dev-stat-value code {
+  color: #e2d5b3 !important;
+  font-size: inherit !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+}
+.dev-dashboard.ks-dev-route .dev-stat-detail {
+  margin-top: 5px !important;
+  color: #898a82 !important;
+  font-size: 10px !important;
+  line-height: 1.55 !important;
+}
+.dev-dashboard.ks-dev-route .dev-section-nav {
+  display: flex !important;
+  flex-flow: row wrap !important;
+  gap: 7px !important;
+  width: 100% !important;
+  margin: 0 0 21px !important;
+  padding: 0 0 2px !important;
+  overflow: visible !important;
+}
+.dev-dashboard.ks-dev-route .dev-section-nav a {
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  gap: 7px !important;
+  min-height: 37px !important;
+  min-width: 0 !important;
+  padding: 8px 10px !important;
+  border: 1px solid #34352f !important;
+  border-radius: 8px !important;
+  background: #141510 !important;
+  color: #b8b8ae !important;
+  font-size: 11px !important;
+  font-weight: 550 !important;
+  line-height: 1.35 !important;
+  text-decoration: none !important;
+  white-space: normal !important;
+  transition: border-color .15s ease, background-color .15s ease, color .15s ease !important;
+}
+.dev-dashboard.ks-dev-route .dev-section-nav a svg {
+  flex: 0 0 auto !important;
+  color: var(--ks-dev-gold) !important;
+}
+.dev-dashboard.ks-dev-route .dev-section-nav a:hover,
+.dev-dashboard.ks-dev-route .dev-section-nav a:focus-visible {
+  border-color: #786847 !important;
+  background: #1b1a14 !important;
+  color: #f0dfb7 !important;
+}
+.dev-dashboard.ks-dev-route .dev-layout {
+  display: grid !important;
+  grid-template-columns: minmax(275px, .72fr) minmax(0, 1.7fr) !important;
+  align-items: start !important;
+  gap: 16px !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+.dev-dashboard.ks-dev-route .dev-sidebar {
+  position: sticky !important;
+  top: 84px !important;
+  min-width: 0 !important;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.dev-dashboard.ks-dev-route .dev-content {
+  display: grid !important;
+  gap: 13px !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.dev-dashboard.ks-dev-route .dev-doc-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  align-items: start !important;
+  gap: 13px !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.dev-dashboard.ks-dev-route .dev-doc-grid > section,
+.dev-dashboard.ks-dev-route .dev-doc-grid > div {
+  min-width: 0 !important;
+}
+.dev-dashboard.ks-dev-route .dev-doc-grid > #api-reference { grid-column: 1 / -1 !important; }
+.dev-dashboard.ks-dev-route .dev-card {
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: clamp(16px, 2vw, 22px) !important;
+  border: 1px solid #30312b !important;
+  border-radius: 12px !important;
+  background: #11120f !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  transition: border-color .15s ease, background-color .15s ease !important;
+}
+.dev-dashboard.ks-dev-route .dev-card:hover {
+  border-color: #414137 !important;
+  background: #12130f !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+.dev-dashboard.ks-dev-route .dev-card-head {
+  display: flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+  margin: 0 0 11px !important;
+  padding: 0 !important;
+}
+.dev-dashboard.ks-dev-route .dev-card-head > svg {
+  flex: 0 0 auto !important;
+  color: var(--ks-dev-gold) !important;
+}
+.dev-dashboard.ks-dev-route .dev-card-title {
+  min-width: 0 !important;
+  margin: 0 !important;
+  color: #e7e6df !important;
+  font-size: 16px !important;
+  font-weight: 620 !important;
+  line-height: 1.38 !important;
+  letter-spacing: -.025em !important;
+}
+.dev-dashboard.ks-dev-route .dev-feature-card {
+  grid-column: 1 / -1 !important;
+  border-color: #48402f !important;
+  background: #151510 !important;
+  box-shadow: none !important;
+}
+.dev-dashboard.ks-dev-route .dev-feature-card:after { content: none !important; }
+.dev-dashboard.ks-dev-route .dev-feature-card .dev-section-kicker {
+  color: #c7b17d !important;
+  font-size: 9px !important;
+  font-weight: 650 !important;
+  letter-spacing: .09em !important;
+}
+.dev-dashboard.ks-dev-route .dev-feature-card .dev-section-kicker svg { color: var(--ks-dev-gold) !important; }
+.dev-dashboard.ks-dev-route .dev-feature-card h2 {
+  max-width: 42ch !important;
+  margin: 11px 0 9px !important;
+  color: #efeee8 !important;
+  font-size: clamp(22px, 2.2vw, 29px) !important;
+  font-weight: 650 !important;
+  line-height: 1.16 !important;
+  letter-spacing: -.04em !important;
+  text-wrap: balance !important;
+}
+.dev-dashboard.ks-dev-route .dev-dashboard p,
+.dev-dashboard.ks-dev-route .dev-muted {
+  color: var(--ks-dev-muted) !important;
+}
+.dev-dashboard.ks-dev-route .dev-muted {
+  font-size: 12px !important;
+  line-height: 1.72 !important;
+}
+.dev-dashboard.ks-dev-route .dev-feature-card .dev-muted { max-width: 70ch !important; }
+.dev-dashboard.ks-dev-route .dev-code {
+  width: 100% !important;
+  max-width: 100% !important;
+  max-height: 480px !important;
+  margin: 0 !important;
+  padding: 13px !important;
+  border: 1px solid #292a24 !important;
+  border-radius: 9px !important;
+  background: #0b0c0a !important;
+  color: #e1d4b1 !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+  font-size: 11px !important;
+  line-height: 1.72 !important;
+  white-space: pre !important;
+  overflow: auto !important;
+  overscroll-behavior: contain !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: #4c4637 #0b0c0a !important;
+}
+.dev-dashboard.ks-dev-route .dev-code code {
+  color: inherit !important;
+  white-space: pre !important;
+  overflow-wrap: normal !important;
+}
+.dev-dashboard.ks-dev-route .dev-endpoint {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-flow: row wrap !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  padding: 10px !important;
+  border: 1px solid #34352e !important;
+  border-radius: 9px !important;
+  background: #151611 !important;
+}
+.dev-dashboard.ks-dev-route .dev-endpoint > code {
+  flex: 1 1 160px !important;
+  min-width: 0 !important;
+  color: #e4d4ac !important;
+  font-size: 11px !important;
+  overflow-wrap: anywhere !important;
+  white-space: normal !important;
+}
+.dev-dashboard.ks-dev-route .dev-tab {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 36px !important;
+  padding: 8px 11px !important;
+  border: 1px solid #3a3b33 !important;
+  border-radius: 7px !important;
+  background: #171814 !important;
+  color: #b6b7ae !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+.dev-dashboard.ks-dev-route .dev-tab[aria-pressed="true"] {
+  border-color: #736343 !important;
+  background: #2b271b !important;
+  color: #ead6a5 !important;
+  box-shadow: none !important;
+}
+.dev-dashboard.ks-dev-route .dev-copy-button,
+.dev-dashboard.ks-dev-route .dev-accordion-trigger {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  min-height: 35px !important;
+  padding: 8px 10px !important;
+  border: 1px solid #494231 !important;
+  border-radius: 8px !important;
+  background: #1a1913 !important;
+  color: #e0d1a5 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  line-height: 1.3 !important;
+  cursor: pointer !important;
+  transition: border-color .15s ease, background-color .15s ease, color .15s ease !important;
+}
+.dev-dashboard.ks-dev-route .dev-copy-button svg,
+.dev-dashboard.ks-dev-route .dev-accordion-trigger svg { color: var(--ks-dev-gold) !important; }
+.dev-dashboard.ks-dev-route .dev-copy-button:hover,
+.dev-dashboard.ks-dev-route .dev-accordion-trigger:hover {
+  border-color: #86734d !important;
+  background: #242116 !important;
+  color: #f3e1b4 !important;
+  filter: none !important;
+  transform: none !important;
+}
+.dev-dashboard.ks-dev-route .dev-dashboard a { text-underline-offset: 3px; }
+.dev-dashboard.ks-dev-route .dev-card a:not(.dev-nav-link) {
+  color: #cdb77f !important;
+}
+.dev-dashboard.ks-dev-route .dev-card a:not(.dev-nav-link):hover { color: #ecd8a6 !important; }
+.dev-dashboard.ks-dev-route .dev-doc-grid h3 {
+  color: #e7e6df !important;
+  font-weight: 620 !important;
+}
+.dev-dashboard.ks-dev-route .dev-doc-grid code:not(pre code) {
+  color: #ddc996 !important;
+  overflow-wrap: anywhere !important;
+}
+.dev-dashboard.ks-dev-route .dev-feature-card > div[style*="flex-wrap"] > span {
+  border-color: #434033 !important;
+  border-radius: 6px !important;
+  background: #1b1a14 !important;
+  color: #c7c2af !important;
+}
+.dev-dashboard.ks-dev-route .dev-footer {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 9px 17px !important;
+  margin: 30px 0 0 !important;
+  padding: 17px 0 0 !important;
+  border-top: 1px solid #292a25 !important;
+  background: transparent !important;
+  color: #8e8f86 !important;
+  font-size: 10px !important;
+  line-height: 1.6 !important;
+}
+.dev-dashboard.ks-dev-route .dev-footer a {
+  color: #b9a678 !important;
+  font-size: 11px !important;
+  text-decoration: none !important;
+}
+.dev-dashboard.ks-dev-route .dev-footer a:hover { color: #ecd8a6 !important; text-decoration: underline !important; }
+.dev-dashboard.ks-dev-route #developer-account {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 16px !important;
+  border: 1px solid #34352f !important;
+  border-radius: 12px !important;
+  background: #11120f !important;
+  color: #eeede6 !important;
+  box-shadow: none !important;
+}
+.dev-dashboard.ks-dev-route #developer-account > div:first-child > div:first-child {
+  border: 1px solid #4a4231 !important;
+  border-radius: 9px !important;
+  background: #1b1a15 !important;
+  color: #d4bd88 !important;
+}
+.dev-dashboard.ks-dev-route #developer-account > div:first-child > div:first-child svg {
+  color: #d4bd88 !important;
+}
+.dev-dashboard.ks-dev-route #developer-account h2 {
+  color: #efeee8 !important;
+}
+.dev-dashboard.ks-dev-route #developer-account p {
+  color: #a6a79e !important;
+}
+.dev-dashboard.ks-dev-route #developer-account input {
+  min-width: 0 !important;
+  min-height: 43px !important;
+  padding: 10px 12px !important;
+  border: 1px solid #414137 !important;
+  border-radius: 8px !important;
+  background: #171814 !important;
+  color: #efeee8 !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+  box-shadow: none !important;
+}
+.dev-dashboard.ks-dev-route #developer-account input:focus-visible {
+  outline: 2px solid #d4bd88 !important;
+  outline-offset: 2px !important;
+  border-color: #9a8457 !important;
+}
+.dev-dashboard.ks-dev-route #developer-account button:not(.developer-revoke-button) {
+  min-height: 37px !important;
+  border: 1px solid #766543 !important;
+  border-radius: 8px !important;
+  background: #d4bd88 !important;
+  color: #211f17 !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  box-shadow: none !important;
+}
+.dev-dashboard.ks-dev-route #developer-account button:not(.developer-revoke-button):hover:not(:disabled) {
+  border-color: #e4d0a0 !important;
+  background: #e4d0a0 !important;
+  filter: none !important;
+  transform: none !important;
+}
+.dev-dashboard.ks-dev-route #developer-account .developer-revoke-button {
+  border-color: #654247 !important;
+  background: #281a1d !important;
+  color: #e8b2b6 !important;
+}
+.dev-dashboard.ks-dev-route #developer-account .developer-revoke-button:hover {
+  border-color: #946066 !important;
+  background: #332024 !important;
+}
+.dev-dashboard.ks-dev-route #developer-account [role="alert"] {
+  border: 1px solid #634044 !important;
+  background: #241518 !important;
+  color: #efb5bb !important;
+}
+.dev-dashboard.ks-dev-route #developer-account [role="status"] {
+  border: 1px solid #3d4f3b !important;
+  background: #171f15 !important;
+  color: #c8ddbb !important;
+}
+.dev-dashboard.ks-dev-route #developer-account .developer-new-key {
+  border: 1px solid #746444 !important;
+  border-radius: 9px !important;
+  background: #1c1a13 !important;
+}
+.dev-dashboard.ks-dev-route #developer-account .developer-new-key code {
+  display: block !important;
+  padding: 10px !important;
+  border: 1px solid #30312b !important;
+  border-radius: 7px !important;
+  background: #0b0c0a !important;
+  color: #e2d1a5 !important;
+  overflow-wrap: anywhere !important;
+}
+.dev-dashboard.ks-dev-route #developer-account summary {
+  color: #b9b7ac !important;
+  cursor: pointer !important;
+}
+.dev-dashboard.ks-dev-route .dev-dashboard :focus-visible,
+.dev-dashboard.ks-dev-route :focus-visible {
+  outline: 2px solid #d4bd88 !important;
+  outline-offset: 3px !important;
+}
+.dev-dashboard.ks-dev-route [id] { scroll-margin-top: 86px !important; }
+@media (max-width: 1040px) {
+  .dev-dashboard.ks-dev-route .dev-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 14px !important;
+  }
+  .dev-dashboard.ks-dev-route .dev-sidebar {
+    position: static !important;
+    top: auto !important;
+  }
+  .dev-dashboard.ks-dev-route .dev-version-pill { margin-top: 0 !important; }
+}
+@media (max-width: 760px) {
+  .dev-dashboard.ks-dev-route .dev-shell {
+    padding-inline: 15px !important;
+  }
+  .dev-dashboard.ks-dev-route .dev-topbar-inner {
+    min-height: 58px !important;
+    gap: 9px !important;
+  }
+  .dev-dashboard.ks-dev-route .dev-brand-mark {
+    flex-basis: 34px !important;
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    height: 34px !important;
+  }
+  .dev-dashboard.ks-dev-route .dev-brand-copy > div:first-child { font-size: 12px !important; }
+  .dev-dashboard.ks-dev-route .dev-brand-copy > div:last-child { font-size: 9px !important; }
+  .dev-dashboard.ks-dev-route .dev-top-nav { display: none !important; }
+  .dev-dashboard.ks-dev-route .dev-global-menu { display: inline-flex !important; }
+  .dev-dashboard.ks-dev-route .dev-page {
+    padding-top: 24px !important;
+    padding-bottom: calc(34px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .dev-dashboard.ks-dev-route .dev-overview {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    margin-bottom: 19px !important;
+  }
+  .dev-dashboard.ks-dev-route .dev-page-title {
+    max-width: 100% !important;
+    font-size: clamp(30px, 7.7vw, 39px) !important;
+  }
+  .dev-dashboard.ks-dev-route .dev-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+  .dev-dashboard.ks-dev-route .dev-stat { padding: 12px !important; }
+  .dev-dashboard.ks-dev-route .dev-stat:last-child { grid-column: 1 / -1 !important; }
+  .dev-dashboard.ks-dev-route .dev-stat-label { font-size: 10px !important; }
+  .dev-dashboard.ks-dev-route .dev-stat-value { font-size: 13px !important; }
+  .dev-dashboard.ks-dev-route .dev-section-nav {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+  }
+  .dev-dashboard.ks-dev-route .dev-section-nav a {
+    min-height: 40px !important;
+    padding: 9px 8px !important;
+    font-size: 10px !important;
+    white-space: normal !important;
+  }
+  .dev-dashboard.ks-dev-route .dev-layout,
+  .dev-dashboard.ks-dev-route .dev-doc-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+  .dev-dashboard.ks-dev-route .dev-doc-grid > #api-reference { grid-column: auto !important; }
+  .dev-dashboard.ks-dev-route .dev-card { padding: 15px !important; }
+  .dev-dashboard.ks-dev-route .dev-code {
+    font-size: 10.5px !important;
+    max-height: 380px !important;
+    padding: 10px !important;
+  }
+  .dev-dashboard.ks-dev-route .dev-endpoint { align-items: flex-start !important; }
+  .dev-dashboard.ks-dev-route .dev-endpoint > code { flex: 1 1 100% !important; }
+  .dev-dashboard.ks-dev-route .dev-footer {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 8px !important;
+  }
+}
+@media (max-width: 430px) {
+  .dev-dashboard.ks-dev-route .dev-shell { padding-inline: 12px !important; }
+  .dev-dashboard.ks-dev-route .dev-brand-copy { display: block !important; }
+  .dev-dashboard.ks-dev-route .dev-brand-copy > div:last-child { display: none !important; }
+  .dev-dashboard.ks-dev-route .dev-brand-copy > div:first-child { font-size: 11px !important; }
+  .dev-dashboard.ks-dev-route .dev-topbar-inner { gap: 8px !important; }
+  .dev-dashboard.ks-dev-route .dev-global-menu {
+    flex-basis: 38px !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    height: 38px !important;
+  }
+  .dev-dashboard.ks-dev-route .dev-page-title { font-size: clamp(28px, 8vw, 34px) !important; }
+  .dev-dashboard.ks-dev-route .dev-stat-grid { gap: 7px !important; }
+  .dev-dashboard.ks-dev-route .dev-stat-value { font-size: 12px !important; }
+  .dev-dashboard.ks-dev-route .dev-card { padding: 13px !important; }
+  .dev-dashboard.ks-dev-route .dev-feature-card h2 { font-size: 22px !important; }
+  .dev-dashboard.ks-dev-route .dev-code { font-size: 9.7px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dev-dashboard.ks-dev-route *,
+  .dev-dashboard.ks-dev-route *::before,
+  .dev-dashboard.ks-dev-route *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}
