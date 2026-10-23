@@ -616,3 +616,9 @@
     overflow-wrap: anywhere !important;
   }
 }
+/* Leave room for the fixed Support launcher so it never sits over the final footer copy. */
+@media (max-width: 760px) {
+  .info-app > footer {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
