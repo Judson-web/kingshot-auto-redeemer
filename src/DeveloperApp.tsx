@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "./developer-page.css";
 import "./developer-redesign.css";
-import "./icon-palette.css";
 import MobileNavDrawer from "./components/MobileNavDrawer.jsx";
 import DeveloperAccountPanel from "./DeveloperAccountPanel";
 import { Activity, BookOpen, Check, ChevronRight, Code2, Copy, ExternalLink, Gauge, KeyRound, Menu, ShieldCheck, Terminal, X } from "lucide-react";
