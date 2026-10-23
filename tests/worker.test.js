@@ -75,8 +75,8 @@ test("transient Supabase failures retry idempotent reads but never replay redemp
   assert.match(autoSource, /const RETRYABLE_READ_RPCS=new Set/);
   assert.match(autoSource, /"list_kingshot_admin_gift_codes"/);
   assert.match(autoSource, /"list_kingshot_autoredeem_players"/);
-  assert.match(autoSource, /const maxAttempts=RETRYABLE_READ_RPCS\\.has\\(name\\)\\?2:1/);
-  assert.match(autoSource, /if\\(attempt<maxAttempts&&\\(r\\.status===429\\|\\|r\\.status>=500\\)\\)/);
+  assert.ok(autoSource.includes("const maxAttempts=RETRYABLE_READ_RPCS.has(name)?2:1"));
+  assert.ok(autoSource.includes("if(attempt<maxAttempts&&(r.status===429||r.status>=500))"));
   assert.match(autoSource, /"claim_kingshot_redemption"/);
 });
 
