@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from "react";
-import {ArrowLeft,ArrowRight,Clock3,Database,History,LockKeyhole,RefreshCw,Zap,Menu,X,ShieldCheck,LifeBuoy,UserRound,Code2} from "lucide-react";
+import {ArrowLeft,ArrowRight,Clock3,Database,History,LockKeyhole,RefreshCw,Zap,Menu,X,ShieldCheck,LifeBuoy} from "lucide-react";
 import "./how-it-works-redesign.css";
 const BRAND_ICON="/favicon.svg";
 function KsLogo(){return <a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={BRAND_ICON} alt="Kingshot Redeemer"/></span><span>Kingshot Redeemer</span></a>}
