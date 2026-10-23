@@ -1,210 +1,281 @@
-/* Shared mobile navigation drawer: flat, calm, and consistent with the refreshed pages. */
+/* One shared navigation overlay used by Auto, Manual, How it works and Legal pages. */
 .ks-app .ks-nav-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 11990;
-  display: block;
-  width: 100vw;
-  height: 100dvh;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: rgb(0 0 0 / 56%);
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
-  animation: ks-nav-scrim-enter .16s ease both;
-  cursor: default;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 11990 !important;
+  display: block !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: rgb(0 0 0 / 60%) !important;
+  -webkit-backdrop-filter: blur(2px) !important;
+  backdrop-filter: blur(2px) !important;
+  box-shadow: none !important;
+  cursor: default !important;
   touch-action: manipulation;
+  animation: ks-nav-scrim-enter .16s ease both;
 }
 .ks-app .ks-nav-drawer {
-  position: fixed;
-  z-index: 11991;
-  inset-block: 0;
-  inset-inline-end: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  width: min(360px, calc(100vw - 24px)) !important;
-  max-width: 100%;
-  height: 100dvh;
-  box-sizing: border-box;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: calc(20px + env(safe-area-inset-top, 0px)) 18px calc(16px + env(safe-area-inset-bottom, 0px)) !important;
-  border: 1px solid #30312f !important;
-  border-right: 0 !important;
-  border-radius: 17px 0 0 17px !important;
-  background: #111213 !important;
-  box-shadow: -18px 0 44px rgb(0 0 0 / 28%) !important;
-  color: #efeee8;
+  position: fixed !important;
+  z-index: 11991 !important;
+  top: calc(72px + env(safe-area-inset-top, 0px)) !important;
+  right: max(12px, env(safe-area-inset-right, 0px)) !important;
+  left: max(12px, env(safe-area-inset-left, 0px)) !important;
+  bottom: auto !important;
+  inset-block: auto !important;
+  inset-inline-end: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+  height: auto !important;
+  max-height: calc(100dvh - 86px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
+  min-height: 0 !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: #45463f transparent !important;
+  padding: 10px 14px calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+  border: 1px solid #34352f !important;
+  border-radius: 14px !important;
+  background: #11120f !important;
+  box-shadow: 0 18px 54px rgb(0 0 0 / 46%) !important;
+  color: #efeee8 !important;
+  outline: none !important;
   animation: ks-nav-panel-enter .21s cubic-bezier(.2,.72,.25,1) both;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: #43443f transparent;
-  outline: none;
 }
 .ks-app .ks-nav-drawer-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-  margin: 0;
-  padding: 4px 0 20px !important;
-  border-bottom: 1px solid #2b2c2a !important;
+  position: sticky !important;
+  top: -10px !important;
+  z-index: 2 !important;
+  display: flex !important;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 3px 0 12px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #292a25 !important;
+  border-radius: 0 !important;
+  background: #11120f !important;
+  box-shadow: none !important;
 }
+.ks-app .ks-nav-drawer-head > div { min-width: 0 !important; }
 .ks-app .ks-nav-drawer-kicker {
-  display: block;
-  color: #b6a277 !important;
-  font-size: 10px !important;
+  display: block !important;
+  margin: 0 0 3px !important;
+  color: #baa678 !important;
+  font-size: 9px !important;
   font-weight: 650 !important;
-  line-height: 1.4;
-  letter-spacing: .07em !important;
+  line-height: 1.4 !important;
+  letter-spacing: .1em !important;
 }
 .ks-app .ks-nav-drawer-head h2 {
-  margin: 8px 0 5px !important;
-  color: #efeee8 !important;
-  font-size: 24px !important;
-  font-weight: 650 !important;
-  line-height: 1.18 !important;
-  letter-spacing: -.035em !important;
-}
-.ks-app .ks-nav-drawer-head p {
-  max-width: 250px;
   margin: 0 !important;
-  color: #a2a39d !important;
-  font-size: 12px !important;
-  font-weight: 400;
-  line-height: 1.5 !important;
+  color: #eeede7 !important;
+  font-size: 22px !important;
+  font-weight: 620 !important;
+  line-height: 1.2 !important;
+  letter-spacing: -.03em !important;
 }
+.ks-app .ks-nav-drawer-head p { display: none !important; }
 .ks-app .ks-nav-drawer-head > button {
-  display: grid;
-  flex: 0 0 42px;
-  place-items: center;
-  width: 42px !important;
-  height: 42px !important;
-  margin: 0;
-  padding: 0;
-  border: 1px solid #3b3c39 !important;
-  border-radius: 10px !important;
-  background: #191a18 !important;
-  color: #deddd6 !important;
-  cursor: pointer;
-  transition: border-color .15s ease, background-color .15s ease, color .15s ease;
+  display: grid !important;
+  flex: 0 0 40px !important;
+  place-items: center !important;
+  width: 40px !important;
+  min-width: 40px !important;
+  height: 40px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid #383932 !important;
+  border-radius: 9px !important;
+  background: #191a16 !important;
+  color: #d4d3cb !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  transition: border-color .15s ease, background-color .15s ease, color .15s ease !important;
   touch-action: manipulation;
 }
 .ks-app .ks-nav-drawer-head > button:hover {
-  border-color: #786747 !important;
-  background: #22211d !important;
-  color: #f4e6c7 !important;
+  border-color: #766747 !important;
+  background: #1e1d17 !important;
+  color: #f0dfb7 !important;
 }
 .ks-app .ks-nav-drawer nav {
   display: grid !important;
+  flex: 0 0 auto !important;
+  grid-template-columns: minmax(0, 1fr) !important;
   gap: 0 !important;
+  min-width: 0 !important;
   margin: 12px 0 0 !important;
-  padding: 0;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
 }
-.ks-app .ks-nav-drawer-link {
-  display: grid !important;
-  grid-template-columns: 38px minmax(0, 1fr) 16px !important;
-  align-items: center;
-  gap: 12px !important;
-  min-width: 0;
-  min-height: 68px !important;
-  margin: 0;
+.ks-app .ks-nav-drawer .ks-nav-drawer-link {
+  display: flex !important;
+  flex: 0 0 auto !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  min-width: 0 !important;
+  min-height: 56px !important;
+  height: auto !important;
+  margin: 0 !important;
   padding: 10px 3px !important;
   border: 0 !important;
-  border-bottom: 1px solid #292a28 !important;
+  border-bottom: 1px solid #292a25 !important;
+  border-left: 2px solid transparent !important;
   border-radius: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
-  color: #e6e5de !important;
-  text-decoration: none;
+  color: #e0dfd8 !important;
+  font-family: inherit !important;
+  text-align: left !important;
+  text-decoration: none !important;
+  white-space: normal !important;
+  overflow: visible !important;
   transform: none !important;
-  transition: background-color .15s ease, padding .15s ease;
+  transition: background-color .15s ease, border-color .15s ease, padding .15s ease !important;
+  cursor: pointer !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
 }
-.ks-app .ks-nav-drawer-link:hover {
-  border-color: #292a28 !important;
+.ks-app .ks-nav-drawer .ks-nav-drawer-link b {
+  display: block !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  color: #e3e2db !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  letter-spacing: 0 !important;
+  overflow-wrap: anywhere !important;
+}
+.ks-app .ks-nav-drawer .ks-nav-drawer-link span {
+  display: block !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  color: #9fa097 !important;
+  font-size: 10px !important;
+  font-weight: 400 !important;
+  line-height: 1.5 !important;
+  letter-spacing: 0 !important;
+  overflow-wrap: anywhere !important;
+}
+.ks-app .ks-nav-drawer .ks-nav-drawer-link:hover {
+  border-bottom-color: #292a25 !important;
   background: #ffffff05 !important;
   transform: none !important;
 }
-.ks-app .ks-nav-drawer-link.is-current {
-  border-color: #4b4232 !important;
+.ks-app .ks-nav-drawer .ks-nav-drawer-link.is-current {
+  border-left-color: #b6a277 !important;
+  padding-left: 10px !important;
   background: #c4a56f0d !important;
-  box-shadow: inset 2px 0 #b6a277 !important;
+  box-shadow: none !important;
 }
-.ks-app .ks-nav-drawer-link:focus-visible {
-  outline: 2px solid #c8b17f !important;
-  outline-offset: -2px;
-  border-radius: 4px !important;
+.ks-app .ks-nav-drawer .ks-nav-drawer-link:focus-visible {
+  outline: 2px solid #d4bd88 !important;
+  outline-offset: -2px !important;
 }
-.ks-app .ks-nav-drawer-icon {
-  display: grid;
-  flex: 0 0 36px !important;
-  place-items: center;
-  width: 36px !important;
-  height: 36px !important;
-  border: 1px solid #3a3b37 !important;
-  border-radius: 9px !important;
-  background: #191a18 !important;
-  color: #c6b38c !important;
+.ks-app .ks-nav-drawer .ks-nav-drawer-support {
+  display: grid !important;
+  flex: 0 0 auto !important;
+  grid-template-columns: 28px minmax(0, 1fr) 16px !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 58px !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 10px 3px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #292a25 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #e0dfd8 !important;
+  box-shadow: none !important;
+  font: inherit !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
 }
-.ks-app .ks-nav-drawer-copy {
-  display: grid;
-  flex: initial !important;
-  gap: 4px !important;
-  min-width: 0;
+.ks-app .ks-nav-drawer .ks-nav-drawer-support:hover {
+  border-bottom-color: #292a25 !important;
+  background: #ffffff05 !important;
 }
-.ks-app .ks-nav-drawer-copy b {
-  display: block;
-  color: #e9e8e1 !important;
-  font-size: 13px !important;
+.ks-app .ks-nav-drawer-support > svg:first-child {
+  display: grid !important;
+  place-self: center !important;
+  width: 28px !important;
+  height: 28px !important;
+  padding: 6px !important;
+  border: 1px solid #454032 !important;
+  border-radius: 8px !important;
+  background: #1b1a15 !important;
+  color: #d2bc87 !important;
+}
+.ks-app .ks-nav-drawer-support-copy {
+  display: flex !important;
+  min-width: 0 !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+}
+.ks-app .ks-nav-drawer-support-copy b {
+  color: #e3e2db !important;
+  font-size: 12px !important;
   font-weight: 600 !important;
-  line-height: 1.35 !important;
+  line-height: 1.4 !important;
 }
-.ks-app .ks-nav-drawer-copy small {
-  display: block;
-  color: #a0a19b !important;
-  font-size: 11px !important;
+.ks-app .ks-nav-drawer-support-copy small {
+  color: #9fa097 !important;
+  font-size: 10px !important;
   font-weight: 400 !important;
-  line-height: 1.45 !important;
-  white-space: normal;
-  overflow-wrap: anywhere;
+  line-height: 1.5 !important;
 }
-.ks-app .ks-nav-drawer-arrow {
-  flex: 0 0 auto;
-  width: 15px;
-  color: #898a83 !important;
-  transition: color .15s ease, transform .15s ease;
-}
-.ks-app .ks-nav-drawer-link:hover .ks-nav-drawer-arrow {
-  color: #d4c6a4 !important;
-  transform: translateX(2px);
+.ks-app .ks-nav-drawer-support > svg:last-child {
+  flex: 0 0 auto !important;
+  color: #92938a !important;
 }
 .ks-app .ks-nav-drawer-footer {
   display: flex !important;
-  align-items: center;
+  flex: 0 0 auto !important;
+  align-items: center !important;
   gap: 8px !important;
-  margin-top: auto !important;
-  padding: 16px 2px 0 !important;
-  border-top: 1px solid #2b2c2a !important;
-  color: #999a94 !important;
-  font-size: 11px !important;
+  margin: 8px 0 0 !important;
+  padding: 12px 2px 0 !important;
+  border-top: 1px solid #292a25 !important;
+  border-radius: 0 !important;
+  background: #11120f !important;
+  color: #8f9087 !important;
+  font-size: 10px !important;
   line-height: 1.5 !important;
 }
 .ks-app .ks-nav-drawer-footer svg {
-  flex: 0 0 auto;
-  color: #b6a277 !important;
+  flex: 0 0 auto !important;
+  color: #a995ff !important;
 }
 .ks-app .ks-nav-drawer a:focus-visible,
-.ks-app .ks-nav-drawer button:focus-visible,
-.ks-app .ks-nav-scrim:focus-visible {
-  outline: 2px solid #c8b17f !important;
-  outline-offset: 3px !important;
+.ks-app .ks-nav-drawer button:focus-visible {
+  outline: 2px solid #d4bd88 !important;
+  outline-offset: -2px !important;
 }
 @keyframes ks-nav-panel-enter {
-  from { opacity: .6; transform: translateX(14px); }
-  to { opacity: 1; transform: translateX(0); }
+  from { opacity: .6; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 @keyframes ks-nav-scrim-enter {
   from { opacity: 0; }
@@ -212,37 +283,27 @@
 }
 @media (max-width: 420px) {
   .ks-app .ks-nav-drawer {
-    width: min(360px, calc(100vw - 18px)) !important;
+    top: calc(72px + env(safe-area-inset-top, 0px)) !important;
+    right: max(12px, env(safe-area-inset-right, 0px)) !important;
+    left: max(12px, env(safe-area-inset-left, 0px)) !important;
+    width: auto !important;
+    max-height: calc(100dvh - 86px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
     padding-inline: 14px !important;
-    border-radius: 15px 0 0 15px !important;
   }
-  .ks-app .ks-nav-drawer-link {
-    grid-template-columns: 36px minmax(0, 1fr) 15px !important;
-    gap: 10px !important;
-    min-height: 65px !important;
-  }
-  .ks-app .ks-nav-drawer-icon {
-    width: 34px !important;
-    height: 34px !important;
+}
+@media (max-height: 650px) {
+  .ks-app .ks-nav-drawer {
+    top: calc(12px + env(safe-area-inset-top, 0px)) !important;
+    max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .ks-app .ks-nav-scrim,
   .ks-app .ks-nav-drawer,
   .ks-app .ks-nav-drawer-link,
-  .ks-app .ks-nav-drawer-arrow,
+  .ks-app .ks-nav-drawer-support,
   .ks-app .ks-nav-drawer-head > button {
     animation: none !important;
     transition: none !important;
   }
-}
-
-/* The Support action shares the navigation-row geometry without inheriting browser button styling. */
-.ks-app .ks-nav-drawer button.ks-nav-drawer-link {
-  width: 100%;
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
 }
