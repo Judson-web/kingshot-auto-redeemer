@@ -17,34 +17,34 @@ function makePng(route="auto"){
  const rect=(x,y,w,h,c)=>{for(let yy=Math.max(0,y);yy<Math.min(H,y+h);yy++)for(let xx=Math.max(0,x);xx<Math.min(W,x+w);xx++)set(xx,yy,c)};
  const line=(x1,y1,x2,y2,t,c)=>{const dx=x2-x1,dy=y2-y1,n=Math.max(Math.abs(dx),Math.abs(dy));for(let i=0;i<=n;i++){const x=Math.round(x1+dx*i/n),y=Math.round(y1+dy*i/n);for(let a=-Math.floor(t/2);a<=Math.floor(t/2);a++)for(let b=-Math.floor(t/2);b<=Math.floor(t/2);b++)set(x+a,y+b,c)}};
  const palettes={
- home:[[8,9,13],[13,15,21],[38,40,52],[116,88,220],[213,168,92]],
- auto:[[8,9,13],[16,17,22],[52,43,31],[173,125,57],[238,194,115]],
- redeem:[[10,9,12],[20,15,16],[58,39,30],[195,111,54],[255,194,120]],
- info:[[7,11,15],[12,19,25],[33,53,64],[42,151,177],[141,224,238]],
- developer:[[9,8,15],[17,13,27],[49,39,74],[126,92,224],[190,168,255]],
- profile:[[8,12,11],[13,20,17],[35,60,47],[65,157,111],[153,226,179]],
- support:[[8,10,15],[13,17,26],[36,48,70],[65,122,226],[156,192,255]],
- message:[[13,8,14],[23,13,23],[64,34,60],[191,82,161],[247,160,218]],
- push:[[7,10,15],[12,17,26],[32,49,68],[63,145,211],[153,215,255]],
+ home:[[10,11,9],[17,18,15],[51,52,45],[181,156,106],[230,211,163]],
+ auto:[[10,11,9],[18,19,16],[55,54,46],[190,164,112],[239,220,173]],
+ redeem:[[10,11,9],[21,19,15],[61,51,36],[187,145,72],[243,212,149]],
+ info:[[10,11,9],[17,18,15],[51,52,45],[181,156,106],[230,211,163]],
+ developer:[[10,11,9],[17,18,15],[51,52,45],[192,166,111],[238,219,171]],
+ profile:[[10,11,9],[17,18,15],[48,48,40],[181,156,106],[230,211,163]],
+ support:[[10,11,9],[17,18,15],[51,52,45],[192,166,111],[238,219,171]],
+ message:[[10,11,9],[17,18,15],[51,52,45],[192,166,111],[238,219,171]],
+ push:[[10,11,9],[17,18,15],[51,52,45],[181,156,106],[230,211,163]],
  codes:[[12,10,7],[22,18,11],[62,48,27],[193,145,56],[245,205,113]],
- terms:[[9,10,13],[15,17,21],[42,46,55],[116,129,153],[197,204,219]],
- privacy:[[7,12,12],[12,20,19],[31,57,51],[54,155,133],[145,226,203]]
+ terms:[[10,11,9],[17,18,15],[51,52,45],[181,156,106],[230,211,163]],
+ privacy:[[10,11,9],[17,18,15],[51,52,45],[181,156,106],[230,211,163]]
 };
  const pal=palettes[String(route)]||palettes.home;
- const bg=pal[0],panel=pal[1],edge=pal[2],purple=pal[3],light=pal[4],white=rgb(245,245,248),muted=rgb(164,166,180);
+ const bg=pal[0],panel=pal[1],edge=pal[2],accent=pal[3],light=pal[4],white=rgb(245,245,248),muted=rgb(164,166,180);
  // Premium share-card composition: layered midnight canvas, inset frame and warm metallic accents.
  rect(0,0,W,H,bg);
  for(let y=0;y<H;y++){const t=y/H;const col=[Math.round(bg[0]+(panel[0]-bg[0])*t),Math.round(bg[1]+(panel[1]-bg[1])*t),Math.round(bg[2]+(panel[2]-bg[2])*t)];rect(0,y,W,1,col)}
  rect(24,24,W-48,H-48,edge);rect(27,27,W-54,H-54,panel);
  // Soft architectural bands and fine grid marks add depth without cluttering small previews.
- rect(28,28,5,H-56,purple);rect(33,28,2,H-56,light);
+ rect(28,28,5,H-56,accent);rect(33,28,2,H-56,light);
  for(let i=0;i<9;i++){rect(710+i*48,64,1,502,edge);rect(690,82+i*54,465,1,edge)}
- rect(72,112,340,386,rgb(24,18,42));rect(84,124,316,362,rgb(12,13,19));
+ rect(72,112,340,386,rgb(24,22,17));rect(84,124,316,362,rgb(12,13,19));
  rect(91,131,302,348,edge);rect(96,136,292,338,rgb(12,13,19));
  // Gold corner details frame the emblem like a premium game insignia.
  line(108,151,150,151,3,light);line(108,151,108,193,3,light);line(376,151,334,151,3,light);line(376,151,376,193,3,light);
  line(108,459,150,459,3,light);line(108,459,108,417,3,light);line(376,459,334,459,3,light);line(376,459,376,417,3,light);
- for(let i=0;i<5;i++){line(125+i*2,185,375+i*2,185,2,[72+i*12,55+i*10,145+i*18])}
+ for(let i=0;i<5;i++){line(125+i*2,185,375+i*2,185,2,[91+i*9,78+i*8,52+i*5])}
  // stylized K
  line(165,235,165,385,28,white);line(182,305,300,235,28,white);line(182,310,302,385,28,white);
  // magnifier mark
@@ -87,12 +87,12 @@ function makePng(route="auto"){
 };
  const card=cards[String(route)]||cards.auto;
  // Typography is deliberately oversized and left-aligned for legibility in Discord, WhatsApp and X.
- rect(462,120,7,12,light);rect(476,120,7,12,purple);
+ rect(462,120,7,12,light);rect(476,120,7,12,accent);
  text("KINGSHOT",462,151,5,muted);
  text(card[0],462,205,8,white);
  text(card[1],462,285,8,light);
  text(card[2],462,370,card[2].length>26?3:4,muted);
- rect(462,430,520,2,edge);rect(462,430,Math.min(250,card[2].length*8),4,purple);
+ rect(462,430,520,2,edge);rect(462,430,Math.min(250,card[2].length*8),4,accent);
  text("KINGSHOT AUTO REDEEMER",462,466,2,white);
  // Small status pill reinforces the product purpose without competing with the headline.
  rect(900,76,220,38,edge);rect(903,79,214,32,panel);rect(917,92,8,8,light);text("COMMUNITY TOOL",936,91,2,muted);
