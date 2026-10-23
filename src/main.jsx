@@ -5,7 +5,7 @@ import{makeSuccessOutcome,makeFailureOutcome,summarizeRegistrationOutcomes,regis
 import{formatPower,playerDisplayName}from"../lib/player-display.js";
 import"./styles.css";import"./registration-outcomes.css";import"./ux-feedback.css";
 import"./admin-players.css";
-import"./support-chat-polish.css";import"./manual-redesign.css";import"./profile-redesign.css";import"./auto-registration-redesign.css";import"./drawer-redesign.css";import"./maintenance-redesign.css";import"./support-centre-redesign.css";
+import"./support-chat-polish.css";import"./manual-redesign.css";import"./profile-redesign.css";import"./auto-registration-redesign.css";import"./drawer-redesign.css";import"./maintenance-redesign.css";import"./support-centre-redesign.css";import"./icon-palette.css";
 import LegalApp from"./LegalApp.jsx";
 import InfoApp from"./InfoApp.jsx";
 import CustomMessageApp from"./CustomMessageApp.jsx";
