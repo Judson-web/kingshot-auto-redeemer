@@ -1,5 +1,6 @@
 import React,{useEffect,useRef,useState} from "react";
-import {ArrowLeft,Clock3,Database,History,LockKeyhole,RefreshCw,Zap,Menu,X,ShieldCheck} from "lucide-react";
+import {ArrowLeft,ArrowRight,Clock3,Database,History,LockKeyhole,RefreshCw,Zap,Menu,X,ShieldCheck,LifeBuoy,UserRound,Code2} from "lucide-react";
+import "./how-it-works-redesign.css";
 const BRAND_ICON="/favicon.svg";
 function KsLogo(){return <a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={BRAND_ICON} alt="Kingshot Redeemer"/></span><span>Kingshot Redeemer</span></a>}
 const PROFILE_CHIP_CACHE="ks-profile-chip-v1";
@@ -25,10 +26,9 @@ const sections=[
 function InfoApp(){
  const [menu,setMenu]=useState(false),menuButtonRef=useRef(null),drawerRef=useRef(null);
  const closeMenu=()=>{setMenu(false);requestAnimationFrame(()=>menuButtonRef.current?.focus())};
- const goBack=()=>{if(history.length>1)history.back();else location.href="/auto"};
  useEffect(()=>{
   if(!menu)return;
-  const onKey=e=>{if(e.key==="Escape"){e.preventDefault();closeMenu()}};
+  const onKey=e=>{if(e.key==="Escape"){e.preventDefault();closeMenu();return}if(e.key!=="Tab")return;const panel=drawerRef.current;if(!panel)return;const items=[...panel.querySelectorAll('a[href],button:not([disabled])')].filter(el=>el.getClientRects().length>0);if(!items.length)return;const first=items[0],last=items[items.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}};
   const onPointer=e=>{if(drawerRef.current&&!drawerRef.current.contains(e.target)&&menuButtonRef.current&&!menuButtonRef.current.contains(e.target))closeMenu()};
   document.addEventListener("keydown",onKey);
   document.addEventListener("pointerdown",onPointer);
@@ -38,23 +38,27 @@ function InfoApp(){
  },[menu]);
  return <div className="app ks-app info-app">
   <a className="skip-link" href="#main-content">Skip to main content</a>
-  <header><KsLogo/><nav><a href="/auto">Auto Redeem</a><a href="/manual">Manual Redeem</a><a className="active" href="/info">How it works</a></nav><div className="header-right"><DiscordChip/><button ref={menuButtonRef} className="menu-btn" onClick={()=>setMenu(v=>!v)} aria-label={menu?"Close menu":"Open menu"} aria-expanded={menu} aria-controls="info-mobile-drawer">{menu?<X size={18}/>:<Menu size={18}/>}</button></div></header>
+  <header><KsLogo/><nav><a href="/auto">Auto Redeem</a><a href="/manual">Manual Redeem</a><a className="active" href="/info">How it works</a><a href="/developer">Developer API</a><a href="/profile">Your profile</a></nav><div className="header-right"><DiscordChip/><button ref={menuButtonRef} className="menu-btn" onClick={()=>setMenu(v=>!v)} aria-label={menu?"Close menu":"Open menu"} aria-expanded={menu} aria-controls="info-mobile-drawer">{menu?<X size={18}/>:<Menu size={18}/>}</button></div></header>
   {menu&&<>
    <button className="info-menu-backdrop" type="button" aria-label="Close navigation menu" onPointerDown={e=>{e.preventDefault();closeMenu()}} onTouchStart={closeMenu}/>
    <nav ref={drawerRef} className="info-mobile-menu" id="info-mobile-drawer" aria-label="Mobile navigation">
     <div className="info-drawer-head"><div><span className="info-drawer-kicker">NAVIGATION</span><strong>Explore</strong></div><button type="button" onClick={closeMenu} aria-label="Close navigation menu"><X size={15}/></button></div>
     <a href="/auto" onClick={closeMenu}><b>Auto Redeem</b><span>Hands-off gift-code processing</span></a>
     <a href="/manual" onClick={closeMenu}><b>Manual Redeem</b><span>Submit a specific gift code</span></a>
-    <a className="active" href="/info" onClick={closeMenu}><b>How it works</b><span>How automatic redemption works</span></a>
+    <a className="active" href="/info" onClick={closeMenu}><b>How it works</b><span>Registration, checks, and results</span></a>
+    <button className="info-menu-support" type="button" onClick={()=>{setMenu(false);window.dispatchEvent(new CustomEvent("ks-support-open",{detail:{topic:"Other",subject:"How it works question",pageTitle:"How it works",returnFocus:menuButtonRef.current||undefined}}))}}><LifeBuoy size={16}/><span className="info-menu-support-copy"><b>Support</b><small>Get help or continue a private ticket</small></span><ArrowRight size={14}/></button>
+    <a href="/developer" onClick={closeMenu}><b>Developer API</b><span>Build with the public API</span></a>
+    <a href="/profile" onClick={closeMenu}><b>Your profile</b><span>Account and sign-in settings</span></a>
     <div className="info-drawer-foot"><ShieldCheck size={13}/><span>Your game password is never requested.</span></div>
    </nav>
   </>}
   <main id="main-content">
-   <section className="info-hero"><button className="info-back" onClick={goBack}><ArrowLeft size={14}/> Back</button><div className="eyebrow"><span/>ABOUT THE SERVICE</div><h1>How Kingshot<br/><em>Auto Redeem works.</em></h1><p className="hero-copy">How codes are found, checked, and redeemed—and how your account stays protected.</p></section>
+   <section className="info-hero"><a className="info-back" href="/auto"><ArrowLeft size={14}/> Back to Auto Redeem</a><div className="eyebrow"><span/>ABOUT THE SERVICE</div><h1>How it works</h1><p className="hero-copy">A guide to registration, automatic code checks, redemption history, and how your account details stay protected.</p></section>
    <section className="info-flow"><div className="section-title"><span>01</span><h2>The basic flow.</h2></div><div className="info-steps"><article><b>01</b><div><strong>Register your player</strong><p>Your Player ID is checked and linked to its current kingdom.</p></div></article><article><b>02</b><div><strong>Codes enter the active pool</strong><p>Public sources are checked for active gift codes. Codes known to be expired are excluded.</p></div></article><article><b>03</b><div><strong>Workers process eligible players</strong><p>The service checks registered players and processes eligible codes automatically.</p></div></article><article><b>04</b><div><strong>Results are remembered</strong><p>Each result is saved to prevent duplicate attempts and keep a redemption history.</p></div></article></div></section>
    <section className="info-features"><div className="section-title"><span>02</span><h2>What the service does.</h2></div><div className="info-grid">{sections.map(({icon:Icon,title,text})=><article key={title}><div className="info-icon"><Icon size={18}/></div><div><h3>{title}</h3><p>{text}</p></div></article>)}</div></section>
    
    <section className="info-failures"><div className="section-title"><span>03</span><h2>When something does not go through.</h2></div><div className="info-grid"><article><div className="info-icon"><Clock3 size={18}/></div><div><h3>Expired or already handled</h3><p>A code may be expired, exhausted, or already redeemed by your player.</p></div></article><article><div className="info-icon"><RefreshCw size={18}/></div><div><h3>Temporary limits</h3><p>Temporary provider limits can delay a redemption. The service retries safely.</p></div></article><article><div className="info-icon"><ShieldCheck size={18}/></div><div><h3>Player or kingdom mismatch</h3><p>Player validation helps prevent submissions for invalid or outdated player details.</p></div></article></div></section>
+   <section className="info-cta"><div className="info-cta-copy"><span className="info-cta-kicker">READY TO START?</span><h2>Choose how you want to redeem.</h2><p>Register a player for automatic checks, or submit a specific gift code yourself.</p></div><div className="info-cta-links"><a href="/auto">Automatic redemption <ArrowRight size={14}/></a><a href="/manual">Manual redemption <ArrowRight size={14}/></a></div></section>
   </main>
   <footer><KsLogo/><span>Independent Kingshot community service. Not affiliated with Century Games.</span><span><a href="/info">How it works</a> · <a href="/terms?service=kingshot-auto">Terms</a> · <a href="/privacy?service=kingshot-auto">Privacy</a></span></footer>
  </div>
