@@ -361,3 +361,9 @@
   .legal-app *::before,
   .legal-app *::after { animation: none !important; transition: none !important; }
 }
+/* Keep the fixed Support launcher below the legal footer instead of over its links. */
+@media (max-width: 760px) {
+  .legal-app > footer {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
