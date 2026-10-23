@@ -788,3 +788,127 @@
     transition: none !important;
   }
 }
+
+/* Floating Support action: use the same warm-gold accent as the rest of the site. */
+.support-float-root > .support-float-trigger {
+  border: 1px solid #e3cd9a !important;
+  background: #d4bb84 !important;
+  color: #201d15 !important;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 30%), 0 0 0 3px rgb(212 187 132 / 14%) !important;
+  transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease !important;
+}
+.support-float-root > .support-float-trigger svg,
+.support-float-root > .support-float-trigger .support-float-trigger-label {
+  color: #201d15 !important;
+}
+.support-float-root > .support-float-trigger:hover {
+  border-color: #f0dcae !important;
+  background: #e6d1a3 !important;
+  color: #201d15 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 27px rgb(0 0 0 / 34%), 0 0 0 4px rgb(212 187 132 / 18%) !important;
+}
+.support-float-root > .support-float-trigger:focus-visible {
+  outline: 3px solid #e4d09f !important;
+  outline-offset: 3px !important;
+}
+.support-float-root > .support-float-trigger.is-open {
+  border-color: #6f6040 !important;
+  background: #242219 !important;
+  color: #e7d2a1 !important;
+}
+.support-float-root > .support-float-trigger.is-open svg,
+.support-float-root > .support-float-trigger.is-open .support-float-trigger-label {
+  color: #e7d2a1 !important;
+}
+
+/* Make the form area independently scroll, with the header and privacy footer kept visible. */
+.support-float-panel.support-chat-panel {
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+.support-float-panel.support-chat-panel > .support-float-head,
+.support-float-panel.support-chat-panel > .support-float-foot {
+  flex: 0 0 auto !important;
+}
+.support-float-panel.support-chat-panel .support-float-body:not(.support-chat-active) {
+  display: block !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: #48483e transparent !important;
+}
+.support-float-panel.support-chat-panel .support-float-body:not(.support-chat-active) > form {
+  display: flex !important;
+  flex: 0 0 auto !important;
+  min-height: min-content !important;
+}
+.support-float-panel.support-chat-panel .support-float-body.support-chat-active {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: hidden !important;
+}
+.support-float-panel.support-chat-panel .support-chat-messages {
+  min-height: 0 !important;
+  overscroll-behavior-y: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+}
+@media (max-width: 600px) {
+  .support-float-panel.support-chat-panel {
+    top: calc(8px + env(safe-area-inset-top, 0px)) !important;
+    right: 8px !important;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+    left: 8px !important;
+    width: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    border-radius: 15px !important;
+  }
+  .support-float-panel.support-chat-panel .support-float-body:not(.support-chat-active) {
+    flex: 1 1 0 !important;
+    max-height: none !important;
+    padding: 14px 13px 12px !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  .support-float-panel.support-chat-panel .support-float-body:not(.support-chat-active) > form {
+    flex: 0 0 auto !important;
+  }
+  .support-float-panel.support-chat-panel .support-float-body.support-chat-active {
+    flex: 1 1 0 !important;
+    overflow: hidden !important;
+    padding-inline: 12px !important;
+  }
+}
+@media (max-width: 380px) {
+  .support-float-panel.support-chat-panel .support-centre-intro {
+    margin-bottom: 10px !important;
+    padding-bottom: 10px !important;
+  }
+  .support-float-panel.support-chat-panel .support-centre-intro h2 {
+    font-size: 20px !important;
+  }
+  .support-float-panel.support-chat-panel .support-topic-option {
+    grid-template-columns: 25px minmax(0, 1fr) 14px !important;
+    gap: 7px !important;
+    padding: 9px 7px !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .support-float-root > .support-float-trigger {
+    transition: none !important;
+  }
+}
