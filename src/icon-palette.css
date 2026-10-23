@@ -81,3 +81,45 @@
 @media (prefers-contrast: more) {
   :root { --ks-icon-gold: #ead7a9; --ks-icon-antique: #d0bd8e; }
 }
+
+/* Site-wide pass: tint interface SVG glyphs only. Branded marks/avatar art are image assets and are not recolored. */
+#root svg {
+  color: var(--ks-icon-antique, #b9a678) !important;
+}
+
+/* Keep icons legible on filled action buttons and retain their foreground contrast. */
+#root .support-float-root > .support-float-trigger svg,
+#root .maintenance-support-button svg,
+#root .ks-app .ks-submit svg,
+#root .dev-dashboard.ks-dev-route #developer-account button:not(.developer-revoke-button) svg,
+#root .profile-primary svg,
+#root .message-primary svg {
+  color: inherit !important;
+}
+#root .support-float-root > .support-float-trigger svg { color: #201d15 !important; }
+
+/* State icons retain meaning, while the rest of the iconography follows the shared gold palette. */
+#root .profile-success svg,
+#root .profile-live-online svg,
+#root .site-status-online svg,
+#root .site-announcement-success svg,
+#root .ma-alert-ok svg,
+#root .ks-result-success svg,
+#root .ks-outcome-success svg {
+  color: #9fc8a4 !important;
+}
+#root .profile-error svg,
+#root .profile-live-offline svg,
+#root .site-status-offline svg,
+#root .site-announcement-important svg,
+#root .ma-alert-error svg,
+#root .message-alert.error svg,
+#root .ks-result-error svg,
+#root .ks-outcome-error svg {
+  color: #d99a9e !important;
+}
+#root .site-announcement-warning svg,
+#root .ks-result-warning svg,
+#root .ks-outcome-warning svg {
+  color: #d4bd88 !important;
+}
