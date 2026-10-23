@@ -1,11 +1,16 @@
-import React from "react";
+import React,{useState} from "react";
+import {Menu,X} from "lucide-react";
+import MobileNavDrawer from "./components/MobileNavDrawer.jsx";
+import "./legal-redesign.css";
 const BRAND_ICON="/favicon.svg";
 const LAST_UPDATED="October 17, 2026";
 const services={"kingshot-manual":{label:"Manual Redeemer",summary:"Submit a gift code for an individual player."},"kingshot-auto":{label:"Auto Redeem",summary:"Register a player for scheduled gift-code processing."}};
 export default function LegalApp({type}){
+ const [menu,setMenu]=useState(false);
  const key=new URLSearchParams(location.search).get("service"),service=services[key]||services["kingshot-manual"],privacy=type==="privacy",serviceKey=key||"kingshot-manual";
- return <div className="app legal-app">
-  <header><a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={BRAND_ICON} alt="Kingshot Redeemer"/></span><span>{privacy?"Privacy":"Terms"} · {service.label}</span></a><div className="header-right"><a className="legal-back" href="/">← Back</a></div></header>
+ return <div className="app ks-app legal-app">
+  <header><a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={BRAND_ICON} alt="Kingshot Redeemer"/></span><span>{privacy?"Privacy":"Terms"} · {service.label}</span></a><nav className="legal-primary-nav" aria-label="Primary navigation"><a href="/auto">Auto Redeem</a><a href="/manual">Manual Redeem</a><a href="/info">How it works</a><a href="/developer">Developer API</a><a href="/profile">Your profile</a></nav><div className="header-right"><a className="legal-back" href="/">← Back</a><button className="menu-btn" type="button" onClick={()=>setMenu(v=>!v)} aria-label={menu?"Close navigation":"Open navigation"} aria-expanded={menu} aria-controls="ks-nav-drawer" aria-haspopup="dialog">{menu?<X size={18}/>:<Menu size={18}/>}</button></div></header>
+  <MobileNavDrawer open={menu} onClose={()=>setMenu(false)} current={privacy?"privacy":"terms"} />
   <main><section className="legal-hero"><div className="eyebrow"><span/>{privacy?"PRIVACY NOTICE":"TERMS OF USE"}</div><h1>{privacy?"Your data, explained.":"Use the service responsibly."}</h1><p className="hero-copy">{service.summary}</p><div className="legal-meta"><span>Updated {LAST_UPDATED}</span><span>Independent community project</span></div><div className="legal-tabs"><a className={!privacy?"active":""} href={"/terms?service="+serviceKey}>Terms</a><a className={privacy?"active":""} href={"/privacy?service="+serviceKey}>Privacy</a></div></section>
    <section className="legal-body">
    {privacy?<>
