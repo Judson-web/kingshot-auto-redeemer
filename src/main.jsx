@@ -1,11 +1,11 @@
 import React,{useEffect,useRef,useState}from"react";
 import{createRoot}from"react-dom/client";
-import{ExternalLink,Gift,Menu,Search,ShieldCheck,ShieldOff,X,CheckCircle,LoaderCircle,AlertTriangle,Info,OctagonAlert,ArrowRight,Activity,Wrench,WifiOff,UserRound,MessageCircle,Image as ImageIcon,RefreshCw,ChevronLeft,ChevronRight}from"lucide-react";
+import{ExternalLink,Gift,Menu,Search,ShieldCheck,ShieldOff,X,CheckCircle,LoaderCircle,AlertTriangle,Info,OctagonAlert,ArrowRight,Activity,Wrench,WifiOff,UserRound,MessageCircle,LifeBuoy,Image as ImageIcon,RefreshCw,ChevronLeft,ChevronRight}from"lucide-react";
 import{makeSuccessOutcome,makeFailureOutcome,summarizeRegistrationOutcomes,registrationOutcomeHeadline}from"./registration-outcomes.js";
 import{formatPower,playerDisplayName}from"../lib/player-display.js";
 import"./styles.css";import"./registration-outcomes.css";import"./ux-feedback.css";
 import"./admin-players.css";
-import"./support-chat-polish.css";import"./manual-redesign.css";import"./profile-redesign.css";import"./auto-registration-redesign.css";import"./drawer-redesign.css";
+import"./support-chat-polish.css";import"./manual-redesign.css";import"./profile-redesign.css";import"./auto-registration-redesign.css";import"./drawer-redesign.css";import"./maintenance-redesign.css";
 import LegalApp from"./LegalApp.jsx";
 import InfoApp from"./InfoApp.jsx";
 import CustomMessageApp from"./CustomMessageApp.jsx";
@@ -62,10 +62,11 @@ function MobileNavDrawer({open,onClose,current}){
   {id:"auto",href:"/auto",label:"Auto Redeem",description:"Register players for automatic code checks.",Icon:Activity},
   {id:"manual",href:"/manual",label:"Manual Redeem",description:"Redeem a gift code for one player.",Icon:Gift},
   {id:"info",href:"/info",label:"How it works",description:"Learn how player checks and redemptions work.",Icon:Info},
+  {id:"support",action:true,label:"Support",description:"Contact support or continue a private ticket.",Icon:LifeBuoy},
   {id:"developer",href:"/developer",label:"Developer API",description:"Build with the public redemption API.",Icon:ShieldCheck},
   {id:"profile",href:"/profile",label:"Your profile",description:"Manage your account and preferences.",Icon:UserRound}
  ];
- return <><button className="ks-nav-scrim" type="button" aria-label="Close navigation" onClick={()=>closeRef.current?.()}/><aside ref={drawerRef} className="ks-nav-drawer" role="dialog" aria-modal="true" aria-labelledby="ks-nav-title"><div className="ks-nav-drawer-head"><div><span className="ks-nav-drawer-kicker">KINGSHOT REDEEMER</span><h2 id="ks-nav-title">Navigation</h2><p>Choose where you want to go.</p></div><button ref={closeButtonRef} type="button" onClick={()=>closeRef.current?.()} aria-label="Close navigation menu"><X size={18}/></button></div><nav aria-label="Site sections">{links.map(item=>{const Icon=item.Icon;return <a key={item.id} className={"ks-nav-drawer-link"+(item.id===current?" is-current":"")} href={item.href} aria-current={item.id===current?"page":undefined}><span className="ks-nav-drawer-icon"><Icon size={18}/></span><span className="ks-nav-drawer-copy"><b>{item.label}</b><small>{item.description}</small></span><ArrowRight size={15} className="ks-nav-drawer-arrow" aria-hidden="true"/></a>})}</nav><div className="ks-nav-drawer-footer"><ShieldCheck size={14}/><span>Independent community service</span></div></aside></>;
+ return <><button className="ks-nav-scrim" type="button" aria-label="Close navigation" onClick={()=>closeRef.current?.()}/><aside ref={drawerRef} className="ks-nav-drawer" role="dialog" aria-modal="true" aria-labelledby="ks-nav-title"><div className="ks-nav-drawer-head"><div><span className="ks-nav-drawer-kicker">KINGSHOT REDEEMER</span><h2 id="ks-nav-title">Navigation</h2><p>Choose where you want to go.</p></div><button ref={closeButtonRef} type="button" onClick={()=>closeRef.current?.()} aria-label="Close navigation menu"><X size={18}/></button></div><nav aria-label="Site sections">{links.map(item=>{const Icon=item.Icon;const className="ks-nav-drawer-link"+(item.id===current?" is-current":"");const body=<><span className="ks-nav-drawer-icon"><Icon size={18}/></span><span className="ks-nav-drawer-copy"><b>{item.label}</b><small>{item.description}</small></span><ArrowRight size={15} className="ks-nav-drawer-arrow" aria-hidden="true"/></>;if(item.action)return <button key={item.id} className={className} type="button" onClick={()=>{restoreFocusRef.current=null;closeRef.current?.();window.dispatchEvent(new CustomEvent("ks-support-open",{detail:{topic:"Other",subject:"Support request",pageTitle:document.title}}))}}>{body}</button>;return <a key={item.id} className={className} href={item.href} aria-current={item.id===current?"page":undefined}>{body}</a>})}</nav><div className="ks-nav-drawer-footer"><ShieldCheck size={14}/><span>Independent community service</span></div></aside></>;
 }
 function CopyToastHost(){
  const [message,setMessage]=useState("");
@@ -224,9 +225,37 @@ function RegistrationOutcomePanel({outcomes}){
 }
 function MaintenanceScreen({state}){
  const [now,setNow]=useState(Date.now());
+ const supportButtonRef=useRef(null);
  useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(timer)},[]);
- const endMs=state?.endsAt?new Date(state.endsAt).getTime():null,remaining=endMs?Math.max(0,endMs-now):null,totalSeconds=remaining===null?null:Math.ceil(remaining/1000),days=totalSeconds===null?0:Math.floor(totalSeconds/86400),hours=totalSeconds===null?0:Math.floor((totalSeconds%86400)/3600),minutes=totalSeconds===null?0:Math.floor((totalSeconds%3600)/60),seconds=totalSeconds===null?0:totalSeconds%60;
- return <div className="maintenance-app"><div className="maintenance-noise" aria-hidden="true"/><div className="maintenance-glow maintenance-glow-a"/><div className="maintenance-glow maintenance-glow-b"/><main className="maintenance-shell"><div className="maintenance-brand"><span className="maintenance-brand-mark"><Gift size={16}/></span><span><b>KINGSHOT REDEEMER</b><small>SERVICE STATUS</small></span><DiscordChip/></div><div className="maintenance-card"><div className="maintenance-topline"><span className="maintenance-status"><i/>SYSTEM MAINTENANCE</span><span className="maintenance-live"><i/>IN PROGRESS</span></div><div className="maintenance-visual" aria-hidden="true"><span className="maintenance-visual-ring maintenance-visual-ring-a"/><span className="maintenance-visual-ring maintenance-visual-ring-b"/><div className="maintenance-icon"><Wrench size={24}/></div><span className="maintenance-visual-spark maintenance-visual-spark-a"/><span className="maintenance-visual-spark maintenance-visual-spark-b"/></div><span className="maintenance-kicker">A LITTLE PAUSE. A BETTER EXPERIENCE.</span><h1>We’ll be back<br/><em>in a moment.</em></h1><p className="maintenance-message">{state?.message||"We’re tuning things up behind the scenes. Thanks for your patience while we get everything ready."}</p>{remaining!==null?<><div className="maintenance-countdown-label"><span>ESTIMATED RETURN</span><b>{days?`${days}d remaining`:hours?`${hours}h ${String(minutes).padStart(2,"0")}m remaining`:minutes?`${minutes}m ${String(seconds).padStart(2,"0")}s remaining`:`${seconds}s remaining`}</b></div><div className={"maintenance-countdown "+(days?"has-days":"")} aria-label="Maintenance countdown">{days>0&&<div className="maintenance-time"><b>{String(days).padStart(2,"0")}</b><span>DAYS</span></div>}<div className="maintenance-time"><b>{String(hours).padStart(2,"0")}</b><span>HOURS</span></div><div className="maintenance-time"><b>{String(minutes).padStart(2,"0")}</b><span>MINUTES</span></div><div className="maintenance-time"><b>{String(seconds).padStart(2,"0")}</b><span>SECONDS</span></div></div><div className="maintenance-note"><CheckCircle size={14}/><span>You’ll be returned to the site automatically when service is restored.</span></div></>:<div className="maintenance-note"><CheckCircle size={14}/><span>We’re working behind the scenes. This page will return automatically when service is restored.</span></div>}</div><p className="maintenance-footer">Kingshot Redeemer <span>·</span> Independent community service</p></main></div>
+ const rawEnd=state?.endsAt?new Date(state.endsAt).getTime():null;
+ const estimateAvailable=Number.isFinite(rawEnd)&&rawEnd>0;
+ const remaining=estimateAvailable?Math.max(0,rawEnd-now):null;
+ const totalSeconds=remaining===null?null:Math.ceil(remaining/1000);
+ const days=totalSeconds===null?0:Math.floor(totalSeconds/86400);
+ const hours=totalSeconds===null?0:Math.floor((totalSeconds%86400)/3600);
+ const minutes=totalSeconds===null?0:Math.floor((totalSeconds%3600)/60);
+ const seconds=totalSeconds===null?0:totalSeconds%60;
+ const contactSupport=()=>window.dispatchEvent(new CustomEvent("ks-support-open",{detail:{topic:"Other",subject:"Maintenance support request",pageTitle:"Service maintenance",returnFocus:supportButtonRef.current||undefined}}));
+ return <div className="maintenance-app">
+  <main className="maintenance-shell">
+   <header className="maintenance-brand">
+    <span className="maintenance-brand-mark"><Gift size={17}/></span>
+    <span><b>KINGSHOT REDEEMER</b><small>SERVICE STATUS</small></span>
+    <span className="maintenance-current-status"><i aria-hidden="true"/>Maintenance active</span>
+   </header>
+   <section className="maintenance-card" aria-labelledby="maintenance-title">
+    <div className="maintenance-topline"><span className="maintenance-status"><i aria-hidden="true"/>MAINTENANCE MODE</span><span className="maintenance-live"><i aria-hidden="true"/>IN PROGRESS</span></div>
+    <div className="maintenance-visual" aria-hidden="true"><div className="maintenance-icon"><Wrench size={21}/></div></div>
+    <span className="maintenance-kicker">SERVICE UPDATE</span>
+    <h1 id="maintenance-title">We’re making a few improvements.</h1>
+    <p className="maintenance-message">{state?.message||"The service is temporarily unavailable while maintenance is in progress. Please check back shortly."}</p>
+    {remaining!==null&&remaining>0?<><div className="maintenance-countdown-label"><span>ESTIMATED RETURN</span><b>{days?days+"d remaining":hours?hours+"h "+String(minutes).padStart(2,"0")+"m remaining":minutes?minutes+"m "+String(seconds).padStart(2,"0")+"s remaining":seconds+"s remaining"}</b></div><div className={"maintenance-countdown "+(days?"has-days":"")} aria-label="Estimated time remaining">{days>0&&<div className="maintenance-time"><b>{String(days).padStart(2,"0")}</b><span>DAYS</span></div>}<div className="maintenance-time"><b>{String(hours).padStart(2,"0")}</b><span>HOURS</span></div><div className="maintenance-time"><b>{String(minutes).padStart(2,"0")}</b><span>MINUTES</span></div><div className="maintenance-time"><b>{String(seconds).padStart(2,"0")}</b><span>SECONDS</span></div></div></>:<p className="maintenance-estimate-note">{estimateAvailable?"The estimated window has passed. We’re checking for recovery automatically.":"No return time has been scheduled. We’re checking for recovery automatically."}</p>}
+    <p className="maintenance-note"><CheckCircle size={14}/><span>Status refreshes automatically. This page will return to the site when service is restored.</span></p>
+    <div className="maintenance-actions"><button ref={supportButtonRef} type="button" className="maintenance-support-button" onClick={contactSupport}><MessageCircle size={16}/>Contact support</button><span>Need help while the site is paused?</span></div>
+   </section>
+   <footer className="maintenance-footer">Kingshot Redeemer <span>·</span> Independent community service</footer>
+  </main>
+ </div>
 }
 function MaintenancePreflight({error}){
  return <div className="maintenance-preflight" role="status" aria-live="polite"><div className="maintenance-preflight-card"><div className="maintenance-loader" aria-hidden="true"><span className="maintenance-loader-orbit maintenance-loader-orbit-a"/><span className="maintenance-loader-orbit maintenance-loader-orbit-b"/><span className="maintenance-loader-core"><i/></span></div><span className="maintenance-kicker">PREPARING SECURE CONNECTION</span><h1 key={error?"availability":"status"}>{error?"Checking service availability":"Checking website status"}</h1><p key={error?"retry-copy":"status-copy"}>{error?"The maintenance status could not be confirmed yet. The website will stay hidden until the check succeeds. Retrying automatically.":"We check maintenance mode before loading the website."}</p><span className="maintenance-preflight-progress"><i/></span><small>{error?"RETRYING EVERY 5 SECONDS":"LIVE STATUS CHECK · PLEASE WAIT"}</small></div></div>
@@ -235,7 +264,7 @@ function MaintenanceGate({children}){
  const [state,setState]=useState(null),[verified,setVerified]=useState(false),[error,setError]=useState(false);
  useEffect(()=>{let live=true;let busy=false;const load=async()=>{if(busy)return;busy=true;try{const response=await fetch("/api/kingshot-admin-data?public=maintenance",{credentials:"same-origin",cache:"no-store",headers:{"cache-control":"no-cache"}});if(!response.ok)throw Error("Maintenance status unavailable");const data=await response.json();if(!data||typeof data.maintenanceEnabled!=="boolean")throw Error("Invalid maintenance status");if(!live)return;setState(previous=>{const next={maintenanceEnabled:data.maintenanceEnabled,message:data.message||"",endsAt:data.endsAt||null,updatedAt:data.updatedAt||null};return previous&&previous.maintenanceEnabled===next.maintenanceEnabled&&previous.message===next.message&&previous.endsAt===next.endsAt?previous:next});setVerified(true);setError(false)}catch{if(live){setError(true);/* Keep the last verified state during a transient outage. */}}finally{busy=false}};load();const timer=setInterval(load,5000);return()=>{live=false;clearInterval(timer)}},[]);
  if(!verified||!state)return <MaintenancePreflight error={error}/>;
- if(state.maintenanceEnabled)return <MaintenanceScreen state={state}/>;
+ if(state.maintenanceEnabled)return <><MaintenanceScreen state={state}/><SupportWidget maintenanceMode/></>;
  return children;
 }
 const announcementIcon=t=>t==="success"?CheckCircle:t==="warning"?AlertTriangle:t==="important"?OctagonAlert:Info;
