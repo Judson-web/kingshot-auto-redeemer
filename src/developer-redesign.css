@@ -1,4 +1,6 @@
 /* Developer API: sober documentation UI, consistent with the main charcoal / warm-gold design system. */
+@keyframes developer-auth-spin { to { transform: rotate(360deg); } }
+.dev-dashboard .developer-auth-spinner { animation: developer-auth-spin .75s linear infinite !important; flex: none !important; }
 .dev-dashboard.ks-dev-route {
   --ks-dev-bg: #0c0d0b;
   --ks-dev-surface: #11120f;
