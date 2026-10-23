@@ -166,13 +166,16 @@ export default async function handler(req,res){
     if(!/^[A-Za-z0-9_-]{6,32}$/.test(code))return res.status(400).json({error:"Use 6–32 letters, numbers, underscores or hyphens."});
     if(/^(ACTIVE|EXPIRED|CONTINUE|COPYCODE|SIGNINTOREDEEM|SHARELINK|GIFTCODES|REDEEMGIFTCODE|GIFTCODE|LOADING|COMMUNITY|FEATURES|LATEST|CURRENT|POPULAR|PROFILE|PLAYER|KINGDOM|SERVER|MESSAGE|SETTINGS|HEIGHT|GUIDES|MASTERY|QUESTION|ANSWER|ACCOUNT|PENDING|SCREEN|CONTENT|SCHEMA|CHILDREN|REWARDS|VERIFIED|IMPORT|COMPLETE|UPGRADE|ARTICLE|BACKGROUND|BUTTONS|CLIPBOARD|STATIC|ASSETS)$/i.test(code))return res.status(400).json({error:"That text looks like page/UI text, not a gift code."});
     const expiryInput=body.expiresAt===null||body.expiresAt===""?null:String(body.expiresAt);const expiryDate=expiryInput?Date.parse(expiryInput):null;if(expiryInput&&(!Number.isFinite(expiryDate)||!/^\d{4}-\d{2}-\d{2}T/.test(expiryInput)))return res.status(400).json({error:"Expiry must be a valid date and time."});
+    if(expiryDate!==null&&expiryDate<=Date.now())return res.status(400).json({error:"A manually approved code cannot have an expiry in the past."});
+    const approvedAt=new Date().toISOString();
+    const approvedFields={active:true,admin_added:true,suppressed:false,expires_at:expiryInput,last_seen_at:approvedAt,validation_status:"verified",validated_at:approvedAt,validation_player_id:null,validation_message:"Manual approval: trusted-source confirmation accepted; canary verification skipped."};
     const existing=await db("kingshot_gift_codes?code=eq."+encodeURIComponent(code)+"&select=id,code");
     if(Array.isArray(existing)&&existing.length){
-     const updated=await db("kingshot_gift_codes?code=eq."+encodeURIComponent(code),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({active:false,admin_added:true,suppressed:false,expires_at:expiryInput,last_seen_at:new Date().toISOString(),validation_status:"pending",validated_at:null,validation_player_id:null,validation_message:"Awaiting player verification"})});
-     return res.status(200).json({ok:true,code:updated?.[0]||{code,active:true},restored:true});
+     const updated=await db("kingshot_gift_codes?code=eq."+encodeURIComponent(code),{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify(approvedFields)});
+     return res.status(200).json({ok:true,code:updated?.[0]||{code,active:true,validation_status:"verified"},restored:true,manuallyApproved:true,verificationSkipped:true});
     }
-    const created=await db("kingshot_gift_codes",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({code,active:false,admin_added:true,suppressed:false,expires_at:expiryInput,validation_status:"pending",validation_message:"Awaiting player verification"})});
-    return res.status(200).json({ok:true,code:created?.[0]||{code,active:true}});
+    const created=await db("kingshot_gift_codes",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify({code,first_seen_at:approvedAt,...approvedFields})});
+    return res.status(200).json({ok:true,code:created?.[0]||{code,active:true,validation_status:"verified"},manuallyApproved:true,verificationSkipped:true});
    }
    if(action==="GIFT_CODE_UPDATE"||action==="GIFT_CODE_DELETE"){
     if(!rateLimit(req,res,"gift-code-write",30,60*1000))return res.status(429).json({error:"Too many changes. Wait a minute."});
