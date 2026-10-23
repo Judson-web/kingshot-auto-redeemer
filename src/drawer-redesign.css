@@ -1,5 +1,5 @@
 /* One shared navigation overlay used by Auto, Manual, How it works and Legal pages. */
-.ks-app .ks-nav-scrim {
+:is(.ks-app,.ks-dev-route) .ks-nav-scrim {
   position: fixed !important;
   inset: 0 !important;
   z-index: 11990 !important;
@@ -18,7 +18,7 @@
   touch-action: manipulation;
   animation: ks-nav-scrim-enter .16s ease both;
 }
-.ks-app .ks-nav-drawer {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer {
   position: fixed !important;
   z-index: 11991 !important;
   top: calc(72px + env(safe-area-inset-top, 0px)) !important;
@@ -51,7 +51,7 @@
   outline: none !important;
   animation: ks-nav-panel-enter .21s cubic-bezier(.2,.72,.25,1) both;
 }
-.ks-app .ks-nav-drawer-head {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer-head {
   position: sticky !important;
   top: -10px !important;
   z-index: 2 !important;
@@ -69,8 +69,8 @@
   background: #11120f !important;
   box-shadow: none !important;
 }
-.ks-app .ks-nav-drawer-head > div { min-width: 0 !important; }
-.ks-app .ks-nav-drawer-kicker {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer-head > div { min-width: 0 !important; }
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer-kicker {
   display: block !important;
   margin: 0 0 3px !important;
   color: #baa678 !important;
@@ -79,7 +79,7 @@
   line-height: 1.4 !important;
   letter-spacing: .1em !important;
 }
-.ks-app .ks-nav-drawer-head h2 {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer-head h2 {
   margin: 0 !important;
   color: #eeede7 !important;
   font-size: 22px !important;
@@ -87,8 +87,8 @@
   line-height: 1.2 !important;
   letter-spacing: -.03em !important;
 }
-.ks-app .ks-nav-drawer-head p { display: none !important; }
-.ks-app .ks-nav-drawer-head > button {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer-head p { display: none !important; }
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer-head > button {
   display: grid !important;
   flex: 0 0 40px !important;
   place-items: center !important;
@@ -106,12 +106,12 @@
   transition: border-color .15s ease, background-color .15s ease, color .15s ease !important;
   touch-action: manipulation;
 }
-.ks-app .ks-nav-drawer-head > button:hover {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer-head > button:hover {
   border-color: #766747 !important;
   background: #1e1d17 !important;
   color: #f0dfb7 !important;
 }
-.ks-app .ks-nav-drawer nav {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer nav {
   display: grid !important;
   flex: 0 0 auto !important;
   grid-template-columns: minmax(0, 1fr) !important;
@@ -122,7 +122,7 @@
   border: 0 !important;
   background: transparent !important;
 }
-.ks-app .ks-nav-drawer .ks-nav-drawer-link {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer .ks-nav-drawer-link {
   display: flex !important;
   flex: 0 0 auto !important;
   flex-direction: column !important;
@@ -152,7 +152,7 @@
   appearance: none !important;
   -webkit-appearance: none !important;
 }
-.ks-app .ks-nav-drawer .ks-nav-drawer-link b {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer .ks-nav-drawer-link b {
   display: block !important;
   min-width: 0 !important;
   margin: 0 !important;
@@ -163,7 +163,7 @@
   letter-spacing: 0 !important;
   overflow-wrap: anywhere !important;
 }
-.ks-app .ks-nav-drawer .ks-nav-drawer-link span {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer .ks-nav-drawer-link span {
   display: block !important;
   min-width: 0 !important;
   margin: 0 !important;
@@ -174,22 +174,22 @@
   letter-spacing: 0 !important;
   overflow-wrap: anywhere !important;
 }
-.ks-app .ks-nav-drawer .ks-nav-drawer-link:hover {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer .ks-nav-drawer-link:hover {
   border-bottom-color: #292a25 !important;
   background: #ffffff05 !important;
   transform: none !important;
 }
-.ks-app .ks-nav-drawer .ks-nav-drawer-link.is-current {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer .ks-nav-drawer-link.is-current {
   border-left-color: #b6a277 !important;
   padding-left: 10px !important;
   background: #c4a56f0d !important;
   box-shadow: none !important;
 }
-.ks-app .ks-nav-drawer .ks-nav-drawer-link:focus-visible {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer .ks-nav-drawer-link:focus-visible {
   outline: 2px solid #d4bd88 !important;
   outline-offset: -2px !important;
 }
-.ks-app .ks-nav-drawer .ks-nav-drawer-support {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer .ks-nav-drawer-support {
   display: grid !important;
   flex: 0 0 auto !important;
   grid-template-columns: 28px minmax(0, 1fr) 16px !important;
@@ -213,11 +213,11 @@
   appearance: none !important;
   -webkit-appearance: none !important;
 }
-.ks-app .ks-nav-drawer .ks-nav-drawer-support:hover {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer .ks-nav-drawer-support:hover {
   border-bottom-color: #292a25 !important;
   background: #ffffff05 !important;
 }
-.ks-app .ks-nav-drawer-support > svg:first-child {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer-support > svg:first-child {
   display: grid !important;
   place-self: center !important;
   width: 28px !important;
@@ -228,29 +228,29 @@
   background: #1b1a15 !important;
   color: #d2bc87 !important;
 }
-.ks-app .ks-nav-drawer-support-copy {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer-support-copy {
   display: flex !important;
   min-width: 0 !important;
   flex-direction: column !important;
   gap: 3px !important;
 }
-.ks-app .ks-nav-drawer-support-copy b {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer-support-copy b {
   color: #e3e2db !important;
   font-size: 12px !important;
   font-weight: 600 !important;
   line-height: 1.4 !important;
 }
-.ks-app .ks-nav-drawer-support-copy small {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer-support-copy small {
   color: #9fa097 !important;
   font-size: 10px !important;
   font-weight: 400 !important;
   line-height: 1.5 !important;
 }
-.ks-app .ks-nav-drawer-support > svg:last-child {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer-support > svg:last-child {
   flex: 0 0 auto !important;
   color: #92938a !important;
 }
-.ks-app .ks-nav-drawer-footer {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer-footer {
   display: flex !important;
   flex: 0 0 auto !important;
   align-items: center !important;
@@ -264,12 +264,12 @@
   font-size: 10px !important;
   line-height: 1.5 !important;
 }
-.ks-app .ks-nav-drawer-footer svg {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer-footer svg {
   flex: 0 0 auto !important;
   color: #a995ff !important;
 }
-.ks-app .ks-nav-drawer a:focus-visible,
-.ks-app .ks-nav-drawer button:focus-visible {
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer a:focus-visible,
+:is(.ks-app,.ks-dev-route) .ks-nav-drawer button:focus-visible {
   outline: 2px solid #d4bd88 !important;
   outline-offset: -2px !important;
 }
@@ -282,7 +282,7 @@
   to { opacity: 1; }
 }
 @media (max-width: 420px) {
-  .ks-app .ks-nav-drawer {
+  :is(.ks-app,.ks-dev-route) .ks-nav-drawer {
     top: calc(72px + env(safe-area-inset-top, 0px)) !important;
     right: max(12px, env(safe-area-inset-right, 0px)) !important;
     left: max(12px, env(safe-area-inset-left, 0px)) !important;
@@ -292,17 +292,17 @@
   }
 }
 @media (max-height: 650px) {
-  .ks-app .ks-nav-drawer {
+  :is(.ks-app,.ks-dev-route) .ks-nav-drawer {
     top: calc(12px + env(safe-area-inset-top, 0px)) !important;
     max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ks-app .ks-nav-scrim,
-  .ks-app .ks-nav-drawer,
-  .ks-app .ks-nav-drawer-link,
-  .ks-app .ks-nav-drawer-support,
-  .ks-app .ks-nav-drawer-head > button {
+  :is(.ks-app,.ks-dev-route) .ks-nav-scrim,
+  :is(.ks-app,.ks-dev-route) .ks-nav-drawer,
+  :is(.ks-app,.ks-dev-route) .ks-nav-drawer-link,
+  :is(.ks-app,.ks-dev-route) .ks-nav-drawer-support,
+  :is(.ks-app,.ks-dev-route) .ks-nav-drawer-head > button {
     animation: none !important;
     transition: none !important;
   }
