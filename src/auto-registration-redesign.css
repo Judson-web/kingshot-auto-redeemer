@@ -1,0 +1,477 @@
+/* Auto registration redesign: calm, form-first, and scoped to /auto. */
+.ks-auto-app {
+  color: #eeede9;
+  background: #0c0d0f;
+  background-image: none;
+}
+.ks-auto-app header,
+.ks-auto-app footer {
+  width: min(1040px, calc(100% - 40px));
+}
+.ks-auto-app header {
+  border-bottom-color: #242528;
+}
+.ks-auto-app .ks-brand-mark {
+  border-color: #343538;
+  box-shadow: none;
+}
+.ks-auto-app nav a {
+  color: #a0a09a;
+  font-size: 13px;
+}
+.ks-auto-app nav a:hover,
+.ks-auto-app nav a:focus-visible {
+  color: #f0efe9;
+}
+.ks-auto-app main {
+  width: min(1040px, calc(100% - 40px));
+  overflow: visible;
+}
+.ks-auto-app .ks-auto-hero {
+  width: min(650px, 100%);
+  margin: 0 auto;
+  padding: 48px 0 18px;
+  text-align: left;
+}
+.ks-auto-app .ks-auto-hero .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 16px;
+  color: #b6a277;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+}
+.ks-auto-app .ks-auto-hero .eyebrow > span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #c9a96e;
+  box-shadow: none;
+}
+.ks-auto-app .ks-auto-hero h1 {
+  max-width: 100%;
+  margin: 0 0 12px;
+  color: #f0efe9;
+  font-size: clamp(30px, 4vw, 40px);
+  font-weight: 680;
+  line-height: 1.12;
+  letter-spacing: -.05em;
+}
+.ks-auto-app .ks-auto-hero h1 em {
+  color: inherit;
+  font-style: normal;
+}
+.ks-auto-app .ks-auto-hero .hero-copy {
+  max-width: 570px;
+  margin: 0;
+  color: #a2a39f;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.ks-auto-app .ks-register-box {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
+  margin: 24px 0 0;
+  padding: 19px;
+  border: 1px solid #2c2d30;
+  border-radius: 13px;
+  background: #121315;
+  box-shadow: none;
+  box-sizing: border-box;
+  text-align: left;
+}
+.ks-auto-app .ks-register-field {
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  box-sizing: border-box;
+}
+.ks-auto-app .ks-register-field label {
+  display: block;
+  margin: 0 0 8px;
+  color: #e0dfd8;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.ks-auto-app .ks-register-field > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 49px;
+  margin: 0;
+  padding: 0 13px;
+  border: 1px solid #38393c;
+  border-radius: 9px;
+  background: #0c0d0f;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+.ks-auto-app .ks-register-field > div:focus-within {
+  border-color: #b6a277;
+  box-shadow: 0 0 0 3px rgb(198 166 108 / 12%);
+}
+.ks-auto-app .ks-register-field > div > svg {
+  flex: 0 0 auto;
+  color: #999a94;
+}
+.ks-auto-app .ks-register-field input {
+  width: 100%;
+  min-width: 0;
+  height: 47px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #f0efe9;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.ks-auto-app .ks-register-field input::placeholder {
+  color: #777872;
+  opacity: 1;
+}
+.ks-auto-app .ks-register-field small {
+  display: block;
+  margin: 7px 0 0;
+  color: #999a94;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.ks-auto-app .ks-register-box > .ks-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  height: auto;
+  align-self: stretch;
+  padding: 12px 16px;
+  border: 1px solid #d4bb84;
+  border-radius: 9px;
+  background: #d4bb84;
+  box-shadow: none;
+  color: #211d15;
+  font-size: 14px;
+  font-weight: 650;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.ks-auto-app .ks-register-box > .ks-submit:hover:not(:disabled) {
+  border-color: #e4cea0;
+  background: #e4cea0;
+  transform: none;
+}
+.ks-auto-app .ks-register-box > .ks-submit:focus-visible {
+  outline: 3px solid rgb(212 187 132 / 38%);
+  outline-offset: 3px;
+}
+.ks-auto-app .ks-register-box > .ks-submit:disabled {
+  cursor: wait;
+  opacity: .68;
+}
+.ks-auto-app .ks-register-box > .ks-submit .manual-spinner {
+  color: inherit;
+}
+.ks-auto-app .ks-register-box > .ks-submit .manual-submit-label {
+  display: inline;
+}
+.ks-auto-app .ks-register-box > .ks-submit .manual-submit-label strong {
+  font: inherit;
+}
+.ks-auto-app .ks-register-box > .ks-submit .manual-submit-label small {
+  display: none;
+}
+.ks-auto-app .ks-error {
+  width: 100%;
+  margin: 13px 0 0;
+  padding: 13px 14px;
+  border: 1px solid #55373a;
+  border-radius: 10px;
+  background: #191113;
+  color: #e4b7b8;
+  font-size: 13px;
+  line-height: 1.55;
+  box-shadow: none;
+}
+.ks-auto-app .ks-error b {
+  color: #f1d0d0;
+  font-size: 13px;
+}
+.ks-auto-app .ks-outcome-panel {
+  width: 100%;
+  margin: 14px 0 0;
+  overflow: hidden;
+  border: 1px solid #303235;
+  border-radius: 12px;
+  background: #121315;
+  box-shadow: none;
+}
+.ks-auto-app .ks-outcome-panel.ks-outcome-success,
+.ks-auto-app .ks-outcome-panel.ks-outcome-attention,
+.ks-auto-app .ks-outcome-panel.ks-outcome-blocked {
+  border-color: #303235;
+  background: #121315;
+}
+.ks-auto-app .ks-outcome-header {
+  gap: 12px;
+  padding: 15px 16px 13px;
+  border-bottom-color: #292a2c;
+}
+.ks-auto-app .ks-outcome-head-icon {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #393a3a;
+  border-radius: 10px;
+  background: #191a19;
+  color: #c4aa73;
+}
+.ks-auto-app .ks-outcome-head-copy {
+  min-width: 0;
+}
+.ks-auto-app .ks-outcome-kicker {
+  color: #a2a39f;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+.ks-auto-app .ks-outcome-head-copy h2 {
+  margin: 4px 0 0;
+  color: #eeede7;
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.35;
+  letter-spacing: -.025em;
+}
+.ks-auto-app .ks-outcome-head-copy p {
+  margin: 5px 0 0;
+  color: #a2a39f;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.ks-auto-app .ks-outcome-count {
+  border-color: #393a3a;
+  border-radius: 8px;
+  background: #191a19;
+  color: #deddd6;
+}
+.ks-auto-app .ks-outcome-count small {
+  color: #a2a39f;
+}
+.ks-auto-app .ks-outcome-track {
+  background: transparent;
+}
+.ks-auto-app .ks-outcome-slide {
+  gap: 12px;
+  padding: 14px 16px;
+}
+.ks-auto-app .ks-outcome-slide-icon {
+  border-color: #383936;
+  border-radius: 10px;
+  background: #191a19;
+  color: #c4aa73;
+}
+.ks-auto-app .ks-outcome-identity h3 {
+  color: #eeede7;
+  font-weight: 650;
+}
+.ks-auto-app .ks-outcome-player-meta,
+.ks-auto-app .ks-outcome-player-id {
+  color: #a2a39f;
+}
+.ks-auto-app .ks-outcome-pagination {
+  border-top-color: #292a2c;
+  background: transparent;
+  color: #a2a39f;
+}
+.ks-auto-app .ks-outcome-pagination > small {
+  color: #92938d;
+}
+.ks-auto-app .ks-outcome-arrow {
+  border-color: #3a3b3b;
+  background: #171817;
+  color: #deddd6;
+}
+.ks-auto-app .ks-outcome-arrow:hover:not(:disabled) {
+  border-color: #6c624b;
+  background: #1e1d19;
+}
+.ks-auto-app .ks-outcome-footer {
+  border-top-color: #292a2c;
+  background: #101112;
+  color: #a2a39f;
+}
+.ks-auto-app .ks-outcome-footer > svg {
+  color: #b6a277;
+}
+.ks-auto-app .ks-auto-how {
+  width: min(650px, 100%);
+  margin: 0 auto;
+  padding: 27px 0 43px;
+}
+.ks-auto-app .ks-auto-how .section-title {
+  margin: 0 0 10px;
+}
+.ks-auto-app .ks-auto-how .section-title > span {
+  display: none;
+}
+.ks-auto-app .ks-auto-how .section-title h2 {
+  margin: 0;
+  color: #eeede7;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -.02em;
+}
+.ks-auto-app .ks-auto-how .feature-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.ks-auto-app .ks-auto-how .feature-grid article {
+  display: grid;
+  grid-template-columns: 21px minmax(0, 1fr);
+  align-items: start;
+  column-gap: 12px;
+  row-gap: 3px;
+  min-width: 0;
+  min-height: 0;
+  padding: 13px 0;
+  border: 0;
+  border-top: 1px solid #292a2c;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+.ks-auto-app .ks-auto-how .feature-grid article:hover {
+  transform: none;
+  border-color: #292a2c;
+}
+.ks-auto-app .ks-auto-how .feature-grid article > svg {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  width: 17px;
+  height: 17px;
+  margin: 1px 0 0;
+  color: #b6a277;
+}
+.ks-auto-app .ks-auto-how .feature-grid article > b {
+  grid-column: 2;
+  display: block;
+  color: #e0dfd8;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.ks-auto-app .ks-auto-how .feature-grid article > p {
+  grid-column: 2;
+  margin: 0;
+  color: #a2a39f;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.ks-auto-app footer {
+  align-items: center;
+  padding-top: 20px;
+  padding-bottom: 18px;
+  border-top-color: #242528;
+}
+.ks-auto-app footer > span {
+  color: #92938d;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.ks-auto-app footer a {
+  color: #b2b2ac;
+}
+@media (max-width: 640px) {
+  .ks-auto-app header,
+  .ks-auto-app footer,
+  .ks-auto-app main {
+    width: calc(100% - 32px);
+  }
+  .ks-auto-app header {
+    height: 62px;
+  }
+  .ks-auto-app .ks-auto-hero {
+    padding: 36px 0 12px;
+  }
+  .ks-auto-app .ks-auto-hero .eyebrow {
+    margin-bottom: 13px;
+  }
+  .ks-auto-app .ks-auto-hero h1 {
+    font-size: clamp(29px, 8.5vw, 35px);
+  }
+  .ks-auto-app .ks-auto-hero .hero-copy {
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .ks-auto-app .ks-register-box {
+    margin-top: 20px;
+    gap: 14px;
+    padding: 15px;
+  }
+  .ks-auto-app .ks-register-field > div {
+    min-height: 48px;
+  }
+  .ks-auto-app .ks-register-field input {
+    height: 46px;
+    font-size: 15px;
+  }
+  .ks-auto-app .ks-register-box > .ks-submit {
+    min-height: 48px;
+    font-size: 14px;
+  }
+  .ks-auto-app .ks-outcome-header {
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    gap: 9px;
+    padding: 12px 11px;
+  }
+  .ks-auto-app .ks-outcome-single .ks-outcome-header {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+  .ks-auto-app .ks-outcome-head-icon {
+    width: 35px;
+    height: 35px;
+  }
+  .ks-auto-app .ks-outcome-head-copy h2 {
+    font-size: 16px;
+  }
+  .ks-auto-app .ks-outcome-slide {
+    gap: 8px;
+    padding: 10px 11px;
+  }
+  .ks-auto-app .ks-outcome-single .ks-outcome-slide {
+    padding: 10px 11px;
+  }
+  .ks-auto-app .ks-outcome-footer {
+    padding: 10px 11px;
+  }
+  .ks-auto-app .ks-auto-how {
+    padding: 22px 0 32px;
+  }
+  .ks-auto-app footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 9px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ks-auto-app *,
+  .ks-auto-app *::before,
+  .ks-auto-app *::after {
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+  }
+}
