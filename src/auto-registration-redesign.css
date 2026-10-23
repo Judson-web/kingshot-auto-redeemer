@@ -475,3 +475,26 @@
     animation-duration: .01ms !important;
   }
 }
+
+/* Let the registration action size to its label instead of stretching edge to edge. */
+.ks-auto-app .ks-register-box > .ks-submit {
+  align-self: flex-start !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  padding: 13px 18px !important;
+  white-space: normal !important;
+  text-align: center !important;
+  text-wrap: balance;
+  flex: 0 1 auto !important;
+}
+.ks-auto-app .ks-register-box > .ks-submit .manual-submit-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 360px) {
+  .ks-auto-app .ks-register-box > .ks-submit {
+    padding-inline: 14px !important;
+    font-size: 13px !important;
+  }
+}
