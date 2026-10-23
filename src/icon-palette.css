@@ -1,0 +1,83 @@
+/* Shared non-brand icon palette. Brand marks and player artwork remain untouched. */
+:root {
+  --ks-icon-gold: #d4bd88;
+  --ks-icon-antique: #b9a678;
+  --ks-icon-muted: #a6a79e;
+}
+
+/* Navigation, controls, and general interface glyphs use warm neutrals rather than legacy purple. */
+.ks-app .ks-nav-drawer-footer svg,
+.ks-app .menu-btn svg,
+.ks-app .site-status-trigger svg,
+.ks-app .site-status-popover svg,
+.ks-app .ks-auto-link > svg,
+.ks-app .ks-auto-how .feature-grid article > svg,
+.ks-app .ks-how .feature-grid article > svg,
+.ks-app .manual-trust-row svg,
+.ks-app .manual-form-head svg,
+.ks-app .manual-redeem-form svg,
+.ks-app .site-announcement-icon svg,
+.ks-app .site-account-chip > svg,
+.ks-app .ks-outcome-arrow svg,
+.info-app .menu-btn svg,
+.info-app .info-back svg,
+.info-app .info-icon svg,
+.info-app .info-notes svg,
+.info-app .info-cta-links svg,
+.legal-app .menu-btn svg,
+.legal-app .legal-back svg,
+.support-chat-panel .support-float-icon svg,
+.support-chat-panel .support-drawer-close svg,
+.support-chat-panel .support-chat-toolbar-actions svg,
+.support-chat-panel .support-attach-button svg,
+.support-chat-panel .support-composer-send svg {
+  color: var(--ks-icon-antique) !important;
+}
+
+/* Page-level decorative icon blocks share the warm metal accent. */
+.info-app .info-icon,
+.info-app .info-notes > div {
+  color: var(--ks-icon-gold) !important;
+}
+.legal-app .legal-card-icon {
+  color: var(--ks-icon-gold) !important;
+}
+
+/* Keep feedback states meaningful, rather than flattening success and warning into decoration. */
+.ks-app .ks-result-success .ks-result-icon,
+.ks-app .ks-result-success .ks-result-icon svg,
+.ks-app .ks-outcome-active .ks-outcome-head-icon,
+.ks-app .ks-outcome-active .ks-outcome-head-icon svg {
+  color: #9fc8a4 !important;
+}
+.ks-app .ks-result-warning .ks-result-icon,
+.ks-app .ks-result-warning .ks-result-icon svg,
+.ks-app .ks-result-claimed .ks-result-icon,
+.ks-app .ks-result-claimed .ks-result-icon svg {
+  color: var(--ks-icon-gold) !important;
+}
+.ks-app .ks-result-error .ks-result-icon,
+.ks-app .ks-result-error .ks-result-icon svg,
+.ks-app .ks-result-failed .ks-outcome-head-icon,
+.ks-app .ks-result-failed .ks-outcome-head-icon svg {
+  color: #d99a9e !important;
+}
+
+/* Developer documentation: non-brand glyphs are warm gold; identity art stays as its own image. */
+.dev-dashboard .dev-top-nav a svg,
+.dev-dashboard .dev-section-nav a svg,
+.dev-dashboard .dev-card-head > svg,
+.dev-dashboard .dev-feature-card .dev-section-kicker svg,
+.dev-dashboard .dev-footer a svg,
+.dev-dashboard #developer-account > div:first-child > div:first-child svg {
+  color: var(--ks-icon-gold) !important;
+}
+
+/* The account key status/check glyphs remain semantic green. */
+.dev-dashboard #developer-account [role="status"] svg,
+.dev-dashboard #developer-account [aria-live="polite"] svg {
+  color: #9fc8a4 !important;
+}
+@media (prefers-contrast: more) {
+  :root { --ks-icon-gold: #ead7a9; --ks-icon-antique: #d0bd8e; }
+}
