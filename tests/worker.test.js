@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const workerSource = await readFile(new URL("../internal/kingshot/worker.ts", import.meta.url), "utf8");
+const healthSource = await readFile(new URL("../lib/health.js", import.meta.url), "utf8");
 const scraperSource = await readFile(new URL("../internal/kingshot/scraper.ts", import.meta.url), "utf8");
 const autoSource = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
 const validationSource = await readFile(new URL("../internal/kingshot/kingdom-validation.ts", import.meta.url), "utf8");
@@ -68,4 +69,21 @@ test("MightPulse usage preflight tracks each key separately and respects actual 
 
 test("global recovery queue is drained by one designated shard, not all four", () => {
   assert.match(autoSource, /if\s*\(slot\s*===\s*0\)\s*await\s+drainRedemptionRecoveryQueue\(rpc\)/);
+});
+
+test("transient Supabase failures retry idempotent reads but never replay redemption writes", () => {
+  assert.match(autoSource, /const RETRYABLE_READ_RPCS=new Set/);
+  assert.match(autoSource, /"list_kingshot_admin_gift_codes"/);
+  assert.match(autoSource, /"list_kingshot_autoredeem_players"/);
+  assert.match(autoSource, /const maxAttempts=RETRYABLE_READ_RPCS\\.has\\(name\\)\\?2:1/);
+  assert.match(autoSource, /if\\(attempt<maxAttempts&&\\(r\\.status===429\\|\\|r\\.status>=500\\)\\)/);
+  assert.match(autoSource, /"claim_kingshot_redemption"/);
+});
+
+test("zero-attempt cycles explain when verified codes are already handled or unavailable", () => {
+  assert.match(autoSource, /ALL_ELIGIBLE_CODES_ALREADY_HANDLED/);
+  assert.match(autoSource, /NO_ELIGIBLE_VERIFIED_UNSUPPRESSED_UNEXPIRED_CODES/);
+  assert.match(autoSource, /noWorkReason/);
+  assert.match(healthSource, /noWorkReason/);
+  assert.match(healthSource, /coordinatorRows/);
 });

@@ -20,27 +20,57 @@ const VERIFIED_FALLBACK_CODES=[{code:"VIP777",expiresAt:Date.parse("2026-12-31T2
 
 if(!SUPABASE_KEY)throw Error("Supabase service key is not configured on the server.");
 
+// Retry only known idempotent reads. Redemption claims, result writes, worker
+// leases and all other mutations must never be replayed automatically.
+const RETRYABLE_READ_RPCS=new Set([
+ "verify_kingshot_scheduler_token",
+ "kingshot_get_source_cooldown",
+ "list_kingshot_admin_gift_codes",
+ "list_kingshot_autoredeem_players",
+ "list_kingshot_player_redemptions",
+ "list_kingshot_player_redemptions_bulk",
+ "list_kingshot_expired_gift_codes",
+ "list_kingshot_redemption_recovery_queue"
+]);
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+
 async function rpc(name,body){
- const startedAt=Date.now();
- let r;
- try{
-  r=await fetch(SUPABASE_URL+"/rest/v1/rpc/"+name,{method:"POST",headers:{"apikey":SUPABASE_KEY,"authorization":"Bearer "+SUPABASE_KEY,"content-type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(10000)});
- }catch(error){
-  console.error("Supabase RPC transport failed:",{operation:name,durationMs:Date.now()-startedAt,errorName:error?.name||null,message:String(error?.message||error).slice(0,200)});
-  throw error;
+ const maxAttempts=RETRYABLE_READ_RPCS.has(name)?2:1;
+ let lastError;
+ for(let attempt=1;attempt<=maxAttempts;attempt++){
+  const startedAt=Date.now();
+  let r;
+  try{
+   r=await fetch(SUPABASE_URL+"/rest/v1/rpc/"+name,{method:"POST",headers:{"apikey":SUPABASE_KEY,"authorization":"Bearer "+SUPABASE_KEY,"content-type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(10000)});
+  }catch(error){
+   lastError=error;
+   if(attempt<maxAttempts){
+    console.warn("Supabase read RPC transport retry:",{operation:name,attempt,maxAttempts,durationMs:Date.now()-startedAt,errorName:error?.name||null});
+    await sleep(250*attempt);
+    continue;
+   }
+   console.error("Supabase RPC transport failed:",{operation:name,attempt,durationMs:Date.now()-startedAt,errorName:error?.name||null,message:String(error?.message||error).slice(0,200)});
+   throw error;
+  }
+  const durationMs=Date.now()-startedAt;
+  if(durationMs>=1500)console.warn("Supabase RPC slow:",{operation:name,durationMs,status:r.status,attempt});
+  const d=await r.json().catch(()=>null);
+  if(!r.ok){
+   const code=typeof d?.code==="string"?d.code.slice(0,40):null;
+   const message=String(d?.message||d?.error_description||"Supabase request failed").replace(/\s+/g," ").trim().slice(0,240);
+   if(attempt<maxAttempts&&(r.status===429||r.status>=500)){
+    console.warn("Supabase read RPC response retry:",{operation:name,status:r.status,attempt,maxAttempts,code});
+    await sleep(250*attempt);
+    continue;
+   }
+   // Keep operation, HTTP status, and PostgreSQL/PostgREST code for diagnosis.
+   // Do not log request bodies, player identifiers, codes, or authorization headers.
+   console.error("Supabase RPC failed:",{operation:name,status:r.status,code,message,attempt});
+   throw Error("Supabase RPC "+name+" failed (HTTP "+r.status+(code?", code "+code:"")+"): "+message);
+  }
+  return d;
  }
- const durationMs=Date.now()-startedAt;
- if(durationMs>=1500)console.warn("Supabase RPC slow:",{operation:name,durationMs,status:r.status});
- const d=await r.json().catch(()=>null);
- if(!r.ok){
-  const code=typeof d?.code==="string"?d.code.slice(0,40):null;
-  const message=String(d?.message||d?.error_description||"Supabase request failed").replace(/\\s+/g," ").trim().slice(0,240);
-  // Keep operation, HTTP status, and PostgreSQL/PostgREST code for diagnosis.
-  // Do not log request bodies, player identifiers, codes, or authorization headers.
-  console.error("Supabase RPC failed:",{operation:name,status:r.status,code,message});
-  throw Error("Supabase RPC "+name+" failed (HTTP "+r.status+(code?", code "+code:"")+"): "+message);
- }
- return d;
+ throw lastError||Error("Supabase RPC "+name+" failed after retries.");
 }
 
 import {extractPageCodes, extractPublicSourceCodes, mergeCodes, normalizeCodes, isCredibleGiftCodeCandidate, isCanaryEligibleGiftCodeCandidate} from "../internal/kingshot/gift-codes.js";
@@ -666,8 +696,12 @@ export default async function handler(req,res){
    map[key]=current;
    return map;
   },{})).sort((x,y)=>y.count-x.count).slice(0,8);
-  console.log("Kingshot auto worker pool:",{workers:WORKER_COUNT,assignments:assignments.map(x=>x.length),workerFailures:workerFailures.length,attempted:totals.attempted,success:totals.success,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures});
-  const summary={source:"multi-source",sources:sourceResults.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,verificationAttempt,...totals,workerFailures:workerFailures.length,shardFailureDiagnostics,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures,codeTelemetry};
+  const noWorkReason=totals.attempted>0?null
+   :activeCodes.length===0?"NO_ELIGIBLE_VERIFIED_UNSUPPRESSED_UNEXPIRED_CODES"
+   :validPlayers.length>0&&totals.alreadyHandled>=validPlayers.length*activeCodes.length?"ALL_ELIGIBLE_CODES_ALREADY_HANDLED"
+   :"NO_REDEMPTION_ATTEMPTS_RECORDED";
+  console.log("Kingshot auto worker pool:",{workers:WORKER_COUNT,assignments:assignments.map(x=>x.length),workerFailures:workerFailures.length,attempted:totals.attempted,success:totals.success,noWorkReason,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures});
+  const summary={source:"multi-source",sources:sourceResults.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,verificationAttempt,noWorkReason,...totals,workerFailures:workerFailures.length,shardFailureDiagnostics,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures,codeTelemetry};
   await rpc("finish_kingshot_worker_run",{p_token:workerToken,p_status:totals.errors||totals.stale||kingdomSummary.errors||kingdomSummary.deferred||workerFailures.length?"COMPLETED_WITH_WARNINGS":"COMPLETED",p_error:null,p_summary:summary}).catch(error=>console.error("Worker state update failed:",error?.message||error));
   const anomalyReasons=[];
   if(totals.errors||workerFailures.length)anomalyReasons.push("worker errors");
