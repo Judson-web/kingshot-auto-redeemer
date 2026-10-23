@@ -16,6 +16,7 @@ import DeveloperApp from"./DeveloperApp.tsx";
 import PrivateDevApp from"./PrivateDevApp.tsx";
 import ProfileApp from"./ProfileApp.tsx";
 import SupportWidget from"./components/SupportWidget.tsx";
+import MobileNavDrawer from"./components/MobileNavDrawer.jsx";
 import DevSupportApp from"./DevSupportApp.tsx";
 import AdminPlayersApp from"./AdminPlayersApp.tsx";
 import MaintenanceAdminApp from"./MaintenanceAdminApp.tsx";
@@ -27,47 +28,6 @@ const imageUrl=(user,size=1024,format=user.format)=>"/api/discord-avatar?id="+en
 const manualResultMeta=status=>{const s=String(status||"").toUpperCase();if(s==="INVALID_INPUT")return{tone:"error",label:"Check your details.",Icon:AlertTriangle};if(s==="SUCCESS")return{tone:"success",label:"Redeemed successfully.",Icon:CheckCircle};if(s==="RECEIVED"||s==="SAME TYPE EXCHANGE")return{tone:"claimed",label:"Already claimed.",Icon:CheckCircle};if(s==="TIME_ERROR")return{tone:"warning",label:"Code expired.",Icon:AlertTriangle};if(s==="CDK_NOT_FOUND")return{tone:"error",label:"Code not found.",Icon:OctagonAlert};if(s==="USAGE_LIMIT")return{tone:"warning",label:"Redemption limit reached.",Icon:AlertTriangle};if(s==="ROLE_NOT_EXIST")return{tone:"error",label:"Player not found.",Icon:OctagonAlert};if(s==="STATE_MISMATCH")return{tone:"error",label:"Kingdom mismatch.",Icon:OctagonAlert};if(s==="SIGN_ERROR"||s==="LOGIN_EXPIRED_MID_PROCESS")return{tone:"error",label:"Redemption unavailable.",Icon:OctagonAlert};if(s==="TIMEOUT_RETRY")return{tone:"warning",label:"Try again shortly.",Icon:AlertTriangle};return{tone:"error",label:"Redemption could not be completed.",Icon:AlertTriangle};};
 const BRAND_ICON="/favicon.svg";
 function KsLogo(){return <a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={BRAND_ICON} alt="Kingshot Redeemer"/></span><span>Kingshot Redeemer</span></a>}
-function MobileNavDrawer({open,onClose,current}){
- const drawerRef=useRef(null),closeButtonRef=useRef(null),closeRef=useRef(onClose),restoreFocusRef=useRef(null);
- closeRef.current=onClose;
- useEffect(()=>{
-  if(!open)return;
-  const previousOverflow=document.body.style.overflow;
-  const active=document.activeElement;
-  restoreFocusRef.current=active instanceof HTMLElement?active:null;
-  document.body.style.overflow="hidden";
-  closeButtonRef.current?.focus({preventScroll:true});
-  const handleKeyDown=event=>{
-   if(event.key==="Escape"){event.preventDefault();closeRef.current?.();return}
-   if(event.key!=="Tab")return;
-   const panel=drawerRef.current;
-   if(!panel)return;
-   const focusable=[...panel.querySelectorAll('a[href],button:not([disabled]),[tabindex]:not([tabindex="-1"])')].filter(el=>!el.hasAttribute("hidden")&&el.getAttribute("aria-hidden")!=="true"&&getComputedStyle(el).visibility!=="hidden");
-   if(!focusable.length){event.preventDefault();panel.focus();return}
-   const first=focusable[0],last=focusable[focusable.length-1];
-   if(event.shiftKey&&(document.activeElement===first||!panel.contains(document.activeElement))){event.preventDefault();last.focus()}
-   else if(!event.shiftKey&&(document.activeElement===last||!panel.contains(document.activeElement))){event.preventDefault();first.focus()}
-  };
-  window.addEventListener("keydown",handleKeyDown);
-  return()=>{
-   document.body.style.overflow=previousOverflow;
-   window.removeEventListener("keydown",handleKeyDown);
-   const target=restoreFocusRef.current;
-   restoreFocusRef.current=null;
-   if(target?.isConnected)target.focus({preventScroll:true});
-  };
- },[open]);
- if(!open)return null;
- const links=[
-  {id:"auto",href:"/auto",label:"Auto Redeem",description:"Register players for automatic code checks.",Icon:Activity},
-  {id:"manual",href:"/manual",label:"Manual Redeem",description:"Redeem a gift code for one player.",Icon:Gift},
-  {id:"info",href:"/info",label:"How it works",description:"Learn how player checks and redemptions work.",Icon:Info},
-  {id:"support",action:true,label:"Support",description:"Contact support or continue a private ticket.",Icon:LifeBuoy},
-  {id:"developer",href:"/developer",label:"Developer API",description:"Build with the public redemption API.",Icon:ShieldCheck},
-  {id:"profile",href:"/profile",label:"Your profile",description:"Manage your account and preferences.",Icon:UserRound}
- ];
- return <><button className="ks-nav-scrim" type="button" aria-label="Close navigation" onClick={()=>closeRef.current?.()}/><aside ref={drawerRef} className="ks-nav-drawer" role="dialog" aria-modal="true" aria-labelledby="ks-nav-title"><div className="ks-nav-drawer-head"><div><span className="ks-nav-drawer-kicker">KINGSHOT REDEEMER</span><h2 id="ks-nav-title">Navigation</h2><p>Choose where you want to go.</p></div><button ref={closeButtonRef} type="button" onClick={()=>closeRef.current?.()} aria-label="Close navigation menu"><X size={18}/></button></div><nav aria-label="Site sections">{links.map(item=>{const Icon=item.Icon;const className="ks-nav-drawer-link"+(item.id===current?" is-current":"");const body=<><span className="ks-nav-drawer-icon"><Icon size={18}/></span><span className="ks-nav-drawer-copy"><b>{item.label}</b><small>{item.description}</small></span><ArrowRight size={15} className="ks-nav-drawer-arrow" aria-hidden="true"/></>;if(item.action)return <button key={item.id} className={className} type="button" onClick={()=>{restoreFocusRef.current=null;closeRef.current?.();window.dispatchEvent(new CustomEvent("ks-support-open",{detail:{topic:"Other",subject:"Support request",pageTitle:document.title}}))}}>{body}</button>;return <a key={item.id} className={className} href={item.href} aria-current={item.id===current?"page":undefined}>{body}</a>})}</nav><div className="ks-nav-drawer-footer"><ShieldCheck size={14}/><span>Independent community service</span></div></aside></>;
-}
 function CopyToastHost(){
  const [message,setMessage]=useState("");
  const timerRef=useRef(0);
