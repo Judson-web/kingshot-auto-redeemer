@@ -1,0 +1,349 @@
+/* Maintenance mode: restrained status UI that matches the charcoal and warm-gold app refresh. */
+.maintenance-app {
+  box-sizing: border-box;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: clamp(20px, 5vw, 52px);
+  background: #0d0e0c !important;
+  color: #eeeee8;
+}
+.maintenance-app *,
+.maintenance-preflight * { box-sizing: border-box; }
+.maintenance-noise,
+.maintenance-glow,
+.maintenance-visual-ring,
+.maintenance-visual-spark { display: none !important; }
+.maintenance-shell {
+  width: min(100%, 660px) !important;
+  animation: none !important;
+  filter: none !important;
+  text-align: left !important;
+}
+.maintenance-brand {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start !important;
+  gap: 12px;
+  margin: 0 0 18px !important;
+  text-align: left;
+}
+.maintenance-brand-mark {
+  flex: 0 0 40px;
+  width: 40px !important;
+  height: 40px !important;
+  border: 1px solid #3a3b35 !important;
+  border-radius: 11px !important;
+  background: #171815 !important;
+  color: #d4bd8a !important;
+  box-shadow: none !important;
+}
+.maintenance-brand > span:last-child {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+}
+.maintenance-brand b {
+  color: #e9e8e1 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: .08em !important;
+}
+.maintenance-brand small {
+  color: #999a92 !important;
+  font-size: 9px !important;
+  font-weight: 500 !important;
+  letter-spacing: .12em !important;
+}
+.maintenance-current-status {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  border: 1px solid #4a402d;
+  border-radius: 7px;
+  background: #1b1914;
+  color: #ddc58f;
+  font-size: 10px;
+  font-weight: 600;
+}
+.maintenance-current-status i,
+.maintenance-status i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c8aa70;
+  box-shadow: none !important;
+}
+.maintenance-card {
+  overflow: hidden;
+  padding: clamp(24px, 5vw, 42px) !important;
+  border: 1px solid #30312c !important;
+  border-radius: 16px !important;
+  background: #121310 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+.maintenance-card::before { display: none !important; }
+.maintenance-topline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 28px !important;
+}
+.maintenance-status,
+.maintenance-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #d7d6ce !important;
+  font-size: 10px !important;
+  font-weight: 650 !important;
+  letter-spacing: .06em !important;
+}
+.maintenance-live { color: #a9aaa1 !important; }
+.maintenance-live i { animation: none !important; box-shadow: none !important; }
+.maintenance-visual {
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-start !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 0 22px !important;
+}
+.maintenance-visual .maintenance-icon {
+  display: grid;
+  place-items: center;
+  width: 44px !important;
+  height: 44px !important;
+  margin: 0 !important;
+  border: 1px solid #49402e !important;
+  border-radius: 11px !important;
+  background: #1c1a15 !important;
+  color: #d7bd84 !important;
+  box-shadow: none !important;
+  animation: none !important;
+}
+.maintenance-card .maintenance-kicker {
+  display: block;
+  margin-bottom: 9px;
+  color: #b9a477 !important;
+  font-size: 10px !important;
+  font-weight: 650 !important;
+  letter-spacing: .1em !important;
+  line-height: 1.5 !important;
+}
+.maintenance-card h1 {
+  max-width: 540px;
+  margin: 0 0 16px !important;
+  color: #f0efe9 !important;
+  font-size: clamp(34px, 6vw, 48px) !important;
+  font-weight: 650 !important;
+  line-height: 1.08 !important;
+  letter-spacing: -.045em !important;
+}
+.maintenance-card h1 em {
+  color: #d8c18f !important;
+  background: none !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+.maintenance-message {
+  max-width: 540px;
+  margin: 0 !important;
+  color: #b1b2a9 !important;
+  font-size: 14px !important;
+  line-height: 1.75 !important;
+  overflow-wrap: anywhere;
+}
+.maintenance-countdown-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin: 26px 0 9px !important;
+  color: #a8a99f !important;
+  font-size: 10px !important;
+  font-weight: 650 !important;
+  letter-spacing: .07em !important;
+}
+.maintenance-countdown-label b {
+  color: #e4d3aa !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+}
+.maintenance-countdown {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px !important;
+  margin-top: 10px !important;
+}
+.maintenance-countdown.has-days { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.maintenance-time {
+  min-width: 0;
+  padding: 15px 8px 13px !important;
+  border: 1px solid #30312c !important;
+  border-radius: 9px !important;
+  background: #171814 !important;
+  transition: none !important;
+}
+.maintenance-time:hover { transform: none !important; border-color: #45453d !important; }
+.maintenance-time b {
+  color: #efeee8 !important;
+  font-size: clamp(20px, 4vw, 26px) !important;
+  font-weight: 620 !important;
+  letter-spacing: -.035em !important;
+}
+.maintenance-time span {
+  color: #a0a197 !important;
+  font-size: 9px !important;
+  letter-spacing: .08em !important;
+}
+.maintenance-estimate-note {
+  margin-top: 22px;
+  padding: 13px 14px;
+  border: 1px solid #33332d;
+  border-radius: 9px;
+  background: #171814;
+  color: #b5b5ab;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.maintenance-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: none !important;
+  margin: 17px 0 0 !important;
+  color: #a5a69d !important;
+  font-size: 11px !important;
+  line-height: 1.65 !important;
+  text-align: left !important;
+}
+.maintenance-note svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: #b7a77f !important;
+}
+.maintenance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid #2c2d28;
+}
+.maintenance-support-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid #b39b68;
+  border-radius: 9px;
+  background: #d2bb87;
+  color: #191812;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease;
+  touch-action: manipulation;
+}
+.maintenance-support-button:hover {
+  border-color: #d6c292;
+  background: #e0cea4;
+}
+.maintenance-support-button:focus-visible {
+  outline: 2px solid #e1ce9d;
+  outline-offset: 3px;
+}
+.maintenance-actions > span {
+  color: #a4a59c;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.maintenance-footer {
+  margin: 15px 0 0 !important;
+  color: #7e7f77 !important;
+  font-size: 10px !important;
+  line-height: 1.6;
+  text-align: left !important;
+}
+.maintenance-preflight {
+  min-height: 100svh !important;
+  padding: 24px !important;
+  background: #0d0e0c !important;
+}
+.maintenance-preflight-card {
+  width: min(100%, 440px) !important;
+  padding: 30px !important;
+  border: 1px solid #30312c !important;
+  border-radius: 14px !important;
+  background: #121310 !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+  animation: none !important;
+}
+.maintenance-preflight .maintenance-loader { opacity: .65; }
+.maintenance-preflight .maintenance-loader-orbit-a,
+.maintenance-preflight .maintenance-loader-orbit-b,
+.maintenance-preflight .maintenance-loader-core,
+.maintenance-preflight .maintenance-loader-core i,
+.maintenance-preflight-progress i { animation-duration: 2.8s !important; }
+.maintenance-preflight h1 {
+  color: #eeede7 !important;
+  font-size: 23px !important;
+  font-weight: 650 !important;
+  letter-spacing: -.025em !important;
+}
+.maintenance-preflight p {
+  color: #b1b2a9 !important;
+  font-size: 13px !important;
+  line-height: 1.7 !important;
+}
+.maintenance-preflight .maintenance-kicker,
+.maintenance-preflight small { color: #b9a477 !important; }
+.maintenance-preflight-progress { background: #2e2f29 !important; }
+.maintenance-preflight-progress i { background: #c9b27f !important; }
+@media (max-width: 520px) {
+  .maintenance-app { padding: 17px 13px !important; }
+  .maintenance-brand { gap: 9px; margin-bottom: 13px !important; }
+  .maintenance-brand-mark { flex-basis: 36px; width: 36px !important; height: 36px !important; }
+  .maintenance-brand b { font-size: 10px !important; }
+  .maintenance-brand small { font-size: 8px !important; }
+  .maintenance-current-status { padding: 6px 7px; font-size: 9px; }
+  .maintenance-card { padding: 23px 18px 20px !important; border-radius: 13px !important; }
+  .maintenance-topline { margin-bottom: 22px !important; }
+  .maintenance-card h1 { font-size: clamp(31px, 8.6vw, 40px) !important; }
+  .maintenance-message { font-size: 13px !important; }
+  .maintenance-countdown { gap: 5px !important; }
+  .maintenance-time { padding: 12px 4px 10px !important; }
+  .maintenance-time b { font-size: clamp(17px, 5.3vw, 21px) !important; }
+  .maintenance-time span { font-size: 8px !important; }
+}
+@media (max-width: 360px) {
+  .maintenance-current-status { max-width: 112px; white-space: normal; }
+  .maintenance-card { padding: 20px 13px 18px !important; }
+  .maintenance-topline { gap: 7px; }
+  .maintenance-status, .maintenance-live { font-size: 9px !important; }
+  .maintenance-countdown { gap: 4px !important; }
+  .maintenance-time { padding: 11px 2px 9px !important; }
+  .maintenance-time b { font-size: 17px !important; }
+  .maintenance-actions { align-items: flex-start; flex-direction: column; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .maintenance-support-button { transition: none !important; }
+}
