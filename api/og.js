@@ -16,6 +16,27 @@ function makePng(route="auto"){
  const set=(x,y,c)=>{if(x<0||y<0||x>=W||y>=H)return;const i=(y*W+x)*3;pixels[i]=c[0];pixels[i+1]=c[1];pixels[i+2]=c[2]};
  const rect=(x,y,w,h,c)=>{for(let yy=Math.max(0,y);yy<Math.min(H,y+h);yy++)for(let xx=Math.max(0,x);xx<Math.min(W,x+w);xx++)set(xx,yy,c)};
  const line=(x1,y1,x2,y2,t,c)=>{const dx=x2-x1,dy=y2-y1,n=Math.max(Math.abs(dx),Math.abs(dy));for(let i=0;i<=n;i++){const x=Math.round(x1+dx*i/n),y=Math.round(y1+dy*i/n);for(let a=-Math.floor(t/2);a<=Math.floor(t/2);a++)for(let b=-Math.floor(t/2);b<=Math.floor(t/2);b++)set(x+a,y+b,c)}};
+ const roundedRect=(x,y,w,h,r,colorAt)=>{
+  for(let yy=Math.max(0,y);yy<Math.min(H,y+h);yy++)for(let xx=Math.max(0,x);xx<Math.min(W,x+w);xx++){
+   const px=xx+0.5,py=yy+0.5,cx=Math.max(x+r,Math.min(px,x+w-r)),cy=Math.max(y+r,Math.min(py,y+h-r));
+   if((px-cx)*(px-cx)+(py-cy)*(py-cy)<=r*r)set(xx,yy,typeof colorAt==="function"?colorAt(px,py):colorAt);
+  }
+ };
+ const fillPolygon=(points,colorAt)=>{
+  const minY=Math.max(0,Math.floor(Math.min(...points.map(p=>p[1])))),maxY=Math.min(H-1,Math.ceil(Math.max(...points.map(p=>p[1]))));
+  for(let yy=minY;yy<=maxY;yy++){
+   const scan=yy+0.5,xs=[];
+   for(let i=0;i<points.length;i++){
+    const [x1,y1]=points[i],[x2,y2]=points[(i+1)%points.length];
+    if((y1<=scan&&y2>scan)||(y2<=scan&&y1>scan))xs.push(x1+(scan-y1)*(x2-x1)/(y2-y1));
+   }
+   xs.sort((a,b)=>a-b);
+   for(let i=0;i+1<xs.length;i+=2){
+    const left=Math.max(0,Math.ceil(xs[i]-0.5)),right=Math.min(W-1,Math.floor(xs[i+1]-0.5));
+    for(let xx=left;xx<=right;xx++)set(xx,yy,typeof colorAt==="function"?colorAt(xx+0.5,scan):colorAt);
+   }
+  }
+ };
  const palettes={
  home:[[10,11,9],[17,18,15],[51,52,45],[181,156,106],[230,211,163]],
  auto:[[10,11,9],[18,19,16],[55,54,46],[190,164,112],[239,220,173]],
@@ -45,11 +66,6 @@ function makePng(route="auto"){
  line(108,151,150,151,3,light);line(108,151,108,193,3,light);line(376,151,334,151,3,light);line(376,151,376,193,3,light);
  line(108,459,150,459,3,light);line(108,459,108,417,3,light);line(376,459,334,459,3,light);line(376,459,376,417,3,light);
  for(let i=0;i<5;i++){line(125+i*2,185,375+i*2,185,2,[91+i*9,78+i*8,52+i*5])}
- // stylized K
- line(165,235,165,385,28,white);line(182,305,300,235,28,white);line(182,310,302,385,28,white);
- // magnifier mark
- for(let r=0;r<55;r++){const y=318+r,x=Math.round(300+Math.sqrt(Math.max(0,55*55-(r-27)*(r-27))));set(x,y,light)}
- line(350,380,390,420,18,light);
  const glyphs={
  "A":["01110","10001","10001","11111","10001","10001","10001"],"B":["11110","10001","10001","11110","10001","10001","11110"],
  "C":["01111","10000","10000","10000","10000","10000","01111"],"D":["11110","10001","10001","10001","10001","10001","11110"],
@@ -96,19 +112,24 @@ function makePng(route="auto"){
  text("KINGSHOT AUTO REDEEMER",462,466,2,white);
  // Small status pill reinforces the product purpose without competing with the headline.
  rect(900,76,220,38,edge);rect(903,79,214,32,panel);rect(917,92,8,8,light);text("COMMUNITY TOOL",936,91,2,muted);
- // Clear the emblem area for a crisp, page-specific pictogram.
+ // Reuse the website's current favicon mark on every share card, so previews match the live header.
  rect(104,200,280,220,rgb(12,13,19));
- // Distinct page glyphs inside the brand tile, using the same vector-like line primitives.
- if(route==="info"){line(245,245,245,330,10,light);line(245,287,288,287,8,light);line(245,287,245,265,8,light)}
- else if(route==="developer"){line(190,270,160,305,10,light);line(160,305,190,340,10,light);line(280,270,310,305,10,light);line(310,305,280,340,10,light);line(205,345,265,265,7,light)}
- else if(route==="profile"){rect(218,235,44,36,light);rect(205,275,62,30,light);rect(190,315,92,44,light)}
- else if(route==="support"||route==="message"){rect(178,250,112,68,light);line(205,318,190,340,8,light);line(205,318,228,318,8,light);rect(195,270,12,5,bg);rect(218,270,12,5,bg);rect(241,270,12,5,bg)}
- else if(route==="push"){rect(205,250,76,72,light);rect(220,235,46,12,light);rect(225,330,36,9,light);line(235,220,250,220,6,light)}
- else if(route==="codes"){rect(190,270,100,65,light);line(190,270,240,245,8,light);line(290,270,240,245,8,light);line(240,245,240,335,8,light);line(220,340,260,340,7,light)}
- else if(route==="terms"){rect(195,235,88,112,light);line(215,265,260,265,5,bg);line(215,285,260,285,5,bg);line(215,305,250,305,5,bg)}
- else if(route==="privacy"){line(240,235,290,255,10,light);line(290,255,280,310,10,light);line(280,310,240,345,10,light);line(240,345,200,310,10,light);line(200,310,190,255,10,light);line(190,255,240,235,10,light)}
- else if(route==="redeem"){line(190,290,275,290,12,light);line(250,265,280,290,12,light);line(280,290,250,315,12,light)}
- else {rect(205,265,70,65,light);rect(220,245,40,20,light);line(205,265,240,290,7,bg);line(275,265,240,290,7,bg);line(240,290,240,330,7,bg)}
+ const logoX=148,logoY=214,logoSize=192,logoScale=logoSize/64,logoRadius=34;
+ roundedRect(logoX,logoY,logoSize,logoSize,logoRadius,(x,y)=>{
+  const t=Math.max(0,Math.min(1,((x-logoX)+(y-logoY))/(logoSize*2)));
+  return [Math.round(37+(9-37)*t),Math.round(32+(11-32)*t),Math.round(74+(22-74)*t)];
+ });
+ const logoPoints=[[14,13],[24,13],[24,28],[39,13],[52,13],[34,31],[53,51],[39,51],[24,35],[24,51],[14,51]]
+  .map(([x,y])=>[logoX+x*logoScale,logoY+y*logoScale]);
+ const logoGold=(x,y)=>{
+  const t=Math.max(0,Math.min(1,((x-logoX)+(y-logoY))/(logoSize*2)));
+  return [Math.round(255+(197-255)*t),Math.round(224+(138-224)*t),Math.round(160+(61-160)*t)];
+ };
+ fillPolygon(logoPoints,logoGold);
+ const logoAccent=rgb(246,217,156);
+ line(logoX+43*logoScale,logoY+12*logoScale,logoX+51*logoScale,logoY+12*logoScale,6,logoAccent);
+ line(logoX+51*logoScale,logoY+12*logoScale,logoX+51*logoScale,logoY+20*logoScale,6,logoAccent);
+ line(logoX+51*logoScale,logoY+12*logoScale,logoX+39*logoScale,logoY+24*logoScale,6,logoAccent);
  const raw=Buffer.alloc((W*3+1)*H);for(let y=0;y<H;y++){raw[y*(W*3+1)]=0;Buffer.from(pixels.buffer,pixels.byteOffset+y*W*3,W*3).copy(raw,y*(W*3+1)+1)}
  const header=Buffer.alloc(13);header.writeUInt32BE(W,0);header.writeUInt32BE(H,4);header[8]=8;header[9]=2;header[10]=0;header[11]=0;header[12]=0;
  return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),pngChunk("IHDR",header),pngChunk("IDAT",zlib.deflateSync(raw,{level:9})),pngChunk("IEND",[])]);
