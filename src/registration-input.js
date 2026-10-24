@@ -1,8 +1,20 @@
 export const MAX_REGISTRATION_IDS = 10;
 
+// Normalize clipboard/drag-drop input into the exact character set the form supports.
+// Bad alphanumeric/symbol-containing tokens are dropped whole, so "abc123" cannot
+// silently turn into a different Player ID "123".
+export function sanitizeRegistrationInput(value) {
+  const normalized = String(value ?? "").replace(/[\r\n\t]+/g, " ");
+  return normalized
+    .split(/([, ]+)/)
+    .map(token => /^[, ]+$/.test(token) || /^\d+$/.test(token) ? token : "")
+    .join("")
+    .replace(/ {2,}/g, " ");
+}
+
 export function splitRegistrationIds(value) {
   const input = String(value ?? "").trim();
-  const segments = input ? input.split(/[,\s]+/).filter(Boolean) : [];
+  const segments = input ? input.split(/[, ]+/).filter(Boolean) : [];
   const ids = [...new Set(segments)];
   return {
     ids,
@@ -17,8 +29,8 @@ export function validateRegistrationIds(value) {
   if (!input) {
     return { ids: [], duplicateCount: 0, error: "Enter at least one Kingshot Player ID." };
   }
-  if (!/^[0-9,\s]+$/.test(input)) {
-    return { ids: [], duplicateCount: 0, error: "Player IDs can only contain digits, commas, spaces, or new lines." };
+  if (!/^[0-9, ]+$/.test(input)) {
+    return { ids: [], duplicateCount: 0, error: "Use digits, commas, and spaces only. Letters and symbols are not allowed." };
   }
 
   const parsed = splitRegistrationIds(input);
@@ -51,7 +63,7 @@ export function registrationInputSummary(value) {
   const input = String(value ?? "").trim();
   const parsed = splitRegistrationIds(input);
   if (!input) {
-    return { label: "Up to " + MAX_REGISTRATION_IDS + " IDs", detail: "Commas, spaces, or new lines", overLimit: false };
+    return { label: "Up to " + MAX_REGISTRATION_IDS + " IDs", detail: "Commas or spaces", overLimit: false };
   }
   if (parsed.uniqueCount > MAX_REGISTRATION_IDS) {
     return {
@@ -64,7 +76,7 @@ export function registrationInputSummary(value) {
     label: parsed.uniqueCount + " unique " + (parsed.uniqueCount === 1 ? "ID" : "IDs") + " entered",
     detail: parsed.duplicateCount
       ? parsed.duplicateCount + " duplicate " + (parsed.duplicateCount === 1 ? "ID" : "IDs") + " will be ignored"
-      : "Ready when you are",
+      : "Ready to register",
     overLimit: false
   };
 }
