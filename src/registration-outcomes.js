@@ -1,4 +1,5 @@
 import { allianceDetails, formatPower, playerDisplayName, playerPower } from "../lib/player-display.js";
+import { playerIdFeedback } from "./player-id-feedback.js";
 
 const LABELS = {
   registered: "REGISTERED",
@@ -30,6 +31,7 @@ function outcome(kind, data) {
   const name = text(data.name);
   const reason = text(data.reason) || readReason(data.message);
   let summary = text(data.message);
+  const playerIssue = kind === "failed" ? playerIdFeedback(data.code, data.message) : null;
 
   if (kind === "registered") {
     summary = data.verificationPending
@@ -44,7 +46,7 @@ function outcome(kind, data) {
   } else if (kind === "disabled") {
     summary = "Auto-redemption is disabled. Contact support if you think this is a mistake.";
   } else {
-    summary = summary.replace(/^PLAYER ID BANNED\s*·\s*/i, "").replace(/\s*reason\s*:[\s\S]*/i, "").trim() || "Registration failed. Check the Player ID or contact support.";
+    summary = playerIssue?.message || summary.replace(/^PLAYER ID BANNED\s*·\s*/i, "").replace(/\s*reason\s*:[\s\S]*/i, "").trim() || "Registration failed. Check the Player ID or contact support.";
   }
 
   return {
@@ -57,8 +59,8 @@ function outcome(kind, data) {
     allianceName: text(data.allianceName),
     allianceTag: text(data.allianceTag),
     kind,
-    label: LABELS[kind],
-    headline: HEADLINES[kind],
+    label: playerIssue?.type === "invalid" ? "INVALID ID" : playerIssue?.type === "not_found" ? "NOT FOUND" : LABELS[kind],
+    headline: playerIssue?.title || HEADLINES[kind],
     summary,
     reason: kind === "disabled" ? reason || "Auto-redemption is disabled for this Player ID." : "",
     code: text(data.code),
