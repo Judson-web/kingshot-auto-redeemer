@@ -4,7 +4,7 @@ export const MAX_REGISTRATION_IDS = 10;
 // Bad alphanumeric/symbol-containing tokens are dropped whole, so "abc123" cannot
 // silently turn into a different Player ID "123".
 export function sanitizeRegistrationInput(value) {
-  const normalized = String(value ?? "").replace(/[\r\n\t]+/g, " ");
+  const normalized = String(value ?? "").replace(/\s+/g, " ");
   return normalized
     .split(/([, ]+)/)
     .map(token => /^[, ]+$/.test(token) || /^\d+$/.test(token) ? token : "")
