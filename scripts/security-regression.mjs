@@ -59,6 +59,33 @@ assertCheck("Manual redemption is one compact player card without redundant foot
  !manualUi.includes("Copy reference") && !manualUi.includes("Redeem another code") &&
  resultUiCss.includes(".ks-result-compact"));
 
+const registrationOutcomesUi=read("src/registration-outcomes.js");
+const playerIdFeedback=read("src/player-id-feedback.js");
+const v3PlayerHandler=read("lib/api-v3/player-handler.ts");
+const legacyDeveloperApi=read("lib/developer-api.ts");
+assertCheck("Manual redemption gives actionable Player ID errors instead of a generic redemption failure",
+ manualUi.includes('playerIdFeedback(e?.code,e?.message)') &&
+ manualUi.includes('<b>{errorTitle}</b>') &&
+ manualUi.includes('setErrorTitle("Check Player ID")') &&
+ manualUi.includes('Use the numeric Player ID shown in Kingshot under Profile → Info.'));
+assertCheck("Auto Redeem distinguishes invalid Player ID format from player-not-found responses",
+ registrationOutcomesUi.includes('playerIssue?.type === "invalid" ? "INVALID ID"') &&
+ registrationOutcomesUi.includes('playerIssue?.type === "not_found" ? "NOT FOUND"') &&
+ playerIdFeedback.includes('normalizedCode === "invalid_player_id"') &&
+ playerIdFeedback.includes('normalizedCode === "player_not_found"'));
+assertCheck("Registration rejects malformed IDs instead of silently coercing non-digits",
+ register.includes('String(body.playerId ?? "").trim()') &&
+ !register.includes('String(body.playerId ?? "").replace(/\\D/g, "")') &&
+ registerHandler.includes('code: "invalid_player_id"') &&
+ registerHandler.includes('It must contain 5–20 digits; your kingdom number is different.'));
+assertCheck("Public and Developer API Player ID errors explain how to correct invalid IDs",
+ frameRoute.includes('Player ID must contain 5–20 digits. Copy it from Kingshot under Profile') &&
+ frameRoute.includes('"player_not_found"') &&
+ frameRoute.includes("No player was found for this ID") &&
+ v3PlayerHandler.includes("Copy the ID from Kingshot Profile") &&
+ v3PlayerHandler.includes("No player was found for this ID") &&
+ legacyDeveloperApi.includes("Provide the numeric Player ID from Kingshot Profile"));
+
 const auto=read("api/kingshot-auto.js");
 const worker=read("internal/kingshot/worker.ts");
 const workerCode=auto+"\n"+worker;
