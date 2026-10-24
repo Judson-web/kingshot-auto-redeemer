@@ -139,7 +139,7 @@ function AutoRedeemApp(){
   const start=field.selectionStart??ids.length,end=field.selectionEnd??start;
   const before=ids.slice(0,start),after=ids.slice(end);
   const next=sanitizeRegistrationInput(before+safe+after);
-  pendingCaretRef.current=sanitizeRegistrationInput(before+safe).length;
+  pendingCaretRef.current=next===ids?null:sanitizeRegistrationInput(before+safe).length;
   setIds(next);
   if(error)setError("");
  };
@@ -194,7 +194,7 @@ function AutoRedeemApp(){
  </div>
  <div className="ks-register-field">
   <div className="ks-register-label-row"><label htmlFor="auto-player-ids">Player IDs</label><span>5–20 digits each</span></div>
-  <div className="ks-register-entry"><Gift size={18} aria-hidden="true"/><textarea ref={idInputRef} id="auto-player-ids" rows={1} inputMode="text" enterKeyHint="done" value={ids} onChange={e=>{const value=e.target.value,clean=sanitizeRegistrationInput(value);if(clean!==value)pendingCaretRef.current=sanitizeRegistrationInput(value.slice(0,e.target.selectionStart)).length;setIds(clean);if(error)setError("")}} onBeforeInput={e=>{const event=e.nativeEvent;if(event.inputType==="insertLineBreak"||event.inputType==="insertParagraph"||(event.data&&/[^0-9, ]/.test(event.data)))e.preventDefault()}} onKeyDown={e=>{if(e.key==="Enter")e.preventDefault()}} onPaste={e=>{e.preventDefault();insertCleanText(e.currentTarget,e.clipboardData.getData("text/plain"))}} onDrop={e=>{e.preventDefault();insertCleanText(e.currentTarget,e.dataTransfer.getData("text/plain"))}} placeholder="e.g. 43180889, 51234567" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck="false" maxLength={256} aria-describedby={error?"auto-register-help auto-register-error":"auto-register-help"} aria-invalid={Boolean(error)}/></div>
+  <div className="ks-register-entry"><Gift size={18} aria-hidden="true"/><textarea ref={idInputRef} id="auto-player-ids" rows={1} inputMode="text" enterKeyHint="done" value={ids} onChange={e=>{const value=e.target.value,clean=sanitizeRegistrationInput(value);if(clean!==value)pendingCaretRef.current=sanitizeRegistrationInput(value.slice(0,e.target.selectionStart)).length;else pendingCaretRef.current=null;setIds(clean);if(error)setError("")}} onBeforeInput={e=>{const event=e.nativeEvent;if(event.inputType==="insertLineBreak"||event.inputType==="insertParagraph"||(event.data&&/[^0-9, ]/.test(event.data)))e.preventDefault()}} onKeyDown={e=>{if(e.key==="Enter")e.preventDefault()}} onPaste={e=>{e.preventDefault();insertCleanText(e.currentTarget,e.clipboardData.getData("text/plain"))}} onDrop={e=>{e.preventDefault();insertCleanText(e.currentTarget,e.dataTransfer.getData("text/plain"))}} placeholder="e.g. 43180889, 51234567" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck="false" maxLength={256} aria-describedby={error?"auto-register-help auto-register-error":"auto-register-help"} aria-invalid={Boolean(error)}/></div>
   <small id="auto-register-help">Separate IDs with commas or spaces. Only digits are accepted inside each ID.</small>
   {ids.trim()&&<div className={"ks-register-id-summary"+(inputSummary.overLimit?" is-limit":"")} id="auto-id-summary" role="status" aria-live="polite" aria-atomic="true"><span>{inputSummary.label}</span><small>{inputSummary.detail}</small></div>}
  </div>
