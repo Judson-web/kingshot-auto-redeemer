@@ -3,24 +3,41 @@ import assert from "node:assert/strict";
 import {
   MAX_REGISTRATION_IDS,
   registrationInputSummary,
+  sanitizeRegistrationInput,
   splitRegistrationIds,
   validateRegistrationIds
 } from "../src/registration-input.js";
 
-test("empty auto-registration input asks for at least one Player ID", () => {
+test("empty or separator-only auto-registration input asks for at least one Player ID", () => {
   assert.equal(validateRegistrationIds("").error, "Enter at least one Kingshot Player ID.");
   assert.equal(validateRegistrationIds("  ").ids.length, 0);
   assert.equal(validateRegistrationIds(",,  ,").error, "Enter at least one Kingshot Player ID.");
 });
 
-test("Player IDs can be separated with commas, spaces, or new lines", () => {
-  const result = validateRegistrationIds("43180889, 51234567\n 61234567\t71234567");
-  assert.equal(result.error, "");
-  assert.deepEqual(result.ids, ["43180889", "51234567", "61234567", "71234567"]);
+test("pasted multiline lists normalize to digits, commas, and plain spaces", () => {
+  const clean = sanitizeRegistrationInput("43180889,\n51234567\t 61234567");
+  assert.equal(clean, "43180889, 51234567 61234567");
+  assert.match(clean, /^[0-9, ]+$/);
+  assert.deepEqual(validateRegistrationIds(clean).ids, ["43180889", "51234567", "61234567"]);
+});
+
+test("invalid pasted tokens are dropped whole instead of turning into different IDs", () => {
+  const clean = sanitizeRegistrationInput("Player 43180889, abc123, 51234567!");
+  assert.equal(clean, " 43180889, , ");
+  assert.deepEqual(validateRegistrationIds(clean.trim()).ids, ["43180889"]);
+  assert.equal(sanitizeRegistrationInput("83838n2mk.").trim(), "");
+});
+
+test("direct validation rejects letters, symbols, tabs, and raw new lines", () => {
+  assert.match(validateRegistrationIds("43180889;51234567").error, /digits, commas, and spaces only/i);
+  assert.match(validateRegistrationIds("4318abc89").error, /digits, commas, and spaces only/i);
+  assert.match(validateRegistrationIds("43180889\n51234567").error, /digits, commas, and spaces only/i);
+  assert.match(validateRegistrationIds("1234").error, /5–20 digits/);
+  assert.match(validateRegistrationIds("123456789012345678901").error, /5–20 digits/);
 });
 
 test("duplicate IDs are deduplicated while keeping their original order", () => {
-  const parsed = splitRegistrationIds("43180889,51234567\n43180889 51234567");
+  const parsed = splitRegistrationIds("43180889,51234567 43180889 51234567");
   assert.deepEqual(parsed.ids, ["43180889", "51234567"]);
   assert.equal(parsed.duplicateCount, 2);
   const result = validateRegistrationIds("43180889,51234567,43180889");
@@ -28,15 +45,9 @@ test("duplicate IDs are deduplicated while keeping their original order", () => 
   assert.equal(result.duplicateCount, 1);
 });
 
-test("invalid characters and invalid ID lengths are explained before requests are made", () => {
-  assert.match(validateRegistrationIds("43180889;51234567").error, /digits, commas, spaces, or new lines/i);
-  assert.match(validateRegistrationIds("1234").error, /5–20 digits/);
-  assert.match(validateRegistrationIds("123456789012345678901").error, /5–20 digits/);
-});
-
 test("submission is capped at ten unique IDs", () => {
-  const ten = Array.from({ length: MAX_REGISTRATION_IDS }, (_, i) => String(43180000 + i)).join("\n");
-  const eleven = ten + "\n43180100";
+  const ten = Array.from({ length: MAX_REGISTRATION_IDS }, (_, i) => String(43180000 + i)).join(" ");
+  const eleven = ten + " 43180100";
   assert.equal(validateRegistrationIds(ten).ids.length, MAX_REGISTRATION_IDS);
   assert.match(validateRegistrationIds(eleven).error, /up to 10 unique Player IDs/i);
   assert.match(registrationInputSummary(eleven).detail, /Process 10 at a time/);
