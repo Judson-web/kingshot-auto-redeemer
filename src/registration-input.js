@@ -65,6 +65,9 @@ export function registrationInputSummary(value) {
   if (!input) {
     return { label: "Up to " + MAX_REGISTRATION_IDS + " IDs", detail: "Commas or spaces", overLimit: false };
   }
+  if (!parsed.uniqueCount) {
+    return { label: "No IDs detected", detail: "Enter 5–20 digit Player IDs", overLimit: false };
+  }
   if (parsed.uniqueCount > MAX_REGISTRATION_IDS) {
     return {
       label: parsed.uniqueCount + " unique IDs entered",
