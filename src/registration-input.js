@@ -22,6 +22,9 @@ export function validateRegistrationIds(value) {
   }
 
   const parsed = splitRegistrationIds(input);
+  if (!parsed.uniqueCount) {
+    return { ids: [], duplicateCount: 0, error: "Enter at least one Kingshot Player ID." };
+  }
   const invalid = parsed.ids.find(id => !/^\d{5,20}$/.test(id));
   if (invalid) {
     return {
