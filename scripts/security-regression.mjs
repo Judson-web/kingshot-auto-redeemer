@@ -74,6 +74,8 @@ const legacyPasskeyMigration=read("supabase/migrations/20261017140000_retire_leg
 const supportWidget=read("src/components/SupportWidget.tsx");
 
 const supportWidgetCss=read("src/support-chat-polish.css");
+const navDrawer=read("src/components/MobileNavDrawer.jsx");
+const navDrawerCss=read("src/drawer-redesign.css");
 const developerAuth=read("lib/developer-auth.ts");
 const discordInteractions=read("lib/discord-interactions.js");
 const health=read("lib/health.js");
@@ -326,8 +328,21 @@ assertCheck("Support drawer keeps keyboard focus inside while open",
  supportWidget.includes('event.key!=="Tab"') &&
  supportWidget.includes('panel.querySelectorAll<HTMLElement>') &&
  supportWidget.includes('el.getClientRects().length>0'));
+assertCheck("Profile navigation drawer styles apply outside the main app wrapper",
+ !navDrawerCss.includes(":is(.ks-app,.ks-dev-route)") &&
+ navDrawerCss.includes(".ks-nav-drawer .ks-nav-drawer-support") &&
+ navDrawerCss.includes("max-width: 420px"));
+assertCheck("Public drawer navigation rows retain icon, copy, and arrow columns",
+ navDrawer.includes('className="ks-nav-drawer-icon"') &&
+ navDrawer.includes('className="ks-nav-drawer-copy"') &&
+ navDrawer.includes('className="ks-nav-drawer-arrow"') &&
+ navDrawerCss.includes("grid-template-columns: 40px minmax(0, 1fr) 16px"));
+assertCheck("Profile drawer selection and support use the charcoal-gold brand system",
+ navDrawerCss.includes("#cbb47e") &&
+ navDrawerCss.includes("linear-gradient(120deg, #252216 0%, #191912 100%)") &&
+ navDrawerCss.includes("appearance: none !important"));
 assertCheck("Support drawer restores focus only after intentional close",
- supportWidget.includes('if(restoreFocusRef.current){restoreFocusRef.current=false;window.setTimeout(()=>triggerRef.current?.focus(),0)}'));
+ supportWidget.includes('if(restoreFocusRef.current){restoreFocusRef.current=false;const target=supportReturnFocusRef.current||triggerRef.current;supportReturnFocusRef.current=null;window.setTimeout(()=>{if(target?.isConnected)target.focus()},0)}'));
 assertCheck("Support drawer maps current pages to relevant support topics",
  supportWidget.includes('path==="/developer"') &&
  supportWidget.includes('path==="/profile"') &&
@@ -340,7 +355,7 @@ assertCheck("Support drawer retains page-specific topics and troubleshooting gui
  supportWidget.includes('Never include passwords, tokens, or sign-in codes.') &&
  supportWidget.includes('setPageContext(context)'));
 assertCheck("Support drawer accepts explicit context from page-level open events",
- supportWidget.includes('CustomEvent<{topic?:string;subject?:string;pageTitle?:string}>') &&
+ supportWidget.includes('CustomEvent<{topic?:string;subject?:string;pageTitle?:string;returnFocus?:HTMLElement}>') &&
  supportWidget.includes('window.addEventListener("ks-support-open",openGeneral)'));
 assertCheck("New support threads refresh topic context for the current page",
  supportWidget.includes('function newConversation(){const next=getPageContext()') &&
