@@ -72,6 +72,7 @@ assertCheck("Manual redemption gives actionable Player ID errors instead of a ge
  manualUi.includes('setErrorTitle("Check Player ID")') &&
  manualUi.includes('Use the numeric Player ID shown in Kingshot under Profile → Info.') &&
  manualUi.includes('aria-invalid={Boolean(error&&errorTitle==="Check Player ID")}') &&
+ manualUi.includes('className={error&&errorTitle==="Check Player ID"?"is-invalid":""}') &&
  manualUi.includes('id="manual-error"'));
 assertCheck("Auto Redeem distinguishes invalid Player ID format from player-not-found responses",
  registrationOutcomesUi.includes('playerIssue?.type === "invalid" ? "INVALID ID"') &&
