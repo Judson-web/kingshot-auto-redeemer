@@ -474,3 +474,13 @@
     animation-duration: .01ms !important;
   }
 }
+
+/* Keep the field-level invalid-ID state visible and distinct from a failed redemption. */
+.ks-manual-app .manual-field-card > div:has(input[aria-invalid="true"]) {
+  border-color: #bd7973 !important;
+  box-shadow: 0 0 0 3px rgb(189 121 115 / 12%) !important;
+}
+.ks-manual-app .manual-field-card > div:has(input[aria-invalid="true"]):focus-within {
+  border-color: #d59a91 !important;
+  box-shadow: 0 0 0 3px rgb(189 121 115 / 17%) !important;
+}
