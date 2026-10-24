@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import "./developer-page.css";
 import "./developer-redesign.css";
-import MobileNavDrawer from "./components/MobileNavDrawer.jsx";
+import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
 import DeveloperAccountPanel from "./DeveloperAccountPanel";
-import { Activity, BookOpen, Check, ChevronRight, Code2, Copy, ExternalLink, Gauge, KeyRound, Menu, ShieldCheck, Terminal, X } from "lucide-react";
+import { Activity, BookOpen, Check, ChevronRight, Code2, Copy, ExternalLink, Gauge, KeyRound, ShieldCheck, Terminal } from "lucide-react";
 import { copyToClipboard } from "./utils/clipboard-feedback";
 
 const ORIGIN = "https://kingshot-autoredeemer.vercel.app";
@@ -37,7 +37,6 @@ export default function DeveloperApp() {
   }, []);
   const [tab, setTab] = useState<"curl" | "javascript">("curl");
   const [expanded, setExpanded] = useState("");
-  const [menuOpen, setMenuOpen] = useState(false);
   const code = tab === "curl" ? curlExample : `const response = await fetch("${endpoint}", {
   headers: {
     Authorization: "Bearer YOUR_API_KEY",
@@ -56,15 +55,7 @@ console.log(result.data.playerId, result.data.name);`;
   const codeStyle: React.CSSProperties = { margin: 0, overflowX: "auto", padding: 15, borderRadius: 11, background: "#080a0f", color: "#d5d8ff", fontSize: 12, lineHeight: 1.75, whiteSpace: "pre" };
   const accordion = (id: string, title: string, body: React.ReactNode) => <section className="dev-accordion" style={{ ...card, padding: 0, overflow: "hidden" }}><button className="dev-accordion-trigger" type="button" onClick={() => setExpanded(expanded === id ? "" : id)} aria-expanded={expanded === id} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: 17, textAlign: "left", background: "transparent", color: "#f2f5fb", border: 0, font: "inherit", cursor: "pointer" }}><ChevronRight size={16} style={{ transform: expanded === id ? "rotate(90deg)" : "none", transition: "transform .15s" }}/><b style={{ flex: 1 }}>{title}</b></button>{expanded === id && <div style={{ padding: "0 18px 18px" }}>{body}</div>}</section>;
   return <div className="dev-dashboard ks-dev-route" aria-labelledby="developer-docs-title">
-    <MobileNavDrawer open={menuOpen} onClose={() => setMenuOpen(false)} current="developer" />
-    <div className="dev-topbar"><div className="dev-shell dev-topbar-inner">
-      <div className="dev-brand-mark" aria-hidden="true"><img src="/favicon.svg" alt="" width="100%" height="100%" decoding="async" /></div>
-      <div className="dev-brand-copy" style={{minWidth:0,flex:1}}><div style={{fontSize:13,fontWeight:800,letterSpacing:"-.02em"}}>Kingshot <span style={{color:"#aeb4ff"}}>Developers</span></div><div style={{fontSize:10,color:"#8f9aab",marginTop:2}}>Player lookup · manual redeem · auto enrollment</div></div>
-      <nav className="dev-top-nav" aria-label="Developer navigation" style={{display:"flex",alignItems:"center",gap:5}}>
-        <a className="dev-nav-link" href="#quickstart">Quick start</a><a className="dev-nav-link" href="#api-reference">API reference</a><a className="dev-nav-link" href="/" style={{display:"inline-flex",alignItems:"center",gap:5}}><ExternalLink size={12}/> Home</a>
-      </nav>
-      <button className="dev-global-menu" type="button" onClick={() => setMenuOpen(v => !v)} aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} aria-controls="ks-nav-drawer" aria-haspopup="dialog">{menuOpen ? <X size={18}/> : <Menu size={18}/>}</button>
-    </div></div>
+    <PublicSiteHeader current="developer" />
     <main className="dev-shell dev-page">
       <header className="dev-overview">
         <div><div className="dev-eyebrow">Developer workspace / Overview</div><h1 id="developer-docs-title" className="dev-page-title">Developer API documentation</h1><p className="dev-muted">Manage your API credentials and integrate Kingshot player data into your tools.</p></div>
