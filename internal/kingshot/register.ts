@@ -1,5 +1,7 @@
 import { verifyKingdom, type KingdomVerification } from "./mightpulse.js";
 import { syncRegisteredPlayerProfile } from "./player.js";
+import { normalizeRegistrationInput } from "./registration-input.js";
+export { normalizeRegistrationInput } from "./registration-input.js";
 
 export interface RegisterPlayerInput { playerId?: unknown; kingdomId?: unknown; playerName?: unknown; avatarUrl?: unknown; }
 export interface RegisterPlayerResult { registered: boolean; alreadyRegistered: boolean; registrationStatus: string; kingdomVerified: boolean; verificationPending?: boolean; stale?: boolean; verifiedKingdomId?: string; player?: unknown; }
@@ -13,14 +15,6 @@ async function rpc(name: string, body: Record<string, unknown>): Promise<any> {
  const d = await r.json().catch(() => null);
  if (!r.ok) throw Error(d?.message || "Supabase request failed.");
  return Array.isArray(d) ? d[0] : d;
-}
-
-export function normalizeRegistrationInput(body: RegisterPlayerInput) {
- const playerId = String(body.playerId ?? "").trim();
- const kingdomId = String(body.kingdomId ?? "").trim();
- const playerName = String(body.playerName ?? "").trim().slice(0, 120);
- const avatarUrl = String(body.avatarUrl ?? "").trim().slice(0, 500);
- return { playerId, kingdomId, playerName, avatarUrl };
 }
 
 export async function registerPlayer(input: ReturnType<typeof normalizeRegistrationInput>): Promise<RegisterPlayerResult> {
