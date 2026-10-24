@@ -5,7 +5,6 @@ const BRAND_ICON="/favicon.svg";
 const LAST_UPDATED="October 17, 2026";
 const services={"kingshot-manual":{label:"Manual Redeemer",summary:"Submit a gift code for an individual player."},"kingshot-auto":{label:"Auto Redeem",summary:"Register a player for scheduled gift-code processing."}};
 export default function LegalApp({type}){
- const [menu,setMenu]=useState(false);
  const key=new URLSearchParams(location.search).get("service"),service=services[key]||services["kingshot-manual"],privacy=type==="privacy",serviceKey=key||"kingshot-manual";
  return <div className="app ks-app legal-app">
   <PublicSiteHeader current={privacy?"privacy":"terms"} />
