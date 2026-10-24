@@ -107,12 +107,12 @@ export default async function developerApi(req: RequestLike, res: ResponseLike, 
     try {
       await rpc<unknown>("kingshot_developer_list_keys", { p_admin_token_hash: adminTokenHash });
       const id = new URL(req.url || "/", "https://local.invalid").searchParams.get("id")?.trim() || "";
-      if (!isValidV1PlayerId(id)) { res.status(400).json({ error: "Provide a player ID containing 5–20 digits." }); return; }
+      if (!isValidV1PlayerId(id)) { res.status(400).json({ error: "Provide the numeric Player ID from Kingshot Profile → Info. It must contain 5–20 digits; do not use the kingdom number." }); return; }
       const player = await getPlayer(id);
       res.status(200).json({ player });
     } catch (error) {
       const status = (error as { status?: number } | null)?.status;
-      if (status === 404) { res.status(404).json({ error: "Player not found." }); return; }
+      if (status === 404) { res.status(404).json({ error: "No player was found for this ID. Check it under Kingshot Profile → Info; if the ID is correct, try again shortly.", code: "player_not_found" }); return; }
       respondError(res, error);
     }
     return;
@@ -175,7 +175,7 @@ export default async function developerApi(req: RequestLike, res: ResponseLike, 
       }, meta: { requestId: rid, timestamp: new Date().toISOString(), fetchedAt: new Date().toISOString(), source: "mightpulse", stale: false, remaining: authorization.remaining, dailyRemaining: authorization.daily_remaining } });
     } catch (error) {
       const status = (error as { status?: number } | null)?.status;
-      if (status === 404) { apiError(res, 404, "player_not_found", "Player not found.", rid); return; }
+      if (status === 404) { apiError(res, 404, "player_not_found", "No player was found for this ID. Check it under Kingshot Profile → Info; if the ID is correct, try again shortly.", rid); return; }
       console.error("[developer-api] player lookup failed", error instanceof Error ? error.message : "unknown error");
       apiError(res, 502, "upstream_unavailable", "Player lookup provider is unavailable.", rid);
     }
