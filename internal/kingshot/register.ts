@@ -1,6 +1,5 @@
 import { verifyKingdom, type KingdomVerification } from "./mightpulse.js";
 import { syncRegisteredPlayerProfile } from "./player.js";
-import { normalizeRegistrationInput } from "./registration-input.js";
 export { normalizeRegistrationInput } from "./registration-input.js";
 
 export interface RegisterPlayerInput { playerId?: unknown; kingdomId?: unknown; playerName?: unknown; avatarUrl?: unknown; }
