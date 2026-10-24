@@ -21,6 +21,26 @@ test("pasted multiline lists normalize to digits, commas, and plain spaces", () 
   assert.deepEqual(validateRegistrationIds(clean).ids, ["43180889", "51234567", "61234567"]);
 });
 
+test("non-breaking and repeated Unicode whitespace normalize to a valid separator", () => {
+  const clean = sanitizeRegistrationInput("43180889\u00a051234567\u200361234567");
+  assert.equal(clean, "43180889 51234567 61234567");
+  assert.deepEqual(validateRegistrationIds(clean).ids, ["43180889", "51234567", "61234567"]);
+});
+
+test("pasted symbols cannot turn an invalid token into a different Player ID", () => {
+  assert.equal(sanitizeRegistrationInput("123abc456"), "");
+  assert.equal(sanitizeRegistrationInput("12#345678"), "");
+  assert.equal(sanitizeRegistrationInput("43180889;51234567"), "");
+  assert.deepEqual(validateRegistrationIds(sanitizeRegistrationInput("123abc456, 51234567")).ids, ["51234567"]);
+});
+
+test("10 IDs at the exact length boundaries are accepted; too-short IDs are rejected", () => {
+  assert.equal(validateRegistrationIds("12345").error, "");
+  assert.equal(validateRegistrationIds("12345678901234567890").error, "");
+  assert.match(validateRegistrationIds("1234").error, /5–20 digits/);
+  assert.match(validateRegistrationIds("123456789012345678901").error, /5–20 digits/);
+});
+
 test("invalid pasted tokens are dropped whole instead of turning into different IDs", () => {
   const clean = sanitizeRegistrationInput("Player 43180889, abc123, 51234567!");
   assert.equal(clean, " 43180889, , ");
