@@ -61,6 +61,9 @@ assertCheck("Manual redemption is one compact player card without redundant foot
 
 const registrationOutcomesUi=read("src/registration-outcomes.js");
 const playerIdFeedback=read("src/player-id-feedback.js");
+const registrationInputNormalizer=read("internal/kingshot/registration-input.js");
+const registerServiceForIdChecks=read("internal/kingshot/register.ts");
+const registerApiForIdChecks=read("api/kingshot-register.ts");
 const v3PlayerHandler=read("lib/api-v3/player-handler.ts");
 const legacyDeveloperApi=read("lib/developer-api.ts");
 assertCheck("Manual redemption gives actionable Player ID errors instead of a generic redemption failure",
@@ -74,10 +77,11 @@ assertCheck("Auto Redeem distinguishes invalid Player ID format from player-not-
  playerIdFeedback.includes('normalizedCode === "invalid_player_id"') &&
  playerIdFeedback.includes('normalizedCode === "player_not_found"'));
 assertCheck("Registration rejects malformed IDs instead of silently coercing non-digits",
- register.includes('String(body.playerId ?? "").trim()') &&
- !register.includes('String(body.playerId ?? "").replace(/\\D/g, "")') &&
- registerHandler.includes('code: "invalid_player_id"') &&
- registerHandler.includes('It must contain 5–20 digits; your kingdom number is different.'));
+ registrationInputNormalizer.includes('playerId: String(input.playerId ?? "").trim()') &&
+ !registrationInputNormalizer.includes('playerId: String(input.playerId ?? "").replace(/\\D/g, "")') &&
+ registerServiceForIdChecks.includes('import { normalizeRegistrationInput } from "./registration-input.js"') &&
+ registerApiForIdChecks.includes('code: "invalid_player_id"') &&
+ registerApiForIdChecks.includes('It must contain 5–20 digits; your kingdom number is different.'));
 assertCheck("Public and Developer API Player ID errors explain how to correct invalid IDs",
  frameRoute.includes('Player ID must contain 5–20 digits. Copy it from Kingshot under Profile') &&
  frameRoute.includes('"player_not_found"') &&
