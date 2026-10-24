@@ -672,3 +672,71 @@
     transition: none !important;
   }
 }
+
+/* Fix: the live ID counter is informational text, not a second input. Reset the global
+   .ks-register-field > div styling that would otherwise add an input border to it. */
+.ks-auto-app .ks-register-field > .ks-register-id-summary {
+  display: flex !important;
+  flex: 0 0 auto !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 4px 12px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  margin: 9px 0 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  text-align: left !important;
+}
+.ks-auto-app .ks-register-field > .ks-register-id-summary > span {
+  display: block !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #d0cfc6 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  line-height: 1.45 !important;
+}
+.ks-auto-app .ks-register-field > .ks-register-id-summary > small {
+  display: block !important;
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #999a94 !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  line-height: 1.45 !important;
+  text-align: right !important;
+}
+.ks-auto-app .ks-register-field > .ks-register-id-summary.is-limit > span,
+.ks-auto-app .ks-register-field > .ks-register-id-summary.is-limit > small {
+  color: #e0bc83 !important;
+}
+/* A fixed, labelled multiline field is easier to tap and avoids the stray resize handle
+   rendered over the lower-right corner by some Android browsers. */
+.ks-auto-app .ks-register-entry textarea {
+  resize: none !important;
+  overflow-y: auto !important;
+}
+@media (max-width: 640px) {
+  .ks-auto-app .ks-register-field > .ks-register-id-summary {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+  }
+  .ks-auto-app .ks-register-field > .ks-register-id-summary > small {
+    text-align: left !important;
+  }
+}
