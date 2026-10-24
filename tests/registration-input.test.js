@@ -10,6 +10,7 @@ import {
 test("empty auto-registration input asks for at least one Player ID", () => {
   assert.equal(validateRegistrationIds("").error, "Enter at least one Kingshot Player ID.");
   assert.equal(validateRegistrationIds("  ").ids.length, 0);
+  assert.equal(validateRegistrationIds(",,  ,").error, "Enter at least one Kingshot Player ID.");
 });
 
 test("Player IDs can be separated with commas, spaces, or new lines", () => {
