@@ -79,7 +79,7 @@ assertCheck("Auto Redeem distinguishes invalid Player ID format from player-not-
 assertCheck("Registration rejects malformed IDs instead of silently coercing non-digits",
  registrationInputNormalizer.includes('playerId: String(input.playerId ?? "").trim()') &&
  !registrationInputNormalizer.includes('playerId: String(input.playerId ?? "").replace(/\\D/g, "")') &&
- registerServiceForIdChecks.includes('import { normalizeRegistrationInput } from "./registration-input.js"') &&
+ registerServiceForIdChecks.includes('export { normalizeRegistrationInput } from "./registration-input.js";') &&
  registerApiForIdChecks.includes('code: "invalid_player_id"') &&
  registerApiForIdChecks.includes('It must contain 5–20 digits; your kingdom number is different.'));
 assertCheck("Public and Developer API Player ID errors explain how to correct invalid IDs",
