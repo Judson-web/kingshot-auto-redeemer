@@ -16,8 +16,8 @@ async function rpc(name: string, body: Record<string, unknown>): Promise<any> {
 }
 
 export function normalizeRegistrationInput(body: RegisterPlayerInput) {
- const playerId = String(body.playerId ?? "").replace(/\D/g, "");
- const kingdomId = String(body.kingdomId ?? "").replace(/\D/g, "");
+ const playerId = String(body.playerId ?? "").trim();
+ const kingdomId = String(body.kingdomId ?? "").trim();
  const playerName = String(body.playerName ?? "").trim().slice(0, 120);
  const avatarUrl = String(body.avatarUrl ?? "").trim().slice(0, 500);
  return { playerId, kingdomId, playerName, avatarUrl };
