@@ -70,10 +70,13 @@ assertCheck("Manual redemption gives actionable Player ID errors instead of a ge
  manualUi.includes('playerIdFeedback(e?.code,e?.message)') &&
  manualUi.includes('<b>{errorTitle}</b>') &&
  manualUi.includes('setErrorTitle("Check Player ID")') &&
- manualUi.includes('Use the numeric Player ID shown in Kingshot under Profile → Info.'));
+ manualUi.includes('Use the numeric Player ID shown in Kingshot under Profile → Info.') &&
+ manualUi.includes('aria-invalid={Boolean(error&&errorTitle==="Check Player ID")}') &&
+ manualUi.includes('id="manual-error"'));
 assertCheck("Auto Redeem distinguishes invalid Player ID format from player-not-found responses",
  registrationOutcomesUi.includes('playerIssue?.type === "invalid" ? "INVALID ID"') &&
  registrationOutcomesUi.includes('playerIssue?.type === "not_found" ? "NOT FOUND"') &&
+ manualUi.includes('item.code==="invalid_player_id"||item.code==="player_not_found"') &&
  playerIdFeedback.includes('normalizedCode === "invalid_player_id"') &&
  playerIdFeedback.includes('normalizedCode === "player_not_found"'));
 assertCheck("Registration rejects malformed IDs instead of silently coercing non-digits",
