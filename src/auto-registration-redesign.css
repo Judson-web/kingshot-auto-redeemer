@@ -1037,3 +1037,26 @@
     min-height: 50px !important;
   }
 }
+
+.ks-auto-app .ks-register-card .ks-register-input-notice {
+  display: block !important;
+  margin: 8px 0 0 !important;
+  padding: 0 !important;
+  color: #ddbe82 !important;
+  font-size: 11px !important;
+  line-height: 1.5 !important;
+}
+.ks-auto-app .ks-register-card .ks-register-input-notice::before {
+  content: "!";
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  border: 1px solid #66543a;
+  border-radius: 50%;
+  color: #ddbe82;
+  font-size: 9px;
+  font-weight: 800;
+  vertical-align: -1px;
+}
