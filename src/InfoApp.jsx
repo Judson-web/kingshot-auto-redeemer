@@ -2,6 +2,7 @@ import React,{useEffect,useState} from "react";
 import {ArrowLeft,ArrowRight,Clock3,Database,History,LockKeyhole,RefreshCw,Zap,Menu,X,ShieldCheck} from "lucide-react";
 import "./how-it-works-redesign.css";
 import MobileNavDrawer from "./components/MobileNavDrawer.jsx";
+import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
 const BRAND_ICON="/favicon.svg";
 function KsLogo(){return <a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={BRAND_ICON} alt="Kingshot Redeemer"/></span><span>Kingshot Redeemer</span></a>}
 const PROFILE_CHIP_CACHE="ks-profile-chip-v1";
@@ -25,11 +26,9 @@ const sections=[
 ];
 
 function InfoApp(){
- const [menu,setMenu]=useState(false);
  return <div className="app ks-app info-app">
   <a className="skip-link" href="#main-content">Skip to main content</a>
-  <header><KsLogo/><nav><a href="/auto">Auto Redeem</a><a href="/manual">Manual Redeem</a><a className="active" href="/info">How it works</a><a href="/developer">Developer API</a><a href="/profile">Your profile</a></nav><div className="header-right"><DiscordChip/><button className="menu-btn" type="button" onClick={()=>setMenu(v=>!v)} aria-label={menu?"Close navigation":"Open navigation"} aria-expanded={menu} aria-controls="ks-nav-drawer" aria-haspopup="dialog">{menu?<X size={18}/>:<Menu size={18}/>}</button></div></header>
-  <MobileNavDrawer open={menu} onClose={()=>setMenu(false)} current="info" />
+  <PublicSiteHeader current="info" />
   <main id="main-content">
    <section className="info-hero"><a className="info-back" href="/auto"><ArrowLeft size={14}/> Back to Auto Redeem</a><div className="eyebrow"><span/>ABOUT THE SERVICE</div><h1>How it works</h1><p className="hero-copy">A guide to registration, automatic code checks, redemption history, and how your account details stay protected.</p></section>
    <section className="info-flow"><div className="section-title"><span>01</span><h2>The basic flow.</h2></div><div className="info-steps"><article><b>01</b><div><strong>Register your player</strong><p>Your Player ID is checked and linked to its current kingdom.</p></div></article><article><b>02</b><div><strong>Codes enter the active pool</strong><p>Public sources are checked for active gift codes. Codes known to be expired are excluded.</p></div></article><article><b>03</b><div><strong>Workers process eligible players</strong><p>The service checks registered players and processes eligible codes automatically.</p></div></article><article><b>04</b><div><strong>Results are remembered</strong><p>Each result is saved to prevent duplicate attempts and keep a redemption history.</p></div></article></div></section>
