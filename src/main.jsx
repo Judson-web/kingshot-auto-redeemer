@@ -138,7 +138,7 @@ function AutoRedeemApp(){
   try{
    for(const id of raw){
     setProgress({done:collected.length,total:raw.length,currentId:id});
-    let result; let player=null;
+    let result; let player=null; let phase="player lookup";
     try{
      const lookupSignal=typeof AbortSignal!=="undefined"&&typeof AbortSignal.timeout==="function"?AbortSignal.timeout(15000):undefined;
      const profileUrl="/api/kingshot-player?id="+encodeURIComponent(id);
@@ -147,13 +147,16 @@ function AutoRedeemApp(){
      const profileData=await profileResponse.json().catch(()=>({}));
      if(!profileResponse.ok)throw Object.assign(new Error(profileData.error||"Could not find this player in the game profile service."),{code:profileData.code,banned:profileData.banned,disabled:profileData.disabled,alreadyRegistered:profileData.alreadyRegistered,ban:profileData.ban});
      player=profileData.player||profileData;
+     phase="registration";
      const registrationResponse=await fetch("/api/kingshot-register",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({playerId:id,kingdomId:String(player.kid??""),playerName:player.nick_name||player.name||player.nickname||"Kingshot Player",avatarUrl:player.avatar_url||player.avatar||player.avatarUrl||""})});
      const registrationData=await registrationResponse.json().catch(()=>({}));
      if(!registrationResponse.ok)throw Object.assign(new Error(registrationData.error||"Could not register this player."),{code:registrationData.code,banned:registrationData.banned,disabled:registrationData.disabled,alreadyRegistered:registrationData.alreadyRegistered,ban:registrationData.ban,reason:registrationData.reason});
      result=makeSuccessOutcome(id,player,registrationData);
     }catch(failure){
      const timedOut=failure?.name==="TimeoutError"||failure?.name==="AbortError";
-     result=makeFailureOutcome({id,player,message:timedOut?"Player lookup timed out. Please retry this ID.":failure?.message,code:failure?.code,banned:failure?.banned,disabled:failure?.disabled,alreadyRegistered:failure?.alreadyRegistered,ban:failure?.ban,reason:failure?.reason});
+     const transportFailure=failure?.name==="TypeError";
+     const failureMessage=timedOut?"Player lookup timed out. Please retry this ID.":transportFailure?phase==="registration"?"Connection interrupted during registration. Check this Player ID's status before retrying.":"Could not reach player lookup. Check your connection and retry this ID.":failure?.message;
+     result=makeFailureOutcome({id,player,message:failureMessage,code:failure?.code,banned:failure?.banned,disabled:failure?.disabled,alreadyRegistered:failure?.alreadyRegistered,ban:failure?.ban,reason:failure?.reason});
     }
     collected.push(result);
     setOutcomes([...collected]);
