@@ -5,7 +5,7 @@ import{makeSuccessOutcome,makeFailureOutcome,summarizeRegistrationOutcomes,regis
 import{formatPower,playerDisplayName}from"../lib/player-display.js";
 import"./styles.css";import"./registration-outcomes.css";import"./ux-feedback.css";
 import"./admin-players.css";
-import"./support-chat-polish.css";import"./manual-redesign.css";import"./profile-redesign.css";import"./auto-registration-redesign.css";import"./drawer-redesign.css";import"./maintenance-redesign.css";import"./support-centre-redesign.css";import"./icon-palette.css";
+import"./support-chat-polish.css";import"./manual-redesign.css";import"./profile-redesign.css";import"./auto-registration-redesign.css";import"./drawer-redesign.css";import"./maintenance-redesign.css";import"./support-centre-redesign.css";import"./icon-palette.css";import"./public-site-header.css";
 import LegalApp from"./LegalApp.jsx";
 import InfoApp from"./InfoApp.jsx";
 import CustomMessageApp from"./CustomMessageApp.jsx";
@@ -17,6 +17,7 @@ import PrivateDevApp from"./PrivateDevApp.tsx";
 import ProfileApp from"./ProfileApp.tsx";
 import SupportWidget from"./components/SupportWidget.tsx";
 import MobileNavDrawer from"./components/MobileNavDrawer.jsx";
+import PublicSiteHeader from"./components/PublicSiteHeader.jsx";
 import DevSupportApp from"./DevSupportApp.tsx";
 import AdminPlayersApp from"./AdminPlayersApp.tsx";
 import MaintenanceAdminApp from"./MaintenanceAdminApp.tsx";
@@ -70,7 +71,7 @@ function PlayerMetaLine({player,kingdom}) {
  return <span className="ks-player-meta-line"><span>Power {power}</span><span className="ks-player-meta-separator" aria-hidden="true">·</span><span>Kingdom {kingdom ?? player?.kid ?? player?.kingdom_id ?? "—"}</span><span className="ks-player-meta-separator" aria-hidden="true">·</span><span className="ks-player-meta-tc">TC <TownCenterLevel value={townCenter}/></span></span>;
 }
 function KingshotApp(){
- const [playerId,setPlayerId]=useState(""),[code,setCode]=useState(""),[player,setPlayer]=useState(null),[busy,setBusy]=useState(false),[result,setResult]=useState(null),[error,setError]=useState(""),[menu,setMenu]=useState(false);
+ const [playerId,setPlayerId]=useState(""),[code,setCode]=useState(""),[player,setPlayer]=useState(null),[busy,setBusy]=useState(false),[result,setResult]=useState(null),[error,setError]=useState("");
  const manualSubmissionRef=useRef(false);
  useEffect(()=>{const params=new URLSearchParams(window.location.search);const requestedCode=params.get("code");if(requestedCode&&/^[A-Za-z0-9_-]{6,32}$/.test(requestedCode))setCode(requestedCode)},[]);
  const redeem=async e=>{
@@ -101,8 +102,7 @@ function KingshotApp(){
   }finally{manualSubmissionRef.current=false;setBusy(false)}
  };
 
- return <div className="app ks-app ks-manual-app"><a className="skip-link" href="#main-content">Skip to main content</a><header><KsLogo/><nav className="primary-nav"><a href="/auto">Auto Redeem</a><a href="/info">How it works</a><a href="/developer">Developer API</a></nav><div className="header-right"><DiscordChip/><button className="menu-btn" type="button" onClick={()=>setMenu(v=>!v)} aria-label={menu?"Close navigation":"Open navigation"} aria-expanded={menu} aria-haspopup="dialog">{menu?<X size={18}/>:<Menu size={18}/>}</button></div></header>
- <MobileNavDrawer open={menu} onClose={()=>setMenu(false)} current="manual" /><main id="main-content"><section className="ks-hero manual-page-hero" id="redeem">
+ return <div className="app ks-app ks-manual-app"><a className="skip-link" href="#main-content">Skip to main content</a><PublicSiteHeader current="manual" /><main id="main-content"><section className="ks-hero manual-page-hero" id="redeem">
  <div className="manual-hero-copy">
   <div className="eyebrow"><span/>KINGSHOT GIFT CODE REDEEMER</div>
   <h1>Redeem a gift code</h1>
@@ -124,7 +124,7 @@ function KingshotApp(){
 }
 
 function AutoRedeemApp(){
- const [ids,setIds]=useState(""),[busy,setBusy]=useState(false),[outcomes,setOutcomes]=useState([]),[error,setError]=useState(""),[inputNotice,setInputNotice]=useState(""),[menu,setMenu]=useState(false),[progress,setProgress]=useState({done:0,total:0,currentId:""});
+ const [ids,setIds]=useState(""),[busy,setBusy]=useState(false),[outcomes,setOutcomes]=useState([]),[error,setError]=useState(""),[inputNotice,setInputNotice]=useState(""),[progress,setProgress]=useState({done:0,total:0,currentId:""});
  const inputSummary=registrationInputSummary(ids);
  const idInputRef=useRef(null),pendingCaretRef=useRef(null),discardTokenRef=useRef(false);
  useEffect(()=>{
@@ -186,25 +186,24 @@ function AutoRedeemApp(){
   }catch(failure){setError(failure instanceof Error?failure.message:"Registration could not be completed. Please try again.")}
   finally{setBusy(false);setProgress(current=>({...current,currentId:""}))}
  };
- return <div className="app ks-app ks-auto-app"><a className="skip-link" href="#auto-main-content">Skip to main content</a><header><KsLogo/><nav><a href="/manual">Manual Redeem</a><a href="/info">How it works</a><a href="/developer">API Docs</a></nav><div className="header-right"><DiscordChip/><button className="menu-btn" type="button" onClick={()=>setMenu(v=>!v)} aria-label={menu?"Close navigation":"Open navigation"} aria-expanded={menu} aria-haspopup="dialog">{menu?<X size={18}/>:<Menu size={18}/>}</button></div></header><MobileNavDrawer open={menu} onClose={()=>setMenu(false)} current="auto" /><main id="auto-main-content"><section className="ks-auto-hero"><div className="eyebrow"><span/>KINGSHOT AUTO REDEEM</div><h1>Automatic redemption</h1><p className="hero-copy">Register each Kingshot Player ID once. Active, eligible gift codes are checked automatically. You’ll get a separate result for every ID you submit.</p><form className="ks-register-box ks-register-card" onSubmit={register} aria-describedby={error?"auto-register-help auto-register-error":"auto-register-help"} aria-busy={busy}>
+ return <div className="app ks-app ks-auto-app"><a className="skip-link" href="#auto-main-content">Skip to main content</a><PublicSiteHeader current="auto" /><main id="auto-main-content"><section className="ks-auto-hero"><div className="eyebrow"><span/>KINGSHOT AUTO REDEEM</div><h1>Automatic redemption</h1><p className="hero-copy">Eligible gift codes are checked automatically for registered players.</p><form className="ks-register-box ks-register-card" onSubmit={register} aria-describedby={error?"auto-register-help auto-register-error":"auto-register-help"} aria-busy={busy}>
  <div className="ks-register-card-intro">
   <div className="ks-register-card-intro-icon"><Gift size={20} aria-hidden="true"/></div>
   <div className="ks-register-card-intro-copy">
-   <span className="ks-register-card-eyebrow">PLAYER REGISTRATION</span>
+   <span className="ks-register-card-eyebrow">ONE-TIME SETUP</span>
    <h2>Register your players</h2>
-   <p>One step to automatic gift-code checks.</p>
   </div>
   <span className="ks-register-card-limit">UP TO 10</span>
  </div>
  <div className="ks-register-field">
   <div className="ks-register-label-row"><label htmlFor="auto-player-ids">Player IDs</label><span>5–20 digits each</span></div>
-  <div className="ks-register-entry"><Gift size={18} aria-hidden="true"/><textarea ref={idInputRef} id="auto-player-ids" rows={1} inputMode="text" enterKeyHint="done" value={ids} onChange={e=>{const value=e.target.value,clean=sanitizeRegistrationInput(value),containsUnsupported=/[^0-9,\s]/.test(value);if(clean!==value)pendingCaretRef.current=sanitizeRegistrationInput(value.slice(0,e.target.selectionStart)).length;else pendingCaretRef.current=null;setIds(clean);setInputNotice(containsUnsupported?"Letters and symbols were ignored. Only digits, commas, and spaces are allowed.":"");if(error)setError("")}} onBeforeInput={e=>{const event=e.nativeEvent,field=e.currentTarget;if(event.inputType==="insertLineBreak"||event.inputType==="insertParagraph"){e.preventDefault();insertCleanText(field," ");return}if(!event.data)return;if(/[^0-9, ]/.test(event.data)){e.preventDefault();const value=field.value,start=field.selectionStart??0,end=field.selectionEnd??start,left=Math.max(value.lastIndexOf(",",start-1),value.lastIndexOf(" ",start-1))+1,tail=value.slice(end),nextSeparator=tail.search(/[, ]/),right=nextSeparator<0?value.length:end+nextSeparator,next=value.slice(0,left)+value.slice(right);discardTokenRef.current=true;pendingCaretRef.current=next===value?null:left;setIds(next);setInputNotice("Letters and symbols are not accepted. Use digits, commas, or spaces.");return}if(discardTokenRef.current){if(event.data===","||event.data===" ")discardTokenRef.current=false;else{e.preventDefault();return}}}} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();insertCleanText(e.currentTarget," ")}}} onPaste={e=>{e.preventDefault();insertCleanText(e.currentTarget,e.clipboardData.getData("text/plain"))}} onDrop={e=>{e.preventDefault();insertCleanText(e.currentTarget,e.dataTransfer.getData("text/plain"))}} placeholder="e.g. 43180889, 51234567" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck="false" maxLength={256} aria-describedby={error?"auto-register-help auto-register-error":"auto-register-help"} aria-invalid={Boolean(error)}/></div>
-  <small id="auto-register-help">Separate IDs with commas or spaces. Only digits are accepted inside each ID.</small>
+  <div className="ks-register-entry"><Gift size={18} aria-hidden="true"/><textarea ref={idInputRef} id="auto-player-ids" rows={1} inputMode="numeric" enterKeyHint="done" value={ids} onChange={e=>{const value=e.target.value,clean=sanitizeRegistrationInput(value),containsUnsupported=/[^0-9,\s]/.test(value);if(clean!==value)pendingCaretRef.current=sanitizeRegistrationInput(value.slice(0,e.target.selectionStart)).length;else pendingCaretRef.current=null;setIds(clean);setInputNotice(containsUnsupported?"Letters and symbols were ignored. Only digits, commas, and spaces are allowed.":"");if(error)setError("")}} onBeforeInput={e=>{const event=e.nativeEvent,field=e.currentTarget;if(event.inputType==="insertLineBreak"||event.inputType==="insertParagraph"){e.preventDefault();insertCleanText(field," ");return}if(!event.data)return;if(/[^0-9, ]/.test(event.data)){e.preventDefault();const value=field.value,start=field.selectionStart??0,end=field.selectionEnd??start,left=Math.max(value.lastIndexOf(",",start-1),value.lastIndexOf(" ",start-1))+1,tail=value.slice(end),nextSeparator=tail.search(/[, ]/),right=nextSeparator<0?value.length:end+nextSeparator,next=value.slice(0,left)+value.slice(right);discardTokenRef.current=true;pendingCaretRef.current=next===value?null:left;setIds(next);setInputNotice("Letters and symbols are not accepted. Use digits, commas, or spaces.");return}if(discardTokenRef.current){if(event.data===","||event.data===" ")discardTokenRef.current=false;else{e.preventDefault();return}}}} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();insertCleanText(e.currentTarget," ")}}} onPaste={e=>{e.preventDefault();insertCleanText(e.currentTarget,e.clipboardData.getData("text/plain"))}} onDrop={e=>{e.preventDefault();insertCleanText(e.currentTarget,e.dataTransfer.getData("text/plain"))}} placeholder="e.g. 43180889, 51234567" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck="false" maxLength={256} aria-describedby={error?"auto-register-help auto-register-error":"auto-register-help"} aria-invalid={Boolean(error)}/></div>
+  <small id="auto-register-help">Use Enter between IDs, or paste a comma/space-separated list.</small>
   {inputNotice&&<small className="ks-register-input-notice" role="status" aria-live="polite">{inputNotice}</small>}
   {ids.trim()&&<div className={"ks-register-id-summary"+(inputSummary.overLimit?" is-limit":"")} id="auto-id-summary" role="status" aria-live="polite" aria-atomic="true"><span>{inputSummary.label}</span><small>{inputSummary.detail}</small></div>}
  </div>
  <button className={"ks-submit ks-register-submit"+(busy?" register-loading":"")} disabled={busy}>{busy?<><span className="manual-spinner" aria-hidden="true"><span></span><LoaderCircle size={15}/></span><span className="manual-submit-label"><strong>Registering players</strong><small>Processing each ID in order…</small></span></> : <>Register players <ArrowRight size={17} aria-hidden="true"/></>}</button>
- <div className="ks-register-card-footer"><ShieldCheck size={15} aria-hidden="true"/><span>Your game password is never requested.</span><span className="ks-register-card-footer-separator" aria-hidden="true">·</span><span>Up to 10 unique IDs</span></div>
+ <div className="ks-register-card-footer"><ShieldCheck size={15} aria-hidden="true"/><span>Your game password is never requested.</span></div>
 </form>
 {busy&&<div className="ks-register-progress" role="status" aria-live="polite" aria-atomic="true"><div className="ks-register-progress-top"><b>Registering players</b><span>{progress.done} of {progress.total} complete</span></div><progress max={progress.total||1} value={progress.done} aria-label="Player registration progress"/><small>{progress.currentId?"Checking Player ID "+progress.currentId+"…":"Preparing the next result…"}</small><p>Results appear as each ID finishes. Each registration is handled separately.</p></div>}
 {error&&<div className="ks-error" role="alert" aria-live="assertive" id="auto-register-error"><b>Registration needs attention.</b><span>{error}</span></div>}
