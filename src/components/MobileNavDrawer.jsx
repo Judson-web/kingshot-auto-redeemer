@@ -48,15 +48,15 @@ export default function MobileNavDrawer({open,onClose,current}) {
   <button className="ks-nav-scrim" type="button" aria-label="Close navigation" onClick={close}/>
   <aside ref={drawerRef} id="ks-nav-drawer" className="ks-nav-drawer" role="dialog" aria-modal="true" aria-labelledby="ks-nav-title">
    <div className="ks-nav-drawer-head">
-    <div><span className="ks-nav-drawer-kicker">NAVIGATION</span><h2 id="ks-nav-title">Explore</h2></div>
+    <div><span className="ks-nav-drawer-kicker">{current==="profile"?"ACCOUNT & NAVIGATION":"NAVIGATION"}</span><h2 id="ks-nav-title">{current==="profile"?"Your profile":"Explore"}</h2></div>
     <button ref={closeButtonRef} type="button" onClick={close} aria-label="Close navigation menu"><X size={21}/></button>
    </div>
    <nav aria-label="Site sections">
-    {links.slice(0,3).map(item=><a key={item.id} className={"ks-nav-drawer-link"+(item.id===current?" is-current":"")} href={item.href} aria-current={item.id===current?"page":undefined}><b>{item.label}</b><span>{item.description}</span></a>)}
-    <button className="ks-nav-drawer-support" type="button" onClick={()=>{restoreFocusRef.current=null;close();window.dispatchEvent(new CustomEvent("ks-support-open",{detail:{topic:"Other",subject:current==="info"?"How it works question":current==="terms"||current==="privacy"?"Legal page question":"Support request",pageTitle:document.title}}))}}>
-     <LifeBuoy size={28} aria-hidden="true"/><span className="ks-nav-drawer-support-copy"><b>Support</b><small>Get help or continue a private ticket</small></span><ArrowRight size={16} aria-hidden="true"/>
+    {links.slice(0,3).map(item=><a key={item.id} className={"ks-nav-drawer-link"+(item.id===current?" is-current":"")} href={item.href} aria-current={item.id===current?"page":undefined}><span className="ks-nav-drawer-icon"><item.Icon size={18} aria-hidden="true"/></span><span className="ks-nav-drawer-copy"><b>{item.label}</b><small>{item.description}</small></span><ArrowRight className="ks-nav-drawer-arrow" size={16} aria-hidden="true"/></a>)}
+    <button className="ks-nav-drawer-support" type="button" onClick={()=>{restoreFocusRef.current=null;close();window.dispatchEvent(new CustomEvent("ks-support-open",{detail:{topic:"Other",subject:current==="info"?"How it works question":current==="terms"||current==="privacy"?"Legal page question":current==="profile"?"Profile & sign-in question":"Support request",pageTitle:document.title}}))}}>
+     <span className="ks-nav-drawer-support-icon"><LifeBuoy size={19} aria-hidden="true"/></span><span className="ks-nav-drawer-support-copy"><b>Support</b><small>Get help or continue a private ticket</small></span><ArrowRight className="ks-nav-drawer-arrow" size={16} aria-hidden="true"/>
     </button>
-    {links.slice(3).map(item=><a key={item.id} className={"ks-nav-drawer-link"+(item.id===current?" is-current":"")} href={item.href} aria-current={item.id===current?"page":undefined}><b>{item.label}</b><span>{item.description}</span></a>)}
+    {links.slice(3).map(item=><a key={item.id} className={"ks-nav-drawer-link"+(item.id===current?" is-current":"")} href={item.href} aria-current={item.id===current?"page":undefined}><span className="ks-nav-drawer-icon"><item.Icon size={18} aria-hidden="true"/></span><span className="ks-nav-drawer-copy"><b>{item.label}</b><small>{item.description}</small></span><ArrowRight className="ks-nav-drawer-arrow" size={16} aria-hidden="true"/></a>)}
    </nav>
    <div className="ks-nav-drawer-footer"><ShieldCheck size={14}/><span>Your game password is never requested.</span></div>
   </aside>
