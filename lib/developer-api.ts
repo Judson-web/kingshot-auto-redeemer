@@ -160,7 +160,7 @@ export default async function developerApi(req: RequestLike, res: ResponseLike, 
       }
       const url = new URL(req.url || "/", "https://local.invalid");
       const id = url.searchParams.get("id")?.trim() || "";
-      if (!/^\d{5,20}$/.test(id)) { apiError(res, 400, "invalid_player_id", "Provide a player ID containing 5–20 digits.", rid); return; }
+      if (!/^\d{5,20}$/.test(id)) { apiError(res, 400, "invalid_player_id", "Provide the numeric Player ID from Kingshot Profile → Info. It must contain 5–20 digits; do not use the kingdom number.", rid); return; }
       const player = await getPlayer(id);
       const alliance = allianceDetails(player);
       res.status(200).json({ data: {
