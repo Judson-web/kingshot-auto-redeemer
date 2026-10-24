@@ -740,3 +740,301 @@
     text-align: left !important;
   }
 }
+
+/* Registration card: a deliberate, compact surface rather than a default-looking form. */
+.ks-auto-app .ks-register-card {
+  gap: 18px !important;
+  padding: 21px !important;
+  border-color: #353631 !important;
+  border-radius: 17px !important;
+  background: linear-gradient(155deg, #151613 0%, #111210 72%) !important;
+  box-shadow: 0 18px 44px rgb(0 0 0 / 18%), inset 0 1px 0 rgb(255 255 255 / 2%) !important;
+}
+.ks-auto-app .ks-register-card-intro {
+  display: grid;
+  grid-template-columns: 43px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.ks-auto-app .ks-register-card-intro-icon {
+  display: grid;
+  place-items: center;
+  width: 43px;
+  height: 43px;
+  border: 1px solid #4a422e;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #272419, #1b1a15);
+  color: #d4bd88;
+}
+.ks-auto-app .ks-register-card-intro-copy {
+  min-width: 0;
+}
+.ks-auto-app .ks-register-card-eyebrow {
+  display: block;
+  margin: 0 0 5px;
+  color: #b9a678;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .13em;
+  line-height: 1.35;
+}
+.ks-auto-app .ks-register-card-intro-copy h2 {
+  margin: 0;
+  color: #f0efe9;
+  font-size: clamp(17px, 2.6vw, 20px);
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -.035em;
+}
+.ks-auto-app .ks-register-card-intro-copy p {
+  margin: 5px 0 0;
+  color: #999a94;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.ks-auto-app .ks-register-card-limit {
+  align-self: start;
+  padding: 6px 8px;
+  border: 1px solid #423c2d;
+  border-radius: 7px;
+  background: #1b1a15;
+  color: #c8b481;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  white-space: nowrap;
+}
+.ks-auto-app .ks-register-card .ks-register-field {
+  min-width: 0;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+.ks-auto-app .ks-register-field > .ks-register-label-row {
+  display: flex !important;
+  align-items: baseline !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 0 9px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.ks-auto-app .ks-register-field > .ks-register-label-row label {
+  margin: 0 !important;
+  color: #e6e4dc !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.4 !important;
+}
+.ks-auto-app .ks-register-field > .ks-register-label-row > span {
+  color: #8f9088;
+  font-size: 10px;
+  line-height: 1.4;
+  text-align: right;
+  white-space: nowrap;
+}
+.ks-auto-app .ks-register-card .ks-register-entry {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 11px !important;
+  width: 100% !important;
+  min-height: 66px !important;
+  margin: 0 !important;
+  padding: 12px 14px !important;
+  border: 1px solid #3b3c38 !important;
+  border-radius: 11px !important;
+  background: #0c0d0c !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 2%) !important;
+  transition: border-color .16s ease, box-shadow .16s ease !important;
+}
+.ks-auto-app .ks-register-card .ks-register-entry:focus-within {
+  border-color: #b6a277 !important;
+  box-shadow: 0 0 0 3px rgb(198 166 108 / 12%), inset 0 1px 0 rgb(255 255 255 / 2%) !important;
+}
+.ks-auto-app .ks-register-card .ks-register-entry > svg {
+  flex: 0 0 auto !important;
+  width: 18px !important;
+  height: 18px !important;
+  margin: 3px 0 0 !important;
+  color: #c4ad78 !important;
+}
+.ks-auto-app .ks-register-card .ks-register-entry textarea {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 39px !important;
+  max-height: 104px !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  resize: none !important;
+  overflow-y: auto !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #f2f0e8 !important;
+  font: 15px/1.55 inherit !important;
+  font-family: inherit !important;
+  font-size: 15px !important;
+  line-height: 1.55 !important;
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere !important;
+}
+.ks-auto-app .ks-register-card .ks-register-entry textarea::placeholder {
+  color: #76776f !important;
+  opacity: 1 !important;
+}
+.ks-auto-app .ks-register-card .ks-register-field > small {
+  margin: 8px 0 0 !important;
+  color: #92938b !important;
+  font-size: 11px !important;
+  line-height: 1.55 !important;
+}
+.ks-auto-app .ks-register-card .ks-register-id-summary {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 4px 10px !important;
+  margin-top: 10px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.ks-auto-app .ks-register-card .ks-register-id-summary > span {
+  color: #e0c995 !important;
+  font-size: 11px !important;
+  font-weight: 650 !important;
+  line-height: 1.45 !important;
+}
+.ks-auto-app .ks-register-card .ks-register-id-summary > small {
+  color: #93948c !important;
+  font-size: 11px !important;
+  line-height: 1.45 !important;
+  text-align: right !important;
+}
+.ks-auto-app .ks-register-card .ks-register-id-summary.is-limit > span,
+.ks-auto-app .ks-register-card .ks-register-id-summary.is-limit > small {
+  color: #e0bc83 !important;
+}
+.ks-auto-app .ks-register-card > .ks-register-submit {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  align-self: stretch !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 52px !important;
+  height: auto !important;
+  padding: 14px 18px !important;
+  border: 1px solid #dfc995 !important;
+  border-radius: 11px !important;
+  background: linear-gradient(180deg, #dfc995 0%, #ceb37c 100%) !important;
+  box-shadow: 0 7px 16px rgb(0 0 0 / 13%), inset 0 1px 0 rgb(255 255 255 / 30%) !important;
+  color: #242015 !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+  white-space: normal !important;
+  text-align: center !important;
+  transition: filter .15s ease, box-shadow .15s ease !important;
+}
+.ks-auto-app .ks-register-card > .ks-register-submit:hover:not(:disabled) {
+  border-color: #ead8ad !important;
+  background: linear-gradient(180deg, #e8d7aa 0%, #d7bf8a 100%) !important;
+  box-shadow: 0 9px 20px rgb(0 0 0 / 17%), inset 0 1px 0 rgb(255 255 255 / 34%) !important;
+  transform: none !important;
+}
+.ks-auto-app .ks-register-card > .ks-register-submit:focus-visible {
+  outline: 3px solid rgb(212 187 132 / 42%) !important;
+  outline-offset: 3px !important;
+}
+.ks-auto-app .ks-register-card > .ks-register-submit:disabled {
+  opacity: .78 !important;
+  cursor: wait !important;
+}
+.ks-auto-app .ks-register-card > .ks-register-submit > svg {
+  flex: 0 0 auto;
+  color: #30291b !important;
+}
+.ks-auto-app .ks-register-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  min-width: 0;
+  padding-top: 13px;
+  border-top: 1px solid #292a25;
+  color: #9d9d93;
+  font-size: 10px;
+  line-height: 1.45;
+  text-align: center;
+}
+.ks-auto-app .ks-register-card-footer > svg {
+  flex: 0 0 auto;
+  color: #b9a678;
+}
+.ks-auto-app .ks-register-card-footer-separator {
+  color: #6f6e63;
+}
+@media (max-width: 640px) {
+  .ks-auto-app .ks-register-card {
+    gap: 16px !important;
+    padding: 17px !important;
+    border-radius: 15px !important;
+  }
+  .ks-auto-app .ks-register-card-intro {
+    grid-template-columns: 39px minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+  .ks-auto-app .ks-register-card-intro-icon {
+    width: 39px;
+    height: 39px;
+    border-radius: 11px;
+  }
+  .ks-auto-app .ks-register-card-intro-copy h2 {
+    font-size: 17px;
+  }
+  .ks-auto-app .ks-register-card-intro-copy p {
+    font-size: 11px;
+  }
+  .ks-auto-app .ks-register-card-limit {
+    padding: 5px 6px;
+    font-size: 8px;
+  }
+  .ks-auto-app .ks-register-field > .ks-register-label-row {
+    margin-bottom: 8px !important;
+  }
+  .ks-auto-app .ks-register-card .ks-register-entry {
+    min-height: 62px !important;
+    padding: 11px 12px !important;
+  }
+  .ks-auto-app .ks-register-card .ks-register-entry textarea {
+    min-height: 38px !important;
+    font-size: 15px !important;
+  }
+  .ks-auto-app .ks-register-card .ks-register-id-summary {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+  }
+  .ks-auto-app .ks-register-card .ks-register-id-summary > small {
+    text-align: left !important;
+  }
+  .ks-auto-app .ks-register-card > .ks-register-submit {
+    min-height: 50px !important;
+  }
+}
