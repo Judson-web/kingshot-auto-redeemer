@@ -212,7 +212,7 @@ async function handleMightPulseFrameRequest(req: RequestLike, res: ResponseLike,
   }
   const playerId = requestUrl.searchParams.get("id") || "";
   if (!/^\d{5,20}$/.test(playerId)) {
-   sendError(res, 400, "invalid_player_id", "Player ID must contain 5–20 digits.", requestId);
+   sendError(res, 400, "invalid_player_id", "Player ID must contain 5–20 digits. Copy it from Kingshot under Profile → Info; your kingdom number is different.", requestId);
    return;
   }
   const forceRefresh = requestUrl.searchParams.get("refresh") === "1";
@@ -247,10 +247,10 @@ export default async function handler(req: RequestLike, res: ResponseLike): Prom
  if (req.method !== "GET") { res.setHeader("Allow", "GET"); return void sendError(res, 405, "method_not_allowed", "Method not allowed.", requestId); }
  if (!rateLimit(req, res, "player-lookup", 30, 60000)) return void sendError(res, 429, "rate_limit_exceeded", "Too many player lookups. Retry after the indicated delay.", requestId);
  const id = normalizePlayerId(new URL(req.url || "/", "http://localhost").searchParams.get("id"));
- if (!isValidPlayerId(id)) return void sendError(res, 400, "invalid_player_id", "Player ID must contain 5–20 digits.", requestId);
+ if (!isValidPlayerId(id)) return void sendError(res, 400, "invalid_player_id", "Player ID must contain 5–20 digits. Copy it from Kingshot under Profile → Info; your kingdom number is different.", requestId);
  try { const player = await lookupPlayer(id); res.status(200).json({ player, data: { player }, meta: { requestId, timestamp: new Date().toISOString(), fetchedAt: new Date().toISOString(), source: "mightpulse", stale: false } }); }
  catch (error) { const typed = error as PlayerLookupError;
-  if (typed.status === 404) return void sendError(res, 404, "player_not_found", "MightPulse could not find this player.", requestId);
+  if (typed.status === 404) return void sendError(res, 404, "player_not_found", "No player was found for this ID. Check it under Kingshot Profile → Info; if the ID is correct, try again shortly.", requestId);
   if (/timed out|abort/i.test(typed.message || "")) return void sendError(res, 504, "upstream_timeout", "MightPulse request timed out.", requestId);
   sendError(res, typed.status === 503 ? 503 : 502, "upstream_unavailable", "Player lookup provider is unavailable.", requestId);
  }
