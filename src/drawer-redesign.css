@@ -1,5 +1,6 @@
-/* One shared navigation overlay used by Auto, Manual, How it works and Legal pages. */
-:is(.ks-app,.ks-dev-route) .ks-nav-scrim {
+/* Shared, accessible mobile navigation drawer. Scoped to the component so Profile uses
+   the same layout as the main public pages, even though it has its own page wrapper. */
+.ks-nav-scrim {
   position: fixed !important;
   inset: 0 !important;
   z-index: 11990 !important;
@@ -10,50 +11,49 @@
   padding: 0 !important;
   border: 0 !important;
   border-radius: 0 !important;
-  background: rgb(0 0 0 / 60%) !important;
-  -webkit-backdrop-filter: blur(2px) !important;
-  backdrop-filter: blur(2px) !important;
+  background: rgb(0 0 0 / 66%) !important;
+  -webkit-backdrop-filter: blur(3px) !important;
+  backdrop-filter: blur(3px) !important;
   box-shadow: none !important;
   cursor: default !important;
   touch-action: manipulation;
   animation: ks-nav-scrim-enter .16s ease both;
 }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer {
+.ks-nav-drawer {
   position: fixed !important;
   z-index: 11991 !important;
-  top: calc(72px + env(safe-area-inset-top, 0px)) !important;
-  right: max(12px, env(safe-area-inset-right, 0px)) !important;
-  left: max(12px, env(safe-area-inset-left, 0px)) !important;
-  bottom: auto !important;
-  inset-block: auto !important;
+  top: max(8px, env(safe-area-inset-top, 0px)) !important;
+  bottom: max(8px, env(safe-area-inset-bottom, 0px)) !important;
+  left: max(8px, env(safe-area-inset-left, 0px)) !important;
+  right: auto !important;
   inset-inline-end: auto !important;
   display: flex !important;
   flex-direction: column !important;
   gap: 0 !important;
-  width: auto !important;
-  max-width: none !important;
+  width: min(380px, calc(100vw - 24px)) !important;
+  max-width: calc(100vw - 16px) !important;
   height: auto !important;
-  max-height: calc(100dvh - 86px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
+  max-height: none !important;
   min-height: 0 !important;
   box-sizing: border-box !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
-  overscroll-behavior-y: contain !important;
+  overscroll-behavior: contain !important;
   -webkit-overflow-scrolling: touch !important;
   scrollbar-width: thin !important;
   scrollbar-color: #45463f transparent !important;
-  padding: 10px 14px calc(12px + env(safe-area-inset-bottom, 0px)) !important;
-  border: 1px solid #34352f !important;
-  border-radius: 14px !important;
-  background: #11120f !important;
-  box-shadow: 0 18px 54px rgb(0 0 0 / 46%) !important;
+  padding: 17px 14px max(13px, env(safe-area-inset-bottom, 0px)) !important;
+  border: 1px solid #35352f !important;
+  border-radius: 20px !important;
+  background: linear-gradient(165deg, #141510 0%, #0d0e0d 68%, #0b0c0d 100%) !important;
+  box-shadow: 0 22px 68px rgb(0 0 0 / 58%), inset 0 1px 0 rgb(255 255 255 / 3%) !important;
   color: #efeee8 !important;
   outline: none !important;
   animation: ks-nav-panel-enter .21s cubic-bezier(.2,.72,.25,1) both;
 }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer-head {
+.ks-nav-drawer-head {
   position: sticky !important;
-  top: -10px !important;
+  top: -17px !important;
   z-index: 2 !important;
   display: flex !important;
   flex: 0 0 auto !important;
@@ -61,248 +61,342 @@
   justify-content: space-between !important;
   gap: 12px !important;
   min-width: 0 !important;
-  margin: 0 !important;
-  padding: 3px 0 12px !important;
+  margin: -1px 0 0 !important;
+  padding: 3px 0 16px !important;
   border: 0 !important;
   border-bottom: 1px solid #292a25 !important;
   border-radius: 0 !important;
-  background: #11120f !important;
+  background: #13140f !important;
   box-shadow: none !important;
 }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer-head > div { min-width: 0 !important; }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer-kicker {
+.ks-nav-drawer-head > div { min-width: 0 !important; }
+.ks-nav-drawer-kicker {
   display: block !important;
-  margin: 0 0 3px !important;
-  color: #baa678 !important;
+  margin: 0 0 5px !important;
+  color: #c6b17e !important;
   font-size: 9px !important;
-  font-weight: 650 !important;
+  font-weight: 700 !important;
   line-height: 1.4 !important;
-  letter-spacing: .1em !important;
+  letter-spacing: .13em !important;
 }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer-head h2 {
+.ks-nav-drawer-head h2 {
   margin: 0 !important;
-  color: #eeede7 !important;
-  font-size: 22px !important;
-  font-weight: 620 !important;
-  line-height: 1.2 !important;
-  letter-spacing: -.03em !important;
+  color: #f0efe9 !important;
+  font-size: 24px !important;
+  font-weight: 650 !important;
+  line-height: 1.15 !important;
+  letter-spacing: -.04em !important;
 }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer-head p { display: none !important; }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer-head > button {
+.ks-nav-drawer-head p { display: none !important; }
+.ks-nav-drawer-head > button {
   display: grid !important;
-  flex: 0 0 40px !important;
+  flex: 0 0 42px !important;
   place-items: center !important;
-  width: 40px !important;
-  min-width: 40px !important;
-  height: 40px !important;
+  width: 42px !important;
+  min-width: 42px !important;
+  height: 42px !important;
   margin: 0 !important;
   padding: 0 !important;
-  border: 1px solid #383932 !important;
-  border-radius: 9px !important;
-  background: #191a16 !important;
-  color: #d4d3cb !important;
+  border: 1px solid #3a3a32 !important;
+  border-radius: 12px !important;
+  background: #191a15 !important;
+  color: #d4bd88 !important;
   box-shadow: none !important;
   cursor: pointer !important;
   transition: border-color .15s ease, background-color .15s ease, color .15s ease !important;
   touch-action: manipulation;
 }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer-head > button:hover {
-  border-color: #766747 !important;
-  background: #1e1d17 !important;
+.ks-nav-drawer-head > button:hover {
+  border-color: #756747 !important;
+  background: #211f18 !important;
   color: #f0dfb7 !important;
 }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer nav {
+.ks-nav-drawer nav {
   display: grid !important;
   flex: 0 0 auto !important;
   grid-template-columns: minmax(0, 1fr) !important;
-  gap: 0 !important;
+  gap: 7px !important;
   min-width: 0 !important;
-  margin: 12px 0 0 !important;
+  margin: 13px 0 0 !important;
   padding: 0 !important;
   border: 0 !important;
-  background: transparent !important;
-}
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer .ks-nav-drawer-link {
-  display: flex !important;
-  flex: 0 0 auto !important;
-  flex-direction: column !important;
-  align-items: stretch !important;
-  justify-content: center !important;
-  gap: 3px !important;
-  min-width: 0 !important;
-  min-height: 56px !important;
-  height: auto !important;
-  margin: 0 !important;
-  padding: 10px 3px !important;
-  border: 0 !important;
-  border-bottom: 1px solid #292a25 !important;
-  border-left: 2px solid transparent !important;
   border-radius: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
-  color: #e0dfd8 !important;
+}
+.ks-nav-drawer .ks-nav-drawer-link {
+  display: grid !important;
+  grid-template-columns: 40px minmax(0, 1fr) 16px !important;
+  flex: 0 0 auto !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: initial !important;
+  gap: 11px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 65px !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 10px 10px !important;
+  border: 1px solid #2b2c27 !important;
+  border-radius: 13px !important;
+  background: #141510 !important;
+  box-shadow: none !important;
+  color: #e6e5de !important;
   font-family: inherit !important;
+  font-size: 14px !important;
   text-align: left !important;
   text-decoration: none !important;
   white-space: normal !important;
   overflow: visible !important;
   transform: none !important;
-  transition: background-color .15s ease, border-color .15s ease, padding .15s ease !important;
+  transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease !important;
   cursor: pointer !important;
   appearance: none !important;
   -webkit-appearance: none !important;
 }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer .ks-nav-drawer-link b {
+.ks-nav-drawer .ks-nav-drawer-icon {
+  display: grid !important;
+  place-items: center !important;
+  flex: 0 0 40px !important;
+  width: 40px !important;
+  height: 40px !important;
+  border: 1px solid #414035 !important;
+  border-radius: 11px !important;
+  background: linear-gradient(145deg, #232219, #191a15) !important;
+  color: #cdb780 !important;
+}
+.ks-nav-drawer .ks-nav-drawer-icon svg {
+  display: block !important;
+  width: 18px !important;
+  height: 18px !important;
+  color: inherit !important;
+}
+.ks-nav-drawer .ks-nav-drawer-copy {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.ks-nav-drawer .ks-nav-drawer-copy b {
   display: block !important;
   min-width: 0 !important;
   margin: 0 !important;
-  color: #e3e2db !important;
-  font-size: 12px !important;
-  font-weight: 600 !important;
-  line-height: 1.4 !important;
-  letter-spacing: 0 !important;
+  color: #eeede7 !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  line-height: 1.35 !important;
+  letter-spacing: -.01em !important;
   overflow-wrap: anywhere !important;
 }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer .ks-nav-drawer-link span {
+.ks-nav-drawer .ks-nav-drawer-copy small {
   display: block !important;
   min-width: 0 !important;
   margin: 0 !important;
-  color: #9fa097 !important;
-  font-size: 10px !important;
+  color: #9d9e95 !important;
+  font-size: 10.5px !important;
   font-weight: 400 !important;
-  line-height: 1.5 !important;
+  line-height: 1.45 !important;
   letter-spacing: 0 !important;
   overflow-wrap: anywhere !important;
 }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer .ks-nav-drawer-link:hover {
-  border-bottom-color: #292a25 !important;
-  background: #ffffff05 !important;
+.ks-nav-drawer .ks-nav-drawer-arrow {
+  display: block !important;
+  flex: 0 0 16px !important;
+  width: 16px !important;
+  height: 16px !important;
+  color: #77786f !important;
+}
+.ks-nav-drawer .ks-nav-drawer-link:hover {
+  border-color: #4b493c !important;
+  background: #1a1b15 !important;
   transform: none !important;
 }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer .ks-nav-drawer-link.is-current {
-  border-left-color: #b6a277 !important;
-  padding-left: 10px !important;
-  background: #c4a56f0d !important;
-  box-shadow: none !important;
+.ks-nav-drawer .ks-nav-drawer-link.is-current,
+.ks-nav-drawer .ks-nav-drawer-link[aria-current="page"] {
+  border-color: #8c7950 !important;
+  background: linear-gradient(110deg, #c1a66f19, #c1a66f08) !important;
+  box-shadow: inset 3px 0 #cbb47e !important;
 }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer .ks-nav-drawer-link:focus-visible {
-  outline: 2px solid #d4bd88 !important;
-  outline-offset: -2px !important;
+.ks-nav-drawer .ks-nav-drawer-link.is-current .ks-nav-drawer-icon,
+.ks-nav-drawer .ks-nav-drawer-link[aria-current="page"] .ks-nav-drawer-icon {
+  border-color: #71603d !important;
+  background: #262217 !important;
+  color: #e2ca91 !important;
 }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer .ks-nav-drawer-support {
+.ks-nav-drawer .ks-nav-drawer-link.is-current .ks-nav-drawer-arrow,
+.ks-nav-drawer .ks-nav-drawer-link[aria-current="page"] .ks-nav-drawer-arrow {
+  color: #cdb780 !important;
+}
+.ks-nav-drawer .ks-nav-drawer-support {
   display: grid !important;
+  grid-template-columns: 40px minmax(0, 1fr) 16px !important;
   flex: 0 0 auto !important;
-  grid-template-columns: 28px minmax(0, 1fr) 16px !important;
   align-items: center !important;
-  gap: 10px !important;
+  justify-content: initial !important;
+  gap: 11px !important;
   width: 100% !important;
   min-width: 0 !important;
-  min-height: 58px !important;
+  min-height: 65px !important;
   height: auto !important;
   margin: 0 !important;
-  padding: 10px 3px !important;
-  border: 0 !important;
-  border-bottom: 1px solid #292a25 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  color: #e0dfd8 !important;
-  box-shadow: none !important;
-  font: inherit !important;
+  padding: 10px 10px !important;
+  border: 1px solid #49412e !important;
+  border-radius: 13px !important;
+  background: linear-gradient(120deg, #252216 0%, #191912 100%) !important;
+  color: #e6e5de !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 2%) !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  line-height: 1.3 !important;
   text-align: left !important;
+  text-transform: none !important;
   cursor: pointer !important;
   appearance: none !important;
   -webkit-appearance: none !important;
+  touch-action: manipulation;
+  transition: border-color .15s ease, background .15s ease !important;
 }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer .ks-nav-drawer-support:hover {
-  border-bottom-color: #292a25 !important;
-  background: #ffffff05 !important;
+.ks-nav-drawer .ks-nav-drawer-support:hover {
+  border-color: #7a6845 !important;
+  background: linear-gradient(120deg, #30291a 0%, #1d1b13 100%) !important;
 }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer-support > svg:first-child {
+.ks-nav-drawer .ks-nav-drawer-support-icon {
   display: grid !important;
-  place-self: center !important;
-  width: 28px !important;
-  height: 28px !important;
-  padding: 6px !important;
-  border: 1px solid #454032 !important;
-  border-radius: 8px !important;
-  background: #1b1a15 !important;
-  color: #d2bc87 !important;
+  place-items: center !important;
+  flex: 0 0 40px !important;
+  width: 40px !important;
+  height: 40px !important;
+  border: 1px solid #5b4f34 !important;
+  border-radius: 11px !important;
+  background: #282317 !important;
+  color: #d4bd88 !important;
 }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer-support-copy {
+.ks-nav-drawer .ks-nav-drawer-support-icon svg {
+  width: 19px !important;
+  height: 19px !important;
+  color: inherit !important;
+}
+.ks-nav-drawer .ks-nav-drawer-support-copy {
   display: flex !important;
-  min-width: 0 !important;
   flex-direction: column !important;
+  align-items: stretch !important;
   gap: 3px !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer-support-copy b {
-  color: #e3e2db !important;
-  font-size: 12px !important;
-  font-weight: 600 !important;
-  line-height: 1.4 !important;
+.ks-nav-drawer .ks-nav-drawer-support-copy b {
+  display: block !important;
+  margin: 0 !important;
+  color: #f0dfb7 !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  line-height: 1.35 !important;
 }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer-support-copy small {
-  color: #9fa097 !important;
-  font-size: 10px !important;
+.ks-nav-drawer .ks-nav-drawer-support-copy small {
+  display: block !important;
+  margin: 0 !important;
+  color: #b0a78f !important;
+  font-size: 10.5px !important;
   font-weight: 400 !important;
-  line-height: 1.5 !important;
+  line-height: 1.45 !important;
 }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer-support > svg:last-child {
-  flex: 0 0 auto !important;
-  color: #92938a !important;
-}
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer-footer {
+.ks-nav-drawer .ks-nav-drawer-footer {
   display: flex !important;
   flex: 0 0 auto !important;
   align-items: center !important;
-  gap: 8px !important;
-  margin: 8px 0 0 !important;
-  padding: 12px 2px 0 !important;
+  gap: 9px !important;
+  margin: auto 0 0 !important;
+  padding: 15px 2px 2px !important;
+  border: 0 !important;
   border-top: 1px solid #292a25 !important;
   border-radius: 0 !important;
-  background: #11120f !important;
-  color: #8f9087 !important;
-  font-size: 10px !important;
+  background: transparent !important;
+  color: #95968e !important;
+  font-size: 11px !important;
   line-height: 1.5 !important;
 }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer-footer svg {
-  flex: 0 0 auto !important;
-  color: #a995ff !important;
+.ks-nav-drawer .ks-nav-drawer-footer svg {
+  display: block !important;
+  flex: 0 0 16px !important;
+  width: 16px !important;
+  height: 16px !important;
+  color: #b7a16e !important;
 }
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer a:focus-visible,
-:is(.ks-app,.ks-dev-route) .ks-nav-drawer button:focus-visible {
+.ks-nav-drawer a:focus-visible,
+.ks-nav-drawer button:focus-visible,
+.ks-nav-scrim:focus-visible {
   outline: 2px solid #d4bd88 !important;
   outline-offset: -2px !important;
 }
+.ks-nav-drawer-head > button:focus-visible,
+.ks-nav-drawer .ks-nav-drawer-link:focus-visible,
+.ks-nav-drawer .ks-nav-drawer-support:focus-visible {
+  outline-offset: 2px !important;
+}
 @keyframes ks-nav-panel-enter {
-  from { opacity: .6; transform: translateY(7px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: .6; transform: translateX(-5px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 @keyframes ks-nav-scrim-enter {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 @media (max-width: 420px) {
-  :is(.ks-app,.ks-dev-route) .ks-nav-drawer {
-    top: calc(72px + env(safe-area-inset-top, 0px)) !important;
-    right: max(12px, env(safe-area-inset-right, 0px)) !important;
-    left: max(12px, env(safe-area-inset-left, 0px)) !important;
-    width: auto !important;
-    max-height: calc(100dvh - 86px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
-    padding-inline: 14px !important;
+  .ks-nav-drawer {
+    width: min(380px, calc(100vw - 20px)) !important;
+    left: max(6px, env(safe-area-inset-left, 0px)) !important;
+    padding-inline: 12px !important;
+    border-radius: 18px !important;
+  }
+  .ks-nav-drawer .ks-nav-drawer-link,
+  .ks-nav-drawer .ks-nav-drawer-support {
+    grid-template-columns: 38px minmax(0, 1fr) 16px !important;
+    gap: 9px !important;
+    padding: 9px !important;
+    min-height: 62px !important;
+  }
+  .ks-nav-drawer .ks-nav-drawer-icon,
+  .ks-nav-drawer .ks-nav-drawer-support-icon {
+    flex-basis: 38px !important;
+    width: 38px !important;
+    height: 38px !important;
+  }
+  .ks-nav-drawer .ks-nav-drawer-copy b,
+  .ks-nav-drawer .ks-nav-drawer-support-copy b {
+    font-size: 12px !important;
   }
 }
-@media (max-height: 650px) {
-  :is(.ks-app,.ks-dev-route) .ks-nav-drawer {
-    top: calc(12px + env(safe-area-inset-top, 0px)) !important;
-    max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
+@media (max-height: 680px) {
+  .ks-nav-drawer {
+    padding-top: 11px !important;
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)) !important;
   }
+  .ks-nav-drawer-head { padding-bottom: 10px !important; }
+  .ks-nav-drawer nav { gap: 5px !important; margin-top: 8px !important; }
+  .ks-nav-drawer .ks-nav-drawer-link,
+  .ks-nav-drawer .ks-nav-drawer-support { min-height: 56px !important; padding-block: 7px !important; }
+  .ks-nav-drawer .ks-nav-drawer-icon,
+  .ks-nav-drawer .ks-nav-drawer-support-icon { width: 34px !important; height: 34px !important; }
 }
 @media (prefers-reduced-motion: reduce) {
-  :is(.ks-app,.ks-dev-route) .ks-nav-scrim,
-  :is(.ks-app,.ks-dev-route) .ks-nav-drawer,
-  :is(.ks-app,.ks-dev-route) .ks-nav-drawer-link,
-  :is(.ks-app,.ks-dev-route) .ks-nav-drawer-support,
-  :is(.ks-app,.ks-dev-route) .ks-nav-drawer-head > button {
+  .ks-nav-scrim,
+  .ks-nav-drawer,
+  .ks-nav-drawer .ks-nav-drawer-link,
+  .ks-nav-drawer .ks-nav-drawer-support,
+  .ks-nav-drawer-head > button {
     animation: none !important;
     transition: none !important;
   }
