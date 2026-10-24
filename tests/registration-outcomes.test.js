@@ -71,3 +71,37 @@ test("single-ID summary keeps the individual headline", () => {
   assert.equal(registrationOutcomeHeadline([outcome]), "Auto-redemption disabled");
   assert.equal(summarizeRegistrationOutcomes([outcome]).total, 1);
 });
+
+test("Auto Redeem distinguishes a malformed Player ID from a player not found", () => {
+  const invalid = makeFailureOutcome({
+    id: "1234", code: "invalid_player_id",
+    message: "Player ID must contain 5–20 digits."
+  });
+  const missing = makeFailureOutcome({
+    id: "43180889", code: "player_not_found",
+    message: "MightPulse could not find this player."
+  });
+
+  assert.equal(invalid.kind, "failed");
+  assert.equal(invalid.label, "INVALID ID");
+  assert.equal(invalid.headline, "Check Player ID");
+  assert.match(invalid.summary, /Profile → Info/);
+  assert.match(invalid.summary, /5–20 digits/);
+
+  assert.equal(missing.kind, "failed");
+  assert.equal(missing.label, "NOT FOUND");
+  assert.equal(missing.headline, "Player not found");
+  assert.match(missing.summary, /Check every digit/);
+  assert.match(missing.summary, /If the ID is correct, try again shortly/);
+});
+
+test("Auto Redeem leaves provider outages as provider errors instead of invalid-ID errors", () => {
+  const item = makeFailureOutcome({
+    id: "43180889", code: "upstream_unavailable",
+    message: "Player lookup provider is unavailable."
+  });
+  assert.equal(item.label, "NEEDS ATTENTION");
+  assert.equal(item.headline, "Registration needs attention");
+  assert.match(item.summary, /provider is unavailable/i);
+});
+
