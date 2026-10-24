@@ -48,18 +48,20 @@ export function registrationInputSummary(value) {
   const input = String(value ?? "").trim();
   const parsed = splitRegistrationIds(input);
   if (!input) {
-    return { label: "Up to " + MAX_REGISTRATION_IDS + " IDs", detail: "Commas, spaces, or new lines" };
+    return { label: "Up to " + MAX_REGISTRATION_IDS + " IDs", detail: "Commas, spaces, or new lines", overLimit: false };
   }
   if (parsed.uniqueCount > MAX_REGISTRATION_IDS) {
     return {
       label: parsed.uniqueCount + " unique IDs entered",
-      detail: "Process " + MAX_REGISTRATION_IDS + " at a time"
+      detail: "Process " + MAX_REGISTRATION_IDS + " at a time",
+      overLimit: true
     };
   }
   return {
     label: parsed.uniqueCount + " unique " + (parsed.uniqueCount === 1 ? "ID" : "IDs") + " entered",
     detail: parsed.duplicateCount
       ? parsed.duplicateCount + " duplicate " + (parsed.duplicateCount === 1 ? "ID" : "IDs") + " will be ignored"
-      : "Ready when you are"
+      : "Ready when you are",
+    overLimit: false
   };
 }
