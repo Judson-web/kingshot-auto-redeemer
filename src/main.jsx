@@ -1,7 +1,7 @@
 import React,{useEffect,useRef,useState}from"react";
 import{createRoot}from"react-dom/client";
 import{ExternalLink,Gift,Menu,Search,ShieldCheck,ShieldOff,X,CheckCircle,LoaderCircle,AlertTriangle,Info,OctagonAlert,ArrowRight,Activity,Wrench,WifiOff,UserRound,MessageCircle,LifeBuoy,Image as ImageIcon,RefreshCw,ChevronLeft,ChevronRight}from"lucide-react";
-import{makeSuccessOutcome,makeFailureOutcome,summarizeRegistrationOutcomes,registrationOutcomeHeadline}from"./registration-outcomes.js";
+import{makeSuccessOutcome,makeFailureOutcome,summarizeRegistrationOutcomes,registrationOutcomeHeadline}from"./registration-outcomes.js";import{registrationInputSummary,validateRegistrationIds}from"./registration-input.js";
 import{formatPower,playerDisplayName}from"../lib/player-display.js";
 import"./styles.css";import"./registration-outcomes.css";import"./ux-feedback.css";
 import"./admin-players.css";
@@ -124,23 +124,26 @@ function KingshotApp(){
 }
 
 function AutoRedeemApp(){
- const [ids,setIds]=useState(""),[busy,setBusy]=useState(false),[outcomes,setOutcomes]=useState([]),[error,setError]=useState(""),[menu,setMenu]=useState(false);
+ const [ids,setIds]=useState(""),[busy,setBusy]=useState(false),[outcomes,setOutcomes]=useState([]),[error,setError]=useState(""),[menu,setMenu]=useState(false),[progress,setProgress]=useState({done:0,total:0,currentId:""});
+ const inputSummary=registrationInputSummary(ids);
  const register=async e=>{
   e.preventDefault();
-  const input=ids.trim();
+  const parsed=validateRegistrationIds(ids);
   setError("");
-  if(!input){setOutcomes([]);setError("Enter at least one Kingshot Player ID.");return}
-  if(!/^[0-9, ]+$/.test(input)){setOutcomes([]);setError("Player IDs can only contain digits, spaces, or commas.");return}
-  const raw=[...new Set(input.split(/[ ,]+/).map(v=>v.trim()).filter(Boolean))];
-  const invalid=raw.find(id=>!/^[0-9]{5,20}$/.test(id));
-  if(invalid){setOutcomes([]);setError("Each Player ID must contain 5–20 digits. Check: "+invalid);return}
+  if(parsed.error){setOutcomes([]);setError(parsed.error);return}
+  const raw=parsed.ids;
   setBusy(true);setOutcomes([]);
+  setProgress({done:0,total:raw.length,currentId:raw[0]||""});
   const collected=[];
   try{
    for(const id of raw){
+    setProgress({done:collected.length,total:raw.length,currentId:id});
     let result; let player=null;
     try{
-     const profileResponse=await fetch("/api/kingshot-player?id="+encodeURIComponent(id));
+     const lookupSignal=typeof AbortSignal!=="undefined"&&typeof AbortSignal.timeout==="function"?AbortSignal.timeout(15000):undefined;
+     const profileUrl="/api/kingshot-player?id="+encodeURIComponent(id);
+     const profileResponse=await fetch(profileUrl,lookupSignal?{signal:lookupSignal}:{});
+
      const profileData=await profileResponse.json().catch(()=>({}));
      if(!profileResponse.ok)throw Object.assign(new Error(profileData.error||"Could not find this player in the game profile service."),{code:profileData.code,banned:profileData.banned,disabled:profileData.disabled,alreadyRegistered:profileData.alreadyRegistered,ban:profileData.ban});
      player=profileData.player||profileData;
@@ -149,16 +152,28 @@ function AutoRedeemApp(){
      if(!registrationResponse.ok)throw Object.assign(new Error(registrationData.error||"Could not register this player."),{code:registrationData.code,banned:registrationData.banned,disabled:registrationData.disabled,alreadyRegistered:registrationData.alreadyRegistered,ban:registrationData.ban,reason:registrationData.reason});
      result=makeSuccessOutcome(id,player,registrationData);
     }catch(failure){
-     result=makeFailureOutcome({id,player,message:failure?.message,code:failure?.code,banned:failure?.banned,disabled:failure?.disabled,alreadyRegistered:failure?.alreadyRegistered,ban:failure?.ban,reason:failure?.reason});
+     const timedOut=failure?.name==="TimeoutError"||failure?.name==="AbortError";
+     result=makeFailureOutcome({id,player,message:timedOut?"Player lookup timed out. Please retry this ID.":failure?.message,code:failure?.code,banned:failure?.banned,disabled:failure?.disabled,alreadyRegistered:failure?.alreadyRegistered,ban:failure?.ban,reason:failure?.reason});
     }
     collected.push(result);
     setOutcomes([...collected]);
+    setProgress({done:collected.length,total:raw.length,currentId:collected.length<raw.length?raw[collected.length]:""});
    }
   }catch(failure){setError(failure instanceof Error?failure.message:"Registration could not be completed. Please try again.")}
-  finally{setBusy(false)}
+  finally{setBusy(false);setProgress(current=>({...current,currentId:""}))}
  };
- return <div className="app ks-app ks-auto-app"><a className="skip-link" href="#auto-main-content">Skip to main content</a><header><KsLogo/><nav><a href="/manual">Manual Redeem</a><a href="/info">How it works</a><a href="/developer">API Docs</a></nav><div className="header-right"><DiscordChip/><button className="menu-btn" type="button" onClick={()=>setMenu(v=>!v)} aria-label={menu?"Close navigation":"Open navigation"} aria-expanded={menu} aria-haspopup="dialog">{menu?<X size={18}/>:<Menu size={18}/>}</button></div></header><MobileNavDrawer open={menu} onClose={()=>setMenu(false)} current="auto" /><main id="auto-main-content"><section className="ks-auto-hero"><div className="eyebrow"><span/>KINGSHOT AUTO REDEEM</div><h1>Automatic redemption</h1><p className="hero-copy">Register each Kingshot Player ID once. Active, eligible gift codes are checked automatically. You’ll get a separate result for every ID you submit.</p><form className="ks-register-box" onSubmit={register} aria-describedby="auto-register-help"><div className="ks-register-field"><label htmlFor="auto-player-ids">Player IDs</label><div><Gift size={17}/><input id="auto-player-ids" inputMode="text" enterKeyHint="done" value={ids} onChange={e=>{const value=e.target.value;if(/^[0-9, ]*$/.test(value))setIds(value)}} onBeforeInput={e=>{if(e.data&&!/^[0-9, ]+$/.test(e.data))e.preventDefault()}} onPaste={e=>{const pasted=e.clipboardData.getData("text/plain");if(!/^[0-9, ]*$/.test(pasted))e.preventDefault()}} onDrop={e=>{const dropped=e.dataTransfer.getData("text/plain");if(!/^[0-9, ]*$/.test(dropped))e.preventDefault()}} placeholder="e.g. 43180889, 51234567" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck="false" pattern="[0-9, ]*" aria-describedby="auto-register-help"/></div><small id="auto-register-help">Use 5–20 digits per ID. Separate multiple IDs with commas or spaces.</small></div><button className={"ks-submit"+(busy?" register-loading":"")} disabled={busy}>{busy?<><span className="manual-spinner" aria-hidden="true"><span></span><LoaderCircle size={15}/></span><span className="manual-submit-label"><strong>Registering players</strong><small>Processing each ID in order…</small></span></>: "Register for Auto Redemption"}</button></form>{error&&<div className="ks-error" role="alert" aria-live="assertive"><b>Registration needs attention.</b><span>{error}</span></div>}
- <RegistrationOutcomePanel outcomes={outcomes}/>
+ return <div className="app ks-app ks-auto-app"><a className="skip-link" href="#auto-main-content">Skip to main content</a><header><KsLogo/><nav><a href="/manual">Manual Redeem</a><a href="/info">How it works</a><a href="/developer">API Docs</a></nav><div className="header-right"><DiscordChip/><button className="menu-btn" type="button" onClick={()=>setMenu(v=>!v)} aria-label={menu?"Close navigation":"Open navigation"} aria-expanded={menu} aria-haspopup="dialog">{menu?<X size={18}/>:<Menu size={18}/>}</button></div></header><MobileNavDrawer open={menu} onClose={()=>setMenu(false)} current="auto" /><main id="auto-main-content"><section className="ks-auto-hero"><div className="eyebrow"><span/>KINGSHOT AUTO REDEEM</div><h1>Automatic redemption</h1><p className="hero-copy">Register each Kingshot Player ID once. Active, eligible gift codes are checked automatically. You’ll get a separate result for every ID you submit.</p><form className="ks-register-box" onSubmit={register} aria-describedby="auto-register-help auto-id-summary" aria-busy={busy}>
+ <div className="ks-register-field">
+  <label htmlFor="auto-player-ids">Player IDs</label>
+  <div className="ks-register-entry"><Gift size={17} aria-hidden="true"/><textarea id="auto-player-ids" rows={2} inputMode="text" enterKeyHint="done" value={ids} onChange={e=>{const value=e.target.value;if(/^[0-9,\s]*$/.test(value)){setIds(value);if(error)setError("")}}} onBeforeInput={e=>{if(e.data&&!/^[0-9,\s]+$/.test(e.data))e.preventDefault()}} onPaste={e=>{const pasted=e.clipboardData.getData("text/plain");if(!/^[0-9,\s]*$/.test(pasted))e.preventDefault()}} onDrop={e=>{const dropped=e.dataTransfer.getData("text/plain");if(!/^[0-9,\s]*$/.test(dropped))e.preventDefault()}} placeholder={"43180889\n51234567"} autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck="false" aria-describedby="auto-register-help auto-id-summary"/></div>
+  <small id="auto-register-help">Up to 10 unique IDs per submission. Put one on each line, or separate them with commas or spaces.</small>
+  <div className={"ks-register-id-summary"+(inputSummary.label.startsWith("1")&&inputSummary.label.includes("unique IDs entered")?" is-limit":"")} id="auto-id-summary" role="status" aria-live="polite" aria-atomic="true"><span>{inputSummary.label}</span><small>{inputSummary.detail}</small></div>
+ </div>
+ <button className={"ks-submit"+(busy?" register-loading":"")} disabled={busy}>{busy?<><span className="manual-spinner" aria-hidden="true"><span></span><LoaderCircle size={15}/></span><span className="manual-submit-label"><strong>Registering players</strong><small>Processing each ID in order…</small></span></>:"Register players"}</button>
+</form>
+{busy&&<div className="ks-register-progress" role="status" aria-live="polite" aria-atomic="true"><div className="ks-register-progress-top"><b>Registering players</b><span>{progress.done} of {progress.total} complete</span></div><progress max={progress.total||1} value={progress.done} aria-label="Player registration progress"/><small>{progress.currentId?"Checking Player ID "+progress.currentId+"…":"Preparing the next result…"}</small><p>Results appear as each ID finishes. Each registration is handled separately.</p></div>}
+{error&&<div className="ks-error" role="alert" aria-live="assertive" id="auto-register-error"><b>Registration needs attention.</b><span>{error}</span></div>}
+<RegistrationOutcomePanel outcomes={outcomes}/>
  </section><section className="ks-auto-how" id="how"><div className="section-title"><span>01</span><h2>How it works</h2></div><div className="feature-grid"><article><UserRound/><b>Register once</b><p>Each Player ID is looked up and enrolled separately.</p></article><article><RefreshCw/><b>Automatic checks</b><p>Eligible active gift codes are checked for registered players, including older codes that remain valid.</p></article><article><CheckCircle/><b>Individual results</b><p>Every submitted ID gets its own status, so one issue does not stop other registrations.</p></article></div></section></main><footer><KsLogo/><span>Automatic redemption is a community service. Not affiliated with Century Games.</span><span><a href="/info">How it works</a> · <a href="/terms?service=kingshot-auto">Terms</a> · <a href="/privacy?service=kingshot-auto">Privacy</a></span></footer></div>
 }
 function RegistrationOutcomePanel({outcomes}){
