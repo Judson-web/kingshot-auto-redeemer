@@ -498,3 +498,177 @@
     font-size: 13px !important;
   }
 }
+
+/* Bulk ID entry: paste-friendly, readable on mobile, and explicit about duplicates/limits. */
+.ks-auto-app .ks-register-entry {
+  align-items: flex-start !important;
+  gap: 10px !important;
+  min-height: 94px !important;
+  padding: 12px 13px !important;
+}
+.ks-auto-app .ks-register-entry > svg {
+  flex: 0 0 auto !important;
+  margin-top: 4px !important;
+  color: #b9a678 !important;
+}
+.ks-auto-app .ks-register-entry textarea {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 68px !important;
+  max-height: 180px !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  resize: vertical !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #f0efe9 !important;
+  font-family: inherit !important;
+  font-size: 15px !important;
+  line-height: 1.55 !important;
+  overflow-wrap: anywhere !important;
+  white-space: pre-wrap !important;
+}
+.ks-auto-app .ks-register-entry textarea::placeholder {
+  color: #777872 !important;
+  opacity: 1 !important;
+  white-space: pre-line !important;
+}
+.ks-auto-app .ks-register-entry:focus-within {
+  border-color: #b6a277 !important;
+  box-shadow: 0 0 0 3px rgb(198 166 108 / 12%) !important;
+}
+.ks-auto-app .ks-register-id-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  min-width: 0;
+  margin-top: 9px;
+  color: #d0cfc6;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.ks-auto-app .ks-register-id-summary > span {
+  min-width: 0;
+  font-weight: 600;
+}
+.ks-auto-app .ks-register-id-summary > small {
+  margin: 0;
+  color: #999a94;
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: right;
+}
+.ks-auto-app .ks-register-id-summary.is-limit {
+  color: #e0bc83;
+}
+.ks-auto-app .ks-register-id-summary.is-limit > small {
+  color: #e0bc83;
+}
+.ks-auto-app .ks-register-progress {
+  width: 100%;
+  margin: 14px 0 0;
+  padding: 14px 15px;
+  border: 1px solid #34352f;
+  border-radius: 11px;
+  background: #11120f;
+  color: #eeede7;
+  text-align: left;
+}
+.ks-auto-app .ks-register-progress-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+.ks-auto-app .ks-register-progress-top > b {
+  color: #e8e7df;
+  font-weight: 650;
+}
+.ks-auto-app .ks-register-progress-top > span {
+  color: #c6b17e;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.ks-auto-app .ks-register-progress progress {
+  display: block;
+  width: 100%;
+  height: 5px;
+  margin: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: #292a24;
+  color: #d4bd88;
+  accent-color: #d4bd88;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.ks-auto-app .ks-register-progress progress::-webkit-progress-bar {
+  border-radius: 999px;
+  background: #292a24;
+}
+.ks-auto-app .ks-register-progress progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: #d4bd88;
+  transition: width .2s ease;
+}
+.ks-auto-app .ks-register-progress progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: #d4bd88;
+}
+.ks-auto-app .ks-register-progress > small {
+  display: block;
+  margin-top: 9px;
+  color: #d4bd88;
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.ks-auto-app .ks-register-progress > p {
+  margin: 6px 0 0;
+  color: #999a94;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.ks-auto-app .ks-register-box[aria-busy="true"] .ks-register-entry {
+  border-color: #514a37;
+}
+.ks-auto-app .ks-register-box > .ks-submit:disabled {
+  opacity: .78;
+}
+@media (max-width: 640px) {
+  .ks-auto-app .ks-register-entry {
+    min-height: 88px !important;
+    padding: 11px 12px !important;
+  }
+  .ks-auto-app .ks-register-entry textarea {
+    min-height: 64px !important;
+    font-size: 15px !important;
+  }
+  .ks-auto-app .ks-register-id-summary {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .ks-auto-app .ks-register-id-summary > small {
+    text-align: left;
+  }
+  .ks-auto-app .ks-register-progress {
+    padding: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ks-auto-app .ks-register-progress progress::-webkit-progress-value {
+    transition: none !important;
+  }
+}
