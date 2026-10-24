@@ -2,6 +2,7 @@ import React,{useEffect,useRef,useState}from"react";
 import{createRoot}from"react-dom/client";
 import{ExternalLink,Gift,Menu,Search,ShieldCheck,ShieldOff,X,CheckCircle,LoaderCircle,AlertTriangle,Info,OctagonAlert,ArrowRight,Activity,Wrench,WifiOff,UserRound,MessageCircle,LifeBuoy,Image as ImageIcon,RefreshCw,ChevronLeft,ChevronRight}from"lucide-react";
 import{makeSuccessOutcome,makeFailureOutcome,summarizeRegistrationOutcomes,registrationOutcomeHeadline}from"./registration-outcomes.js";import{registrationInputSummary,sanitizeRegistrationInput,validateRegistrationIds}from"./registration-input.js";
+import { playerIdFeedback } from "./player-id-feedback.js";
 import{formatPower,playerDisplayName}from"../lib/player-display.js";
 import"./styles.css";import"./registration-outcomes.css";import"./ux-feedback.css";
 import"./admin-players.css";
@@ -71,22 +72,22 @@ function PlayerMetaLine({player,kingdom}) {
  return <span className="ks-player-meta-line"><span>Power {power}</span><span className="ks-player-meta-separator" aria-hidden="true">·</span><span>Kingdom {kingdom ?? player?.kid ?? player?.kingdom_id ?? "—"}</span><span className="ks-player-meta-separator" aria-hidden="true">·</span><span className="ks-player-meta-tc">TC <TownCenterLevel value={townCenter}/></span></span>;
 }
 function KingshotApp(){
- const [playerId,setPlayerId]=useState(""),[code,setCode]=useState(""),[player,setPlayer]=useState(null),[busy,setBusy]=useState(false),[result,setResult]=useState(null),[error,setError]=useState("");
+ const [playerId,setPlayerId]=useState(""),[code,setCode]=useState(""),[player,setPlayer]=useState(null),[busy,setBusy]=useState(false),[result,setResult]=useState(null),[error,setError]=useState(""),[errorTitle,setErrorTitle]=useState("Couldn’t redeem that code.");
  const manualSubmissionRef=useRef(false);
  useEffect(()=>{const params=new URLSearchParams(window.location.search);const requestedCode=params.get("code");if(requestedCode&&/^[A-Za-z0-9_-]{6,32}$/.test(requestedCode))setCode(requestedCode)},[]);
  const redeem=async e=>{
   e.preventDefault();
   if(manualSubmissionRef.current)return;
   const id=playerId.trim(),gift=code.trim();
-  if(!/^\d{5,20}$/.test(id)){setResult(null);setError("Enter a valid Kingshot Player ID.");return}
-  if(!/^[A-Za-z0-9_-]{6,32}$/.test(gift)){setResult(null);setError("Gift codes must be 6–32 letters, numbers, underscores, or hyphens.");return}
-  manualSubmissionRef.current=true;setBusy(true);setError("");setResult(null);
+  if(!/^\d{5,20}$/.test(id)){setResult(null);setErrorTitle("Check Player ID");setError("Use the numeric Player ID shown in Kingshot under Profile → Info. It must contain 5–20 digits; your kingdom number is different.");return}
+  if(!/^[A-Za-z0-9_-]{6,32}$/.test(gift)){setResult(null);setErrorTitle("Check gift code");setError("Gift codes must be 6–32 letters, numbers, underscores, or hyphens.");return}
+  manualSubmissionRef.current=true;setBusy(true);setError("");setErrorTitle("Couldn’t redeem that code.");setResult(null);
   try{
    let p=player;
    if(!p||String(p.governor_id||p.fid||p.id)!==id){
     const pr=await fetch("/api/kingshot-player?id="+encodeURIComponent(id),{signal:AbortSignal.timeout(15000)});
     const pd=await pr.json().catch(()=>({}));
-    if(!pr.ok)throw Error(pd.error||"Could not find this player.");
+    if(!pr.ok)throw Object.assign(new Error(pd.error||"Could not find this player."),{code:pd.code,status:pr.status});
     p=pd.player||pd;setPlayer(p);
    }
    const r=await fetch("/api/kingshot-redeem",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({playerId:id,code:gift,kid:String(p.kid??"")}),signal:AbortSignal.timeout(40000)});
@@ -97,8 +98,10 @@ function KingshotApp(){
    }else if(!r.ok)throw Error(d.error||"Redemption failed.");
    else setResult(d);
   }catch(e){
+   const issue=playerIdFeedback(e?.code,e?.message);
    const timedOut=e?.name==="TimeoutError"||e?.name==="AbortError";
-   setError(timedOut?"The request timed out. It was not retried automatically because Kingshot may already have received it. Check in-game mail before submitting again.":e.message||"Redemption failed.");
+   if(issue){setErrorTitle(issue.title);setError(issue.message)}
+   else{setErrorTitle(timedOut?"Request timed out":"Couldn’t redeem that code.");setError(timedOut?"The request timed out. It was not retried automatically because Kingshot may already have received it. Check in-game mail before submitting again.":e.message||"Redemption failed.")}
   }finally{manualSubmissionRef.current=false;setBusy(false)}
  };
 
@@ -112,12 +115,12 @@ function KingshotApp(){
  <form className="ks-form manual-redeem-form" onSubmit={redeem}>
   <div className="manual-form-head"><div><span className="manual-form-kicker">01 · PLAYER DETAILS</span><h2>Your details</h2><p>We’ll look up your player before sending the code.</p></div><span className="manual-secure"><ShieldCheck size={14}/> Server-side</span></div>
   <div className="manual-fields">
-   <div className="ks-field manual-field-card"><label htmlFor="manual-player-id"><span>Player ID</span><i>01</i></label><div><Search size={16}/><input id="manual-player-id" inputMode="numeric" required minLength={5} maxLength={20} pattern="[0-9]{5,20}" aria-describedby="manual-player-help" enterKeyHint="next" autoComplete="off" value={playerId} onChange={e=>{setPlayerId(e.target.value.replace(/\D/g,""));setPlayer(null);setResult(null)}} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();document.getElementById("manual-gift-code")?.focus()}}} placeholder="e.g. 43180889"/></div><small id="manual-player-help">Your Player ID is different from your kingdom number.</small></div>
-   <div className="ks-field manual-field-card"><label htmlFor="manual-gift-code"><span>Gift code</span><i>02</i></label><div><Gift size={16}/><input id="manual-gift-code" required minLength={6} maxLength={32} pattern="[A-Za-z0-9_-]{6,32}" aria-describedby="manual-code-help" value={code} onChange={e=>setCode(e.target.value.replace(/\s/g,""))} placeholder="e.g. Hangul2026" autoCapitalize="none" autoComplete="off" spellCheck="false" enterKeyHint="done"/></div><small id="manual-code-help">6–32 letters, numbers, underscores, or hyphens.</small></div>
+   <div className="ks-field manual-field-card"><label htmlFor="manual-player-id"><span>Player ID</span><i>01</i></label><div><Search size={16}/><input id="manual-player-id" inputMode="numeric" required minLength={5} maxLength={20} pattern="[0-9]{5,20}" aria-describedby="manual-player-help" enterKeyHint="next" autoComplete="off" value={playerId} onChange={e=>{setPlayerId(e.target.value.replace(/\D/g,""));setPlayer(null);setResult(null);setError("");setErrorTitle("Couldn’t redeem that code.")}} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();document.getElementById("manual-gift-code")?.focus()}}} placeholder="e.g. 43180889"/></div><small id="manual-player-help">Your Player ID is different from your kingdom number.</small></div>
+   <div className="ks-field manual-field-card"><label htmlFor="manual-gift-code"><span>Gift code</span><i>02</i></label><div><Gift size={16}/><input id="manual-gift-code" required minLength={6} maxLength={32} pattern="[A-Za-z0-9_-]{6,32}" aria-describedby="manual-code-help" value={code} onChange={e=>{setCode(e.target.value.replace(/\s/g,""));setError("");setErrorTitle("Couldn’t redeem that code.")}} placeholder="e.g. Hangul2026" autoCapitalize="none" autoComplete="off" spellCheck="false" enterKeyHint="done"/></div><small id="manual-code-help">6–32 letters, numbers, underscores, or hyphens.</small></div>
   </div>
   <div className="manual-submit-row"><span>Your game password is never requested.</span><button className="ks-submit manual-submit" disabled={busy}>{busy?<><span className="manual-spinner" aria-hidden="true"><span></span><LoaderCircle size={15}/></span><span className="manual-submit-label"><strong>Processing</strong><small>Sending securely…</small></span></>:<><Gift size={16}/> Redeem code</>}</button></div>
  </form>
- {error&&<div className="ks-error" role="alert" aria-live="assertive"><b>Couldn’t redeem that code.</b><span>{error}</span></div>}
+ {error&&<div className="ks-error" role="alert" aria-live="assertive"><b>{errorTitle}</b><span>{error}</span></div>}
  {player&&!result&&<div className="ks-player"><KingshotAvatar playerId={playerId||player?.fid||player?.governor_id} avatarUrl={player.avatar_url} size={38} initials={(player.nick_name||"K").slice(0,1)}/><div><b>{playerDisplayName(player,"Kingshot Player")}</b><PlayerMetaLine player={player}/></div><CheckCircle size={17}/></div>}
  {result&&(()=>{const status=String(result.status||"").toUpperCase();const meta=manualResultMeta(status);const Icon=meta.Icon;const success=status==="SUCCESS";const playerLabel=playerDisplayName(player||{},"Kingshot Player");const kingdomLabel=player?.kid??"—";const giftCode=String(code||"").trim();const rawMessage=String(result.message||result.error||"").trim();const safeRawMessage=rawMessage&&(!giftCode||!rawMessage.toLowerCase().includes(giftCode.toLowerCase()))&&rawMessage.toLowerCase()!==String(meta.label).toLowerCase()?rawMessage:"The request could not be completed. Try again shortly.";const summary=success?"Check your in-game mail for the rewards.":(status==="RECEIVED"||status==="SAME TYPE EXCHANGE")?"This code has already been claimed on this account.":status==="TIME_ERROR"?"This code has expired.":status==="CDK_NOT_FOUND"?"This code was not recognized. Check its spelling. The attempt is finished and will not be retried automatically.":status==="USAGE_LIMIT"?"Kingshot recognized this code, but its redemption limit has been reached. This is a limit result, not an invalid-code rejection.":status==="ROLE_NOT_EXIST"?"Check the Player ID and try again.":status==="STATE_MISMATCH"?"This code is not available in this player’s kingdom.":(status==="SIGN_ERROR"||status==="LOGIN_EXPIRED_MID_PROCESS")?"Redemption is temporarily unavailable. Try again shortly.":status==="TIMEOUT_RETRY"?"Kingshot asked for a cooldown. This attempt is finished; wait before choosing to submit again.":status==="INVALID_INPUT"?(result.message||"Check the Player ID and gift code format."):safeRawMessage;return <article className={"ks-result ks-result-"+meta.tone+" ks-result-compact"} key={status+"-"+String(result.errCode||"")} role="status" aria-live="polite"><div className="ks-result-identity"><KingshotAvatar playerId={playerId||player?.fid||player?.governor_id} avatarUrl={player?.avatar_url} size={50} initials={(playerLabel||"K").slice(0,1)}/><div className="ks-result-player"><b>{playerLabel}</b><PlayerMetaLine player={player||{}} kingdom={kingdomLabel}/></div></div><div className="ks-result-copy"><span className="ks-result-kicker">REDEMPTION RESULT</span><div className="ks-result-status"><Icon size={17} aria-hidden="true"/><b>{meta.label}</b></div><p>{summary}</p></div></article>})()}
  </section><section className="ks-how" id="how"><div className="section-title"><span>01</span><h2>How redemption works</h2></div><div className="feature-grid"><article><Search/><b>1. Find your player</b><p>Your Player ID is used to retrieve the current kingdom before redemption.</p></article><article><Gift/><b>2. Submit the code</b><p>The redemption request is signed server-side. Your signing secret is never exposed.</p></article><article><CheckCircle/><b>3. Get the result</b><p>We translate the game API response into a clear redemption status.</p></article></div></section></main><footer><KsLogo/><span>Independent Kingshot community service. Not affiliated with Century Games.</span><span><a href="/info">How it works</a> · <a href="/terms?service=kingshot-manual">Terms</a> · <a href="/privacy?service=kingshot-manual">Privacy</a></span></footer></div>
