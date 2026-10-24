@@ -11,7 +11,7 @@ function isTimeout(error: unknown): boolean {
 export async function handleV3PlayerLookup(req: V3Request, res: V3Response, id: string, auth: V3AuthorizationContext): Promise<void> {
   const playerId = normalizeV3PlayerId(queryValue(req, "id"));
   if (!playerId) {
-    sendError(res, 400, "invalid_player_id", "The playerId path parameter must contain 5–20 digits.", id, { rateLimit: auth.rateLimit });
+    sendError(res, 400, "invalid_player_id", "The playerId path parameter must contain 5–20 digits. Copy the ID from Kingshot Profile → Info; do not use the kingdom number.", id, { rateLimit: auth.rateLimit });
     return;
   }
   try {
@@ -41,7 +41,7 @@ export async function handleV3PlayerLookup(req: V3Request, res: V3Response, id: 
     const typed = error as { status?: number; message?: string } | null;
     const status = typed?.status;
     if (status === 404) {
-      sendError(res, 404, "player_not_found", "The player lookup provider could not find this player.", id, { rateLimit: auth.rateLimit });
+      sendError(res, 404, "player_not_found", "No player was found for this ID. Check it in Kingshot under Profile → Info; if the ID is correct, try again shortly.", id, { rateLimit: auth.rateLimit });
     } else if (status === 429) {
       sendError(res, 503, "upstream_rate_limited", "The player lookup provider is temporarily rate-limited. Try again shortly.", id, { rateLimit: auth.rateLimit });
     } else if (status === 401 || status === 403) {
