@@ -1,9 +1,9 @@
 // Keep the worker's durable-history interpretation in one testable place.
 // Normalize legacy enum spellings and persisted human-readable status labels to
-// the same key. The upstream may return STOVE_LV ERROR while Postgres stores
-// STOVE LV ERROR; both must suppress repeat attempts for that player/code.
+// the same key. The upstream may return "STOVE_LV ERROR" while Postgres stores
+// "STOVE LV ERROR"; both must suppress repeat attempts for that player/code.
 const normalizeRedemptionStatus = (value: unknown): string =>
-  String(value ?? "").trim().toUpperCase().replace(/_/g, " ").replace(/\\s+/g, " ");
+  String(value ?? "").trim().toUpperCase().replace(/_/g, " ").replace(/\s+/g, " ");
 
 export const HANDLED_REDEMPTION_STATUSES = new Set([
   "SUCCESS",
