@@ -18,17 +18,19 @@ function writeProfileChipCache(value){
 export default function PublicAccountChip(){
  const [account,setAccount]=useState(()=>readProfileChipCache());
  useEffect(()=>{
-  let live=true,running=false;
+  let live=true;
+  let requestVersion=0;
   const load=async()=>{
-   if(running)return;
-   running=true;
+   // A newer refresh wins over an older in-flight response. This prevents a
+   // pre-logout response from restoring the cached avatar after sign-out.
+   const version=++requestVersion;
    try{
     const [pr,dr]=await Promise.all([
      fetch("/api/kingshot-player?developer=account-auth",{method:"POST",credentials:"same-origin",cache:"no-store",headers:{"content-type":"application/json"},body:JSON.stringify({action:"profile-check"})}),
      fetch("/api/kingshot-player?developer=account-auth",{credentials:"same-origin",cache:"no-store"})
     ]);
     const p=await pr.json().catch(()=>({})),d=await dr.json().catch(()=>({}));
-    if(!live)return;
+    if(!live||version!==requestVersion)return;
     if(p.authenticated&&p.user){
      const next={...p.user,kind:p.kind||p.user.kind||(p.role==="developer"?"developer":"user"),role:p.role||p.user.role||"user"};
      setAccount(next);writeProfileChipCache(next);
@@ -39,16 +41,22 @@ export default function PublicAccountChip(){
      setAccount(null);writeProfileChipCache(null);
     }
    }catch{
-    // Keep the last known chip visible during transient network failures.
-   }finally{running=false}
+    // Keep the last known state during transient network failures, unless a
+    // newer sign-in/sign-out refresh has superseded this request.
+   }
+  };
+  const refresh=()=>{
+   // Reflect the shared profile cache immediately, especially after logout.
+   setAccount(readProfileChipCache());
+   void load();
   };
   void load();
-  const refresh=()=>void load();
   window.addEventListener("focus",refresh);
   window.addEventListener("ks-profile-updated",refresh);
   const timer=window.setInterval(load,30000);
   return()=>{
-   live=false;window.clearInterval(timer);
+   live=false;requestVersion++;
+   window.clearInterval(timer);
    window.removeEventListener("focus",refresh);
    window.removeEventListener("ks-profile-updated",refresh);
   };
