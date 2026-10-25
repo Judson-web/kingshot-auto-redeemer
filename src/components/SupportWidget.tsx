@@ -50,10 +50,54 @@ async function syncSupportPush(c:Saved,createIfMissing:boolean){
  await request(API,{method:"POST",body:JSON.stringify({action:"support-push-subscribe",conversationId:c.conversationId,token:c.token,subscription:subscription.toJSON()})});
  return true;
 }
-function notifyReply(c:Saved){if(typeof Notification==="undefined"||Notification.permission!=="granted")return;const options={body:"You have a new reply in your support conversation.",tag:"support-reply-"+c.conversationId,data:{url:"/"}};if("serviceWorker"in navigator){navigator.serviceWorker.getRegistration().then(reg=>{if(reg)reg.showNotification("Kingshot support replied",options);else new Notification("Kingshot support replied",options)}).catch(()=>{})}else new Notification("Kingshot support replied",options)}
+function notificationPreview(message:Msg){
+ const body=String(message?.body||"").replace(/\\s+/g," ").trim();
+ if(body&&body.toLowerCase()!=="photo attachment")return body.length>160?body.slice(0,157).trimEnd()+"…":body;
+ const name=String(message?.attachment_name||"").replace(/[\\r\\n]+/g," ").trim().slice(0,90);
+ return name?"Photo attached: "+name:message?.attachment_url?"Support attached an image.":"Support sent a new reply.";
+}
+function notifyReply(c:Saved,message:Msg){
+ if(typeof Notification==="undefined"||Notification.permission!=="granted")return;
+ const subject=String(c.subject||"Support conversation").trim();
+ const title=("Support replied · "+subject).slice(0,100);
+ const ticket=String(c.supportTicketId||"").trim();
+ const preview=notificationPreview(message);
+ const body=(ticket?"Ticket "+ticket+" · ":"")+preview;
+ const url="/?supportConversation="+encodeURIComponent(c.conversationId);
+ const options:NotificationOptions & {image?:string;actions?:Array<{action:string;title:string}>}={
+  body:body.slice(0,220),
+  icon:"/icons/icon-192.svg",
+  badge:"/icons/icon-192.svg",
+  tag:"support-reply-"+c.conversationId,
+  renotify:true,
+  timestamp:Date.parse(message?.created_at||"")||Date.now(),
+  data:{url},
+  actions:[{action:"open-support",title:"Open conversation"},{action:"dismiss",title:"Dismiss"}]
+ };
+ if(message?.attachment_url){try{const image=new URL(message.attachment_url);if(image.protocol==="https:"&&!image.username&&!image.password)options.image=image.href}catch{}}
+ if("serviceWorker"in navigator){
+  navigator.serviceWorker.getRegistration().then(reg=>{
+   if(reg)void reg.showNotification(title,options).catch(()=>{});
+   else new Notification(title,options);
+  }).catch(()=>{});
+ }else new Notification(title,options);
+}
 export default function SupportWidget({maintenanceMode=false}: {maintenanceMode?:boolean}){
  const[pushEnabled,setPushEnabled]=useState(false),[pushBusy,setPushBusy]=useState(false),[open,setOpen]=useState(false),[topicMenuOpen,setTopicMenuOpen]=useState(false),[playerId,setPlayerId]=useState(""),[subject,setSubject]=useState(""),[topic,setTopic]=useState(()=>getPageContext().topic),[pageContext,setPageContext]=useState<PageContext>(()=>getPageContext()),[message,setMessage]=useState(""),[busy,setBusy]=useState(false),[refreshing,setRefreshing]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState(""),[conversation,setConversation]=useState<Saved|null>(null),[messages,setMessages]=useState<Msg[]>([]),[unread,setUnread]=useState(0),[attachment,setAttachment]=useState<File|null>(null),[attachmentPreview,setAttachmentPreview]=useState(""),fileInput=React.useRef<HTMLInputElement>(null),messagesViewportRef=React.useRef<HTMLDivElement>(null),chatScrollStateRef=React.useRef({conversationId:"",count:0}),rootRef=React.useRef<HTMLDivElement>(null),triggerRef=React.useRef<HTMLButtonElement>(null),closeButtonRef=React.useRef<HTMLButtonElement>(null),panelRef=React.useRef<HTMLElement>(null),restoreFocusRef=React.useRef(false),supportReturnFocusRef=React.useRef<HTMLElement|null>(null),topicMenuRef=React.useRef<HTMLDivElement>(null);
- useEffect(()=>{setConversation(saved())},[]);
+ useEffect(()=>{
+  const current=saved();
+  let shouldOpen=false;
+  try{
+   const url=new URL(window.location.href),requested=url.searchParams.get("supportConversation");
+   if(current&&requested===current.conversationId){
+    shouldOpen=true;
+    url.searchParams.delete("supportConversation");
+    window.history.replaceState(window.history.state,"",url.pathname+url.search+url.hash);
+   }
+  }catch{}
+  setConversation(current);
+  if(shouldOpen)setOpen(true);
+ },[]);
  useEffect(()=>{if(!open)return;const previous=document.body.style.overflow;document.body.style.overflow="hidden";return()=>{document.body.style.overflow=previous}},[open]);
  useEffect(()=>{if(!notice)return;const timer=window.setTimeout(()=>setNotice(""),2800);return()=>window.clearTimeout(timer)},[notice]);
  useEffect(()=>{const openRemoval=(event:Event)=>{const detail=(event as CustomEvent<{playerId?:string}>).detail||{};setPageContext(getPageContext());setOpen(true);setConversation(null);setMessages([]);try{localStorage.removeItem(STORAGE)}catch{}setTopic("Registration removal");setSubject("Registration removal request");setPlayerId(String(detail.playerId||"").replace(/\D/g,"").slice(0,20));setMessage("");setAttachment(null);setAttachmentPreview("");setError("");setNotice("");setUnread(0)};const openGeneral=(event:Event)=>{const base=getPageContext(),detail=(event as CustomEvent<{topic?:string;subject?:string;pageTitle?:string;returnFocus?:HTMLElement}>).detail||{};supportReturnFocusRef.current=detail.returnFocus instanceof HTMLElement?detail.returnFocus:null;const next={...base,title:typeof detail.pageTitle==="string"?detail.pageTitle:base.title,topic:TOPICS.includes(String(detail.topic))?String(detail.topic):base.topic};setPageContext(next);setTopic(next.topic);if(typeof detail.subject==="string")setSubject(detail.subject.slice(0,120));setOpen(true);setError("");setNotice("")};window.addEventListener("ks-support-registration-removal",openRemoval);window.addEventListener("ks-support-open",openGeneral);return()=>{window.removeEventListener("ks-support-registration-removal",openRemoval);window.removeEventListener("ks-support-open",openGeneral)}},[]);
@@ -113,7 +157,7 @@ export default function SupportWidget({maintenanceMode=false}: {maintenanceMode?
      setUnread(count);
      const lastNotified=storedId(notifiedKey),newest=next.filter(m=>m.sender==="admin").reduce<Msg|null>((a,m)=>!a||m.id>a.id?m:a,null);
      if(newest&&Number(newest.id)>seen&&Number(newest.id)>lastNotified&&typeof Notification!=="undefined"&&Notification.permission==="granted"){
-      notifyReply(conversation);saveId(notifiedKey,Number(newest.id));
+      notifyReply(conversation,newest);saveId(notifiedKey,Number(newest.id));
      }
     }
     setMessages(next);setError("");
@@ -151,7 +195,7 @@ export default function SupportWidget({maintenanceMode=false}: {maintenanceMode?
    {unread>0&&<span className="support-unread-badge" aria-label={unread+" unread support replies"}>{unread>9?"9+":unread}</span>}
    <span className="support-float-trigger-label">Support</span>
   </button>}
-  {open&&<><div className="support-float-backdrop" aria-hidden="true" onClick={event=>{if(event.target===event.currentTarget){restoreFocusRef.current=true;setOpen(false)}}}/><section ref={panelRef} className={"support-float-panel support-chat-panel "+(conversation?"support-chat-panel-thread":"support-chat-panel-new")} role="dialog" aria-modal="true" aria-labelledby="support-dialog-title" aria-describedby="support-dialog-description">
+  {open&&<><div className="support-float-backdrop" aria-hidden="true" onClick={event=>{if(event.target===event.currentTarget){restoreFocusRef.current=true;setOpen(false)}}}/><section ref={panelRef} className={"support-float-panel support-chat-panel "+(conversation?"support-chat-panel-thread"+(messages.length<=3?" support-chat-panel-thread-compact":""):"support-chat-panel-new")} role="dialog" aria-modal="true" aria-labelledby="support-dialog-title" aria-describedby="support-dialog-description">
    <header className="support-float-head"><span className="support-float-icon"><LifeBuoy size={18}/></span><div className="support-head-copy"><b id="support-dialog-title">{conversation?(conversation.subject||"Support conversation"):"Support centre"}</b><small id="support-dialog-description"><i className="support-live-dot" aria-hidden="true"/>{conversation?(conversation.supportTicketId?"REMOVAL · "+conversation.supportTicketId.slice(0,8).toUpperCase():"PRIVATE SUPPORT"):"PRIVATE SUPPORT"}</small></div><button ref={closeButtonRef} className="support-drawer-close" type="button" aria-label="Close support chat" title="Close support chat" onClick={()=>{restoreFocusRef.current=true;setOpen(false)}}><X size={17}/></button></header>
    {conversation&&<div className="support-chat-toolbar" role="group" aria-label="Conversation controls"><div className="support-chat-toolbar-status"><span className="support-thread-state"><i/>{messages.length&&messages[messages.length-1]?.sender==="admin"?"Support replied":"In progress"}</span><span className="support-chat-message-total">{messages.length} {messages.length===1?"message":"messages"}</span></div><div className="support-chat-toolbar-actions"><button type="button" disabled={refreshing} onClick={refresh} aria-label="Refresh conversation" title="Refresh conversation">{refreshing?<LoaderCircle size={17} className="support-float-spin"/>:<RefreshCw size={17}/>}</button>{!pushEnabled&&<button type="button" className="support-push-enable" disabled={pushBusy} onClick={enableReplyNotifications} aria-label="Enable reply notifications" title="Enable reply notifications">{pushBusy?<LoaderCircle size={17} className="support-float-spin"/>:<BellRing size={17}/>}</button>}{pushEnabled&&<span className="support-push-enabled" title="Reply notifications are enabled" aria-label="Reply notifications enabled"><BellRing size={16}/></span>}<button type="button" onClick={newConversation} aria-label="Start a new conversation" title="New conversation"><ArrowLeft size={17}/><span>New chat</span></button></div></div>}
    <div className={"support-float-body"+(conversation?" support-chat-active":"")}>
