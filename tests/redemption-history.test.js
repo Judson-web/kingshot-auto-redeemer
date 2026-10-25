@@ -7,10 +7,12 @@ test("normalizes persisted statuses and code keys without changing display casin
     { gift_code: "Hangul2026", status: "success" },
     { gift_code: " WELLDONE ", status: "USER INFO ERROR" },
     { gift_code: "VIP777", status: "stove_lv error" },
+    { gift_code: "KS1025", status: "STOVE LV ERROR" },
+    { gift_code: "PROFILE1", status: "user_info_error" },
     { gift_code: "Kingshot888", status: "TIMEOUT_RETRY" },
     null
   ]);
-  assert.deepEqual([...handled].sort(), ["HANGUL2026", "VIP777", "WELLDONE"]);
+  assert.deepEqual([...handled].sort(), ["HANGUL2026", "KS1025", "PROFILE1", "VIP777", "WELLDONE"]);
 });
 
 test("treats concierge recharge-money errors as handled for that player only", () => {
@@ -31,11 +33,11 @@ test("moves to the next code after a handled player-specific error", () => {
   assert.equal(selectNextOutstandingCode(codes, handled)?.code, "WELLDONE");
 });
 
-test("returns no candidate when all available codes are handled", () => {
+test("returns no candidate when all available codes are handled, including persisted spaced statuses", () => {
   const codes = [{ code: "Hangul2026" }, { code: "WELLDONE" }];
   const handled = getHandledGiftCodes([
     { gift_code: "Hangul2026", status: "SUCCESS" },
-    { gift_code: "WELLDONE", status: "STOVE_LV ERROR" }
+    { gift_code: "WELLDONE", status: "STOVE LV ERROR" }
   ]);
   assert.equal(selectNextOutstandingCode(codes, handled), undefined);
 });
