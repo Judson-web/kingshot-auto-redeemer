@@ -48,6 +48,6 @@ export default function LegalApp({type}){
    <p className="legal-note">This page is a plain-language description of current service practices and rules, not legal advice. Applicable legal rights and obligations depend on the circumstances and the laws that apply to you.</p>
    </section>
   </main>
-  <footer><a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={BRAND_ICON} alt="Kingshot Redeemer"/></span><span>Kingshot Redeemer</span></a><span>Independent community service</span><span><a href={"/terms?service="+serviceKey}>Terms</a> · <a href={"/privacy?service="+serviceKey}>Privacy</a></span></footer>
+  <footer><a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={BRAND_ICON} alt="Kingshot Redeemer"/></span><span>Kingshot Redeemer</span></a><span>Independent community service · Maintained by Judson</span><span><a href="https://discord.com/users/871756466900598815" target="_blank" rel="noopener noreferrer">Developer contact</a> · <a href={"/terms?service="+serviceKey}>Terms</a> · <a href={"/privacy?service="+serviceKey}>Privacy</a></span></footer>
  </div>;
 }
