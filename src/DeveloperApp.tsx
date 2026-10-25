@@ -164,15 +164,15 @@ console.log(result.data.playerId, result.data.name);`;
                 <span className="dev-maintainer-identity-copy"><b>{DEVELOPER_NAME}</b><span className="dev-maintainer-handle-row"><small>@{maintainerHandle}</small><CopyButton value={"@" + maintainerHandle} label="Copy"/></span></span>
               </div>
               <div className="dev-maintainer-actions">
-                <a className="dev-maintainer-discord" href={DEVELOPER_DISCORD_URL} target="_blank" rel="noopener noreferrer" aria-label={"Open " + DEVELOPER_NAME + "'s Discord profile in a new tab"}><MessageCircle size={15}/> Contact on Discord <ExternalLink size={13}/></a>
+                <a className="dev-maintainer-discord" href={DEVELOPER_DISCORD_URL} target="_blank" rel="noopener noreferrer" aria-describedby="maintainer-contact-note" aria-label={"Open " + DEVELOPER_NAME + "'s Discord profile in a new tab"}><MessageCircle size={15}/> Open Discord profile <ExternalLink size={13}/></a>
               </div>
             </div>
-            <p className="dev-maintainer-note"><ShieldCheck size={15}/><span>Direct messages depend on Discord privacy settings. For private account, registration, or redemption issues, use the in-app Support Centre so the request stays trackable. Never share passwords, API keys, session tokens, or sign-in codes.</span></p>
+            <p className="dev-maintainer-note" id="maintainer-contact-note"><ShieldCheck size={15}/><span><b>Developer contact only.</b> This opens Judson’s Discord profile; it does not sign you in or create an account. Direct messages depend on Discord privacy settings. For account or redemption issues, use the in-app Support Centre. Never share passwords, API keys, or sign-in codes.</span></p>
           </section>
           </div>
         </div>
       </div>
-      <footer className="dev-footer"><span>API v3 · Supported developer API · V1 routes deprecated · Maintained by {DEVELOPER_NAME}</span><a href="#maintainer-contact">Maintainer & contact</a><a href={DEVELOPER_DISCORD_URL} target="_blank" rel="noopener noreferrer">Contact {DEVELOPER_NAME} on Discord</a><a href="/developer.md">Plain-text docs for crawlers and integrations</a><a href="/openapi.json">OpenAPI specification</a><a href="/info" style={{display:"inline-flex",alignItems:"center",gap:5}}>Service overview <ExternalLink size={12}/></a><a href="/privacy?service=kingshot-auto" style={{color:"inherit"}}>Privacy</a></footer>
+      <footer className="dev-footer"><span>API v3 · Supported developer API · V1 routes deprecated · Maintained by {DEVELOPER_NAME}</span><a href="#maintainer-contact">Maintainer & contact</a><a href={DEVELOPER_DISCORD_URL} target="_blank" rel="noopener noreferrer">Developer contact (Discord)</a><a href="/developer.md">Plain-text docs for crawlers and integrations</a><a href="/openapi.json">OpenAPI specification</a><a href="/info" style={{display:"inline-flex",alignItems:"center",gap:5}}>Service overview <ExternalLink size={12}/></a><a href="/privacy?service=kingshot-auto" style={{color:"inherit"}}>Privacy</a></footer>
     </main>
   </div>;
 }

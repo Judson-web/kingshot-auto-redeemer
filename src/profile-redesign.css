@@ -751,3 +751,63 @@
     padding: 9px 0 !important;
   }
 }
+
+/* Neutral separation between Discord account authentication and developer contact. */
+.profile-page.profile-page-refined .profile-login-purpose {
+  display: block !important;
+  max-width: 42ch !important;
+  margin: 10px 0 0 !important;
+  color: #92938b !important;
+  font-size: 10px !important;
+  line-height: 1.55 !important;
+}
+.profile-page.profile-page-refined .profile-developer-contact {
+  display: flex !important;
+  align-items: center !important;
+  gap: 11px !important;
+  margin: 18px 0 0 !important;
+  padding: 13px !important;
+  border: 1px solid #302f29 !important;
+  border-radius: 12px !important;
+  background: #11120f !important;
+  color: #eeede6 !important;
+}
+.profile-page.profile-page-refined .profile-developer-contact > svg {
+  flex: 0 0 auto !important;
+  color: #c9b37e !important;
+}
+.profile-page.profile-page-refined .profile-developer-contact > div {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+.profile-page.profile-page-refined .profile-developer-contact > div b {
+  display: block !important;
+  color: #e8e5db !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  line-height: 1.45 !important;
+}
+.profile-page.profile-page-refined .profile-developer-contact > div p {
+  margin: 3px 0 0 !important;
+  color: #999990 !important;
+  font-size: 10px !important;
+  line-height: 1.5 !important;
+}
+.profile-page.profile-page-refined .profile-developer-contact > a {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 5px !important;
+  flex: 0 0 auto !important;
+  color: #dcc794 !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  line-height: 1.4 !important;
+  text-decoration: none !important;
+}
+.profile-page.profile-page-refined .profile-developer-contact > a:hover { color: #f0dca8 !important; text-decoration: underline !important; }
+.profile-page.profile-page-refined .profile-developer-contact > a:focus-visible { outline: 2px solid #d4bd88 !important; outline-offset: 3px !important; border-radius: 3px !important; }
+@media (max-width: 560px) {
+  .profile-page.profile-page-refined .profile-developer-contact { display: grid !important; grid-template-columns: 18px minmax(0, 1fr) !important; align-items: start !important; gap: 8px 10px !important; padding: 12px !important; }
+  .profile-page.profile-page-refined .profile-developer-contact > a { grid-column: 2 !important; justify-content: flex-start !important; min-height: 30px !important; }
+}

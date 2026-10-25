@@ -1073,3 +1073,27 @@
   .dev-dashboard.ks-dev-route .dev-maintainer-note { font-size: 10px !important; }
 }
 @media (prefers-reduced-motion: reduce) { .dev-dashboard.ks-dev-route .dev-maintainer-avatar { transition: none !important; } }
+/* Override the generic .dev-card anchor color so the gold CTA never looks disabled. */
+.dev-dashboard.ks-dev-route .dev-doc-grid > .dev-maintainer-card .dev-maintainer-actions a.dev-maintainer-discord:not(.dev-nav-link),
+.dev-dashboard.ks-dev-route .dev-doc-grid > .dev-maintainer-card .dev-maintainer-actions a.dev-maintainer-discord:not(.dev-nav-link):visited {
+  color: #20180b !important;
+  -webkit-text-fill-color: #20180b !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+  background: #d4bd88 !important;
+  border-color: #c5a96c !important;
+  font-weight: 800 !important;
+}
+.dev-dashboard.ks-dev-route .dev-doc-grid > .dev-maintainer-card .dev-maintainer-actions a.dev-maintainer-discord:not(.dev-nav-link) svg {
+  color: #20180b !important;
+  stroke: currentColor !important;
+  opacity: 1 !important;
+}
+.dev-dashboard.ks-dev-route .dev-doc-grid > .dev-maintainer-card .dev-maintainer-actions a.dev-maintainer-discord:not(.dev-nav-link):hover,
+.dev-dashboard.ks-dev-route .dev-doc-grid > .dev-maintainer-card .dev-maintainer-actions a.dev-maintainer-discord:not(.dev-nav-link):focus-visible {
+  color: #171208 !important;
+  -webkit-text-fill-color: #171208 !important;
+  background: #e5d09e !important;
+  border-color: #f0dbab !important;
+}
+.dev-dashboard.ks-dev-route .dev-maintainer-note b { color: #d9d1bb !important; font-weight: 750 !important; }
