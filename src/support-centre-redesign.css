@@ -1303,3 +1303,15 @@
     max-height: 82px !important;
   }
 }
+
+
+/* The full-height thread state must dock from the bottom too; older rules anchored it to the top. */
+@media (max-width: 600px) {
+  .support-float-panel.support-chat-panel.support-chat-panel-thread:not(.support-chat-panel-thread-compact) {
+    top: auto !important;
+    right: 10px !important;
+    bottom: max(12px, env(safe-area-inset-bottom, 0px)) !important;
+    left: 10px !important;
+    max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
