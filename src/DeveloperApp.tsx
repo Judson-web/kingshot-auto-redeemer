@@ -11,6 +11,7 @@ const DEVELOPER_NAME = "Judson";
 const DEVELOPER_DISCORD_USERNAME = "judson00713";
 const DEVELOPER_DISCORD_ID = "871756466900598815";
 const DEVELOPER_DISCORD_URL = "https://discord.com/users/" + DEVELOPER_DISCORD_ID;
+type MaintainerDiscordProfile = { id: string; username?: string; globalName?: string | null; avatar?: string | null; animated?: boolean; avatarUrl?: string | null; format?: string; };
 const endpoint = ORIGIN + "/api/v3/players/43180889";
 const curlExample = 'curl "' + endpoint + '" \\\n  -H "Authorization: Bearer YOUR_API_KEY"';
 
@@ -20,6 +21,33 @@ function CopyButton({ value, label = "Copy" }: { value: string; label?: string }
 }
 
 export default function DeveloperApp() {
+  const [maintainerProfile, setMaintainerProfile] = useState<MaintainerDiscordProfile | null>(null);
+  const [maintainerAvatarFailed, setMaintainerAvatarFailed] = useState(false);
+  useEffect(() => {
+    let active = true;
+    let version = 0;
+    const loadProfile = async () => {
+      const currentVersion = ++version;
+      try {
+        const response = await fetch("/api/discord-user?id=" + encodeURIComponent(DEVELOPER_DISCORD_ID), { credentials: "same-origin", cache: "no-store" });
+        if (!response.ok) return;
+        const profile = await response.json();
+        if (!active || currentVersion !== version || String(profile?.id || "") !== DEVELOPER_DISCORD_ID || typeof profile?.username !== "string") return;
+        setMaintainerProfile({ id: DEVELOPER_DISCORD_ID, username: profile.username.slice(0, 32), globalName: typeof profile.globalName === "string" ? profile.globalName.slice(0, 80) : null, avatar: typeof profile.avatar === "string" ? profile.avatar : null, animated: profile.animated === true, avatarUrl: typeof profile.avatarUrl === "string" ? profile.avatarUrl : null, format: typeof profile.format === "string" ? profile.format : "png" });
+      } catch { /* The monogram remains available if Discord profile lookup is temporarily unavailable. */ }
+    };
+    void loadProfile();
+    const onFocus = () => { void loadProfile(); };
+    window.addEventListener("focus", onFocus);
+    return () => { active = false; version++; window.removeEventListener("focus", onFocus); };
+  }, []);
+  const maintainerHandle = maintainerProfile?.username || DEVELOPER_DISCORD_USERNAME;
+  const avatarHash = typeof maintainerProfile?.avatar === "string" && /^[A-Za-z0-9_]{20,80}$/.test(maintainerProfile.avatar) ? maintainerProfile.avatar : "";
+  const avatarFormat = avatarHash.startsWith("a_") || maintainerProfile?.animated ? "gif" : "png";
+  let fallbackAvatarUrl = "";
+  try { const candidate = new URL(String(maintainerProfile?.avatarUrl || "")); if (candidate.protocol === "https:" && candidate.hostname === "cdn.discordapp.com" && !candidate.username && !candidate.password) fallbackAvatarUrl = candidate.href; } catch { /* Ignore untrusted or malformed profile URLs. */ }
+  const maintainerAvatarSrc = avatarHash ? "/api/discord-avatar?id=" + encodeURIComponent(DEVELOPER_DISCORD_ID) + "&hash=" + encodeURIComponent(avatarHash) + "&format=" + avatarFormat + "&size=128" : fallbackAvatarUrl;
+  useEffect(() => { setMaintainerAvatarFailed(false); }, [maintainerAvatarSrc]);
   useEffect(() => {
     const title = "Kingshot Developer API Documentation";
     const description = "V3 integration guide for the Kingshot Auto Redeemer community API: authentication, player lookup, manual redemption, quotas, and response codes.";
@@ -94,8 +122,8 @@ console.log(result.data.playerId, result.data.name);`;
             <div className="dev-endpoint"><span style={{background:"#164b39",color:"#9ce9c2",borderRadius:6,padding:"5px 8px",fontSize:10,fontWeight:900}}>GET</span><code style={{fontSize:12,overflowWrap:"anywhere",flex:"1 1 170px"}}>/api/v3/players/&#123;playerId&#125;</code><CopyButton value="/api/v3/players/{playerId}" label="Copy path"/></div>
             <p className="dev-muted" style={{marginTop:11}}>Required path parameter: <code>playerId</code> — 5 to 20 digits. A valid, active API key is required.</p>
             <h3 style={{fontSize:13,margin:"19px 0 9px"}}>Example response</h3>
-            <pre className="dev-code"><code>{JSON.stringify({data:{playerId:"43180889",name:"Example Player",kingdomId:"1125",power:123456789,townCenterLevel:30,avatarUrl:null,allianceName:"Example Alliance",allianceTag:"EXA"},meta:{apiVersion:"3",requestId:"server-generated-id",timestamp:"2026-10-17T12:00:00.000Z",source:"mightpulse",stale:false,providerFresh:true,providerAgeSeconds:2,rateLimit:{perMinuteLimit:60,perMinuteRemaining:59,perDayLimit:1000,perDayRemaining:999,resetAt:"2026-10-17T12:01:00.000Z"}}},null,2)}</code></pre>
-            <p className="dev-muted" style={{fontSize:11,marginTop:9}}>Illustrative values only. Some fields may be null when the upstream provider has no value.</p>
+            <pre className="dev-code"><code>{JSON.stringify({data:{playerId:"43180889",name:"Example Player",kingdomId:"1125",power:123456789,townCenterLevel:30,avatarUrl:null,allianceName:"Example Alliance",allianceTag:"EXA"},meta:{apiVersion:"3",requestId:"server-generated-id",timestamp:"2026-10-17T12:00:00.000Z",source:"mightpulse",stale:false,providerFresh:true,providerAgeSeconds:2,rateLimit:{perMinuteLimit:60,perMinuteRemaining:59,perDayLimit:1000,perDayRemaining:999,resetAt:"2026-10-17T12:01:00.000Z"}},dev:{name:DEVELOPER_NAME,discord:"@" + DEVELOPER_DISCORD_USERNAME,url:DEVELOPER_DISCORD_URL}},null,2)}</code></pre>
+            <p className="dev-muted" style={{fontSize:11,marginTop:9}}>Illustrative values only. Some fields may be null when the upstream provider has no value. Public JSON responses also include a top-level <code>dev</code> object with maintainer contact details.</p>
           </section>
           <section className="dev-card" id="manual-redemption">
             <div className="dev-card-head"><KeyRound size={18} color="#b8bdff"/><h2 className="dev-card-title">Manual redemption</h2></div>
@@ -124,18 +152,22 @@ console.log(result.data.playerId, result.data.name);`;
               <div className="dev-card-head"><MessageCircle size={18} color="#d4bd88"/><h2 className="dev-card-title" id="maintainer-contact-title">Built and maintained by {DEVELOPER_NAME}</h2></div>
               <span className="dev-maintainer-badge"><ShieldCheck size={12}/> Project maintainer</span>
             </div>
-            <p className="dev-muted dev-maintainer-intro">Kingshot Auto Redeemer is an independent community project. For API integrations, developer questions, or project feedback, you can contact the maintainer directly on Discord.</p>
+            <p className="dev-muted dev-maintainer-intro">Independent community project for Kingshot players. For API integrations, tooling questions, or project feedback, contact the maintainer on Discord.</p>
             <div className="dev-maintainer-contact">
               <div className="dev-maintainer-identity">
-                <span className="dev-maintainer-monogram" aria-hidden="true">J</span>
-                <span><b>{DEVELOPER_NAME}</b><small>@{DEVELOPER_DISCORD_USERNAME}</small></span>
+                <span className="dev-maintainer-avatar site-account-admin" role="img" aria-label={DEVELOPER_NAME + "'s Discord profile with administrator frame"}>
+                  <span className="site-account-avatar-frame">
+                    {maintainerAvatarSrc && !maintainerAvatarFailed ? <img src={maintainerAvatarSrc} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setMaintainerAvatarFailed(true)}/> : <span className="dev-maintainer-avatar-fallback">J</span>}
+                    <span className="site-account-role-mark" aria-hidden="true">★</span>
+                  </span>
+                </span>
+                <span className="dev-maintainer-identity-copy"><b>{DEVELOPER_NAME}</b><span className="dev-maintainer-handle-row"><small>@{maintainerHandle}</small><CopyButton value={"@" + maintainerHandle} label="Copy"/></span></span>
               </div>
               <div className="dev-maintainer-actions">
-                <CopyButton value={"@" + DEVELOPER_DISCORD_USERNAME} label="Copy Discord handle"/>
                 <a className="dev-maintainer-discord" href={DEVELOPER_DISCORD_URL} target="_blank" rel="noopener noreferrer" aria-label={"Open " + DEVELOPER_NAME + "'s Discord profile in a new tab"}><MessageCircle size={15}/> Contact on Discord <ExternalLink size={13}/></a>
               </div>
             </div>
-            <p className="dev-maintainer-note"><ShieldCheck size={15}/><span>Discord opens the maintainer’s profile; direct messages depend on Discord privacy settings and availability. For private account, registration, or redemption issues, use the in-app Support Centre so your request stays in a trackable support conversation. Never send passwords, API keys, session tokens, or sign-in codes.</span></p>
+            <p className="dev-maintainer-note"><ShieldCheck size={15}/><span>Direct messages depend on Discord privacy settings. For private account, registration, or redemption issues, use the in-app Support Centre so the request stays trackable. Never share passwords, API keys, session tokens, or sign-in codes.</span></p>
           </section>
           </div>
         </div>
