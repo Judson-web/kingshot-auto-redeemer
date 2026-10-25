@@ -3,11 +3,12 @@
   "info": {
     "title": "Kingshot Auto Redeemer Developer API",
     "version": "3.0.0",
-    "description": "V3 is the supported developer API for player lookup and manual redemption. V1 routes are deprecated and retained temporarily for migration; new and existing integrations should migrate to V3. Use only with authorized player accounts.",
+    "description": "V3 is the supported developer API for player lookup and manual redemption. V1 routes are deprecated and retained temporarily for migration; new and existing integrations should migrate to V3. Use only with authorized player accounts. Documented public JSON responses include a top-level dev attribution object with maintainer name and Discord contact.",
     "termsOfService": "https://kingshot-autoredeemer.vercel.app/terms?service=kingshot-auto",
     "contact": {
       "name": "Judson",
-      "url": "https://discord.com/users/871756466900598815"
+      "url": "https://discord.com/users/871756466900598815",
+      "x-discord-handle": "@judson00713"
     }
   },
   "servers": [
@@ -55,7 +56,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Lookup completed; V1 is deprecated, and responses include deprecation headers pointing to V3",
+            "description": "Lookup completed; V1 is deprecated, and responses include deprecation headers pointing to V3 JSON responses include the top-level dev attribution object.",
             "content": {
               "application/json": {
                 "schema": {
@@ -65,19 +66,19 @@
             }
           },
           "400": {
-            "description": "Missing or invalid Player ID"
+            "description": "Missing or invalid Player ID JSON responses include the top-level dev attribution object."
           },
           "401": {
-            "description": "Missing, invalid, or revoked API key"
+            "description": "Missing, invalid, or revoked API key JSON responses include the top-level dev attribution object."
           },
           "404": {
-            "description": "Player not found"
+            "description": "Player not found JSON responses include the top-level dev attribution object."
           },
           "429": {
-            "description": "Rate limit or quota exceeded"
+            "description": "Rate limit or quota exceeded JSON responses include the top-level dev attribution object."
           },
           "502": {
-            "description": "Upstream provider unavailable"
+            "description": "Upstream provider unavailable JSON responses include the top-level dev attribution object."
           }
         },
         "deprecated": true
@@ -107,19 +108,19 @@
         },
         "responses": {
           "200": {
-            "description": "Request processed; inspect operation result in response body; V1 is deprecated, and responses include deprecation headers pointing to V3"
+            "description": "Request processed; inspect operation result in response body; V1 is deprecated, and responses include deprecation headers pointing to V3 JSON responses include the top-level dev attribution object."
           },
           "400": {
-            "description": "Invalid request fields"
+            "description": "Invalid request fields JSON responses include the top-level dev attribution object."
           },
           "401": {
-            "description": "Missing, invalid, or revoked API key"
+            "description": "Missing, invalid, or revoked API key JSON responses include the top-level dev attribution object."
           },
           "429": {
-            "description": "Rate limit or quota exceeded"
+            "description": "Rate limit or quota exceeded JSON responses include the top-level dev attribution object."
           },
           "502": {
-            "description": "Upstream provider unavailable"
+            "description": "Upstream provider unavailable JSON responses include the top-level dev attribution object."
           }
         },
         "deprecated": true
@@ -144,13 +145,13 @@
         },
         "responses": {
           "200": {
-            "description": "Enrollment request processed"
+            "description": "Enrollment request processed JSON responses include the top-level dev attribution object."
           },
           "400": {
-            "description": "Invalid request fields"
+            "description": "Invalid request fields JSON responses include the top-level dev attribution object."
           },
           "429": {
-            "description": "Rate limited"
+            "description": "Rate limited JSON responses include the top-level dev attribution object."
           }
         }
       }
@@ -501,10 +502,14 @@
                 "type": "integer"
               }
             }
+          },
+          "dev": {
+            "$ref": "#/components/schemas/DeveloperAttribution"
           }
         },
         "required": [
-          "data"
+          "data",
+          "dev"
         ]
       },
       "ManualRedemptionRequest": {
@@ -644,7 +649,8 @@
         "type": "object",
         "required": [
           "error",
-          "meta"
+          "meta",
+          "dev"
         ],
         "properties": {
           "error": {
@@ -665,6 +671,9 @@
           },
           "meta": {
             "$ref": "#/components/schemas/ApiV3Meta"
+          },
+          "dev": {
+            "$ref": "#/components/schemas/DeveloperAttribution"
           }
         },
         "additionalProperties": false
@@ -673,7 +682,8 @@
         "type": "object",
         "required": [
           "data",
-          "meta"
+          "meta",
+          "dev"
         ],
         "properties": {
           "data": {
@@ -740,6 +750,9 @@
           },
           "meta": {
             "$ref": "#/components/schemas/ApiV3Meta"
+          },
+          "dev": {
+            "$ref": "#/components/schemas/DeveloperAttribution"
           }
         },
         "additionalProperties": false
@@ -773,7 +786,8 @@
         "type": "object",
         "required": [
           "data",
-          "meta"
+          "meta",
+          "dev"
         ],
         "properties": {
           "data": {
@@ -820,6 +834,36 @@
           },
           "meta": {
             "$ref": "#/components/schemas/ApiV3Meta"
+          },
+          "dev": {
+            "$ref": "#/components/schemas/DeveloperAttribution"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DeveloperAttribution": {
+        "type": "object",
+        "required": [
+          "name",
+          "discord",
+          "url"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "const": "Judson",
+            "description": "Project developer and maintainer."
+          },
+          "discord": {
+            "type": "string",
+            "const": "@judson00713",
+            "description": "Public Discord handle."
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "const": "https://discord.com/users/871756466900598815",
+            "description": "Direct Discord profile URL."
           }
         },
         "additionalProperties": false

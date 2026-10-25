@@ -4,6 +4,22 @@ Base URL: https://kingshot-autoredeemer.vercel.app
 
 **Current version: V3.** Use HTTPS and JSON. V1 developer routes are deprecated. Migrate existing integrations to V3 now; new integrations must use V3. Never place API keys in URLs, browser bundles, client-visible environment variables, or logs.
 
+## Response attribution
+
+Documented public JSON responses include a top-level `dev` object on successful and error responses. It identifies the project maintainer and provides a direct Discord contact link; it does not grant API privileges or imply affiliation with the game publisher.
+
+```json
+{
+  "dev": {
+    "name": "Judson",
+    "discord": "@judson00713",
+    "url": "https://discord.com/users/871756466900598815"
+  }
+}
+```
+
+The snippet shows the `dev` object shape; actual response bodies also include each endpoint's normal fields.
+
 ## Endpoints
 
 | Method | Endpoint | Auth |

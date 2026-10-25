@@ -4,6 +4,18 @@ Interactive documentation: https://kingshot-autoredeemer.vercel.app/developer
 
 Current API version: **V3**. This crawler-friendly reference describes integration routes but does not provide credentials.
 
+## Response attribution
+
+Documented public JSON responses include a top-level `dev` object on success and error responses:
+
+    "dev": {
+      "name": "Judson",
+      "discord": "@judson00713",
+      "url": "https://discord.com/users/871756466900598815"
+    }
+
+This is project-maintainer contact information, not an API key or permission grant. The rest of each response keeps its normal endpoint-specific shape.
+
 ## Authentication
 
 Send an active developer key over HTTPS in the Authorization header:
