@@ -79,6 +79,8 @@ async function logoutEverywhere(req:Req,res:Res){
  const rawTokens=[session(req),ownerSession(req),profileSession(req)].filter(Boolean);
  const uniqueTokens=[...new Set(rawTokens)];
  const jobs:Promise<unknown>[] = uniqueTokens.map(token=>rpc("kingshot_developer_account_session_delete",{p_token_hash:sha(token)}));
+ const ownerToken=ownerSession(req);
+ if(ownerToken)jobs.push(rpc("kingshot_admin_delete_discord_session",{p_token_hash:sha(ownerToken)}));
  const accessToken=String(req.body?.access_token||"");
  if(accessToken&&accessToken.length<=8192&&AUTH_KEY){
   jobs.push((async()=>{
