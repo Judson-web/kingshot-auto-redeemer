@@ -32,13 +32,32 @@ export async function removeSupportPushSubscription(conversationId,token,value){
  const response=await db("kingshot_support_push_subscriptions?conversation_id=eq."+encodeURIComponent(conversationId)+"&endpoint=eq."+encodeURIComponent(endpoint),{method:"DELETE"});
  if(!response.ok)throw Error("Could not remove support notification settings.");
 }
-export async function notifySupportReply(conversationId,subject){
+function notificationLine(value:unknown,max=160){
+ return String(value||"").replace(/\\s+/g," ").trim().slice(0,max);
+}
+export async function notifySupportReply(conversationId,subject,message,ticketId,imageValue){
  if(!supportPushConfigured())return {sent:0,failed:0};
  configure();
  const response=await db("kingshot_support_push_subscriptions?select=id,endpoint,p256dh,auth&conversation_id=eq."+encodeURIComponent(conversationId));
  if(!response.ok)throw Error("Could not load support notification subscribers.");
  const rows=await response.json().catch(()=>[]);
- const payload=JSON.stringify({title:"Kingshot support replied",body:"An administrator replied to your support conversation.",url:"/",tag:"support-reply-"+String(conversationId).slice(0,64)});
+ const rawMessage=notificationLine(message?.body,170);
+ const attachmentName=notificationLine(message?.attachment_name,80);
+ const preview=rawMessage&&rawMessage.toLowerCase()!=="photo attachment"
+  ?(rawMessage.length>160?rawMessage.slice(0,157).trimEnd()+"…":rawMessage)
+  :attachmentName?"Photo attached: "+attachmentName
+  :imageValue?"Support attached an image.":"Support sent a new reply.";
+ const ticket=notificationLine(ticketId,60);
+ let image="";
+ try{const parsed=new URL(String(imageValue||""));if(parsed.protocol==="https:"&&!parsed.username&&!parsed.password&&String(imageValue).length<=2048)image=parsed.href}catch{}
+ const payload=JSON.stringify({
+  title:("Support replied · "+notificationLine(subject||"Your request",80)).slice(0,100),
+  body:((ticket?"Ticket "+ticket+" · ":"")+preview).slice(0,220),
+  url:"/?supportConversation="+encodeURIComponent(String(conversationId)),
+  tag:"support-reply-"+String(conversationId).slice(0,64),
+  ...(image?{image}:{}),
+  actions:[{action:"open-support",title:"Open conversation"},{action:"dismiss",title:"Dismiss"}]
+ });
  let sent=0,failed=0,cursor=0;
  const worker=async()=>{while(true){const i=cursor++;if(i>=rows.length)return;const row=rows[i];try{await webpush.sendNotification({endpoint:row.endpoint,keys:{p256dh:row.p256dh,auth:row.auth}},payload,{TTL:86400});sent++}catch(error){const status=Number(error?.statusCode||0);if(status===404||status===410){const removed=await db("kingshot_support_push_subscriptions?id=eq."+encodeURIComponent(String(row.id)),{method:"DELETE"}).catch(()=>null);if(!removed?.ok)failed++}else failed++}}};
  await Promise.all(Array.from({length:Math.min(4,rows.length)},worker));
