@@ -1097,3 +1097,11 @@
   border-color: #f0dbab !important;
 }
 .dev-dashboard.ks-dev-route .dev-maintainer-note b { color: #d9d1bb !important; font-weight: 750 !important; }
+/* Keep CTA icons as legible as their text despite generic developer-card SVG styles. */
+.dev-dashboard.ks-dev-route .dev-doc-grid > .dev-maintainer-card .dev-maintainer-actions a.dev-maintainer-discord:not(.dev-nav-link) > svg,
+.dev-dashboard.ks-dev-route .dev-doc-grid > .dev-maintainer-card .dev-maintainer-actions a.dev-maintainer-discord:not(.dev-nav-link) > svg * {
+  color: #20180b !important;
+  stroke: #20180b !important;
+  fill: none !important;
+  opacity: 1 !important;
+}

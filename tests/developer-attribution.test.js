@@ -53,6 +53,8 @@ test("maintainer card uses the live Discord PFP and administrator frame", async 
   assert.match(page, /does not sign you in or create an account/);
   assert.match(styles, /dev-maintainer-avatar \.site-account-avatar-frame/);
   assert.match(styles, /\.dev-maintainer-actions a\.dev-maintainer-discord:not\(\.dev-nav-link\)/);
+  assert.match(styles, /\.dev-maintainer-actions a\.dev-maintainer-discord:not\(\.dev-nav-link\) > svg/);
+  assert.match(styles, /stroke: #20180b !important/);
   const profile = await read("../src/ProfileApp.tsx");
   const profileStyles = await read("../src/profile-redesign.css");
   assert.match(profile, /profile-login-purpose/);
