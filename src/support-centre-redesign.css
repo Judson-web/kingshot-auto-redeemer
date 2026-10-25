@@ -1194,3 +1194,42 @@
     max-height: 100px !important;
   }
 }
+
+
+/* Higher-specificity overrides for legacy composer rules in support-chat-polish.css. */
+@media (max-width: 600px) {
+  .support-float-panel.support-chat-panel.support-chat-panel-new > .support-float-body:not(.support-chat-active) > form .support-composer,
+  .support-float-panel.support-chat-panel.support-chat-panel-new > .support-float-body:not(.support-chat-active) > form .support-composer:focus-within {
+    border: 1px solid #3c3d35 !important;
+    border-radius: 12px !important;
+    background: #11120f !important;
+    box-shadow: none !important;
+  }
+  .support-float-panel.support-chat-panel.support-chat-panel-new > .support-float-body:not(.support-chat-active) > form .support-composer > textarea,
+  .support-float-panel.support-chat-panel.support-chat-panel-new > .support-float-body:not(.support-chat-active) > form .support-composer > textarea:focus {
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: #eeede6 !important;
+    box-shadow: none !important;
+    resize: none !important;
+  }
+  .support-float-panel.support-chat-panel.support-chat-panel-new > .support-float-body:not(.support-chat-active) > form .support-composer-toolbar {
+    border-top: 1px solid #30312a !important;
+    background: #171814 !important;
+  }
+  .support-float-panel.support-chat-panel.support-chat-panel-new > .support-float-body:not(.support-chat-active) > form .support-attach-button {
+    border: 1px solid #3c3d35 !important;
+    background: #1d1e19 !important;
+    color: #c9c1a9 !important;
+  }
+  .support-float-panel.support-chat-panel.support-chat-panel-new > .support-float-body:not(.support-chat-active) > form .support-composer-send {
+    border: 1px solid #c9af78 !important;
+    background: #d5be8c !important;
+    color: #1a1914 !important;
+  }
+  .support-float-panel.support-chat-panel.support-chat-panel-new > .support-float-body:not(.support-chat-active) > form .support-composer-send:disabled {
+    opacity: .48 !important;
+    filter: none !important;
+  }
+}
