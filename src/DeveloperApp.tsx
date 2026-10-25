@@ -3,10 +3,14 @@ import "./developer-page.css";
 import "./developer-redesign.css";
 import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
 import DeveloperAccountPanel from "./DeveloperAccountPanel";
-import { Activity, BookOpen, Check, ChevronRight, Code2, Copy, ExternalLink, Gauge, KeyRound, ShieldCheck, Terminal } from "lucide-react";
+import { Activity, BookOpen, Check, ChevronRight, Code2, Copy, ExternalLink, Gauge, KeyRound, MessageCircle, ShieldCheck, Terminal } from "lucide-react";
 import { copyToClipboard } from "./utils/clipboard-feedback";
 
 const ORIGIN = "https://kingshot-autoredeemer.vercel.app";
+const DEVELOPER_NAME = "Judson";
+const DEVELOPER_DISCORD_USERNAME = "judson00713";
+const DEVELOPER_DISCORD_ID = "871756466900598815";
+const DEVELOPER_DISCORD_URL = "https://discord.com/users/" + DEVELOPER_DISCORD_ID;
 const endpoint = ORIGIN + "/api/v3/players/43180889";
 const curlExample = 'curl "' + endpoint + '" \\\n  -H "Authorization: Bearer YOUR_API_KEY"';
 
@@ -29,7 +33,7 @@ export default function DeveloperApp() {
     let canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     if (!canonical) { canonical = document.createElement("link"); canonical.rel = "canonical"; document.head.appendChild(canonical); }
     canonical.href = ORIGIN + "/developer";
-    const schema = { "@context": "https://schema.org", "@type": "TechArticle", headline: title, description, url: ORIGIN + "/developer", mainEntityOfPage: ORIGIN + "/developer", about: { "@type": "WebAPI", name: "Kingshot Developer API", documentation: ORIGIN + "/developer.md", termsOfService: ORIGIN + "/terms" }, isPartOf: { "@type": "WebSite", name: "Kingshot Auto Redeemer", url: ORIGIN } };
+    const schema = { "@context": "https://schema.org", "@type": "TechArticle", headline: title, description, author: { "@type": "Person", name: DEVELOPER_NAME, url: DEVELOPER_DISCORD_URL }, url: ORIGIN + "/developer", mainEntityOfPage: ORIGIN + "/developer", about: { "@type": "WebAPI", name: "Kingshot Developer API", documentation: ORIGIN + "/developer.md", termsOfService: ORIGIN + "/terms" }, isPartOf: { "@type": "WebSite", name: "Kingshot Auto Redeemer", url: ORIGIN } };
     let script = document.getElementById("developer-api-jsonld") as HTMLScriptElement | null;
     if (!script) { script = document.createElement("script"); script.id = "developer-api-jsonld"; script.type = "application/ld+json"; document.head.appendChild(script); }
     script.textContent = JSON.stringify(schema);
@@ -115,10 +119,28 @@ console.log(result.data.playerId, result.data.name);`;
           {accordion("limits","Rate limits and response codes",<><p style={paragraph}>Current limits: 60 requests per minute and 1,000 requests per day per key, plus 120 requests per minute per IP. Responses include rate-limit headers when available. On <code>429</code>, honor <code>Retry-After</code> and use bounded backoff. V3 errors use <code>error.code</code> and <code>error.message</code>, with <code>meta.apiVersion</code>, <code>meta.requestId</code>, and <code>meta.timestamp</code>. A redemption can complete with HTTP 200 even if the game rejects the code; inspect the response body and do not blindly retry an ambiguous timeout.</p><div style={{display:"grid",gap:8,marginTop:13}}>{[["200","Lookup succeeded"],["400","Missing or invalid Player ID"],["401","Missing, invalid, or revoked API key"],["404","Player not found"],["429","Rate limit or quota exceeded"],["502","Upstream player provider unavailable"]].map(([status,desc])=><div key={status} style={{display:"flex",gap:12,borderBottom:"1px solid #252c38",padding:"7px 0"}}><code style={{width:38,color:status==="200"?"#9ce9c2":"#b8bdff"}}>{status}</code><span style={{color:"#aeb8ca",fontSize:13}}>{desc}</span></div>)}</div></>)}
           <div style={{height:0}}/>
           {accordion("lifecycle","API key lifecycle and availability",<><p style={paragraph}>Sign in with Discord to create and manage your own API keys. Keys are displayed in full only once; only a hash is stored. You can revoke a key from the account panel, and revoked keys stop authorizing requests.</p><p style={paragraph}>Developer accounts do not grant administrative access. Keep keys private and revoke any secret that may have been exposed.</p></>)}
+          <section className="dev-card dev-maintainer-card" id="maintainer-contact" aria-labelledby="maintainer-contact-title">
+            <div className="dev-maintainer-heading">
+              <div className="dev-card-head"><MessageCircle size={18} color="#d4bd88"/><h2 className="dev-card-title" id="maintainer-contact-title">Built and maintained by {DEVELOPER_NAME}</h2></div>
+              <span className="dev-maintainer-badge"><ShieldCheck size={12}/> Project maintainer</span>
+            </div>
+            <p className="dev-muted dev-maintainer-intro">Kingshot Auto Redeemer is an independent community project. For API integrations, developer questions, or project feedback, you can contact the maintainer directly on Discord.</p>
+            <div className="dev-maintainer-contact">
+              <div className="dev-maintainer-identity">
+                <span className="dev-maintainer-monogram" aria-hidden="true">J</span>
+                <span><b>{DEVELOPER_NAME}</b><small>@{DEVELOPER_DISCORD_USERNAME}</small></span>
+              </div>
+              <div className="dev-maintainer-actions">
+                <CopyButton value={"@" + DEVELOPER_DISCORD_USERNAME} label="Copy Discord handle"/>
+                <a className="dev-maintainer-discord" href={DEVELOPER_DISCORD_URL} target="_blank" rel="noopener noreferrer" aria-label={"Open " + DEVELOPER_NAME + "'s Discord profile in a new tab"}><MessageCircle size={15}/> Contact on Discord <ExternalLink size={13}/></a>
+              </div>
+            </div>
+            <p className="dev-maintainer-note"><ShieldCheck size={15}/><span>Discord opens the maintainer’s profile; direct messages depend on Discord privacy settings and availability. For private account, registration, or redemption issues, use the in-app Support Centre so your request stays in a trackable support conversation. Never send passwords, API keys, session tokens, or sign-in codes.</span></p>
+          </section>
           </div>
         </div>
       </div>
-      <footer className="dev-footer"><span>API v3 · Supported developer API · V1 routes deprecated</span><a href="/developer.md">Plain-text docs for crawlers and integrations</a><a href="/openapi.json">OpenAPI specification</a><a href="/info" style={{display:"inline-flex",alignItems:"center",gap:5}}>Service overview <ExternalLink size={12}/></a><a href="/privacy?service=kingshot-auto" style={{color:"inherit"}}>Privacy</a></footer>
+      <footer className="dev-footer"><span>API v3 · Supported developer API · V1 routes deprecated · Maintained by {DEVELOPER_NAME}</span><a href="#maintainer-contact">Maintainer & contact</a><a href={DEVELOPER_DISCORD_URL} target="_blank" rel="noopener noreferrer">Contact {DEVELOPER_NAME} on Discord</a><a href="/developer.md">Plain-text docs for crawlers and integrations</a><a href="/openapi.json">OpenAPI specification</a><a href="/info" style={{display:"inline-flex",alignItems:"center",gap:5}}>Service overview <ExternalLink size={12}/></a><a href="/privacy?service=kingshot-auto" style={{color:"inherit"}}>Privacy</a></footer>
     </main>
   </div>;
 }
