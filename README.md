@@ -22,6 +22,10 @@
 
 > **Independent community software.** This project is not affiliated with, endorsed by, or operated by Century Games.
 
+## Maintainer & contact
+
+Created and maintained by **Judson** (`@judson00713` on Discord). [Contact the maintainer on Discord](https://discord.com/users/871756466900598815) for developer API questions, integration help, or project feedback. For account-specific, registration, or redemption issues, use the website's in-app Support Centre so the request stays attached to a support conversation. Direct messages depend on Discord privacy settings and availability; response times may vary.
+
 ---
 
 ## Overview
