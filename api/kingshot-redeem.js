@@ -1,7 +1,9 @@
 import {redeemKingshot} from"../internal/kingshot/redeem.js";
 import {rateLimit} from"../lib/request-rate-limit.js";
+import {attachDevMetadata} from"../lib/developer-contact.js";
 
 export default async function handler(req,res){
+ attachDevMetadata(res);
  if(req.method!=="POST")return res.status(405).json({error:"Method not allowed"});
  if(!rateLimit(req,res,"redeem",12,60000))return res.status(429).json({error:"Too many redemption requests. Please try again shortly."});
  const result=await redeemKingshot(req.body||{});

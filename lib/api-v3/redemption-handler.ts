@@ -2,6 +2,7 @@ import { redeemKingshot } from "../../internal/kingshot/redeem.js";
 import { validateV3RedemptionBody } from "../developer-api-v3-validation.js";
 import type { JsonRecord,V3AuthorizationContext,V3Request,V3Response } from "./types.js";
 import { sendError,timestamp } from "./http.js";
+import { withDevMetadata } from "../developer-contact.js";
 import { beginIdempotentRedemption,finishIdempotentRedemption,readIdempotencyKey } from "./idempotency.js";
 const errBody=(code:string,message:string,id:string,rateLimit:JsonRecord):JsonRecord=>({error:{code,message},meta:{apiVersion:"3",requestId:id,timestamp:timestamp(),rateLimit}});
 export async function handleV3Redemption(req:V3Request,res:V3Response,id:string,auth:V3AuthorizationContext):Promise<void>{
@@ -12,10 +13,10 @@ export async function handleV3Redemption(req:V3Request,res:V3Response,id:string,
  try{const c=await beginIdempotentRedemption({keyId,key:idem.key,request:v.value});
  if(c.state==="conflict"){sendError(res,409,"idempotency_key_reused","This key was used with a different request body.",id,{rateLimit:auth.rateLimit});return}
  if(c.state==="in_progress"){sendError(res,409,"idempotency_in_progress","This keyed request is still processing; retry using the same key.",id,{rateLimit:auth.rateLimit});return}
- if(c.state==="replay"||c.state==="unknown"){res.setHeader("Idempotency-Replayed","true");res.status(Number(c.response_status)||504).json(c.response_body);return}
+ if(c.state==="replay"||c.state==="unknown"){res.setHeader("Idempotency-Replayed","true");res.status(Number(c.response_status)||504).json(withDevMetadata(c.response_body));return}
  if(c.state!=="started")throw Error("Unexpected idempotency state");claimed=true;
  }catch(e){console.error("[developer-api-v3] idempotency storage failed",{requestId:id,status:(e as {status?:number})?.status});sendError(res,503,"idempotency_unavailable","Durable idempotency storage is unavailable; no redemption was submitted.",id,{rateLimit:auth.rateLimit});return}}
- const send=async(status:number,body:JsonRecord,unknown=false)=>{if(claimed){try{await finishIdempotentRedemption({keyId,key:idem.key,status,body,outcomeUnknown:unknown})}catch(e){console.error("[developer-api-v3] idempotency outcome persistence failed",{requestId:id,status:(e as {status?:number})?.status});sendError(res,503,"outcome_persistence_failed","Outcome may be ambiguous. Reuse the same Idempotency-Key; do not submit a new attempt.",id,{rateLimit:auth.rateLimit});return}}res.status(status).json(body)};
+ const send=async(status:number,body:JsonRecord,unknown=false)=>{const responseBody=withDevMetadata(body) as JsonRecord;if(claimed){try{await finishIdempotentRedemption({keyId,key:idem.key,status,body:responseBody,outcomeUnknown:unknown})}catch(e){console.error("[developer-api-v3] idempotency outcome persistence failed",{requestId:id,status:(e as {status?:number})?.status});sendError(res,503,"outcome_persistence_failed","Outcome may be ambiguous. Reuse the same Idempotency-Key; do not submit a new attempt.",id,{rateLimit:auth.rateLimit});return}}res.status(status).json(responseBody)};
  try{const r=await redeemKingshot(v.value);
  if(r.httpStatus===504||r.errorCategory==="TIMEOUT"){await send(504,errBody("upstream_timeout","Provider timed out. Reuse the same key; do not submit a new attempt.",id,auth.rateLimit),true);return}
  if(r.httpStatus>=500){const bad=/not configured/i.test(String(r.error||""));await send(bad?503:502,errBody(bad?"upstream_not_configured":"upstream_unavailable",bad?"Redemption provider is not configured.":"Provider unavailable; outcome may be ambiguous. Do not submit a new attempt.",id,auth.rateLimit),!bad);return}

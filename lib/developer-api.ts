@@ -3,6 +3,7 @@ import { getPlayer } from "../internal/kingshot/mightpulse.js";
 import { allianceDetails } from "./player-display.js";
 import { redeemKingshot } from "../internal/kingshot/redeem.js";
 import { isValidV1PlayerId, isValidV1RedemptionInput } from "./developer-api-v1-validation.js";
+import { attachDevMetadata } from "./developer-contact.js";
 
 type HeaderValue = string | string[] | undefined;
 interface RequestLike { method?: string; url?: string; headers: Record<string, HeaderValue>; body?: Record<string, unknown>; query?: Record<string, unknown>; }
@@ -74,6 +75,7 @@ export default async function developerApi(req: RequestLike, res: ResponseLike, 
     res.setHeader("Access-Control-Expose-Headers", "X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset");
   }
   if (req.method === "OPTIONS") { res.status(204).json({}); return; }
+  attachDevMetadata(res);
   const developerToken = developerSession(req);
   const adminTokenHash = developerToken ? sha256(developerToken) : "";
 

@@ -1,5 +1,6 @@
 import type { JsonRecord, V3AuthorizationContext, V3Request, V3Response } from "./types.js";
 import { sendError, queryValue, timestamp } from "./http.js";
+import { withDevMetadata } from "../developer-contact.js";
 import { normalizeV3PlayerData, normalizeV3ProviderMetadata } from "./contracts.js";
 import { normalizeV3PlayerId } from "../developer-api-v3-validation.js";
 import { lookupPlayerSnapshotV3 } from "./player-service.js";
@@ -26,7 +27,7 @@ export async function handleV3PlayerLookup(req: V3Request, res: V3Response, id: 
       sendError(res, 502, "upstream_invalid_response", "The player lookup provider returned an invalid response.", id, { rateLimit: auth.rateLimit });
       return;
     }
-    res.status(200).json({
+    res.status(200).json(withDevMetadata({
       data,
       meta: {
         apiVersion: "3",
@@ -36,7 +37,7 @@ export async function handleV3PlayerLookup(req: V3Request, res: V3Response, id: 
         source: "mightpulse",
         rateLimit: auth.rateLimit
       }
-    });
+    }));
   } catch (error) {
     const typed = error as { status?: number; message?: string } | null;
     const status = typed?.status;

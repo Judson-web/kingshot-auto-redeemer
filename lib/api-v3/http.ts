@@ -1,5 +1,6 @@
 import { isIP } from "node:net";
 import { randomUUID } from "node:crypto";
+import { withDevMetadata } from "../developer-contact.js";
 import type { JsonRecord, V3Request, V3Response } from "./types.js";
 export const timestamp = (): string => new Date().toISOString();
 export const requestId = (): string => randomUUID();
@@ -78,10 +79,10 @@ export function sendError(res: V3Response, status: number, code: string, message
     const reset = Date.parse(meta.resetAt);
     if (Number.isFinite(reset)) res.setHeader("Retry-After", String(Math.max(1, Math.ceil((reset - Date.now()) / 1000))));
   }
-  res.status(status).json({
+  res.status(status).json(withDevMetadata({
     error: { code, message },
     meta: { apiVersion: "3", requestId: id, timestamp: timestamp(), ...meta }
-  });
+  }));
 }
 export function setPublicHeaders(res: V3Response, methods: string): void {
   res.setHeader("Cache-Control", "private, no-store");
