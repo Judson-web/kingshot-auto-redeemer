@@ -126,8 +126,15 @@ POST /api/kingshot-register registers a player for scheduled processing. It does
 - Read redemption response bodies and avoid blind retries after ambiguous timeouts.
 - Respect rate limits and HTTPS.
 
+## Maintainer and contact
+
+This project is built and maintained by **Judson** (`@judson00713` on Discord). For V3 integration questions, API feedback, or project-related development questions, [contact the maintainer on Discord](https://discord.com/users/871756466900598815). This opens the Discord profile; direct messages depend on account privacy settings and availability, and response times may vary.
+
+For private account, player-registration, or redemption issues, use the website's in-app Support Centre instead of sending player details, credentials, API keys, or tokens in a Discord DM. That keeps the issue attached to a support conversation.
+
 ## Related links
 
+- Maintainer / Discord: https://discord.com/users/871756466900598815
 - Automatic redemption: https://kingshot-autoredeemer.vercel.app/auto
 - Manual redemption: https://kingshot-autoredeemer.vercel.app/manual
 - Developer portal: https://kingshot-autoredeemer.vercel.app/developer
