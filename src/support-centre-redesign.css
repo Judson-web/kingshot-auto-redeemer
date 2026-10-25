@@ -1233,3 +1233,73 @@
     filter: none !important;
   }
 }
+
+
+/* Short support threads size to their contents; longer threads use the full chat canvas. */
+@media (max-width: 600px) {
+  .support-float-panel.support-chat-panel.support-chat-panel-thread-compact {
+    top: auto !important;
+    right: 10px !important;
+    bottom: max(12px, env(safe-area-inset-bottom, 0px)) !important;
+    left: 10px !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: min(66dvh, 560px) !important;
+    overflow: hidden !important;
+  }
+  .support-float-panel.support-chat-panel.support-chat-panel-thread-compact > .support-float-head {
+    min-height: 58px !important;
+    padding: 8px 11px !important;
+  }
+  .support-float-panel.support-chat-panel.support-chat-panel-thread-compact > .support-chat-toolbar {
+    flex: 0 0 auto !important;
+    min-height: 50px !important;
+    padding: 6px 9px !important;
+  }
+  .support-float-panel.support-chat-panel.support-chat-panel-thread-compact > .support-float-body.support-chat-active {
+    flex: 0 1 auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: hidden !important;
+    padding-inline: 10px !important;
+  }
+  .support-float-panel.support-chat-panel.support-chat-panel-thread-compact .support-chat-messages {
+    flex: 0 1 auto !important;
+    min-height: 76px !important;
+    max-height: 25dvh !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    padding: 10px 1px 12px !important;
+  }
+  .support-float-panel.support-chat-panel.support-chat-panel-thread-compact .support-chat-message {
+    padding: 10px 11px !important;
+  }
+  .support-float-panel.support-chat-panel.support-chat-panel-thread-compact > .support-float-body.support-chat-active > form {
+    flex: 0 0 auto !important;
+    padding: 8px 0 max(8px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .support-float-panel.support-chat-panel.support-chat-panel-thread-compact .support-composer > textarea,
+  .support-float-panel.support-chat-panel.support-chat-panel-thread-compact .support-composer > textarea:focus {
+    min-height: 68px !important;
+    max-height: 108px !important;
+    padding: 10px 12px !important;
+  }
+  .support-float-panel.support-chat-panel.support-chat-panel-thread-compact > .support-float-foot {
+    padding: 7px 11px max(8px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+@media (max-height: 700px) and (max-width: 600px) {
+  .support-float-panel.support-chat-panel.support-chat-panel-thread-compact {
+    max-height: calc(100dvh - 28px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .support-float-panel.support-chat-panel.support-chat-panel-thread-compact .support-chat-messages {
+    max-height: 22dvh !important;
+    min-height: 66px !important;
+  }
+  .support-float-panel.support-chat-panel.support-chat-panel-thread-compact .support-composer > textarea,
+  .support-float-panel.support-chat-panel.support-chat-panel-thread-compact .support-composer > textarea:focus {
+    min-height: 56px !important;
+    max-height: 82px !important;
+  }
+}
