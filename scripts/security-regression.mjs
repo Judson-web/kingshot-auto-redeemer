@@ -415,14 +415,24 @@ const adminPlayers=read("src/AdminPlayersApp.tsx");
 const pushService=read("internal/push-notifications.ts");
 const pushWorker=read("public/sw.js");
 const supportChat=read("lib/support-chat.js");
-assertCheck("Support reply push notifications are opt-in and scoped to the authenticated conversation",
+assertCheck("Support reply push notifications are opt-in, conversation-scoped, contextual, and deep-linked",
  supportChat.includes('"support-push-subscribe"') &&
  supportChat.includes('saveSupportPushSubscription(id,token,b.subscription)') &&
- supportChat.includes('notifySupportReply(id,found[0].subject)') &&
+ supportChat.includes('notifySupportReply(id,found[0].subject,rows[0],found[0].support_ticket_id,image)') &&
  read("internal/support-push-notifications.ts").includes('conversation_id=eq.') &&
+ read("internal/support-push-notifications.ts").includes('supportConversation=') &&
+ read("internal/support-push-notifications.ts").includes('actions:[{action:"open-support"') &&
  read("supabase/migrations/20261017153000_support_reply_push_notifications.sql").includes('references public.kingshot_chat_conversations(id) on delete cascade') &&
  supportWidget.includes('action:"support-push-subscribe"') &&
- supportWidget.includes('registration.pushManager.subscribe'));
+ supportWidget.includes('registration.pushManager.subscribe') &&
+ supportWidget.includes('function notificationPreview(message:Msg)') &&
+ supportWidget.includes('supportConversation=') &&
+ supportWidget.includes('actions:[{action:"open-support"'));
+assertCheck("Short support threads size to their content and notification clicks reopen the matching thread",
+ read("src/support-centre-redesign.css").includes("support-chat-panel-thread-compact") &&
+ supportWidget.includes('messages.length<=3?" support-chat-panel-thread-compact"') &&
+ supportWidget.includes('requested===current.conversationId') &&
+ read("public/sw.js").includes('if(event.action==="dismiss")return'));
 const bansMigration=read("supabase/migrations/20261017120000_admin_player_database_and_push_audience.sql");
 assertCheck("Configured Discord owner is returned as explicit admin kind",
  developerAuth.includes('kind:role') && developerAuth.includes('OWNER_DISCORD_ID = "871756466900598815"'));
