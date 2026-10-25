@@ -64,7 +64,7 @@ function notifyReply(c:Saved,message:Msg){
  const preview=notificationPreview(message);
  const body=(ticket?"Ticket "+ticket+" · ":"")+preview;
  const url="/?supportConversation="+encodeURIComponent(c.conversationId);
- const options:NotificationOptions & {image?:string;renotify?:boolean;actions?:Array<{action:string;title:string}>}={
+ const options:NotificationOptions & {image?:string;renotify?:boolean;timestamp?:number;actions?:Array<{action:string;title:string}>}={
   body:body.slice(0,220),
   icon:"/icons/icon-192.svg",
   badge:"/icons/icon-192.svg",
