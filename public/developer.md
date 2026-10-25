@@ -70,6 +70,13 @@ POST /api/kingshot-register is the public rate-limited website registration work
 - Do not call internal scheduler or worker endpoints from clients.
 - Use only Player IDs you are authorized to access.
 
+## Maintainer and contact
+
+Built and maintained by **Judson** (`@judson00713` on Discord). For API integration questions, developer feedback, or project-related issues, contact the maintainer through the [Discord profile](https://discord.com/users/871756466900598815). Direct messages depend on Discord privacy settings and availability; response times may vary.
+
+For account, registration, or redemption issues, use the in-app Support Centre so the request can be followed in its own conversation. Never send passwords, API keys, session tokens, or sign-in codes through Discord.
+
 OpenAPI 3.1: https://kingshot-autoredeemer.vercel.app/openapi.json
+Developer contact: https://discord.com/users/871756466900598815
 Privacy: https://kingshot-autoredeemer.vercel.app/privacy
 Terms: https://kingshot-autoredeemer.vercel.app/terms
