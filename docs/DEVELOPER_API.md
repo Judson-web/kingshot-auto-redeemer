@@ -2,7 +2,7 @@
 
 Base URL: https://kingshot-autoredeemer.vercel.app
 
-**Current version: V3.** Use HTTPS and JSON. V1 developer routes are deprecated. Migrate existing integrations to V3 now; new integrations must use V3. Never place API keys in URLs, browser bundles, client-visible environment variables, or logs.
+**Current version: V4.** Use HTTPS and JSON. V4 is recommended for new integrations; V3 remains available for existing clients, and V1 developer routes are deprecated. Never place API keys in URLs, browser bundles, client-visible environment variables, or logs. See [the V4 reference](../public/developer-v4.md) for the complete envelope, retry hints, and Node.js/Python examples.
 
 ## Response attribution
 
@@ -124,7 +124,7 @@ Migrate as follows:
 - Player lookup: `GET /api/v3/players/{playerId}`
 - Manual redemption: `POST /api/v3/redemptions` with JSON fields `playerId`, `code`, and `kid`
 
-V3 provides the normalized response envelope, request IDs, quota metadata, and player-provider freshness metadata.
+V3 remains available for existing integrations. New integrations should use V4 for the normalized response envelope, canonical request IDs, machine-readable retry hints, quota metadata, and safer idempotency behavior.
 
 ## Automatic redemption enrollment
 

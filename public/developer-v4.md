@@ -66,7 +66,9 @@ Every JSON response uses the same top-level keys: success, data, error, meta, an
       "data": null,
       "error": {
         "code": "player_not_found",
-        "message": "No player was found for this ID."
+        "message": "No player was found for this ID.",
+        "retryable": false,
+        "retryHint": "do_not_retry"
       },
       "meta": {
         "apiVersion": "4",
@@ -80,7 +82,7 @@ Every JSON response uses the same top-level keys: success, data, error, meta, an
       }
     }
 
-Use meta.requestId when reporting an issue. It is also returned in the X-Request-Id response header. The X-API-Version header is 4.
+Use meta.requestId when reporting an issue. It is also returned in the X-Request-Id response header. V4 treats requestId and timestamp as metadata for the current HTTP attempt, even when a stored redemption outcome is replayed. The X-API-Version header is 4.
 
 ## Response headers
 
@@ -129,6 +131,87 @@ A redemption response with HTTP 200 means the API processed the operation; it do
 
 Supply an Idempotency-Key of 8–128 ASCII characters matching [A-Za-z0-9._:-] for redemption requests. Repeating the same key with the same request body replays the recorded outcome; reusing it with a different body returns HTTP 409. V4 idempotency records use a separate namespace from V3. If a timeout or upstream error makes the result ambiguous, retry only with the same key and body. Do not submit a new key for the same uncertain operation. Idempotency helps avoid accidental duplicate attempts but cannot guarantee exactly-once execution by the upstream game service.
 
+## Node.js client pattern
+
+This example uses Node.js 18+ built-in fetch. Keep the API key in a server-side environment variable, never in browser code. It throws on HTTP errors or an unsuccessful V4 envelope, attaches the request ID for logs, and does not automatically retry operations.
+
+    import { randomUUID } from "node:crypto";
+
+    const API_BASE = "https://kingshot-autoredeemer.vercel.app";
+    const API_KEY = process.env.KINGSHOT_API_KEY;
+    if (!API_KEY) throw new Error("KINGSHOT_API_KEY is not configured");
+
+    async function v4Request(path, { method = "GET", body, idempotencyKey } = {}) {
+      const headers = { Authorization: `Bearer ${API_KEY}`, Accept: "application/json" };
+      if (body !== undefined) headers["Content-Type"] = "application/json";
+      if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
+
+      const response = await fetch(new URL(path, API_BASE), {
+        method,
+        headers,
+        body: body === undefined ? undefined : JSON.stringify(body)
+      });
+      const payload = await response.json().catch(() => null);
+      const requestId = payload?.meta?.requestId || response.headers.get("X-Request-Id");
+
+      if (!response.ok || payload?.success !== true) {
+        const failure = new Error(payload?.error?.message || `API request failed (HTTP ${response.status})`);
+        failure.status = response.status;
+        failure.code = payload?.error?.code || "request_failed";
+        failure.retryable = payload?.error?.retryable === true;
+        failure.retryHint = payload?.error?.retryHint || "do_not_retry";
+        failure.retryAfterSeconds = payload?.error?.retryAfterSeconds ||
+          Number(response.headers.get("Retry-After")) || undefined;
+        failure.requestId = requestId;
+        throw failure;
+      }
+      return payload;
+    }
+
+    // Create once per logical operation. Reuse this same key and exact body on retry.
+    const redemptionBody = { playerId: "43180889", code: "EXAMPLECODE", kid: "1125" };
+    const idempotencyKey = randomUUID();
+    const result = await v4Request("/api/v4/redemptions", {
+      method: "POST", body: redemptionBody, idempotencyKey
+    });
+
+    if (!result.data.ok) {
+      console.log("Game rejected redemption:", result.data.status, result.data.message);
+    } else {
+      console.log("Redemption accepted.");
+    }
+
+When catching the error, use its `retryHint` rather than retrying every failure. For `same_idempotency_key`, retry with the exact same key and request body; do not mint a new key. Do not blindly retry a redemption when no idempotency key was sent.
+
+## Python client pattern
+
+    import os
+    import uuid
+    import requests
+
+    api_key = os.environ["KINGSHOT_API_KEY"]
+    body = {"playerId": "43180889", "code": "EXAMPLECODE", "kid": "1125"}
+    key = str(uuid.uuid4())  # generate once for this logical redemption
+    response = requests.post(
+        "https://kingshot-autoredeemer.vercel.app/api/v4/redemptions",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Idempotency-Key": key,
+        },
+        json=body,
+        timeout=20,
+    )
+    payload = response.json()
+    if not response.ok or payload.get("success") is not True:
+        error = payload.get("error") or {}
+        raise RuntimeError(
+            f"{error.get('code', 'request_failed')}: "
+            f"{error.get('message', 'Request failed')} "
+            f"(requestId={payload.get('meta', {}).get('requestId')})"
+        )
+    if not payload["data"]["ok"]:
+        print("Game rejected redemption:", payload["data"]["status"], payload["data"]["message"])
+
 ## Errors, quotas, and retry guidance
 
 Common HTTP statuses:
@@ -146,7 +229,18 @@ Common HTTP statuses:
 | 503 | Authorization, configuration, or idempotency storage temporarily unavailable |
 | 504 | Upstream timeout; redemption outcome may be ambiguous |
 
-Rate-limit response headers can include X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-RateLimit-Daily-Limit, and X-RateLimit-Daily-Remaining. On HTTP 429, honor Retry-After and use bounded backoff. Do not retry invalid requests or revoked keys automatically. Read-only provider lookups may retry bounded transient network or 5xx failures; redemptions are not automatically retried.
+V4 error objects keep `code` and `message` and add two client-oriented hints:
+
+| Field | Meaning |
+| --- | --- |
+| `retryable` | Whether retrying may be reasonable. Always check `retryHint`; it is not an exactly-once guarantee. |
+| `retryHint: do_not_retry` | Fix the request or credentials first. Do not retry this error unchanged. |
+| `retryHint: honor_retry_after` | Wait for `Retry-After` or `retryAfterSeconds` before trying again. |
+| `retryHint: bounded_backoff` | A transient read/service error may be retried with a small, bounded exponential backoff. |
+| `retryHint: same_idempotency_key` | Retry a redemption only with the same key and identical body. If no key was supplied originally, do not blindly retry the write. |
+| `retryAfterSeconds` | Optional server-calculated wait, present when a quota reset is known. |
+
+Rate-limit response headers can include X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-RateLimit-Daily-Limit, and X-RateLimit-Daily-Remaining. Honor Retry-After before retrying a limited request. Never retry validation failures or revoked keys automatically. Player lookups are read-only and may use bounded backoff for transient failures; redemptions are never automatically re-submitted by the server. For an ambiguous redemption result, generate one high-entropy Idempotency-Key per logical redemption and reuse that same key and body on every retry.
 
 ## Version compatibility
 
