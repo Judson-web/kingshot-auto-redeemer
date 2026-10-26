@@ -79,7 +79,7 @@ test("admin player page verifies the profile session and obtains owner access be
   assert.ok(call >= 0 && data > call, "owner session bootstrap must run before the private data request");
   assert.match(helper, /developer=account-auth/);
   assert.match(helper, /action: "dev-check"/);
-  assert.match(helper, /data\.authenticated!==true/);
+  assert.match(helper, /data\?\.authenticated !== true/);
 });
 
 test("admin session bootstrap succeeds only when server confirms the owner session", async () => {
