@@ -82,6 +82,18 @@ Every JSON response uses the same top-level keys: success, data, error, meta, an
 
 Use meta.requestId when reporting an issue. It is also returned in the X-Request-Id response header. The X-API-Version header is 4.
 
+## Response headers
+
+V4 returns these headers alongside JSON responses:
+
+- `X-API-Version: 4`: API contract version.
+- `X-Request-Id`: unique identifier that matches `meta.requestId`.
+- Rate-limit headers such as `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `X-RateLimit-Daily-Limit`, and `X-RateLimit-Daily-Remaining`, when provided by the quota service.
+- `Retry-After`: delay in seconds to honor on HTTP 429 when a reset is known.
+- `Idempotency-Replayed: true`: a stored redemption response was replayed for the same V4 idempotency key.
+
+Use `meta.requestId` when reporting an error or contacting support. Do not share the API key itself.
+
 ## Player lookup
 
 - Method: GET
