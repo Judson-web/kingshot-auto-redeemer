@@ -1,14 +1,25 @@
-import crypto from "node:crypto";
 import type { V3Request, V3Response, JsonRecord } from "./api-v3/types.js";
 import developerApiV3 from "./developer-api-v3.js";
 import { isJsonRequest, requestId, timestamp } from "./api-v3/http.js";
 import { readIdempotencyKey } from "./api-v3/idempotency.js";
-import { withDevMetadata } from "./developer-contact.js";
+import { normalizeV4Response, namespaceV4IdempotencyKey } from "./api-v4/contract.js";
 
 type Header = { name: string; value: string };
-const asRecord = (value: unknown): JsonRecord =>
-  value !== null && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : {};
-const text = (value: unknown): string => typeof value === "string" ? value : "";
+function sendV4Error(res: V3Response, status: number, code: string, message: string, id: string, extraMeta: JsonRecord = {}): void {
+  res.setHeader("X-Request-Id", id);
+  res.setHeader("X-API-Version", "4");
+  if (status === 429 && typeof extraMeta.resetAt === "string") {
+    const reset = Date.parse(extraMeta.resetAt);
+    if (Number.isFinite(reset)) res.setHeader("Retry-After", String(Math.max(1, Math.ceil((reset - Date.now()) / 1000))));
+  }
+  res.status(status).json({
+    success: false,
+    data: null,
+    error: { code, message },
+    meta: { apiVersion: "4", requestId: id, timestamp: timestamp(), ...extraMeta },
+    dev: { name: "Judson", discord: "@judson00713", url: "https://discord.com/users/871756466900598815" }
+  });
+}
 
 function setV4Headers(res: V3Response, methods: string): void {
   res.setHeader("Cache-Control", "private, no-store");
@@ -19,43 +30,6 @@ function setV4Headers(res: V3Response, methods: string): void {
   res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Idempotency-Key");
   res.setHeader("Access-Control-Expose-Headers", "X-Request-Id, X-API-Version, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-RateLimit-Daily-Limit, X-RateLimit-Daily-Remaining, Retry-After, Idempotency-Replayed");
   res.setHeader("Vary", "Origin");
-}
-
-function sendV4Error(res: V3Response, status: number, code: string, message: string, id: string, extraMeta: JsonRecord = {}): void {
-  res.setHeader("X-Request-Id", id);
-  res.setHeader("X-API-Version", "4");
-  if (status === 429 && typeof extraMeta.resetAt === "string") {
-    const reset = Date.parse(extraMeta.resetAt);
-    if (Number.isFinite(reset)) res.setHeader("Retry-After", String(Math.max(1, Math.ceil((reset - Date.now()) / 1000))));
-  }
-  res.status(status).json(withDevMetadata({
-    success: false,
-    data: null,
-    error: { code, message },
-    meta: { apiVersion: "4", requestId: id, timestamp: timestamp(), ...extraMeta }
-  }));
-}
-
-function asV4Envelope(bodyValue: unknown, status: number, fallbackId: string): JsonRecord {
-  const body = asRecord(bodyValue);
-  const previousMeta = asRecord(body.meta);
-  const id = text(previousMeta.requestId) || fallbackId;
-  const time = text(previousMeta.timestamp) || timestamp();
-  const { apiVersion: _oldVersion, requestId: _oldId, timestamp: _oldTime, ...metaExtras } = previousMeta;
-  const meta: JsonRecord = { ...metaExtras, apiVersion: "4", requestId: id, timestamp: time };
-  const succeeded = status >= 200 && status < 300 && Object.prototype.hasOwnProperty.call(body, "data") && body.error == null;
-  if (succeeded) {
-    return withDevMetadata({ success: true, data: body.data, error: null, meta }) as JsonRecord;
-  }
-  const originalError = asRecord(body.error);
-  const code = text(originalError.code) || text(body.code) || "request_failed";
-  const message = text(originalError.message) || text(body.message) || "The request could not be completed.";
-  return withDevMetadata({
-    success: false,
-    data: null,
-    error: { code, message },
-    meta
-  }) as JsonRecord;
 }
 
 /**
@@ -105,7 +79,7 @@ export default async function developerApiV4(req: V3Request, res: V3Response, pa
   if (route === "redemptions") {
     const idempotency = readIdempotencyKey(req);
     if (idempotency.present && idempotency.valid) {
-      const namespaced = "v4_" + crypto.createHash("sha256").update(idempotency.key, "utf8").digest("hex");
+      const namespaced = namespaceV4IdempotencyKey(idempotency.key);
       adaptedRequest = { ...req, headers: { ...req.headers, "idempotency-key": namespaced } };
     }
   }
@@ -118,13 +92,12 @@ export default async function developerApiV4(req: V3Request, res: V3Response, pa
     return;
   }
 
-  const capturedMeta = asRecord(asRecord(capturedBody).meta);
-  const responseId = text(capturedMeta.requestId) || capturedHeaders.get("x-request-id")?.value || id;
+  const responseId = capturedHeaders.get("x-request-id")?.value || id;
   for (const [key, value] of capturedHeaders) {
     if (key === "x-api-version" || key === "x-request-id") continue;
     res.setHeader(value.name, value.value);
   }
   res.setHeader("X-Request-Id", responseId);
   res.setHeader("X-API-Version", "4");
-  res.status(capturedStatus).json(asV4Envelope(capturedBody, capturedStatus, responseId));
+  res.status(capturedStatus).json(normalizeV4Response(capturedBody, capturedStatus, responseId));
 }
