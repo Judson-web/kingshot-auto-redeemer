@@ -36,16 +36,6 @@ test("admin player page never renders empty statistics before a valid player lis
   assert.match(helper, /status === 401 \|\| status === 403/);
 });
 
-test("admin data accepts a profile session only after verifying the configured Discord owner", async () => {
-  const adminData = await readFile(new URL("../lib/admin-data.js", import.meta.url), "utf8");
-  const identity = await readFile(new URL("../lib/discord-identity.js", import.meta.url), "utf8");
-  assert.match(adminData, /const PROFILE_COOKIE="__Host-ks_profile_session"/);
-  assert.match(adminData, /const ownerSession=getCookie\(req,COOKIE\),profileSession=getCookie\(req,PROFILE_COOKIE\)/);
-  assert.match(adminData, /isDiscordOwner\(owner,OWNER_DISCORD_ID\)/);
-  assert.match(adminData, /session===profileSession&&session!==ownerSession/);
-  assert.ok(adminData.indexOf("isDiscordOwner(owner,OWNER_DISCORD_ID)") < adminData.indexOf('COOKIE+"="+encodeURIComponent(session)'));
-  assert.match(identity, /return hasDiscord && actual.length > 0 && actual === String\(expectedDiscordId\)/);
-});
 
 test("support inbox loads the isolated admin push control rather than the entire player database module", async () => {
   const player = await readFile(new URL("../src/AdminPlayersApp.tsx", import.meta.url), "utf8");
@@ -79,4 +69,31 @@ test("profile, admin and support-specific CSS follows the relevant lazy componen
   assert.doesNotMatch(entry, /import["']\.\/admin-players\.css/);
   assert.doesNotMatch(entry, /import["']\.\/profile-redesign\.css/);
   assert.doesNotMatch(entry, /import["']\.\/support-centre-redesign\.css/);
+});
+
+test("admin player page verifies the profile session and obtains owner access before loading private data", async () => {
+  const page = await readFile(new URL("../src/AdminPlayersApp.tsx", import.meta.url), "utf8");
+  const helper = await readFile(new URL("../src/admin-session-bootstrap.js", import.meta.url), "utf8");
+  const call = page.indexOf("await ensureAdminWorkspaceSession();");
+  const data = page.indexOf("const d=await request();", call);
+  assert.ok(call >= 0 && data > call, "owner session bootstrap must run before the private data request");
+  assert.match(helper, /developer=account-auth/);
+  assert.match(helper, /action: "dev-check"/);
+  assert.match(helper, /data\.authenticated!==true/);
+});
+
+test("admin session bootstrap succeeds only when server confirms the owner session", async () => {
+  const { ensureAdminWorkspaceSession } = await import("../src/admin-session-bootstrap.js");
+  let captured;
+  await ensureAdminWorkspaceSession(async (url, init) => {
+    captured = { url, init, credentials: init.credentials, body: JSON.parse(init.body) };
+    return { ok: true, status: 200, json: async () => ({ authenticated: true }) };
+  });
+  assert.match(captured.url, /developer=account-auth/);
+  assert.equal(captured.credentials, "same-origin");
+  assert.equal(captured.body.action, "dev-check");
+  await assert.rejects(
+    () => ensureAdminWorkspaceSession(async () => ({ ok: true, status: 200, json: async () => ({ authenticated: false }) })),
+    error => error.status === 401
+  );
 });

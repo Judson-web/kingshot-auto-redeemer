@@ -1,6 +1,7 @@
 import React,{useCallback,useEffect,useMemo,useState}from"react";
 import "./admin-players.css";
 import AdminPushControl from "./components/AdminPushControl";
+import { ensureAdminWorkspaceSession } from "./admin-session-bootstrap.js";
 import{allianceDisplayName,formatPower,playerDisplayName}from"../lib/player-display.js";
 import TownCenterLevel from"./components/TownCenterLevel";
 import KingshotAvatar from"./components/KingshotAvatar";
@@ -12,12 +13,13 @@ type BanRecord={player_id:string;reason:string;created_at:string;updated_at:stri
 type Redemption={player_id:string;gift_code:string;status:string;err_code:number|null;message:string|null;attempted_at:string};
 const API="/api/kingshot-admin-data";
 async function request(url=API,init:RequestInit={}){const r=await fetch(url,{...init,credentials:"same-origin",cache:"no-store",headers:{"content-type":"application/json",...(init.headers as Record<string,string>|undefined||{})}});const d=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(d.error||"Admin request failed."),{status:r.status});return d}
+
 const date=(v:unknown)=>{if(!v)return"Not recorded";const d=new Date(String(v));return Number.isNaN(d.getTime())?"Not recorded":d.toLocaleString([], {dateStyle:"medium",timeStyle:"short"})};
 const value=(v:unknown)=>v===null||v===undefined||v===""?"—":String(v);
 function Stat({label,number,icon:Icon}:{label:string;number:number|string;icon:any}){return <div className="ap-stat"><span><Icon size={17}/></span><small>{label}</small><b>{number}</b></div>}
 export default function AdminPlayersApp(){
  const[data,setData]=useState<{players:Player[];bans:BanRecord[]}>({players:[],bans:[]}),[loading,setLoading]=useState(true),[hasLoadedData,setHasLoadedData]=useState(false),[accessDenied,setAccessDenied]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState(""),[query,setQuery]=useState(""),[filter,setFilter]=useState("all"),[selected,setSelected]=useState(""),[history,setHistory]=useState<Redemption[]>([]),[historyLoading,setHistoryLoading]=useState(false),[busy,setBusy]=useState(""),[refreshProgress,setRefreshProgress]=useState({done:0,total:0}),[banReason,setBanReason]=useState("Abuse or invalid registration"),[refreshMeta,setRefreshMeta]=useState<any>(null);
- const load=useCallback(async(keepNotice=false)=>{setLoading(true);setError("");try{const d=await request();if(!Array.isArray(d.players))throw Error("The player database response was incomplete.");const rows=d.players as Player[];setData({players:rows,bans:Array.isArray(d.bans)?d.bans:[]});setHasLoadedData(true);setAccessDenied(false);if(!keepNotice)setNotice("");setSelected(current=>current||String(rows[0]?.player_id||""))}catch(e){setAccessDenied(isAdminAccessDenied(e));setError(e instanceof Error?e.message:"Could not load the player database.")}finally{setLoading(false)}},[]);
+ const load=useCallback(async(keepNotice=false)=>{setLoading(true);setError("");try{await ensureAdminWorkspaceSession();const d=await request();if(!Array.isArray(d.players))throw Error("The player database response was incomplete.");const rows=d.players as Player[];setData({players:rows,bans:Array.isArray(d.bans)?d.bans:[]});setHasLoadedData(true);setAccessDenied(false);if(!keepNotice)setNotice("");setSelected(current=>current||String(rows[0]?.player_id||""))}catch(e){setAccessDenied(isAdminAccessDenied(e));setError(e instanceof Error?e.message:"Could not load the player database.")}finally{setLoading(false)}},[]);
  useEffect(()=>{void load()},[load]);
  useEffect(()=>{document.body.classList.add("admin-players-active");document.documentElement.classList.add("admin-players-active");return()=>{document.body.classList.remove("admin-players-active");document.documentElement.classList.remove("admin-players-active")}},[]);
  const banMap=useMemo(()=>new Map(data.bans.map(b=>[String(b.player_id),b])),[data.bans]);
