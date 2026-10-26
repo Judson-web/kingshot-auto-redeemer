@@ -3,6 +3,7 @@ import developerApiV3 from "./developer-api-v3.js";
 import { isJsonRequest, requestId, timestamp } from "./api-v3/http.js";
 import { readIdempotencyKey } from "./api-v3/idempotency.js";
 import { normalizeV4Response, namespaceV4IdempotencyKey } from "./api-v4/contract.js";
+import { withDevMetadata } from "./developer-contact.js";
 
 type Header = { name: string; value: string };
 function sendV4Error(res: V3Response, status: number, code: string, message: string, id: string, extraMeta: JsonRecord = {}): void {
@@ -12,13 +13,12 @@ function sendV4Error(res: V3Response, status: number, code: string, message: str
     const reset = Date.parse(extraMeta.resetAt);
     if (Number.isFinite(reset)) res.setHeader("Retry-After", String(Math.max(1, Math.ceil((reset - Date.now()) / 1000))));
   }
-  res.status(status).json({
+  res.status(status).json(withDevMetadata({
     success: false,
     data: null,
     error: { code, message },
-    meta: { apiVersion: "4", requestId: id, timestamp: timestamp(), ...extraMeta },
-    dev: { name: "Judson", discord: "@judson00713", url: "https://discord.com/users/871756466900598815" }
-  });
+    meta: { apiVersion: "4", requestId: id, timestamp: timestamp(), ...extraMeta }
+  }));
 }
 
 function setV4Headers(res: V3Response, methods: string): void {
