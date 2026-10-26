@@ -2,6 +2,7 @@ import { rateLimit } from "../lib/request-rate-limit.js";
 import { fetchMightPulse } from "../lib/mightpulse-key-pool.js";
 import developerApi from "../lib/developer-api.js";
 import developerApiV3 from "../lib/developer-api-v3.js";
+import developerApiV4 from "../lib/developer-api-v4.js";
 import developerAuth from "../lib/developer-auth.js";
 import developerAccount from "../lib/developer-account.js";
 import { isValidPlayerId, lookupPlayer, normalizePlayerId, PlayerLookupError } from "../internal/kingshot/player.js";
@@ -242,6 +243,7 @@ export default async function handler(req: RequestLike, res: ResponseLike): Prom
  if (developerPath === "account-auth") return developerAuth(req, res);
  if (developerPath === "account-keys") return developerAccount(req, res);
  if (developerPath.startsWith("v3-")) return developerApiV3(req, res, developerPath.slice(3));
+ if (developerPath.startsWith("v4-")) return developerApiV4(req, res, developerPath.slice(3));
  if (developerPath) return developerApi(req, res, developerPath);
  if (requestUrl.searchParams.has("frame")) return handleMightPulseFrameRequest(req, res, requestUrl, requestId);
  if (req.method !== "GET") { res.setHeader("Allow", "GET"); return void sendError(res, 405, "method_not_allowed", "Method not allowed.", requestId); }
