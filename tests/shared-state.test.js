@@ -119,7 +119,7 @@ test("support topic picker and developer contact/code examples meet accessible-n
   const { readFile } = await import("node:fs/promises");
   const support = await readFile(new URL("../src/components/SupportWidget.tsx", import.meta.url), "utf8");
   const developer = await readFile(new URL("../src/DeveloperApp.tsx", import.meta.url), "utf8");
-  assert.match(support, /aria-labelledby="support-topic-selected-label support-topic-selected-value"/);
+  assert.match(support, /aria-label=\{"REQUEST CATEGORY " \+ topic\}/);
   assert.match(support, /id="support-topic-selected-label">REQUEST CATEGORY/);
   assert.match(support, /id="support-topic-selected-value">\{topic\}/);
   assert.match(developer, /aria-label=\{"Open Discord profile for " \+ DEVELOPER_NAME/);
