@@ -203,7 +203,12 @@ async function responsiveChecks(page, scenario) {
         overlayOverlap = Math.max(0, Math.min(prompt.right, supportTrigger.right) - Math.max(prompt.left, supportTrigger.left)) > 1 &&
           Math.max(0, Math.min(prompt.bottom, supportTrigger.bottom) - Math.max(prompt.top, supportTrigger.top)) > 1;
       }
-      return { viewportWidth: innerWidth, documentWidth: maxScroll, overlayOverlap, supportPanel: panel };
+      const supportPanelOverflow = Boolean(panel && (
+        panel.left < -1 ||
+        panel.right > innerWidth + 1 ||
+        panel.width > innerWidth + 1
+      ));
+      return { viewportWidth: innerWidth, documentWidth: maxScroll, overlayOverlap, supportPanel: panel, supportPanelOverflow };
     });
     records.push(geometry);
     if (geometry.documentWidth > geometry.viewportWidth + 1) {
@@ -212,15 +217,11 @@ async function responsiveChecks(page, scenario) {
     if (geometry.overlayOverlap) {
       fail(scenario.name + " notification prompt overlaps the Support launcher at " + width + "px");
     }
-    if (geometry.supportPanel && (
-      geometry.supportPanel.left < -1 ||
-      geometry.supportPanel.right > geometry.viewportWidth + 1 ||
-      geometry.supportPanel.width > geometry.viewportWidth + 1
-    )) {
+    if (geometry.supportPanelOverflow) {
       fail(scenario.name + " Support panel exceeds the viewport at " + width + "px");
     }
   }
-  if (!records.some(item => item.documentWidth > item.viewportWidth + 1 || item.overlayOverlap)) {
+  if (!records.some(item => item.documentWidth > item.viewportWidth + 1 || item.overlayOverlap || item.supportPanelOverflow)) {
     pass("responsive layout " + scenario.name + " at 320, 360, 393, 768 and 1280px");
   }
   return records;
@@ -262,22 +263,70 @@ try {
         fail(scenario.name + " did not render its expected account/access state");
       }
       if (scenario.supportOpen) {
-        result.supportPicker = await page.locator(".support-topic-trigger").evaluate(el => ({
+        const topicTrigger = page.locator(".support-topic-trigger");
+        result.supportPicker = await topicTrigger.evaluate(el => ({
           ariaLabel: el.getAttribute("aria-label"),
           labelledBy: el.getAttribute("aria-labelledby"),
           text: (el.innerText || "").trim(),
+          visibleTopic: (el.querySelector("#support-topic-selected-value")?.textContent || "").trim(),
           textContent: (el.textContent || "").trim(),
-          computedNameHint: el.getAttribute("aria-label") || (el.getAttribute("aria-labelledby") || "").split(/\\s+/).map(id => document.getElementById(id)?.textContent || "").join(" ").trim()
+          computedNameHint: el.getAttribute("aria-label") || (el.getAttribute("aria-labelledby") || "").split(/\s+/).map(id => document.getElementById(id)?.textContent || "").join(" ").trim()
         }));
+
+        const visibleTopic = result.supportPicker.visibleTopic.replace(/\s+/g, " ").trim();
+        const declaredName = (result.supportPicker.ariaLabel || result.supportPicker.computedNameHint || "").replace(/\s+/g, " ").trim();
+        if (!visibleTopic) {
+          fail("support topic picker has no visible selected topic");
+        } else {
+          const accessibleNameMatches = await page.getByRole("button", { name: visibleTopic })
+            .evaluateAll(elements => elements.some(el => el.matches(".support-topic-trigger")));
+          if (!accessibleNameMatches) {
+            fail("support topic picker accessible name does not contain the visible topic: " + JSON.stringify(visibleTopic));
+          } else {
+            pass("support topic picker accessible name contains the visible topic");
+          }
+        }
+        const normalizedName = declaredName.toLowerCase();
+        if (visibleTopic && (!normalizedName.includes(visibleTopic.toLowerCase()) || !normalizedName.includes("request category"))) {
+          fail("support topic picker accessible name must include both the visible category label and selected topic: " + JSON.stringify(declaredName));
+        }
+
+        const dialogCount = await page.getByRole("dialog", { name: "Support centre", exact: true }).count();
+        if (dialogCount !== 1) fail("support chat dialog does not expose the expected accessible name");
+
         const focusInside = await page.evaluate(() => {
           const panel = document.querySelector(".support-float-panel");
           return Boolean(panel && document.activeElement && panel.contains(document.activeElement));
         });
         if (!focusInside) fail("support dialog did not place focus inside the open panel");
+
+
       }
 
       result.screenshot = await screenshotDiff(page, scenario);
       result.accessibility = await axeScan(page, scenario);
+      if (scenario.supportOpen) {
+        const keyboardTrigger = page.locator(".support-topic-trigger");
+        // Exercise the custom topic picker with the keyboard, not only with a mouse.
+        await keyboardTrigger.focus();
+        await page.keyboard.press("ArrowDown");
+        const topicMenu = page.locator("#support-topic-options");
+        await topicMenu.waitFor({ state: "visible", timeout: 3000 });
+        let selectedOptionFocused = false;
+        try {
+          await page.waitForFunction(() => {
+            const selected = document.querySelector('#support-topic-options [role="option"][aria-selected="true"]');
+            return Boolean(selected && selected === document.activeElement);
+          }, null, { timeout: 3000 });
+          selectedOptionFocused = true;
+        } catch {}
+        if (!selectedOptionFocused) fail("opening the support topic picker with ArrowDown did not focus the selected option");
+        await page.keyboard.press("Escape");
+        await topicMenu.waitFor({ state: "hidden", timeout: 3000 });
+        const focusReturned = await keyboardTrigger.evaluate(el => el === document.activeElement);
+        if (!focusReturned) fail("Escape did not close the support topic picker and return focus to its trigger");
+        else pass("support topic picker supports ArrowDown and Escape keyboard flow");
+      }
       result.responsive = await responsiveChecks(page, scenario);
       if (result.pageErrors.length) {
         for (const error of result.pageErrors) fail(scenario.name + " JavaScript runtime error: " + error);
