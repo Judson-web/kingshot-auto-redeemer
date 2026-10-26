@@ -156,6 +156,7 @@ async function axeScan(page, scenario) {
         helpUrl: item.helpUrl,
         nodes: item.nodes.map(node => ({
           target: node.target,
+          html: (node.html || "").slice(0, 500),
           summary: (node.failureSummary || "").slice(0, 400)
         })).slice(0, 12)
       })),
@@ -260,6 +261,13 @@ try {
         fail(scenario.name + " did not render its expected account/access state");
       }
       if (scenario.supportOpen) {
+        result.supportPicker = await page.locator(".support-topic-trigger").evaluate(el => ({
+          ariaLabel: el.getAttribute("aria-label"),
+          labelledBy: el.getAttribute("aria-labelledby"),
+          text: (el.innerText || "").trim(),
+          textContent: (el.textContent || "").trim(),
+          computedNameHint: el.getAttribute("aria-label") || (el.getAttribute("aria-labelledby") || "").split(/\\s+/).map(id => document.getElementById(id)?.textContent || "").join(" ").trim()
+        }));
         const focusInside = await page.evaluate(() => {
           const panel = document.querySelector(".support-float-panel");
           return Boolean(panel && document.activeElement && panel.contains(document.activeElement));
