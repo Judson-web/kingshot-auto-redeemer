@@ -86,4 +86,8 @@ test("maintenance gate, profile status and shared header consume common state st
   assert.doesNotMatch(profile, /const roleTimer=window\.setInterval\(refreshRole,30000\)/);
   assert.match(chip, /useAccountState\(\)/);
   assert.doesNotMatch(chip, /window\.setInterval\(load,30000\)/);
+  const developerPanel = await readFile(new URL("../src/DeveloperAccountPanel.tsx", import.meta.url), "utf8");
+  assert.match(developerPanel, /useAccountState\(\)/);
+  assert.doesNotMatch(developerPanel, /request\("\/api\/kingshot-player\?developer=account-auth"\)/);
+  assert.match(developerPanel, /developer=account-keys/);
 });
