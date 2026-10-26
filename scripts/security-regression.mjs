@@ -291,6 +291,12 @@ assertCheck("Legacy developer endpoints remain admin-session protected", develop
 assertCheck("Discord OAuth is verified server-side before creating developer sessions", developerAuth.includes('action==="oauth"') && developerAuth.includes('/auth/v1/user') && developerAuth.includes('provider!=="discord"') && developerAuth.includes("OWNER_DISCORD_ID") && developerAuth.includes("kingshot_developer_account_session_create"));
 assertCheck("Auth profile trigger uses a pinned security-definer function and blocks direct app-role execution", authProfileTriggerMigration.includes("SECURITY DEFINER") && authProfileTriggerMigration.includes("SET search_path = pg_catalog") && authProfileTriggerMigration.includes("REVOKE ALL ON FUNCTION public.handle_new_user()"));
 assertCheck("Developer accounts keep isolated API-key ownership", developerAccountApi.includes("kingshot_developer_account_create_key") && accountMigration.includes("owner_user_id") && accountMigration.includes("p_session_hash"));
+assertCheck("API-key management reuses the verified profile session before the dedicated developer session",
+ developerAccountApi.includes('const PROFILE_COOKIE="__Host-ks_profile_session";') &&
+ developerAccountApi.includes("sessionTokens(req)") &&
+ developerAccountApi.includes("kingshot_developer_account_session_get") &&
+ developerAccountApi.includes('providers.includes("discord")||identities.some((identity:any)=>identity?.provider==="discord")') &&
+ developerAccountApi.includes("const p_session_hash=sha(s)"));
 assertCheck("Developer account sessions use secure HttpOnly cookies", developerAuth.includes("HttpOnly; Secure; SameSite=Strict") && developerAuth.includes("randomBytes(32)"));
 assertCheck("Account dashboard uses Discord-only OAuth and key management", developerAccountUi.includes("Continue with Discord") && !developerAccountUi.includes("Continue with GitHub") && !developerAccountUi.includes("signup") && developerAccountUi.includes('action:"oauth"') && developerAccountUi.includes("Create API key") && developerAccountUi.includes("Revoke"));
 assertCheck("Developer account uses shared copy confirmation while preserving key-state feedback", developerAccountUi.includes("Checking your sign-in…") && developerAccountUi.includes("developer-auth-spinner") && developerAccountUi.includes('copyToClipboard(newKey,"API key")') && developerAccountUi.includes('copied?"Copied!":"Copy key"') && developerAccountUi.includes("Clipboard access is unavailable"));
