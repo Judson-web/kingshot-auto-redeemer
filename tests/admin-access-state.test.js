@@ -35,3 +35,14 @@ test("admin player page never renders empty statistics before a valid player lis
   assert.match(page, /data\.players\.length\?"No players match this filter\."\:"No registered players yet\."/);
   assert.match(helper, /status === 401 \|\| status === 403/);
 });
+
+test("admin data accepts a profile session only after verifying the configured Discord owner", async () => {
+  const adminData = await readFile(new URL("../lib/admin-data.js", import.meta.url), "utf8");
+  const identity = await readFile(new URL("../lib/discord-identity.js", import.meta.url), "utf8");
+  assert.match(adminData, /const PROFILE_COOKIE="__Host-ks_profile_session"/);
+  assert.match(adminData, /const ownerSession=getCookie\(req,COOKIE\),profileSession=getCookie\(req,PROFILE_COOKIE\)/);
+  assert.match(adminData, /isDiscordOwner\(owner,OWNER_DISCORD_ID\)/);
+  assert.match(adminData, /session===profileSession&&session!==ownerSession/);
+  assert.ok(adminData.indexOf("isDiscordOwner(owner,OWNER_DISCORD_ID)") < adminData.indexOf('COOKIE+"="+encodeURIComponent(session)'));
+  assert.match(identity, /return hasDiscord && actual.length > 0 && actual === String\(expectedDiscordId\)/);
+});
