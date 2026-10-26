@@ -90,3 +90,25 @@ test("V4 routes are wired through the existing player serverless function withou
   assert.match(router, /developerPath\.startsWith\("v4-"\)/);
   assert.match(router, /developerApiV4\(req, res, developerPath\.slice\(3\)\)/);
 });
+
+test("V4 OpenAPI schemas, examples, and reference docs stay aligned", async () => {
+  const spec = JSON.parse(await readFile(new URL("../public/openapi.json", import.meta.url), "utf8"));
+  assert.equal(spec.info.version, "4.0.0");
+  assert.ok(spec.paths["/api/v4/players/{playerId}"]?.get);
+  assert.ok(spec.paths["/api/v4/redemptions"]?.post);
+  assert.equal(spec.paths["/api/v4/redemptions"].post.requestBody.content["application/json"].schema.$ref, "#/components/schemas/ApiV4RedemptionRequest");
+  assert.equal(spec.components.schemas.ApiV4Meta.properties.apiVersion.const, "4");
+  assert.deepEqual(spec.components.schemas.ApiV4ErrorResponse.required, ["success", "data", "error", "meta", "dev"]);
+  assert.ok(spec.paths["/api/v4/players/{playerId}"].get.responses["200"].headers["X-Request-Id"]);
+  assert.ok(spec.paths["/api/v4/players/{playerId}"].get.responses["200"].headers["X-API-Version"]);
+  assert.ok(spec.paths["/api/v4/redemptions"].post.responses["200"].headers["Idempotency-Replayed"]);
+
+  const guide = await readFile(new URL("../public/developer-v4.md", import.meta.url), "utf8");
+  const crawlerDocs = await readFile(new URL("../public/developer.md", import.meta.url), "utf8");
+  const interactive = await readFile(new URL("../src/DeveloperApp.tsx", import.meta.url), "utf8");
+  assert.match(guide, /success, data, error, meta, and dev/);
+  assert.match(guide, /same key and body/i);
+  assert.match(crawlerDocs, /## V4 current API/);
+  assert.match(interactive, /Example V4 redemption response/);
+  assert.match(interactive, /Idempotency-Key/);
+});
