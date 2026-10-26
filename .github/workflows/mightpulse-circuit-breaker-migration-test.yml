@@ -1,0 +1,50 @@
+name: MightPulse Circuit Breaker Migration Integration
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "lib/mightpulse-key-pool.js"
+      - "supabase/migrations/20261026120000_mightpulse_provider_circuit_breaker.sql"
+      - "tests/mightpulse-key.test.js"
+      - "tests/sql/mightpulse-circuit-breaker-fixture.sql"
+      - "tests/sql/mightpulse-circuit-breaker-assertions.sql"
+      - ".github/workflows/mightpulse-circuit-breaker-migration-test.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  circuit-breaker-migration:
+    name: Apply circuit breaker migration and verify RLS, grants, and state transitions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: migration-test
+          POSTGRES_DB: migration_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d migration_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:migration-test@localhost:5432/migration_test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare isolated PostgreSQL roles and schema
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/sql/mightpulse-circuit-breaker-fixture.sql
+
+      - name: Apply versioned migration
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261026120000_mightpulse_provider_circuit_breaker.sql
+
+      - name: Verify least-privilege access and circuit transitions
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/sql/mightpulse-circuit-breaker-assertions.sql
