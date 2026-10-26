@@ -10,12 +10,12 @@ Supabase access for operational data and should not add blanket client grants.
 Every migration that creates a table in `public` must explicitly document its
 intended Data API permissions in that same migration:
 
-- For intentionally server-only tables, explicitly revoke access from
-  `PUBLIC`, `anon`, and `authenticated`, then grant only the required
-  privileges to `service_role`.
-- For a deliberately client-accessible table, grant only the minimum required
-  privileges to the intended role(s), and ensure RLS policies constrain rows
-  and operations.
+- For intentionally server-only tables, enable RLS, explicitly revoke access
+  from `PUBLIC`, `anon`, and `authenticated`, then grant only the privileges
+  the server needs to `service_role`.
+- For a deliberately client-accessible table, enable RLS, grant only the
+  minimum required privileges to the intended role(s), and ensure policies
+  constrain rows and operations.
 - If a table should not be reachable through the Data API, do not grant
   `anon` or `authenticated` access merely to make a migration pass.
 - Treat sequences and RPC/function execution privileges separately; table
@@ -35,6 +35,9 @@ Choose the exact service-role privileges the server needs; the example is not a
 requirement to grant CRUD to every table. Do not add global default privileges
 or a blanket grant across all public tables as a shortcut.
 
-A regression test checks migrations dated October 30, 2026 or later for an
-explicit grant/revoke decision on each new `public` table. Existing tables are
-not rewritten by this change.
+The regression test starts checking new migrations dated **October 26, 2026**
+so ACL and RLS decisions are enforced before the platform's October 30 change.
+It skips qualified non-public schemas and treats an unqualified
+`CREATE TABLE` as public, so migration authors should prefer schema-qualified
+DDL. This is a static guard, not a replacement for live database policy review
+or PostgreSQL integration tests.
