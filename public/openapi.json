@@ -3,7 +3,7 @@
   "info": {
     "title": "Kingshot Auto Redeemer Developer API",
     "version": "4.0.0",
-    "description": "V4 is the current developer API for player lookup and manual redemption. It uses a consistent success/data/error/meta response envelope, versioned request IDs, quota metadata, and V4-scoped idempotency. V3 remains available for existing integrations; V1 routes are deprecated. Use only with player accounts you are authorized to access. Public JSON responses include the top-level dev attribution object.",
+    "description": "V4 is the current developer API for player lookup and manual redemption. It provides a consistent success/data/error/meta envelope, request tracing, quota metadata, and V4-scoped idempotency. V3 remains available for existing integrations; V1 routes are deprecated. Use only with player accounts you are authorized to access. Public JSON responses include the top-level dev attribution object. Full guide: /developer-v4.md.",
     "termsOfService": "https://kingshot-autoredeemer.vercel.app/terms?service=kingshot-auto",
     "contact": {
       "name": "Judson",
@@ -451,7 +451,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Player lookup completed.",
+            "description": "Successful API response.",
             "content": {
               "application/json": {
                 "schema": {
@@ -490,14 +490,46 @@
                   }
                 }
               }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Unique request identifier, also included in meta.requestId.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "X-API-Version": {
+                "description": "API response contract version.",
+                "schema": {
+                  "type": "string",
+                  "const": "4"
+                }
+              }
             }
           },
           "400": {
-            "description": "Invalid Player ID.",
+            "description": "Invalid request data.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV4ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Unique request identifier, also included in meta.requestId.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "X-API-Version": {
+                "description": "API response contract version.",
+                "schema": {
+                  "type": "string",
+                  "const": "4"
                 }
               }
             }
@@ -510,6 +542,22 @@
                   "$ref": "#/components/schemas/ApiV4ErrorResponse"
                 }
               }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Unique request identifier, also included in meta.requestId.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "X-API-Version": {
+                "description": "API response contract version.",
+                "schema": {
+                  "type": "string",
+                  "const": "4"
+                }
+              }
             }
           },
           "404": {
@@ -518,56 +566,177 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV4ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "data": null,
+                  "error": {
+                    "code": "player_not_found",
+                    "message": "No player was found for this ID."
+                  },
+                  "meta": {
+                    "apiVersion": "4",
+                    "requestId": "server-generated-id",
+                    "timestamp": "2026-10-26T10:00:00.000Z"
+                  },
+                  "dev": {
+                    "name": "Judson",
+                    "discord": "@judson00713",
+                    "url": "https://discord.com/users/871756466900598815"
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Unique request identifier, also included in meta.requestId.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "X-API-Version": {
+                "description": "API response contract version.",
+                "schema": {
+                  "type": "string",
+                  "const": "4"
                 }
               }
             }
           },
           "405": {
-            "description": "Method not allowed.",
+            "description": "Unsupported method.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV4ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Unique request identifier, also included in meta.requestId.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "X-API-Version": {
+                "description": "API response contract version.",
+                "schema": {
+                  "type": "string",
+                  "const": "4"
                 }
               }
             }
           },
           "429": {
-            "description": "Rate limit or quota exceeded.",
+            "description": "Per-key, per-IP, or daily quota exceeded.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV4ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Unique request identifier, also included in meta.requestId.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "X-API-Version": {
+                "description": "API response contract version.",
+                "schema": {
+                  "type": "string",
+                  "const": "4"
+                }
+              },
+              "Retry-After": {
+                "description": "Suggested delay before retrying, in seconds.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
                 }
               }
             }
           },
           "502": {
-            "description": "Upstream provider returned invalid data or is unavailable.",
+            "description": "Upstream provider unavailable or returned invalid data.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV4ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Unique request identifier, also included in meta.requestId.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "X-API-Version": {
+                "description": "API response contract version.",
+                "schema": {
+                  "type": "string",
+                  "const": "4"
                 }
               }
             }
           },
           "503": {
-            "description": "Authorization or provider configuration unavailable.",
+            "description": "Authorization, provider configuration, or idempotency storage unavailable.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV4ErrorResponse"
                 }
               }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Unique request identifier, also included in meta.requestId.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "X-API-Version": {
+                "description": "API response contract version.",
+                "schema": {
+                  "type": "string",
+                  "const": "4"
+                }
+              }
             }
           },
           "504": {
-            "description": "Upstream request timed out.",
+            "description": "Upstream request timed out; redemption outcome may be ambiguous.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV4ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Unique request identifier, also included in meta.requestId.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "X-API-Version": {
+                "description": "API response contract version.",
+                "schema": {
+                  "type": "string",
+                  "const": "4"
                 }
               }
             }
@@ -608,14 +777,14 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ApiV3RedemptionRequest"
+                "$ref": "#/components/schemas/ApiV4RedemptionRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Redemption API request processed; inspect data.ok for the actual game outcome.",
+            "description": "Successful API response.",
             "content": {
               "application/json": {
                 "schema": {
@@ -660,15 +829,45 @@
                     "true"
                   ]
                 }
+              },
+              "X-Request-Id": {
+                "description": "Unique request identifier, also included in meta.requestId.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "X-API-Version": {
+                "description": "API response contract version.",
+                "schema": {
+                  "type": "string",
+                  "const": "4"
+                }
               }
             }
           },
           "400": {
-            "description": "Invalid request fields or idempotency key.",
+            "description": "Invalid request data.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV4ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Unique request identifier, also included in meta.requestId.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "X-API-Version": {
+                "description": "API response contract version.",
+                "schema": {
+                  "type": "string",
+                  "const": "4"
                 }
               }
             }
@@ -681,74 +880,209 @@
                   "$ref": "#/components/schemas/ApiV4ErrorResponse"
                 }
               }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Unique request identifier, also included in meta.requestId.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "X-API-Version": {
+                "description": "API response contract version.",
+                "schema": {
+                  "type": "string",
+                  "const": "4"
+                }
+              }
             }
           },
           "405": {
-            "description": "Method not allowed.",
+            "description": "Unsupported method.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV4ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Unique request identifier, also included in meta.requestId.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "X-API-Version": {
+                "description": "API response contract version.",
+                "schema": {
+                  "type": "string",
+                  "const": "4"
                 }
               }
             }
           },
           "409": {
-            "description": "Idempotency key conflict or request still processing.",
+            "description": "Idempotency key conflict or same-key request still processing.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV4ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Unique request identifier, also included in meta.requestId.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "X-API-Version": {
+                "description": "API response contract version.",
+                "schema": {
+                  "type": "string",
+                  "const": "4"
                 }
               }
             }
           },
           "415": {
-            "description": "Content-Type must be application/json.",
+            "description": "Redemption body must use application/json.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV4ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Unique request identifier, also included in meta.requestId.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "X-API-Version": {
+                "description": "API response contract version.",
+                "schema": {
+                  "type": "string",
+                  "const": "4"
                 }
               }
             }
           },
           "429": {
-            "description": "Rate limit or quota exceeded.",
+            "description": "Per-key, per-IP, or daily quota exceeded.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV4ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Unique request identifier, also included in meta.requestId.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "X-API-Version": {
+                "description": "API response contract version.",
+                "schema": {
+                  "type": "string",
+                  "const": "4"
+                }
+              },
+              "Retry-After": {
+                "description": "Suggested delay before retrying, in seconds.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
                 }
               }
             }
           },
           "502": {
-            "description": "Upstream provider unavailable; outcome may be ambiguous.",
+            "description": "Upstream provider unavailable or returned invalid data.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV4ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Unique request identifier, also included in meta.requestId.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "X-API-Version": {
+                "description": "API response contract version.",
+                "schema": {
+                  "type": "string",
+                  "const": "4"
                 }
               }
             }
           },
           "503": {
-            "description": "Authorization, configuration, or idempotency storage unavailable.",
+            "description": "Authorization, provider configuration, or idempotency storage unavailable.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV4ErrorResponse"
                 }
               }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Unique request identifier, also included in meta.requestId.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "X-API-Version": {
+                "description": "API response contract version.",
+                "schema": {
+                  "type": "string",
+                  "const": "4"
+                }
+              }
             }
           },
           "504": {
-            "description": "Upstream request timed out; outcome may be ambiguous.",
+            "description": "Upstream request timed out; redemption outcome may be ambiguous.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV4ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Unique request identifier, also included in meta.requestId.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "X-API-Version": {
+                "description": "API response contract version.",
+                "schema": {
+                  "type": "string",
+                  "const": "4"
                 }
               }
             }
@@ -1468,6 +1802,36 @@
           },
           "dev": {
             "$ref": "#/components/schemas/DeveloperAttribution"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApiV4RedemptionRequest": {
+        "type": "object",
+        "required": [
+          "playerId",
+          "code",
+          "kid"
+        ],
+        "properties": {
+          "playerId": {
+            "type": "string",
+            "pattern": "^[0-9]{5,20}$",
+            "minLength": 5,
+            "maxLength": 20,
+            "description": "Numeric Kingshot Player ID as a string."
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "minLength": 1,
+            "maxLength": 64,
+            "description": "Gift code. Only letters, digits, underscores, and hyphens are accepted."
+          },
+          "kid": {
+            "type": "string",
+            "pattern": "^[0-9]{1,10}$",
+            "description": "Kingdom ID as a string."
           }
         },
         "additionalProperties": false
