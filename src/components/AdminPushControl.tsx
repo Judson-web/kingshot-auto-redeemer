@@ -1,6 +1,6 @@
 import React,{useEffect,useState}from"react";
 import{CheckCircle2,LoaderCircle,ShieldCheck}from"lucide-react";
-import "./admin-push-control.css";
+import "../admin-push-control.css";
 const API="/api/kingshot-admin-data";
 async function request(url=API,init:RequestInit={}){const r=await fetch(url,{...init,credentials:"same-origin",cache:"no-store",headers:{"content-type":"application/json",...(init.headers as Record<string,string>|undefined||{})}});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||"Admin request failed.");return d}
 export default function AdminPushControl(){
