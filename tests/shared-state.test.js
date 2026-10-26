@@ -123,7 +123,8 @@ test("support topic picker and developer contact/code examples meet accessible-n
   const topicButtonEnd = support.indexOf("</button>", topicButtonStart);
   const topicButton = topicButtonStart >= 0 && topicButtonEnd > topicButtonStart ? support.slice(topicButtonStart, topicButtonEnd) : "";
   assert.ok(topicButton, "support topic picker button exists");
-  assert.doesNotMatch(topicButton, /aria-label=|aria-labelledby=/, "topic picker name must come from visible content");
+  assert.doesNotMatch(topicButton, /aria-label=/, "topic picker should not override its visible name with a static label");
+  assert.match(topicButton, /aria-labelledby="support-topic-selected-value"/, "topic picker name must follow the visible selected topic");
   assert.match(topicButton, /<b id="support-topic-selected-value">\{topic\}<\/b>/);
   assert.match(support, /id="support-topic-selected-label">REQUEST CATEGORY/);
   assert.match(support, /id="support-topic-selected-value">\{topic\}/);
