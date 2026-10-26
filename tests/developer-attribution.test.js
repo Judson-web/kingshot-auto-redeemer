@@ -25,7 +25,8 @@ test("V3, legacy, enrollment and public redemption routes expose dev metadata", 
   ]);
   assert.match(http, /json\(withDevMetadata\(/);
   assert.match(player, /json\(withDevMetadata\(/);
-  assert.match(redemption, /withDevMetadata\(c\.response_body\)/);
+  assert.match(redemption, /refreshIdempotentResponseMetadata\(claim\.response_body/);
+  assert.match(redemption, /json\(withDevMetadata\(replayBody\)\)/);
   assert.match(redemption, /json\(responseBody\)/);
   assert.match(legacy, /attachDevMetadata\(res\)/);
   assert.match(registration, /attachDevMetadata\(res\)/);

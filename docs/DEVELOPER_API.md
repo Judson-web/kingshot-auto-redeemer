@@ -59,7 +59,7 @@ V3 bounds each upstream player-read attempt and retries at most once after a tra
 
 POST /api/v3/redemptions
 
-Optional `Idempotency-Key` (8–128 safe ASCII characters) enables durable replay protection for 24 hours, scoped to the developer key. Same key and body replays the stored response; a different body returns 409. Concurrent requests return 409. A stale in-progress request becomes an explicit unknown outcome rather than being submitted again. Storage failures reject keyed requests before redemption. Requests without this header retain legacy non-idempotent behavior.
+Optional `Idempotency-Key` (8–128 safe ASCII characters) enables durable replay protection for 24 hours, scoped to the developer key. Same key and body replays the stored outcome; a different body returns 409. Duplicate header values are rejected to avoid intermediary parsing ambiguity. Concurrent requests return 409. A stale in-progress request becomes an explicit unknown outcome rather than being submitted again. Storage failures reject keyed requests before redemption. On replay, the original operation result is preserved, but `meta.requestId`, `meta.timestamp`, and `meta.rateLimit` are refreshed for the current HTTP attempt so `meta.requestId` matches `X-Request-Id`. Requests without this header retain legacy non-idempotent behavior.
 
     curl -X POST "https://kingshot-autoredeemer.vercel.app/api/v3/redemptions" \
       -H "Authorization: Bearer $KINGSHOT_API_KEY" \

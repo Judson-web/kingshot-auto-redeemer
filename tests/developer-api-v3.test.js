@@ -4,7 +4,8 @@ import test from "node:test";
 import { normalizeV3PlayerId, validateV3RedemptionBody } from "../lib/developer-api-v3-validation.js";
 import { normalizeV3PlayerData, normalizeV3ProviderMetadata } from "../lib/api-v3/contracts.js";
 import { shouldRetryProviderRead, withBoundedProviderReadRetry } from "../lib/api-v3/retry.js";
-import { readIdempotencyKey } from "../lib/api-v3/idempotency.js";
+import { readIdempotencyKey, refreshIdempotentResponseMetadata } from "../lib/api-v3/idempotency.js";
+
 test("V3 player IDs accept numeric strings from 5 to 20 digits", () => {
   assert.equal(normalizeV3PlayerId("43180889"), "43180889");
   assert.equal(normalizeV3PlayerId(" 43180889 "), "43180889");
@@ -33,6 +34,10 @@ test("V3 player contract normalizes values and rejects provider ID mismatches", 
     allianceName: "The Wind", allianceTag: "WIND"
   });
   assert.equal(normalizeV3PlayerData({ player_id: "43180889", avatar_url: "http://example.com/a.png" }, "43180889").avatarUrl, null);
+  assert.equal(normalizeV3PlayerData({ player_id: "43180889", avatar_url: "https://user:secret@example.com/a.png" }, "43180889").avatarUrl, null);
+  assert.equal(normalizeV3PlayerData({ player_id: "43180889", power: -1, town_center_level: 30.5 }, "43180889").power, null);
+  assert.equal(normalizeV3PlayerData({ player_id: "43180889", power: "9007199254740992", town_center_level: "Infinity" }, "43180889").townCenterLevel, null);
+  assert.equal(normalizeV3PlayerData({ player_id: "43180889", power: -1 }, "43180889").power, null);
   assert.throws(() => normalizeV3PlayerData({ player_id: "99999999" }, "43180889"), { code: "provider_player_mismatch" });
   assert.throws(() => normalizeV3PlayerData(null, "43180889"), { code: "invalid_provider_payload" });
 });
@@ -58,6 +63,9 @@ test("provider read retry does not repeat permanent or throttled errors", async 
   assert.equal(shouldRetryProviderRead({ status: 404 }), false);
   assert.equal(shouldRetryProviderRead({ status: 429 }), false);
   assert.equal(shouldRetryProviderRead({ status: 503 }), true);
+  assert.equal(shouldRetryProviderRead({ status: 408 }), true);
+  assert.equal(shouldRetryProviderRead({ status: 425 }), true);
+  assert.equal(shouldRetryProviderRead({ status: 501 }), false);
   assert.equal(shouldRetryProviderRead(new Error("API key is not configured")), false);
   let calls = 0;
   await assert.rejects(withBoundedProviderReadRetry(async () => {
@@ -85,4 +93,31 @@ test("V3 routes stay wired through the existing serverless handler", async () =>
   assert.match(router, /developerApiV3\(req, res, developerPath\.slice\(3\)\)/);
 });
 
-test("V3 idempotency key validation",()=>{assert.deepEqual(readIdempotencyKey({headers:{}}),{present:false,valid:true,key:""});assert.equal(readIdempotencyKey({headers:{"idempotency-key":"redeem-1234"}}).valid,true);assert.equal(readIdempotencyKey({headers:{"idempotency-key":"short"}}).valid,false);assert.equal(readIdempotencyKey({headers:{"idempotency-key":"has spaces"}}).valid,false);assert.equal(readIdempotencyKey({headers:{"idempotency-key":"x".repeat(129)}}).valid,false)});
+test("V3 idempotency key validation rejects ambiguous repeated headers", () => {
+  assert.deepEqual(readIdempotencyKey({headers:{}}),{present:false,valid:true,key:""});
+  assert.equal(readIdempotencyKey({headers:{"idempotency-key":"redeem-1234"}}).valid,true);
+  assert.equal(readIdempotencyKey({headers:{"IDEMPOTENCY-KEY":"redeem-1234"}}).valid,true);
+  assert.equal(readIdempotencyKey({headers:{"idempotency-key":["redeem-1234","redeem-5678"]}}).valid,false);
+  assert.equal(readIdempotencyKey({headers:{"idempotency-key":"short"}}).valid,false);
+  assert.equal(readIdempotencyKey({headers:{"idempotency-key":"has spaces"}}).valid,false);
+  assert.equal(readIdempotencyKey({headers:{"idempotency-key":"x".repeat(129)}}).valid,false);
+});
+test("V3 idempotency replay refreshes request metadata without mutating the stored outcome", () => {
+  const stored = {
+    data: { ok: false, status: "ALREADY_USED" },
+    meta: { apiVersion: "3", requestId: "original-request", timestamp: "2026-01-01T00:00:00.000Z", rateLimit: { perMinuteRemaining: 59 }, source: "stored" },
+    dev: { name: "Maintainer" }
+  };
+  const replay = refreshIdempotentResponseMetadata(stored, {
+    requestId: "retry-request",
+    timestamp: "2026-01-01T00:00:01.000Z",
+    rateLimit: { perMinuteRemaining: 57 }
+  });
+  assert.equal(replay.meta.requestId, "retry-request");
+  assert.equal(replay.meta.timestamp, "2026-01-01T00:00:01.000Z");
+  assert.deepEqual(replay.meta.rateLimit, { perMinuteRemaining: 57 });
+  assert.equal(replay.meta.source, "stored");
+  assert.deepEqual(replay.data, stored.data);
+  assert.equal(stored.meta.requestId, "original-request");
+  assert.equal(refreshIdempotentResponseMetadata(null, { requestId: "x", timestamp: "now", rateLimit: {} }), null);
+});

@@ -111,7 +111,7 @@ Success responses contain data and meta. Metadata includes apiVersion, requestId
       -H "Content-Type: application/json" \
       -d '{"playerId":"43180889","code":"EXAMPLECODE","kid":"1125"}'
 
-playerId must be 5–20 digits, code must contain 1–64 letters/digits/underscores/hyphens, and kid must contain 1–10 digits. Unknown fields are rejected. Inspect data.ok, data.status, data.message, data.errorCategory and data.errCode. HTTP 200 means the operation completed, not necessarily that rewards were granted. A timeout may have an ambiguous upstream outcome; do not blindly retry. V3 does not guarantee idempotent execution and never automatically retries redemptions.
+playerId must be 5–20 digits, code must contain 1–64 letters/digits/underscores/hyphens, and kid must contain 1–10 digits. Unknown fields are rejected. Inspect data.ok, data.status, data.message, data.errorCategory and data.errCode. HTTP 200 means the operation completed, not necessarily that rewards were granted. V3 never automatically retries redemptions. For safer retries, send an optional Idempotency-Key (8–128 safe ASCII characters): the same key and same body replay the stored outcome, while the same key with a different body returns 409. Replays preserve the original redemption outcome but refresh meta.requestId, meta.timestamp and rateLimit to describe the current HTTP attempt; the request ID in the body therefore matches X-Request-Id. Duplicate Idempotency-Key header values are rejected. For an ambiguous timeout, retry only with the same key and same body. This prevents an identical key/body from triggering a second provider call, but cannot guarantee exactly-once execution if the upstream result itself is ambiguous.
 
 ## V3 errors
 
