@@ -278,23 +278,7 @@ try {
         if (!visibleTopic) {
           fail("support topic picker has no visible selected topic");
         } else {
-          const topicPattern = new RegExp(visibleTopic.replace(/[.*+?^${}()|[\]\\]/g, "\\        const visibleTopic = result.supportPicker.visibleTopic.replace(/\s+/g, " ").trim();
-        const declaredName = (result.supportPicker.ariaLabel || result.supportPicker.computedNameHint || "").replace(/\s+/g, " ").trim();
-        if (!visibleTopic) {
-          fail("support topic picker has no visible selected topic");
-        } else {
-          const accessibleNameMatches = await page.getByRole("button", { name: visibleTopic, exact: true })
-            .evaluateAll(elements => elements.some(el => el.matches(".support-topic-trigger")));
-          if (!accessibleNameMatches) {
-            fail("support topic picker accessible name does not match visible topic: " + JSON.stringify(visibleTopic));
-          } else {
-            pass("support topic picker accessible name matches visible topic");
-          }
-        }
-        if (declaredName && visibleTopic && declaredName !== visibleTopic) {
-          fail("support topic picker declared name differs from its visible topic: " + JSON.stringify(declaredName));
-        }"), "i");
-          const accessibleNameMatches = await page.getByRole("button", { name: topicPattern })
+          const accessibleNameMatches = await page.getByRole("button", { name: visibleTopic })
             .evaluateAll(elements => elements.some(el => el.matches(".support-topic-trigger")));
           if (!accessibleNameMatches) {
             fail("support topic picker accessible name does not contain the visible topic: " + JSON.stringify(visibleTopic));
