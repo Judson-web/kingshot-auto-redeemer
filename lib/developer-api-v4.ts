@@ -18,7 +18,8 @@ function sendV4Error(
   message: string,
   id: string,
   extraMeta: JsonRecord = {},
-  route = ""
+  route = "",
+  idempotencyKeyPresent = false
 ): void {
   const now = timestamp();
   const resetAt = typeof extraMeta.resetAt === "string" ? extraMeta.resetAt : "";
@@ -31,7 +32,7 @@ function sendV4Error(
   res.status(status).json(withDevMetadata({
     success: false,
     data: null,
-    error: createV4Error(code, message, status, route, extraMeta, now),
+    error: createV4Error(code, message, status, route, extraMeta, now, "", idempotencyKeyPresent),
     meta: { apiVersion: "4", requestId: id, timestamp: now, ...extraMeta }
   }));
 }
@@ -81,6 +82,7 @@ export default async function developerApiV4(req: V3Request, res: V3Response, pa
   }
 
   let adaptedRequest = req;
+  let idempotencyKeyPresent = false;
   if (route === "redemptions") {
     const idempotency = readV4IdempotencyKey(req);
     if (!idempotency.valid) {
@@ -91,6 +93,7 @@ export default async function developerApiV4(req: V3Request, res: V3Response, pa
       );
       return;
     }
+    idempotencyKeyPresent = idempotency.present;
     if (idempotency.present) {
       // Remove alternate-case copies before injecting the namespaced header so
       // downstream runtimes cannot choose a different value.
@@ -116,7 +119,7 @@ export default async function developerApiV4(req: V3Request, res: V3Response, pa
     await developerApiV3(adaptedRequest, sink, route);
   } catch (error) {
     console.error("[developer-api-v4] adapter failed", { requestId: id, message: error instanceof Error ? error.message : "unknown error" });
-    sendV4Error(res, 502, "internal_error", "The API could not complete the request.", id, {}, route);
+    sendV4Error(res, 502, "internal_error", "The API could not complete the request.", id, {}, route, idempotencyKeyPresent);
     return;
   }
 
@@ -129,6 +132,7 @@ export default async function developerApiV4(req: V3Request, res: V3Response, pa
   res.setHeader("X-API-Version", "4");
   res.status(capturedStatus).json(normalizeV4Response(capturedBody, capturedStatus, responseId, timestamp(), {
     route,
-    retryAfterHeader: capturedHeaders.get("retry-after")?.value || ""
+    retryAfterHeader: capturedHeaders.get("retry-after")?.value || "",
+    idempotencyKeyPresent
   }));
 }

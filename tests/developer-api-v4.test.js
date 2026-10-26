@@ -101,9 +101,16 @@ test("V4 retry guidance distinguishes rate limits, ambiguous redemptions, and pe
   const ambiguous = normalizeV4Response({
     error: { code: "upstream_timeout", message: "Timed out." },
     meta: { resetAt: "2026-10-26T10:00:15.000Z" }
-  }, 504, "request-504", "2026-10-26T10:00:00.000Z", { route: "redemptions" });
+  }, 504, "request-504", "2026-10-26T10:00:00.000Z", { route: "redemptions", idempotencyKeyPresent: true });
   assert.equal(ambiguous.error.retryable, true);
   assert.equal(ambiguous.error.retryHint, "same_idempotency_key");
+
+  const unkeyedAmbiguous = normalizeV4Response({
+    error: { code: "upstream_timeout", message: "Timed out." },
+    meta: {}
+  }, 504, "request-504-unkeyed", "2026-10-26T10:00:00.000Z", { route: "redemptions", idempotencyKeyPresent: false });
+  assert.equal(unkeyedAmbiguous.error.retryable, false);
+  assert.equal(unkeyedAmbiguous.error.retryHint, "do_not_retry");
 
   const inProgress = createV4Error("idempotency_in_progress", "Still processing.", 409, "redemptions");
   assert.equal(inProgress.retryable, true);
