@@ -113,3 +113,16 @@ test("account subscription and refresh requests share the same in-flight promise
   assert.equal(calls.length, 1, "a re-entrant subscriber must not launch a second profile-check");
   unsubscribe();
 });
+
+
+test("support topic picker and developer contact/code examples meet accessible-name and keyboard-scroll rules", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const support = await readFile(new URL("../src/components/SupportWidget.tsx", import.meta.url), "utf8");
+  const developer = await readFile(new URL("../src/DeveloperApp.tsx", import.meta.url), "utf8");
+  assert.match(support, /aria-labelledby="support-topic-label support-topic-selected-label support-topic-selected-value"/);
+  assert.match(support, /id="support-topic-selected-label">REQUEST CATEGORY/);
+  assert.match(support, /id="support-topic-selected-value">\{topic\}/);
+  assert.match(developer, /aria-label=\{"Open Discord profile for " \+ DEVELOPER_NAME/);
+  const keyboardCodeExamples = developer.match(/<pre className="dev-code" tabIndex=\{0\} aria-label=/g) || [];
+  assert.equal(keyboardCodeExamples.length, 4, "all four horizontally scrollable code examples should be keyboard-focusable");
+});
