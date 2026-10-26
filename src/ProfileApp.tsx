@@ -9,7 +9,7 @@ type LiveStatus={kind:"checking"|"online"|"maintenance"|"offline";label:string;m
 function LiveStatusPanel({role}:{role:"admin"|"developer"}){
  const {maintenance,health}=useServiceStatus({includeHealth:true});
  const [refreshing,setRefreshing]=useState(false);
- const kind:LiveStatus["kind"]=!maintenance.verified||health.kind==="checking"?"checking":maintenance.maintenanceEnabled?"maintenance":health.kind;
+ const kind:LiveStatus["kind"]=!maintenance.verified||health.kind==="checking"?"checking":maintenance.maintenanceEnabled?"maintenance":health.kind==="online"?"online":"offline";
  const state:LiveStatus={kind,label:kind==="checking"?"Checking":kind==="maintenance"?"Maintenance":kind==="online"?"Operational":"Needs attention",message:kind==="checking"?"Checking production services.":kind==="maintenance"?(maintenance.message||"The service is temporarily unavailable."):kind==="online"?"Production health checks are responding normally.":"Production health checks are not reporting a healthy service.",worker:health.status,lastCompletedAt:health.lastCompletedAt,locked:health.locked,endsAt:maintenance.endsAt,checkedAt:Math.max(maintenance.checkedAt||0,health.checkedAt||0)||undefined};
  const Icon=state.kind==="maintenance"?Wrench:state.kind==="offline"?WifiOff:Activity;
  const time=(value?:string|number|null)=>value?new Date(value).toLocaleString([], {dateStyle:"medium",timeStyle:"short"}):"Not reported";
