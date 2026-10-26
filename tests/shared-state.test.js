@@ -91,3 +91,25 @@ test("maintenance gate, profile status and shared header consume common state st
   assert.doesNotMatch(developerPanel, /request\("\/api\/kingshot-player\?developer=account-auth"\)/);
   assert.match(developerPanel, /developer=account-keys/);
 });
+
+
+test("account subscription and refresh requests share the same in-flight promise", async () => {
+  const store = await import("../src/shared/account-state.js?account-reentrant-refresh");
+  const calls = [];
+  let release;
+  const pendingResponse = new Promise(resolve => { release = resolve; });
+  const mockFetch = async (url, init = {}) => {
+    calls.push({ url, method: init.method || "GET", body: init.body ? JSON.parse(init.body) : null });
+    return pendingResponse;
+  };
+  let reentrantPromise = null;
+  const unsubscribe = store.subscribeAccountState(() => {
+    if (!reentrantPromise) reentrantPromise = store.refreshAccount({ fetchImpl: mockFetch });
+  }, { fetchImpl: mockFetch });
+  await Promise.resolve();
+  assert.ok(reentrantPromise, "the subscriber should observe the initial store update");
+  release({ ok: true, json: async () => ({ authenticated: true, role: "admin", kind: "admin", user: { username: "Judson" } }) });
+  await reentrantPromise;
+  assert.equal(calls.length, 1, "a re-entrant subscriber must not launch a second profile-check");
+  unsubscribe();
+});

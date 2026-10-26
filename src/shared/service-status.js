@@ -58,8 +58,8 @@ async function readJson(response) {
 
 export function refreshMaintenanceStatus(fetchImpl = globalThis.fetch) {
   if (maintenanceInFlight) return maintenanceInFlight;
-  update({ maintenance: { ...snapshot.maintenance, loading: true, error: false } });
-  maintenanceInFlight = (async () => {
+  let pending;
+  pending = Promise.resolve().then(async () => {
     try {
       const response = await fetchImpl(MAINTENANCE_URL, {
         credentials: "same-origin",
@@ -94,16 +94,20 @@ export function refreshMaintenanceStatus(fetchImpl = globalThis.fetch) {
       });
       throw error;
     } finally {
-      maintenanceInFlight = null;
+      if (maintenanceInFlight === pending) maintenanceInFlight = null;
     }
-  })();
-  return maintenanceInFlight;
+  });
+  maintenanceInFlight = pending;
+  if (!snapshot.maintenance.verified || snapshot.maintenance.error) {
+    update({ maintenance: { ...snapshot.maintenance, loading: true, error: false } });
+  }
+  return pending;
 }
 
 export function refreshHealthStatus(fetchImpl = globalThis.fetch) {
   if (healthInFlight) return healthInFlight;
-  update({ health: { ...snapshot.health, loading: true, error: false } });
-  healthInFlight = (async () => {
+  let pending;
+  pending = Promise.resolve().then(async () => {
     try {
       const response = await fetchImpl(HEALTH_URL, {
         credentials: "same-origin",
@@ -138,10 +142,14 @@ export function refreshHealthStatus(fetchImpl = globalThis.fetch) {
       });
       throw error;
     } finally {
-      healthInFlight = null;
+      if (healthInFlight === pending) healthInFlight = null;
     }
-  })();
-  return healthInFlight;
+  });
+  healthInFlight = pending;
+  if (snapshot.health.kind === "checking" || snapshot.health.error) {
+    update({ health: { ...snapshot.health, loading: true, error: false } });
+  }
+  return pending;
 }
 
 export async function refreshServiceStatus() {

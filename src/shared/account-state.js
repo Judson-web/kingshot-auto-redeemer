@@ -84,8 +84,8 @@ export function refreshAccount(options = {}) {
   if (requestInFlight) return requestInFlight;
   const fetchImpl = options.fetchImpl || globalThis.fetch;
   const startGeneration = accountGeneration;
-  publish({ ...snapshot, lastAttemptAt: Date.now(), error: null });
-  requestInFlight = (async () => {
+  let pending;
+  pending = Promise.resolve().then(async () => {
     try {
       const profileResponse = await fetchImpl(API, {
         method: "POST",
@@ -130,10 +130,14 @@ export function refreshAccount(options = {}) {
       });
       return snapshot.account;
     } finally {
-      requestInFlight = null;
+      if (requestInFlight === pending) requestInFlight = null;
     }
-  })();
-  return requestInFlight;
+  });
+  // Register the in-flight promise before notifying subscribers. Otherwise a
+  // synchronous subscription refresh can start a second identical auth request.
+  requestInFlight = pending;
+  publish({ ...snapshot, lastAttemptAt: Date.now(), error: null });
+  return pending;
 }
 
 function resumeRefresh() {
@@ -169,7 +173,7 @@ function detachListeners() {
   refreshTimer = null;
 }
 
-export function subscribeAccountState(listener) {
+export function subscribeAccountState(listener, options = {}) {
   const wasEmpty = listeners.size === 0;
   listeners.add(listener);
   if (wasEmpty) attachListeners();
@@ -178,7 +182,7 @@ export function subscribeAccountState(listener) {
     // callback establish its server session before attempting profile-check.
     const oauthPending = typeof window !== "undefined" &&
       new URLSearchParams(window.location.hash.slice(1)).has("access_token");
-    if (!oauthPending) void refreshAccount();
+    if (!oauthPending) void refreshAccount({ fetchImpl: options.fetchImpl });
   }
   return () => {
     listeners.delete(listener);
