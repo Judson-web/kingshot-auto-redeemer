@@ -168,7 +168,8 @@ async function axeScan(page, scenario) {
   const severe = results.violations.filter(item => item.impact === "critical" || item.impact === "serious");
   const warningCount = results.violations.length - severe.length;
   for (const issue of results.violations) {
-    const message = issue.id + " [" + issue.impact + "]: " + issue.help + " (" + issue.nodes.length + " affected nodes)";
+    const targets = issue.nodes.map(node => node.target.join(" ")).join(", ");
+    const message = issue.id + " [" + issue.impact + "]: " + issue.help + " (" + issue.nodes.length + " affected nodes; " + targets + ")";
     if (issue.impact === "critical" || issue.impact === "serious") {
       fail(scenario.name + " accessibility: " + message);
     } else {
