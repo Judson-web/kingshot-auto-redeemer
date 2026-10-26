@@ -270,10 +270,10 @@ try {
           text: (el.innerText || "").trim(),
           visibleTopic: (el.querySelector("#support-topic-selected-value")?.textContent || "").trim(),
           textContent: (el.textContent || "").trim(),
-          computedNameHint: el.getAttribute("aria-label") || (el.getAttribute("aria-labelledby") || "").split(/\\s+/).map(id => document.getElementById(id)?.textContent || "").join(" ").trim()
+          computedNameHint: el.getAttribute("aria-label") || (el.getAttribute("aria-labelledby") || "").split(/\s+/).map(id => document.getElementById(id)?.textContent || "").join(" ").trim()
         }));
 
-        const visibleTopic = result.supportPicker.visibleTopic.replace(/\\s+/g, " ").trim();
+        const visibleTopic = result.supportPicker.visibleTopic.replace(/\s+/g, " ").trim();
         const declaredName = (result.supportPicker.ariaLabel || result.supportPicker.computedNameHint || "").replace(/\\s+/g, " ").trim();
         if (!visibleTopic) {
           fail("support topic picker has no visible selected topic");
@@ -305,7 +305,14 @@ try {
         const topicMenu = page.locator("#support-topic-options");
         await topicMenu.waitFor({ state: "visible", timeout: 3000 });
         const selectedOption = topicMenu.locator('[role="option"][aria-selected="true"]');
-        const selectedOptionFocused = await selectedOption.evaluate(el => el === document.activeElement);
+        let selectedOptionFocused = false;
+        try {
+          await page.waitForFunction(() => {
+            const selected = document.querySelector('#support-topic-options [role="option"][aria-selected="true"]');
+            return Boolean(selected && selected === document.activeElement);
+          }, null, { timeout: 3000 });
+          selectedOptionFocused = true;
+        } catch {}
         if (!selectedOptionFocused) fail("opening the support topic picker with ArrowDown did not focus the selected option");
         await page.keyboard.press("Escape");
         await topicMenu.waitFor({ state: "hidden", timeout: 3000 });
