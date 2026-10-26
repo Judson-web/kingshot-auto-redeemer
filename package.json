@@ -12,7 +12,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:ui": "node scripts/ui-regression.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

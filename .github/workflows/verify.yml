@@ -70,6 +70,66 @@ jobs:
       - name: Smoke test production
         run: node scripts/production-smoke.mjs
 
+
+  ui-regression:
+    name: Accessibility, responsive, and visual regression
+    if: github.event_name != 'schedule'
+    needs: regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install application dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install pinned browser-test tools and Chromium
+        shell: bash
+        run: |
+          npm exec --yes --package=playwright@1.64.1 --package=axe-core@4.14.0 --package=pixelmatch@6.0.0 --package=pngjs@7.0.0 -- playwright install --with-deps chromium
+          TEST_MODULES="$(npm exec --yes --package=playwright@1.64.1 --package=axe-core@4.14.0 --package=pixelmatch@6.0.0 --package=pngjs@7.0.0 -- sh -c 'dirname "$(dirname "$(realpath "$(command -v playwright)")")"')"
+          test -f "$TEST_MODULES/playwright/index.mjs"
+          test -f "$TEST_MODULES/axe-core/axe.min.js"
+          echo "UI_TEST_MODULES=$TEST_MODULES" >> "$GITHUB_ENV"
+
+      - name: Build the exact candidate frontend
+        run: npm run build
+
+      - name: Start the local production preview
+        shell: bash
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/kingshot-ui-preview.log 2>&1 &
+          echo $! > /tmp/kingshot-ui-preview.pid
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then
+              echo "Production preview is ready."
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/kingshot-ui-preview.log
+          exit 1
+
+      - name: Run WCAG, responsive-layout, and screenshot regressions
+        env:
+          UI_TEST_BASE_URL: http://127.0.0.1:4173
+        run: npm run test:ui
+
+      - name: Upload visual diffs and accessibility reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-regression-results
+          path: test-results/ui-regression/
+          if-no-files-found: ignore
+          retention-days: 7
+
   watchdog:
     name: Worker watchdog
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'

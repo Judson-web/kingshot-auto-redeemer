@@ -218,3 +218,8 @@ AGPL-3.0 includes source-sharing obligations for modified versions made availabl
 <sub>Independent community software · Not affiliated with Century Games</sub>
 
 </div>
+
+
+## Frontend accessibility and visual regression
+
+The `ui-regression` verification job runs the built frontend with deterministic API fixtures. It checks WCAG A/AA accessibility rules, mobile/desktop overflow and overlay geometry, and committed screenshots for the homepage, Support Centre, Profile, Developer API and protected player database. See [the UI regression guide](docs/ui-regression.md) for local setup and intentional baseline updates.
