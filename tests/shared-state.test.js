@@ -119,7 +119,9 @@ test("support topic picker and developer contact/code examples meet accessible-n
   const { readFile } = await import("node:fs/promises");
   const support = await readFile(new URL("../src/components/SupportWidget.tsx", import.meta.url), "utf8");
   const developer = await readFile(new URL("../src/DeveloperApp.tsx", import.meta.url), "utf8");
-  const topicButton = support.match(/<button type="button" className=\{"support-topic-trigger"\}[\s\S]*?<\/button>/)?.[0] || "";
+  const topicButtonStart = support.indexOf('className={"support-topic-trigger"');
+  const topicButtonEnd = support.indexOf("</button>", topicButtonStart);
+  const topicButton = topicButtonStart >= 0 && topicButtonEnd > topicButtonStart ? support.slice(topicButtonStart, topicButtonEnd) : "";
   assert.ok(topicButton, "support topic picker button exists");
   assert.doesNotMatch(topicButton, /aria-label=|aria-labelledby=/, "topic picker name must come from visible content");
   assert.match(topicButton, /<b id="support-topic-selected-value">\{topic\}<\/b>/);
