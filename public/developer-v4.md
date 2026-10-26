@@ -127,7 +127,7 @@ A redemption response with HTTP 200 means the API processed the operation; it do
 
 ### Idempotency and ambiguous outcomes
 
-Supply an Idempotency-Key of 8–128 safe ASCII characters for redemption requests. Repeating the same key with the same request body replays the recorded outcome; reusing it with a different body returns HTTP 409. V4 idempotency records use a separate namespace from V3. If a timeout or upstream error makes the result ambiguous, retry only with the same key and body. Do not submit a new key for the same uncertain operation. Idempotency helps avoid accidental duplicate attempts but cannot guarantee exactly-once execution by the upstream game service.
+Supply an Idempotency-Key of 8–128 ASCII characters matching [A-Za-z0-9._:-] for redemption requests. Repeating the same key with the same request body replays the recorded outcome; reusing it with a different body returns HTTP 409. V4 idempotency records use a separate namespace from V3. If a timeout or upstream error makes the result ambiguous, retry only with the same key and body. Do not submit a new key for the same uncertain operation. Idempotency helps avoid accidental duplicate attempts but cannot guarantee exactly-once execution by the upstream game service.
 
 ## Errors, quotas, and retry guidance
 
