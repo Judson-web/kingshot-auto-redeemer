@@ -274,7 +274,7 @@ try {
         }));
 
         const visibleTopic = result.supportPicker.visibleTopic.replace(/\s+/g, " ").trim();
-        const declaredName = (result.supportPicker.ariaLabel || result.supportPicker.computedNameHint || "").replace(/\\s+/g, " ").trim();
+        const declaredName = (result.supportPicker.ariaLabel || result.supportPicker.computedNameHint || "").replace(/\s+/g, " ").trim();
         if (!visibleTopic) {
           fail("support topic picker has no visible selected topic");
         } else {
@@ -299,12 +299,18 @@ try {
         });
         if (!focusInside) fail("support dialog did not place focus inside the open panel");
 
+
+      }
+
+      result.screenshot = await screenshotDiff(page, scenario);
+      result.accessibility = await axeScan(page, scenario);
+      if (scenario.supportOpen) {
+        const keyboardTrigger = page.locator(".support-topic-trigger");
         // Exercise the custom topic picker with the keyboard, not only with a mouse.
-        await topicTrigger.focus();
+        await keyboardTrigger.focus();
         await page.keyboard.press("ArrowDown");
         const topicMenu = page.locator("#support-topic-options");
         await topicMenu.waitFor({ state: "visible", timeout: 3000 });
-        const selectedOption = topicMenu.locator('[role="option"][aria-selected="true"]');
         let selectedOptionFocused = false;
         try {
           await page.waitForFunction(() => {
@@ -316,13 +322,10 @@ try {
         if (!selectedOptionFocused) fail("opening the support topic picker with ArrowDown did not focus the selected option");
         await page.keyboard.press("Escape");
         await topicMenu.waitFor({ state: "hidden", timeout: 3000 });
-        const focusReturned = await topicTrigger.evaluate(el => el === document.activeElement);
+        const focusReturned = await keyboardTrigger.evaluate(el => el === document.activeElement);
         if (!focusReturned) fail("Escape did not close the support topic picker and return focus to its trigger");
         else pass("support topic picker supports ArrowDown and Escape keyboard flow");
       }
-
-      result.screenshot = await screenshotDiff(page, scenario);
-      result.accessibility = await axeScan(page, scenario);
       result.responsive = await responsiveChecks(page, scenario);
       if (result.pageErrors.length) {
         for (const error of result.pageErrors) fail(scenario.name + " JavaScript runtime error: " + error);
