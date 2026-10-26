@@ -128,7 +128,7 @@ console.log(result.data.playerId, result.data.name);`;
           <section className="dev-card" id="manual-redemption">
             <div className="dev-card-head"><KeyRound size={18} color="#b8bdff"/><h2 className="dev-card-title">Manual redemption</h2></div>
             <div className="dev-endpoint"><span style={{background:"#4a3216",color:"#ffd28a",borderRadius:6,padding:"5px 8px",fontSize:10,fontWeight:900}}>POST</span><code style={{fontSize:12,overflowWrap:"anywhere",flex:"1 1 170px"}}>/api/v4/redemptions</code><CopyButton value="/api/v4/redemptions" label="Copy path"/></div>
-            <p className="dev-muted" style={{marginTop:11}}>Requires a developer Bearer key. Submit one Player ID, gift code, and kingdom ID per request.</p>
+            <p className="dev-muted" style={{marginTop:11}}>Requires a developer Bearer key. Submit one Player ID, gift code, and kingdom ID per request. Include an Idempotency-Key to replay the same outcome safely after an ambiguous timeout.</p>
             <pre className="dev-code" tabIndex={0} aria-label="Manual redemption cURL example, horizontally scrollable"><code>{`curl -X POST "${ORIGIN}/api/v4/redemptions" \\\n  -H "Authorization: Bearer $KINGSHOT_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"playerId":"43180889","code":"EXAMPLECODE","kid":"1125"}'`}</code></pre>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8,marginTop:12}}>{[["playerId","5–20 digits"],["code","1–64 safe characters"],["kid","1–10 digit kingdom ID"]].map(([name,desc])=><div key={name} style={{border:"1px solid #2b3442",background:"#0d1118",borderRadius:9,padding:10}}><code style={{fontSize:12}}>{name}</code><p className="dev-muted" style={{fontSize:11,marginTop:4}}>{desc}</p></div>)}</div>
             <p className="dev-muted" style={{marginTop:12}}>Check <code>data.ok</code>, <code>data.status</code>, <code>data.message</code>, and <code>data.errorCategory</code>. HTTP success alone does not guarantee rewards were granted.</p>
@@ -172,7 +172,7 @@ console.log(result.data.playerId, result.data.name);`;
           </div>
         </div>
       </div>
-      <footer className="dev-footer"><span>API v4 · Supported developer API · V1 routes deprecated · Maintained by {DEVELOPER_NAME}</span><a href="#maintainer-contact">Maintainer & contact</a><a href={DEVELOPER_DISCORD_URL} target="_blank" rel="noopener noreferrer">Developer contact (Discord)</a><a href="/developer.md">Plain-text docs for crawlers and integrations</a><a href="/openapi.json">OpenAPI specification</a><a href="/info" style={{display:"inline-flex",alignItems:"center",gap:5}}>Service overview <ExternalLink size={12}/></a><a href="/privacy?service=kingshot-auto" style={{color:"inherit"}}>Privacy</a></footer>
+      <footer className="dev-footer"><span>API v4 · Supported developer API · V1 routes deprecated · Maintained by {DEVELOPER_NAME}</span><a href="#maintainer-contact">Maintainer & contact</a><a href={DEVELOPER_DISCORD_URL} target="_blank" rel="noopener noreferrer">Developer contact (Discord)</a><a href="/developer-v4.md">V4 API reference</a><a href="/developer.md">Plain-text docs for crawlers and integrations</a><a href="/openapi.json">OpenAPI specification</a><a href="/info" style={{display:"inline-flex",alignItems:"center",gap:5}}>Service overview <ExternalLink size={12}/></a><a href="/privacy?service=kingshot-auto" style={{color:"inherit"}}>Privacy</a></footer>
     </main>
   </div>;
 }
