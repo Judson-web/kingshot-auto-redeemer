@@ -30,3 +30,10 @@ The test command writes JSON reports and any screenshot/difference images to tes
 ## Updating intentional visual changes
 
 After reviewing the UI change in a browser, run the same test command with UI_UPDATE_SNAPSHOTS=1. It updates the PNG baselines under tests/visual/snapshots/. Commit those files with the intentional design change. Do not update baselines just to silence a regression.
+
+
+## Refresh baselines using the CI renderer
+
+Local/remote browser font rasterization can differ from GitHub's pinned Chromium environment. To refresh the PNGs using the exact CI browser, create a **deliberate commit** whose commit message contains `[update-visual-snapshots]`. The workflow switches to snapshot-generation mode for that run, still executes the axe accessibility and responsive checks, uploads the report/diff artifact, and only commits the generated PNGs if the full UI job passes. The bot's follow-up commit does not contain the marker, so it runs the normal pixel-diff checks.
+
+Do not add that marker to an ordinary feature commit. It intentionally records the UI as the new baseline, so review the uploaded snapshots and the resulting bot commit.

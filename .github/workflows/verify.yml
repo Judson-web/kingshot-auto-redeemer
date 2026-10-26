@@ -77,6 +77,8 @@ jobs:
     needs: regression
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -119,7 +121,22 @@ jobs:
       - name: Run WCAG, responsive-layout, and screenshot regressions
         env:
           UI_TEST_BASE_URL: http://127.0.0.1:4173
+          UI_UPDATE_SNAPSHOTS: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[update-visual-snapshots]') && '1' || '0' }}
         run: npm run test:ui
+
+      - name: Commit CI-generated visual baselines only for an explicit marker commit
+        if: success() && github.event_name == 'push' && contains(github.event.head_commit.message, '[update-visual-snapshots]')
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/visual/snapshots/*.png
+          if git diff --cached --quiet; then
+            echo "Visual snapshots already match this CI renderer."
+            exit 0
+          fi
+          git commit -m "test: refresh visual baselines from CI"
+          git push origin HEAD:"$GITHUB_REF_NAME"
 
       - name: Upload visual diffs and accessibility reports
         if: always()

@@ -114,6 +114,7 @@ async function screenshotDiff(page, scenario) {
   const baselinePath = path.join(snapshotDir, scenario.name + ".png");
   if (process.env.UI_UPDATE_SNAPSHOTS === "1") {
     fs.writeFileSync(baselinePath, actualBuffer);
+    fs.writeFileSync(path.join(artifactDir, scenario.name + ".baseline.png"), actualBuffer);
     pass("updated visual baseline " + scenario.name);
     return { ratio: 0, changedPixels: 0, width: 393, height: 852, updated: true };
   }
