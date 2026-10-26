@@ -163,7 +163,7 @@
         ],
         "operationId": "getPlayerV3",
         "summary": "Look up a player profile (V3)",
-        "description": "V3 compatibility endpoint for existing integrations. New integrations should use GET /api/v4/players/{playerId}. Requires an active developer Bearer key.",
+        "description": "V3 compatibility endpoint for existing integrations. New integrations should use GET /api/v4/players/{playerId}. Requires an active developer Bearer key. Provider power and townCenterLevel values are returned only as non-negative safe integers; unsafe or malformed numeric values are null. Transient 408, 425 and eligible 5xx provider read errors receive at most one bounded retry.",
         "security": [
           {
             "bearerAuth": []
@@ -193,6 +193,23 @@
                   "$ref": "#/components/schemas/ApiV3PlayerResponse"
                 }
               }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier; mirrors meta.requestId.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-API-Version": {
+                "description": "API contract version.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "3"
+                  ]
+                }
+              }
             }
           },
           "400": {
@@ -201,6 +218,23 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier; mirrors meta.requestId.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-API-Version": {
+                "description": "API contract version.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "3"
+                  ]
                 }
               }
             }
@@ -213,6 +247,23 @@
                   "$ref": "#/components/schemas/ApiV3ErrorResponse"
                 }
               }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier; mirrors meta.requestId.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-API-Version": {
+                "description": "API contract version.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "3"
+                  ]
+                }
+              }
             }
           },
           "404": {
@@ -221,6 +272,23 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier; mirrors meta.requestId.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-API-Version": {
+                "description": "API contract version.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "3"
+                  ]
                 }
               }
             }
@@ -233,6 +301,23 @@
                   "$ref": "#/components/schemas/ApiV3ErrorResponse"
                 }
               }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier; mirrors meta.requestId.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-API-Version": {
+                "description": "API contract version.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "3"
+                  ]
+                }
+              }
             }
           },
           "502": {
@@ -241,6 +326,23 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier; mirrors meta.requestId.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-API-Version": {
+                "description": "API contract version.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "3"
+                  ]
                 }
               }
             }
@@ -253,6 +355,23 @@
                   "$ref": "#/components/schemas/ApiV3ErrorResponse"
                 }
               }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier; mirrors meta.requestId.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-API-Version": {
+                "description": "API contract version.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "3"
+                  ]
+                }
+              }
             }
           },
           "504": {
@@ -261,6 +380,23 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier; mirrors meta.requestId.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-API-Version": {
+                "description": "API contract version.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "3"
+                  ]
                 }
               }
             }
@@ -275,7 +411,7 @@
         ],
         "operationId": "createRedemptionV3",
         "summary": "Submit a manual gift-code redemption (V3)",
-        "description": "V3 compatibility endpoint for existing integrations. New integrations should use POST /api/v4/redemptions. Inspect data.ok and data.status; HTTP 200 means the operation was processed, not necessarily that rewards were granted.",
+        "description": "V3 compatibility endpoint for existing integrations. New integrations should use POST /api/v4/redemptions. Inspect data.ok and data.status; HTTP 200 means the operation was processed, not necessarily that rewards were granted. Optional durable Idempotency-Key replay preserves the original operation outcome but refreshes request-scoped meta.requestId, meta.timestamp and meta.rateLimit. Duplicate Idempotency-Key header values are rejected.",
         "security": [
           {
             "bearerAuth": []
@@ -310,6 +446,21 @@
                     "true"
                   ]
                 }
+              },
+              "X-Request-Id": {
+                "description": "Request correlation identifier; mirrors meta.requestId.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-API-Version": {
+                "description": "API contract version.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "3"
+                  ]
+                }
               }
             }
           },
@@ -319,6 +470,23 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier; mirrors meta.requestId.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-API-Version": {
+                "description": "API contract version.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "3"
+                  ]
                 }
               }
             }
@@ -331,6 +499,23 @@
                   "$ref": "#/components/schemas/ApiV3ErrorResponse"
                 }
               }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier; mirrors meta.requestId.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-API-Version": {
+                "description": "API contract version.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "3"
+                  ]
+                }
+              }
             }
           },
           "405": {
@@ -339,6 +524,23 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier; mirrors meta.requestId.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-API-Version": {
+                "description": "API contract version.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "3"
+                  ]
                 }
               }
             }
@@ -351,6 +553,23 @@
                   "$ref": "#/components/schemas/ApiV3ErrorResponse"
                 }
               }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier; mirrors meta.requestId.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-API-Version": {
+                "description": "API contract version.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "3"
+                  ]
+                }
+              }
             }
           },
           "415": {
@@ -359,6 +578,23 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier; mirrors meta.requestId.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-API-Version": {
+                "description": "API contract version.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "3"
+                  ]
                 }
               }
             }
@@ -371,6 +607,23 @@
                   "$ref": "#/components/schemas/ApiV3ErrorResponse"
                 }
               }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier; mirrors meta.requestId.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-API-Version": {
+                "description": "API contract version.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "3"
+                  ]
+                }
+              }
             }
           },
           "502": {
@@ -379,6 +632,23 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV3ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier; mirrors meta.requestId.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-API-Version": {
+                "description": "API contract version.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "3"
+                  ]
                 }
               }
             }
@@ -391,6 +661,23 @@
                   "$ref": "#/components/schemas/ApiV3ErrorResponse"
                 }
               }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier; mirrors meta.requestId.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-API-Version": {
+                "description": "API contract version.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "3"
+                  ]
+                }
+              }
             }
           },
           "504": {
@@ -401,6 +688,23 @@
                   "$ref": "#/components/schemas/ApiV3ErrorResponse"
                 }
               }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "description": "Request correlation identifier; mirrors meta.requestId.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-API-Version": {
+                "description": "API contract version.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "3"
+                  ]
+                }
+              }
             }
           }
         },
@@ -409,7 +713,7 @@
             "name": "Idempotency-Key",
             "in": "header",
             "required": false,
-            "description": "Optional durable replay protection for 24 hours; conflicting reuse returns 409.",
+            "description": "Optional durable replay protection for 24 hours; conflicting reuse returns 409. Same-key replays preserve the original operation result while refreshing request-scoped metadata. Duplicate header values are rejected.",
             "schema": {
               "type": "string",
               "minLength": 8,
@@ -1383,15 +1687,19 @@
               },
               "power": {
                 "type": [
-                  "number",
+                  "integer",
                   "null"
-                ]
+                ],
+                "minimum": 0,
+                "description": "Invalid, negative, fractional or unsafe numeric values are null."
               },
               "townCenterLevel": {
                 "type": [
-                  "number",
+                  "integer",
                   "null"
-                ]
+                ],
+                "minimum": 0,
+                "description": "Invalid, negative, fractional or unsafe numeric values are null."
               },
               "avatarUrl": {
                 "type": [
