@@ -24,7 +24,7 @@ Send an active developer key over HTTPS in the Authorization header:
 
 Create and revoke keys at https://kingshot-autoredeemer.vercel.app/developer. The key is shown only once and is stored as a SHA-256 hash. Keep keys server-side, never in browser JavaScript, URLs, logs or public repositories.
 
-## V3 player lookup
+## V3 compatibility: player lookup
 
 - Method: GET
 - Path: /api/v3/players/{playerId}
@@ -37,7 +37,7 @@ Create and revoke keys at https://kingshot-autoredeemer.vercel.app/developer. Th
 
 Success responses contain data and meta. Metadata includes apiVersion, requestId, timestamp, rateLimit and provider freshness fields fetchedAt, providerFresh, providerAgeSeconds and stale. Player fields may be null. Reads use bounded timeouts and at most one retry for transient network/5xx failures; not-found, provider rate-limit and authentication/configuration errors are not automatically retried.
 
-## V3 manual redemption
+## V3 compatibility: manual redemption
 
 - Method: POST
 - Path: /api/v3/redemptions
