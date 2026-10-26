@@ -67,8 +67,8 @@ export default async function developerApi(req: RequestLike, res: ResponseLike, 
   if (publicApiRoute) {
     res.setHeader("Deprecation", "true");
     res.setHeader("Link", path === "redeem"
-      ? '<https://kingshot-autoredeemer.vercel.app/developer.md>; rel="deprecation"; type="text/markdown", <https://kingshot-autoredeemer.vercel.app/api/v3/redemptions>; rel="successor-version"'
-      : '<https://kingshot-autoredeemer.vercel.app/developer.md>; rel="deprecation"; type="text/markdown", <https://kingshot-autoredeemer.vercel.app/api/v3/players/{playerId}>; rel="successor-version"');
+      ? '<https://kingshot-autoredeemer.vercel.app/developer.md>; rel="deprecation"; type="text/markdown", <https://kingshot-autoredeemer.vercel.app/api/v4/redemptions>; rel="successor-version"'
+      : '<https://kingshot-autoredeemer.vercel.app/developer.md>; rel="deprecation"; type="text/markdown", <https://kingshot-autoredeemer.vercel.app/api/v4/players/{playerId}>; rel="successor-version"');
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");

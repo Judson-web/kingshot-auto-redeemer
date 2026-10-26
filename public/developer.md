@@ -2,7 +2,7 @@
 
 Interactive documentation: https://kingshot-autoredeemer.vercel.app/developer
 
-Current API version: **V3**. This crawler-friendly reference describes integration routes but does not provide credentials.
+Current API version: **V4**. Full V4 reference: https://kingshot-autoredeemer.vercel.app/developer-v4.md. This crawler-friendly reference describes integration routes but does not provide credentials.
 
 ## Response attribution
 
@@ -14,7 +14,7 @@ Documented public JSON responses include a top-level `dev` object on success and
       "url": "https://discord.com/users/871756466900598815"
     }
 
-This is project-maintainer contact information, not an API key or permission grant. The rest of each response keeps its normal endpoint-specific shape.
+This is project-maintainer contact information, not an API key or permission grant. V4 responses use a consistent success/data/error/meta envelope. V3 and V1 compatibility routes retain their existing response formats.
 
 ## Authentication
 
@@ -24,7 +24,68 @@ Send an active developer key over HTTPS in the Authorization header:
 
 Create and revoke keys at https://kingshot-autoredeemer.vercel.app/developer. The key is shown only once and is stored as a SHA-256 hash. Keep keys server-side, never in browser JavaScript, URLs, logs or public repositories.
 
-## V3 player lookup
+## V4 current API
+
+V4 is the recommended version for new integrations. Full documentation: https://kingshot-autoredeemer.vercel.app/developer-v4.md
+
+### Player lookup
+
+- Method: GET
+- Path: /api/v4/players/{playerId}
+- Auth: developer Bearer key
+- playerId: string of 5–20 digits
+
+    curl "https://kingshot-autoredeemer.vercel.app/api/v4/players/43180889" \
+      -H "Authorization: Bearer $KINGSHOT_API_KEY"
+
+### Manual redemption
+
+- Method: POST
+- Path: /api/v4/redemptions
+- Auth: developer Bearer key
+- Content-Type: application/json
+- Body: exactly playerId, code and kid, all strings
+
+    curl -X POST "https://kingshot-autoredeemer.vercel.app/api/v4/redemptions" \
+      -H "Authorization: Bearer $KINGSHOT_API_KEY" \
+      -H "Content-Type: application/json" \
+      -H "Idempotency-Key: redeem-43180889-example-001" \
+      -d '{"playerId":"43180889","code":"EXAMPLECODE","kid":"1125"}'
+
+Use an Idempotency-Key of 8–128 safe ASCII characters for redemption requests. Reusing the same key and body replays the recorded outcome; a different body with the same key returns 409. V4 idempotency keys are namespaced separately from V3. For an ambiguous timeout, retry only with the same key and body. This reduces duplicate attempts but cannot guarantee exactly-once execution by the upstream game.
+
+### V4 response envelope
+
+V4 JSON success and error responses use the same top-level fields: success, data, error, meta and dev. The meta object always includes apiVersion ("4"), requestId and timestamp. The X-Request-Id and X-API-Version headers mirror request tracing and version metadata.
+
+- On a successful API operation: success is true, data contains the endpoint result, and error is null.
+- On an API error: success is false, data is null, and error contains a stable code and human-readable message.
+- For redemption specifically, success means the API request was processed. Check data.ok and data.status for the in-game result; a processed redemption can return HTTP 200 while data.ok is false.
+
+Example API error:
+
+    {
+      "success": false,
+      "data": null,
+      "error": {
+        "code": "player_not_found",
+        "message": "No player was found for this ID."
+      },
+      "meta": {
+        "apiVersion": "4",
+        "requestId": "server-generated-id",
+        "timestamp": "2026-10-26T10:00:00.000Z"
+      },
+      "dev": {
+        "name": "Judson",
+        "discord": "@judson00713",
+        "url": "https://discord.com/users/871756466900598815"
+      }
+    }
+
+On HTTP 429, honor Retry-After and use bounded backoff. Do not automatically retry invalid requests, revoked keys, or redemption calls with a new idempotency key.
+
+## V3 compatibility: player lookup
 
 - Method: GET
 - Path: /api/v3/players/{playerId}
@@ -37,7 +98,7 @@ Create and revoke keys at https://kingshot-autoredeemer.vercel.app/developer. Th
 
 Success responses contain data and meta. Metadata includes apiVersion, requestId, timestamp, rateLimit and provider freshness fields fetchedAt, providerFresh, providerAgeSeconds and stale. Player fields may be null. Reads use bounded timeouts and at most one retry for transient network/5xx failures; not-found, provider rate-limit and authentication/configuration errors are not automatically retried.
 
-## V3 manual redemption
+## V3 compatibility: manual redemption
 
 - Method: POST
 - Path: /api/v3/redemptions
@@ -68,7 +129,7 @@ Typical statuses: 400 invalid input; 401 missing/invalid/revoked key; 404 not fo
 - GET /api/v1/player?id=PLAYER_ID
 - POST /api/v1/redeem
 
-Both are deprecated and emit migration headers while they remain operational. New integrations must use V3.
+Both are deprecated and emit migration headers while they remain operational. New integrations must use V4. V3 remains available for existing integrations.
 
 ## Website enrollment
 

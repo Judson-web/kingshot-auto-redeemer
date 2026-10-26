@@ -129,5 +129,5 @@ test("support topic picker and developer contact/code examples meet accessible-n
   assert.match(support, /id="support-topic-selected-value">\{topic\}/);
   assert.match(developer, /aria-label=\{"Open Discord profile for " \+ DEVELOPER_NAME/);
   const keyboardCodeExamples = developer.match(/<pre className="dev-code" tabIndex=\{0\} aria-label=/g) || [];
-  assert.equal(keyboardCodeExamples.length, 4, "all four horizontally scrollable code examples should be keyboard-focusable");
+  assert.equal(keyboardCodeExamples.length, 5, "all five horizontally scrollable code examples should be keyboard-focusable, including the V4 redemption response");
 });

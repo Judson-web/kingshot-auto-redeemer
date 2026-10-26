@@ -67,6 +67,17 @@ The production service is available at [kingshot-autoredeemer.vercel.app](https:
 
 Restricted pages and actions require the appropriate server-side authorization. A route being listed here does not mean it is available to anonymous visitors.
 
+## Developer API
+
+**V4 is the current API for new integrations.** It provides player lookup at `GET /api/v4/players/{playerId}` and manual redemption at `POST /api/v4/redemptions`, with a consistent `success`, `data`, `error`, and `meta` response envelope.
+
+- [Interactive developer portal](https://kingshot-autoredeemer.vercel.app/developer)
+- [V4 API reference](https://kingshot-autoredeemer.vercel.app/developer-v4.md)
+- [OpenAPI 3.1 specification](https://kingshot-autoredeemer.vercel.app/openapi.json)
+
+V3 remains available without changing its existing response shape for compatibility. V1 routes are deprecated. For redemption responses, check `data.ok` for the in-game result: an HTTP 200 response means the API request was processed, not necessarily that rewards were granted. For an ambiguous redemption timeout, retry only with the same `Idempotency-Key` and request body.
+
+
 ## How it works
 
 1. **Discover:** configured sources are checked for public gift codes.
