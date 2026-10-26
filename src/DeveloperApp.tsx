@@ -12,7 +12,7 @@ const DEVELOPER_DISCORD_USERNAME = "judson00713";
 const DEVELOPER_DISCORD_ID = "871756466900598815";
 const DEVELOPER_DISCORD_URL = "https://discord.com/users/" + DEVELOPER_DISCORD_ID;
 type MaintainerDiscordProfile = { id: string; username?: string; globalName?: string | null; avatar?: string | null; animated?: boolean; avatarUrl?: string | null; format?: string; };
-const endpoint = ORIGIN + "/api/v3/players/43180889";
+const endpoint = ORIGIN + "/api/v4/players/43180889";
 const curlExample = 'curl "' + endpoint + '" \\\n  -H "Authorization: Bearer YOUR_API_KEY"';
 
 function CopyButton({ value, label = "Copy" }: { value: string; label?: string }) {
@@ -50,7 +50,7 @@ export default function DeveloperApp() {
   useEffect(() => { setMaintainerAvatarFailed(false); }, [maintainerAvatarSrc]);
   useEffect(() => {
     const title = "Kingshot Developer API Documentation";
-    const description = "V3 integration guide for the Kingshot Auto Redeemer community API: authentication, player lookup, manual redemption, quotas, and response codes.";
+    const description = "V4 integration guide for the Kingshot Auto Redeemer API: consistent responses, player lookup, manual redemption, quotas, and idempotency.";
     document.title = title;
     let meta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
     if (!meta) { meta = document.createElement("meta"); meta.name = "description"; document.head.appendChild(meta); }
@@ -91,10 +91,10 @@ console.log(result.data.playerId, result.data.name);`;
     <main className="dev-shell dev-page">
       <header className="dev-overview">
         <div><div className="dev-eyebrow">Developer workspace / Overview</div><h1 id="developer-docs-title" className="dev-page-title">Developer API documentation</h1><p className="dev-muted">Manage your API credentials and integrate Kingshot player data into your tools.</p></div>
-        <span className="dev-version-pill"><span style={{width:7,height:7,borderRadius:9,background:"#9ce9c2",boxShadow:"0 0 0 3px #9ce9c21c"}}/> API v3 <span style={{color:"#687487"}}>·</span> HTTPS</span>
+        <span className="dev-version-pill"><span style={{width:7,height:7,borderRadius:9,background:"#9ce9c2",boxShadow:"0 0 0 3px #9ce9c21c"}}/> API v4 <span style={{color:"#687487"}}>·</span> HTTPS</span>
       </header>
       <div className="dev-stat-grid" aria-label="API overview">
-        <article className="dev-stat"><div className="dev-stat-label">Endpoint</div><div className="dev-stat-value"><code style={{fontSize:"inherit"}}>GET /api/v3/players/&#123;playerId&#125;</code></div><div className="dev-stat-detail">Single read-only player lookup</div></article>
+        <article className="dev-stat"><div className="dev-stat-label">Endpoint</div><div className="dev-stat-value"><code style={{fontSize:"inherit"}}>GET /api/v4/players/&#123;playerId&#125;</code></div><div className="dev-stat-detail">Single read-only player lookup</div></article>
         <article className="dev-stat"><div className="dev-stat-label">Per-key quota</div><div className="dev-stat-value">60 / min</div><div className="dev-stat-detail">Up to 1,000 requests per day</div></article>
         <article className="dev-stat"><div className="dev-stat-label">Additional protection</div><div className="dev-stat-value">120 / min / IP</div><div className="dev-stat-detail">Shared IP-level rate limit</div></article>
       </div>
@@ -104,7 +104,7 @@ console.log(result.data.playerId, result.data.name);`;
           <section className="dev-card dev-feature-card">
             <div className="dev-section-kicker" style={{display:"flex",alignItems:"center",gap:7}}><ShieldCheck size={14}/> Kingshot REST API</div>
             <h2 style={{fontSize:"clamp(21px,3vw,28px)",letterSpacing:"-.035em",lineHeight:1.25,margin:"10px 0 8px"}}>Look up players. Redeem codes. Enroll for auto-redeem.</h2>
-            <p className="dev-muted" style={{maxWidth:620}}>Use a developer key for versioned player lookup and manual redemption. V3 is the supported developer API. V1 routes are deprecated; migrate existing integrations to V3 now. The automatic-redemption registration flow is documented separately. Keep keys and signing secrets out of browser code, source control, and URLs.</p>
+            <p className="dev-muted" style={{maxWidth:620}}>Use a developer key for versioned player lookup and manual redemption. V4 is the current developer API with a consistent success/data/error/meta response envelope. V3 remains available for existing integrations; V1 is deprecated. The automatic-redemption registration flow is documented separately. Keep keys and signing secrets out of browser code, source control, and URLs.</p>
             <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:15}}>{["Player lookup","Manual redemption","Auto-redeem enrollment","JSON responses","Bearer authentication"].map(tag=><span key={tag} style={{border:"1px solid #343e4d",borderRadius:7,padding:"5px 8px",fontSize:10,color:"#cbd3e2"}}>{tag}</span>)}</div>
           </section>
           <section className="dev-card" id="quickstart">
@@ -119,15 +119,15 @@ console.log(result.data.playerId, result.data.name);`;
           <section className="dev-card" id="api-reference">
             <div className="dev-card-head"><Activity size={18} color="#b8bdff"/><h2 className="dev-card-title">API reference</h2></div>
             <p className="dev-muted" style={{marginBottom:13}}>Fetch a player profile using a numeric Kingshot Player ID.</p>
-            <div className="dev-endpoint"><span style={{background:"#164b39",color:"#9ce9c2",borderRadius:6,padding:"5px 8px",fontSize:10,fontWeight:900}}>GET</span><code style={{fontSize:12,overflowWrap:"anywhere",flex:"1 1 170px"}}>/api/v3/players/&#123;playerId&#125;</code><CopyButton value="/api/v3/players/{playerId}" label="Copy path"/></div>
+            <div className="dev-endpoint"><span style={{background:"#164b39",color:"#9ce9c2",borderRadius:6,padding:"5px 8px",fontSize:10,fontWeight:900}}>GET</span><code style={{fontSize:12,overflowWrap:"anywhere",flex:"1 1 170px"}}>/api/v4/players/&#123;playerId&#125;</code><CopyButton value="/api/v4/players/{playerId}" label="Copy path"/></div>
             <p className="dev-muted" style={{marginTop:11}}>Required path parameter: <code>playerId</code> — 5 to 20 digits. A valid, active API key is required.</p>
             <h3 style={{fontSize:13,margin:"19px 0 9px"}}>Example response</h3>
-            <pre className="dev-code" tabIndex={0} aria-label="Example player API JSON response, horizontally scrollable"><code>{JSON.stringify({data:{playerId:"43180889",name:"Example Player",kingdomId:"1125",power:123456789,townCenterLevel:30,avatarUrl:null,allianceName:"Example Alliance",allianceTag:"EXA"},meta:{apiVersion:"3",requestId:"server-generated-id",timestamp:"2026-10-17T12:00:00.000Z",source:"mightpulse",stale:false,providerFresh:true,providerAgeSeconds:2,rateLimit:{perMinuteLimit:60,perMinuteRemaining:59,perDayLimit:1000,perDayRemaining:999,resetAt:"2026-10-17T12:01:00.000Z"}},dev:{name:DEVELOPER_NAME,discord:"@" + DEVELOPER_DISCORD_USERNAME,url:DEVELOPER_DISCORD_URL}},null,2)}</code></pre>
+            <pre className="dev-code" tabIndex={0} aria-label="Example player API JSON response, horizontally scrollable"><code>{JSON.stringify({success:true,data:{playerId:"43180889",name:"Example Player",kingdomId:"1125",power:123456789,townCenterLevel:30,avatarUrl:null,allianceName:"Example Alliance",allianceTag:"EXA"},error:null,meta:{apiVersion:"4",requestId:"server-generated-id",timestamp:"2026-10-17T12:00:00.000Z",source:"mightpulse",stale:false,providerFresh:true,providerAgeSeconds:2,rateLimit:{perMinuteLimit:60,perMinuteRemaining:59,perDayLimit:1000,perDayRemaining:999,resetAt:"2026-10-17T12:01:00.000Z"}},dev:{name:DEVELOPER_NAME,discord:"@" + DEVELOPER_DISCORD_USERNAME,url:DEVELOPER_DISCORD_URL}},null,2)}</code></pre>
             <p className="dev-muted" style={{fontSize:11,marginTop:9}}>Illustrative values only. Some fields may be null when the upstream provider has no value. Public JSON responses also include a top-level <code>dev</code> object with maintainer contact details.</p>
           </section>
           <section className="dev-card" id="manual-redemption">
             <div className="dev-card-head"><KeyRound size={18} color="#b8bdff"/><h2 className="dev-card-title">Manual redemption</h2></div>
-            <div className="dev-endpoint"><span style={{background:"#4a3216",color:"#ffd28a",borderRadius:6,padding:"5px 8px",fontSize:10,fontWeight:900}}>POST</span><code style={{fontSize:12,overflowWrap:"anywhere",flex:"1 1 170px"}}>/api/v3/redemptions</code><CopyButton value="/api/v3/redemptions" label="Copy path"/></div>
+            <div className="dev-endpoint"><span style={{background:"#4a3216",color:"#ffd28a",borderRadius:6,padding:"5px 8px",fontSize:10,fontWeight:900}}>POST</span><code style={{fontSize:12,overflowWrap:"anywhere",flex:"1 1 170px"}}>/api/v3/redemptions</code><CopyButton value="/api/v4/redemptions" label="Copy path"/></div>
             <p className="dev-muted" style={{marginTop:11}}>Requires a developer Bearer key. Submit one Player ID, gift code, and kingdom ID per request.</p>
             <pre className="dev-code" tabIndex={0} aria-label="Manual redemption cURL example, horizontally scrollable"><code>{`curl -X POST "${ORIGIN}/api/v3/redemptions" \\\n  -H "Authorization: Bearer $KINGSHOT_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"playerId":"43180889","code":"EXAMPLECODE","kid":"1125"}'`}</code></pre>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8,marginTop:12}}>{[["playerId","5–20 digits"],["code","1–64 safe characters"],["kid","1–10 digit kingdom ID"]].map(([name,desc])=><div key={name} style={{border:"1px solid #2b3442",background:"#0d1118",borderRadius:9,padding:10}}><code style={{fontSize:12}}>{name}</code><p className="dev-muted" style={{fontSize:11,marginTop:4}}>{desc}</p></div>)}</div>
@@ -144,7 +144,7 @@ console.log(result.data.playerId, result.data.name);`;
           </section>
           {accordion("authentication","Authentication and key safety",<><p style={paragraph}>Send the key as <code>Authorization: Bearer YOUR_API_KEY</code> over HTTPS. Keys are secrets: store them in server-side environment variables or a secrets manager, and never commit them to source control.</p><p style={paragraph}>A revoked or invalid key receives <code>401</code>. Do not share keys between unrelated applications. Rotate a key immediately if it may have leaked.</p></>)}
           <div style={{height:0}}/>
-          {accordion("limits","Rate limits and response codes",<><p style={paragraph}>Current limits: 60 requests per minute and 1,000 requests per day per key, plus 120 requests per minute per IP. Responses include rate-limit headers when available. On <code>429</code>, honor <code>Retry-After</code> and use bounded backoff. V3 errors use <code>error.code</code> and <code>error.message</code>, with <code>meta.apiVersion</code>, <code>meta.requestId</code>, and <code>meta.timestamp</code>. A redemption can complete with HTTP 200 even if the game rejects the code; inspect the response body and do not blindly retry an ambiguous timeout.</p><div style={{display:"grid",gap:8,marginTop:13}}>{[["200","Lookup succeeded"],["400","Missing or invalid Player ID"],["401","Missing, invalid, or revoked API key"],["404","Player not found"],["429","Rate limit or quota exceeded"],["502","Upstream player provider unavailable"]].map(([status,desc])=><div key={status} style={{display:"flex",gap:12,borderBottom:"1px solid #252c38",padding:"7px 0"}}><code style={{width:38,color:status==="200"?"#9ce9c2":"#b8bdff"}}>{status}</code><span style={{color:"#aeb8ca",fontSize:13}}>{desc}</span></div>)}</div></>)}
+          {accordion("limits","Rate limits and response codes",<><p style={paragraph}>Current limits: 60 requests per minute and 1,000 requests per day per key, plus 120 requests per minute per IP. Responses include rate-limit headers when available. On <code>429</code>, honor <code>Retry-After</code> and use bounded backoff. V4 responses always include <code>success</code>, <code>data</code>, <code>error</code>, and <code>meta</code>. Errors use <code>error.code</code> and <code>error.message</code>; every response includes <code>meta.apiVersion</code>, <code>meta.requestId</code>, and <code>meta.timestamp</code>. A redemption can complete with HTTP 200 even if the game rejects the code; inspect the response body and do not blindly retry an ambiguous timeout.</p><div style={{display:"grid",gap:8,marginTop:13}}>{[["200","Lookup succeeded"],["400","Missing or invalid Player ID"],["401","Missing, invalid, or revoked API key"],["404","Player not found"],["429","Rate limit or quota exceeded"],["502","Upstream player provider unavailable"]].map(([status,desc])=><div key={status} style={{display:"flex",gap:12,borderBottom:"1px solid #252c38",padding:"7px 0"}}><code style={{width:38,color:status==="200"?"#9ce9c2":"#b8bdff"}}>{status}</code><span style={{color:"#aeb8ca",fontSize:13}}>{desc}</span></div>)}</div></>)}
           <div style={{height:0}}/>
           {accordion("lifecycle","API key lifecycle and availability",<><p style={paragraph}>Sign in with Discord to create and manage your own API keys. Keys are displayed in full only once; only a hash is stored. You can revoke a key from the account panel, and revoked keys stop authorizing requests.</p><p style={paragraph}>Developer accounts do not grant administrative access. Keep keys private and revoke any secret that may have been exposed.</p></>)}
           <section className="dev-card dev-maintainer-card" id="maintainer-contact" aria-labelledby="maintainer-contact-title">
@@ -172,7 +172,7 @@ console.log(result.data.playerId, result.data.name);`;
           </div>
         </div>
       </div>
-      <footer className="dev-footer"><span>API v3 · Supported developer API · V1 routes deprecated · Maintained by {DEVELOPER_NAME}</span><a href="#maintainer-contact">Maintainer & contact</a><a href={DEVELOPER_DISCORD_URL} target="_blank" rel="noopener noreferrer">Developer contact (Discord)</a><a href="/developer.md">Plain-text docs for crawlers and integrations</a><a href="/openapi.json">OpenAPI specification</a><a href="/info" style={{display:"inline-flex",alignItems:"center",gap:5}}>Service overview <ExternalLink size={12}/></a><a href="/privacy?service=kingshot-auto" style={{color:"inherit"}}>Privacy</a></footer>
+      <footer className="dev-footer"><span>API v4 · Supported developer API · V1 routes deprecated · Maintained by {DEVELOPER_NAME}</span><a href="#maintainer-contact">Maintainer & contact</a><a href={DEVELOPER_DISCORD_URL} target="_blank" rel="noopener noreferrer">Developer contact (Discord)</a><a href="/developer.md">Plain-text docs for crawlers and integrations</a><a href="/openapi.json">OpenAPI specification</a><a href="/info" style={{display:"inline-flex",alignItems:"center",gap:5}}>Service overview <ExternalLink size={12}/></a><a href="/privacy?service=kingshot-auto" style={{color:"inherit"}}>Privacy</a></footer>
     </main>
   </div>;
 }
