@@ -79,6 +79,8 @@ test("maintenance gate, profile status and shared header consume common state st
   const chip = await readFile(new URL("../src/components/PublicAccountChip.jsx", import.meta.url), "utf8");
   assert.match(main, /useServiceStatus\(\{criticalMaintenance:true\}\)/);
   assert.doesNotMatch(main, /const timer=setInterval\(load,5000\)/);
+  assert.doesNotMatch(main, /function SiteStatus\(\)/);
+  assert.doesNotMatch(main, /function PublicMaintenance\(\)/);
   assert.match(profile, /useServiceStatus\(\{includeHealth:true\}\)/);
   assert.match(profile, /useAccountState\(\)/);
   assert.doesNotMatch(profile, /const roleTimer=window\.setInterval\(refreshRole,30000\)/);
