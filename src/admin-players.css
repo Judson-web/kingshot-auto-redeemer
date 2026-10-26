@@ -184,3 +184,18 @@ main.admin-players-page .ap-refresh-progress>span:after{
 main.admin-players-page .ap-refresh-progress small{color:#b9b3e8;font-size:10px;line-height:1.5}
 @keyframes ap-refresh-indeterminate{from{transform:translateX(-110%)}to{transform:translateX(270%)}}
 @media(prefers-reduced-motion:reduce){main.admin-players-page .ap-refresh-progress>span:after{animation:none;width:100%;opacity:.65}}
+
+/* Explicit session/loading states prevent unauthorized requests looking like empty data. */
+main.admin-players-page .ap-state-shell{max-width:900px;padding-top:clamp(12px,4vh,42px)}
+main.admin-players-page .ap-access-card{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:clamp(20px,4vw,34px);border:1px solid #ffffff16;border-radius:22px;background:linear-gradient(145deg,#171b29f8,#10131df8);box-shadow:0 18px 55px #0003}
+main.admin-players-page .ap-state-icon{display:grid;place-items:center;width:48px;height:48px;border:1px solid #a99bff32;border-radius:15px;background:#8d80ff18;color:#d4ccff}
+main.admin-players-page .ap-state-icon-error{border-color:#ffbc6d35;background:#ffbc6d12;color:#ffd3a0}
+main.admin-players-page .ap-state-kicker{color:#b6aaff;font-size:10px;font-weight:850;letter-spacing:.16em}
+main.admin-players-page .ap-access-card h2{margin:0;font-size:clamp(23px,4vw,31px);line-height:1.16;letter-spacing:-.045em}
+main.admin-players-page .ap-access-card p{max-width:58ch;margin:0;color:#adb4c6;font-size:13px;line-height:1.75;overflow-wrap:anywhere}
+main.admin-players-page .ap-state-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:9px;width:100%}
+main.admin-players-page .ap-state-actions .ap-action{min-height:44px}
+main.admin-players-page .ap-state-secondary{display:inline-flex;align-items:center;min-height:42px;padding:8px 4px;color:#cbc4ff;font-size:12px;font-weight:700;text-decoration:none}
+main.admin-players-page .ap-state-secondary:hover{text-decoration:underline;color:#f2efff}
+main.admin-players-page .ap-state-actions :focus-visible{outline:2px solid #d1c7ff;outline-offset:3px}
+@media(max-width:620px){main.admin-players-page .ap-state-shell{padding-top:12px}main.admin-players-page .ap-state-actions{align-items:stretch;flex-direction:column}main.admin-players-page .ap-state-actions>.ap-action,main.admin-players-page .ap-state-actions>.ap-state-secondary{width:100%;justify-content:center;text-align:center}}

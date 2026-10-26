@@ -1,0 +1,37 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { isAdminAccessDenied } from "../src/admin-access-state.js";
+import { readFile } from "node:fs/promises";
+
+test("admin access state distinguishes auth failures from ordinary API errors", () => {
+  assert.equal(isAdminAccessDenied(Object.assign(new Error("Unauthorized."), { status: 401 })), true);
+  assert.equal(isAdminAccessDenied(Object.assign(new Error("Forbidden."), { status: 403 })), true);
+  assert.equal(isAdminAccessDenied(new Error("Discord administrator sign-in required.")), true);
+  assert.equal(isAdminAccessDenied(new Error("Upstream timed out.")), false);
+  assert.equal(isAdminAccessDenied(new Error("The player database response was incomplete.")), false);
+});
+
+test("public prompts are scoped to public redemption routes, not private workspaces", async () => {
+  const entry = await readFile(new URL("../src/main.jsx", import.meta.url), "utf8");
+  const push = await readFile(new URL("../src/components/PushNotifications.tsx", import.meta.url), "utf8");
+  assert.match(entry, /privateWorkspacePaths=new Set\(\["\/dev","\/devsupport","\/admin\/players","\/admin\/maintenance","\/push","\/message","\/gift-codes"\]\)/);
+  assert.match(entry, /showNotificationPrompt=\["\/","\/auto","\/manual","\/redeem"\]\.includes\(location\.pathname\)/);
+  assert.match(entry, /isPrivateWorkspace\?publicPage:<PublicAnnouncements>/);
+  assert.match(entry, /!isPrivateWorkspace&&<InstallAppPrompt\/>/);
+  assert.match(entry, /showNotificationPrompt&&<PushNotifications\/>/);
+  assert.match(entry, /showPublicSupport&&<SupportWidget\/>/);
+  assert.match(push, /bottom: "calc\(84px \+ env\(safe-area-inset-bottom, 0px\)\)"/);
+});
+
+test("admin player page never renders empty statistics before a valid player list loads", async () => {
+  const page = await readFile(new URL("../src/AdminPlayersApp.tsx", import.meta.url), "utf8");
+  const helper = await readFile(new URL("../src/admin-access-state.js", import.meta.url), "utf8");
+  assert.match(page, /hasLoadedData/);
+  assert.match(page, /if\(accessDenied\)return/);
+  assert.match(page, /if\(!hasLoadedData\)return/);
+  assert.match(page, /Your administrator session is missing, expired, or does not have permission/);
+  assert.match(page, /profile\?returnTo=%2Fadmin%2Fplayers/);
+  assert.match(page, /if\(!Array\.isArray\(d\.players\)\)throw Error\("The player database response was incomplete\."/);
+  assert.match(page, /data\.players\.length\?"No players match this filter\."\:"No registered players yet\."/);
+  assert.match(helper, /status === 401 \|\| status === 403/);
+});

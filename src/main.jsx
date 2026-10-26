@@ -334,5 +334,9 @@ if(typeof window!=="undefined")window.addEventListener("load",recordVisitorPageV
 
 registerAppServiceWorker();
 
+const privateWorkspacePaths=new Set(["/dev","/devsupport","/admin/players","/admin/maintenance","/push","/message","/gift-codes"]);
+const isPrivateWorkspace=privateWorkspacePaths.has(location.pathname);
+const showNotificationPrompt=["/","/auto","/manual","/redeem"].includes(location.pathname);
+const showPublicSupport=!isPrivateWorkspace;
 const maintenanceAdminAccess=location.pathname==="/admin/maintenance"||(location.pathname==="/profile"&&new URLSearchParams(location.search).get("returnTo")==="/admin/maintenance");
-createRoot(document.getElementById("root")).render(<>{maintenanceAdminAccess?publicPage:<MaintenanceGate><PublicAnnouncements>{publicPage}</PublicAnnouncements><InstallAppPrompt/><PushNotifications/>{location.pathname!=="/devsupport"&&<SupportWidget/>}</MaintenanceGate>}<CopyToastHost/></>);
+createRoot(document.getElementById("root")).render(<>{maintenanceAdminAccess?publicPage:<MaintenanceGate>{isPrivateWorkspace?publicPage:<PublicAnnouncements>{publicPage}</PublicAnnouncements>}{!isPrivateWorkspace&&<InstallAppPrompt/>}{showNotificationPrompt&&<PushNotifications/>}{showPublicSupport&&<SupportWidget/>}</MaintenanceGate>}<CopyToastHost/></>);

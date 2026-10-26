@@ -15,7 +15,7 @@ const panelStyle: React.CSSProperties = {
   position: "fixed",
   zIndex: 30,
   right: 16,
-  bottom: "max(16px, env(safe-area-inset-bottom))",
+  bottom: "calc(84px + env(safe-area-inset-bottom, 0px))",
   width: "min(420px, calc(100vw - 32px))",
   boxSizing: "border-box",
   border: "1px solid var(--border, #303642)",
