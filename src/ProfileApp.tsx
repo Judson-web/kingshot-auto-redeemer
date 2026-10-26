@@ -1,4 +1,5 @@
 import React,{useEffect,useState}from"react";
+import "./profile-redesign.css";
 import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
 
 import{MessageCircle,LogOut,ShieldCheck,UserRound,LoaderCircle,ArrowRight,CheckCircle2,AlertCircle,LockKeyhole,Activity,Wrench,WifiOff,RefreshCw,Copy,ExternalLink,Gift,Zap}from"lucide-react";

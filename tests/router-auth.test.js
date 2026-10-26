@@ -57,10 +57,11 @@ test("worker enforces bans before redemption and fails closed when ban lookup fa
 
 test("admin stylesheet is loaded and registration responses share one swipeable result panel", async () => {
   const entry = await readFile(new URL("../src/main.jsx", import.meta.url), "utf8");
+  const adminPage = await readFile(new URL("../src/AdminPlayersApp.tsx", import.meta.url), "utf8");
   const adminCss = await readFile(new URL("../src/admin-players.css", import.meta.url), "utf8");
   const outcomeSource = await readFile(new URL("../src/registration-outcomes.js", import.meta.url), "utf8");
   const siteCss = await readFile(new URL("../src/styles.css", import.meta.url), "utf8");
-  assert.match(entry, /import["\']\.\/admin-players\.css["\'];/);
+  assert.match(adminPage, /import \"\.\/admin-players\.css\"/);
   assert.match(adminCss, /main\.admin-players-page/);
   assert.match(entry, /RegistrationOutcomePanel/);
   assert.match(entry, /registration-outcomes\.js/);

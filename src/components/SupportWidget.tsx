@@ -1,4 +1,6 @@
 import React,{useEffect,useState}from"react";
+import "../support-chat-polish.css";
+import "../support-centre-redesign.css";
 import{MessageCircle,X,Send,LoaderCircle,CheckCircle2,LifeBuoy,ArrowLeft,RefreshCw,ShieldCheck,Headset,UserRound,LockKeyhole,Paperclip,Image as ImageIcon,ChevronDown,Check,BellRing}from"lucide-react";
 const API="/api/kingshot-support-chat",STORAGE="ks-support-chat-v1",SEEN_PREFIX="ks-support-seen-v1:",NOTIFIED_PREFIX="ks-support-notified-v1:";
 type Saved={conversationId:string;token:string;subject:string;supportTicketId?:string};

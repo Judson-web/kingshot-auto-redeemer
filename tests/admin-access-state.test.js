@@ -56,3 +56,27 @@ test("support inbox loads the isolated admin push control rather than the entire
   assert.doesNotMatch(player, /export function AdminPushControl/);
   assert.match(control, /export default function AdminPushControl/);
 });
+
+test("secondary routes use lazy chunks and a Suspense fallback", async () => {
+  const entry = await readFile(new URL("../src/main.jsx", import.meta.url), "utf8");
+  assert.match(entry, /React\.lazy\(\(\)=>import\("\.\/ProfileApp\.tsx"\)\)/);
+  assert.match(entry, /React\.lazy\(\(\)=>import\("\.\/DeveloperApp\.tsx"\)\)/);
+  assert.match(entry, /React\.lazy\(\(\)=>import\("\.\/AdminPlayersApp\.tsx"\)\)/);
+  assert.match(entry, /React\.Suspense fallback=/);
+  assert.doesNotMatch(entry, /import AdminPlayersApp from/);
+});
+
+test("profile, admin and support-specific CSS follows the relevant lazy component", async () => {
+  const profile = await readFile(new URL("../src/ProfileApp.tsx", import.meta.url), "utf8");
+  const developer = await readFile(new URL("../src/DeveloperApp.tsx", import.meta.url), "utf8");
+  const admin = await readFile(new URL("../src/AdminPlayersApp.tsx", import.meta.url), "utf8");
+  const support = await readFile(new URL("../src/components/SupportWidget.tsx", import.meta.url), "utf8");
+  const entry = await readFile(new URL("../src/main.jsx", import.meta.url), "utf8");
+  assert.match(profile, /import "\.\/profile-redesign\.css"/);
+  assert.match(developer, /import "\.\/developer-redesign\.css"/);
+  assert.match(admin, /import "\.\/admin-players\.css"/);
+  assert.match(support, /import "\.\.\/support-centre-redesign\.css"/);
+  assert.doesNotMatch(entry, /import["']\.\/admin-players\.css/);
+  assert.doesNotMatch(entry, /import["']\.\/profile-redesign\.css/);
+  assert.doesNotMatch(entry, /import["']\.\/support-centre-redesign\.css/);
+});
