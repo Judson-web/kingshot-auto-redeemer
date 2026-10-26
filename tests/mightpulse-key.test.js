@@ -44,7 +44,7 @@ test("MightPulse provider circuit breaker uses RLS-protected state and service-r
   assert.match(migration, /interval '60 seconds'/i);
   assert.match(migration, /interval '120 seconds'/i);
   for (const rpc of ["check_mightpulse_provider_circuit_breaker", "record_mightpulse_provider_block_sweep", "reset_mightpulse_provider_circuit_breaker"]) {
-    assert.match(migration, new RegExp("grant execute on function public\\." + rpc + "\\\\(\\\\) to service_role", "i"));
-    assert.doesNotMatch(migration, new RegExp("grant execute on function public\\." + rpc + "\\\\(\\\\) to anon", "i"));
+    assert.ok(migration.includes("grant execute on function public." + rpc + "() to service_role;"), "RPC must grant service_role: " + rpc);
+    assert.ok(!migration.includes("grant execute on function public." + rpc + "() to anon;"), "RPC must not grant anon: " + rpc);
   }
 });
