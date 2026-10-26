@@ -46,3 +46,13 @@ test("admin data accepts a profile session only after verifying the configured D
   assert.ok(adminData.indexOf("isDiscordOwner(owner,OWNER_DISCORD_ID)") < adminData.indexOf('COOKIE+"="+encodeURIComponent(session)'));
   assert.match(identity, /return hasDiscord && actual.length > 0 && actual === String\(expectedDiscordId\)/);
 });
+
+test("support inbox loads the isolated admin push control rather than the entire player database module", async () => {
+  const player = await readFile(new URL("../src/AdminPlayersApp.tsx", import.meta.url), "utf8");
+  const support = await readFile(new URL("../src/DevSupportApp.tsx", import.meta.url), "utf8");
+  const control = await readFile(new URL("../src/components/AdminPushControl.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(support, /from "\.\/AdminPlayersApp"/);
+  assert.match(support, /from "\.\/components\/AdminPushControl"/);
+  assert.doesNotMatch(player, /export function AdminPushControl/);
+  assert.match(control, /export default function AdminPushControl/);
+});

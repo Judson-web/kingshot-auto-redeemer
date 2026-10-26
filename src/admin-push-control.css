@@ -1,0 +1,5 @@
+.ks-admin-push-control{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:9px 11px;border:1px solid #a49aff50;border-radius:9px;background:#6557cf;color:#fff;font-size:11px;font-weight:800;cursor:pointer;transition:filter .15s ease,border-color .15s ease}
+.ks-admin-push-control:hover:not(:disabled){filter:brightness(1.08);border-color:#c0b5ff}
+.ks-admin-push-control:focus-visible{outline:2px solid #c3b9ff;outline-offset:3px}
+.ks-admin-push-control:disabled{opacity:.55;cursor:wait}
+@media(prefers-reduced-motion:reduce){.ks-admin-push-control{transition:none}}

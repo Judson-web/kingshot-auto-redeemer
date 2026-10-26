@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState}from"react";
-import {AdminPushControl} from "./AdminPlayersApp";
+import AdminPushControl from "./components/AdminPushControl";
 import{LockKeyhole,RefreshCw,Send,MessageCircle,ShieldCheck,CheckCircle2,AlertCircle,Clock3,UserRound,ArrowLeft,Search,Copy,Check,Clock,MessageSquareText,Filter,CheckCheck,Paperclip,Image as ImageIcon,X}from"lucide-react";
 type Conversation={id:string;player_id?:string|null;subject:string;status:"open"|"waiting"|"resolved";created_at:string;updated_at:string;last_message_at:string;support_ticket_id?:string|null;lastMessage?:Message|null};
 type Message={id:number;sender:"user"|"admin";body:string;created_at:string;attachment_url?:string|null;attachment_name?:string|null;attachment_type?:string|null};
