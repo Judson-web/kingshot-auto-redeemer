@@ -3,7 +3,7 @@
   "info": {
     "title": "Kingshot Auto Redeemer Developer API",
     "version": "4.0.0",
-    "description": "V4 is the current developer API for player lookup and manual redemption. It provides a consistent success/data/error/meta envelope, request tracing, quota metadata, and V4-scoped idempotency. V3 remains available for existing integrations; V1 routes are deprecated. Use only with player accounts you are authorized to access. Public JSON responses include the top-level dev attribution object. Full guide: /developer-v4.md.",
+    "description": "V4 is the current developer API for player lookup and manual redemption. It provides a consistent success/data/error/meta envelope, per-request tracing, machine-readable retry guidance, quota metadata, and V4-scoped idempotency. V3 remains available for existing integrations; V1 routes are deprecated. Keep API keys server-side and use only with player accounts you are authorized to access. Public JSON responses include top-level dev attribution. Full guide: /developer-v4.md.",
     "termsOfService": "https://kingshot-autoredeemer.vercel.app/terms?service=kingshot-auto",
     "contact": {
       "name": "Judson",
@@ -428,7 +428,7 @@
         ],
         "operationId": "getPlayerV4",
         "summary": "Look up a player profile (V4)",
-        "description": "Returns a normalized player profile using a stable response envelope. `success` describes the API request, `data` contains the player, `error` is null on success, and `meta` always contains apiVersion, requestId, and timestamp. Requires an active developer Bearer key.",
+        "description": "Returns a normalized player profile using the stable V4 response envelope. success describes the API request, data contains the player, error is null on success, and meta describes the current HTTP attempt. Requires an active developer Bearer key. Transient read failures may be retried with bounded backoff when error.retryable is true and error.retryHint is bounded_backoff.",
         "security": [
           {
             "bearerAuth": []
@@ -572,7 +572,9 @@
                   "data": null,
                   "error": {
                     "code": "player_not_found",
-                    "message": "No player was found for this ID."
+                    "message": "No player was found for this ID.",
+                    "retryable": false,
+                    "retryHint": "do_not_retry"
                   },
                   "meta": {
                     "apiVersion": "4",
@@ -636,6 +638,28 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV4ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "data": null,
+                  "error": {
+                    "code": "rate_limit_exceeded",
+                    "message": "The per-key or per-IP request limit has been reached.",
+                    "retryable": true,
+                    "retryHint": "honor_retry_after",
+                    "retryAfterSeconds": 15
+                  },
+                  "meta": {
+                    "apiVersion": "4",
+                    "requestId": "server-generated-id",
+                    "timestamp": "2026-10-26T10:00:00.000Z",
+                    "resetAt": "2026-10-26T10:00:15.000Z"
+                  },
+                  "dev": {
+                    "name": "Judson",
+                    "discord": "@judson00713",
+                    "url": "https://discord.com/users/871756466900598815"
+                  }
                 }
               }
             },
@@ -655,7 +679,7 @@
                 }
               },
               "Retry-After": {
-                "description": "Suggested delay before retrying, in seconds.",
+                "description": "Preferred wait time before retrying, in seconds. The JSON error may also expose retryAfterSeconds.",
                 "schema": {
                   "type": "integer",
                   "minimum": 1
@@ -751,7 +775,7 @@
         ],
         "operationId": "createRedemptionV4",
         "summary": "Submit a manual gift-code redemption (V4)",
-        "description": "Submits one player/code/kingdom combination using the V4 response envelope. HTTP-level success means the API processed the request; check `data.ok` and `data.status` for the game outcome. If the upstream result is ambiguous, retry only with the same Idempotency-Key. V4 idempotency records are separated from V3 records.",
+        "description": "Submits one player/code/kingdom combination using the V4 response envelope. HTTP-level success means the API processed the request; check data.ok and data.status for the game outcome. Send a stable Idempotency-Key for each logical redemption. If the upstream result is ambiguous, retry only with the same key and identical body. V4 idempotency records are separated from V3 records. Errors include retryable and retryHint fields to guide clients.",
         "security": [
           {
             "bearerAuth": []
@@ -762,7 +786,7 @@
             "name": "Idempotency-Key",
             "in": "header",
             "required": false,
-            "description": "Optional durable replay protection for matching requests. Reusing the key with a different body returns 409. V4 key space is isolated from V3.",
+            "description": "Recommended for every logical redemption request. Use a stable, high-entropy key of 8–128 safe ASCII characters and reuse it only for retries of the exact same operation and body. A different body with the same key returns 409. Conflicting/repeated header values are rejected. V4 key space is isolated from V3.",
             "schema": {
               "type": "string",
               "minLength": 8,
@@ -982,6 +1006,28 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiV4ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "data": null,
+                  "error": {
+                    "code": "rate_limit_exceeded",
+                    "message": "The per-key or per-IP request limit has been reached.",
+                    "retryable": true,
+                    "retryHint": "honor_retry_after",
+                    "retryAfterSeconds": 15
+                  },
+                  "meta": {
+                    "apiVersion": "4",
+                    "requestId": "server-generated-id",
+                    "timestamp": "2026-10-26T10:00:00.000Z",
+                    "resetAt": "2026-10-26T10:00:15.000Z"
+                  },
+                  "dev": {
+                    "name": "Judson",
+                    "discord": "@judson00713",
+                    "url": "https://discord.com/users/871756466900598815"
+                  }
                 }
               }
             },
@@ -1001,7 +1047,7 @@
                 }
               },
               "Retry-After": {
-                "description": "Suggested delay before retrying, in seconds.",
+                "description": "Preferred wait time before retrying, in seconds. The JSON error may also expose retryAfterSeconds.",
                 "schema": {
                   "type": "integer",
                   "minimum": 1
@@ -1551,7 +1597,8 @@
           },
           "requestId": {
             "type": "string",
-            "description": "Unique request identifier; also returned in X-Request-Id."
+            "description": "Unique identifier for the current HTTP attempt; equals the X-Request-Id response header, including when a stored redemption outcome is replayed.",
+            "format": "uuid"
           },
           "timestamp": {
             "type": "string",
@@ -1605,7 +1652,9 @@
         "type": "object",
         "required": [
           "code",
-          "message"
+          "message",
+          "retryable",
+          "retryHint"
         ],
         "properties": {
           "code": {
@@ -1615,6 +1664,25 @@
           "message": {
             "type": "string",
             "description": "Human-readable explanation safe to show to an API client."
+          },
+          "retryable": {
+            "type": "boolean",
+            "description": "Server hint indicating whether retrying may be reasonable. Always follow retryHint; this is not a guarantee that the upstream operation is safe to repeat."
+          },
+          "retryHint": {
+            "type": "string",
+            "enum": [
+              "do_not_retry",
+              "honor_retry_after",
+              "bounded_backoff",
+              "same_idempotency_key"
+            ],
+            "description": "Safe retry strategy: do_not_retry for permanent input/auth/conflict errors; honor_retry_after for rate limits; bounded_backoff for transient reads; same_idempotency_key for redemption retries whose outcome may be ambiguous."
+          },
+          "retryAfterSeconds": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Suggested wait before retrying when the server knows the quota reset. Prefer the Retry-After response header when present."
           }
         },
         "additionalProperties": false

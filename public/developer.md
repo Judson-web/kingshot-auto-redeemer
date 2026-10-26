@@ -56,7 +56,7 @@ Use an Idempotency-Key of 8–128 safe ASCII characters for redemption requests.
 
 ### V4 response envelope
 
-V4 JSON success and error responses use the same top-level fields: success, data, error, meta and dev. The meta object always includes apiVersion ("4"), requestId and timestamp. The X-Request-Id and X-API-Version headers mirror request tracing and version metadata.
+V4 JSON success and error responses use the same top-level fields: success, data, error, meta and dev. The meta object always includes apiVersion ("4"), requestId and timestamp for the current HTTP attempt; requestId matches X-Request-Id even when a stored outcome is replayed. Errors include retryable and retryHint (do_not_retry, honor_retry_after, bounded_backoff, or same_idempotency_key) so clients can choose a safer recovery strategy. The X-API-Version header is 4.
 
 - On a successful API operation: success is true, data contains the endpoint result, and error is null.
 - On an API error: success is false, data is null, and error contains a stable code and human-readable message.
@@ -83,7 +83,7 @@ Example API error:
       }
     }
 
-On HTTP 429, honor Retry-After and use bounded backoff. Do not automatically retry invalid requests, revoked keys, or redemption calls with a new idempotency key.
+On HTTP 429, honor Retry-After and use bounded backoff. For a redemption, send a stable Idempotency-Key on the initial request and reuse the same key and identical body after an ambiguous outcome. Never automatically retry invalid requests or revoked keys. See the full reference for Node.js and Python request examples.
 
 ## V3 compatibility: player lookup
 

@@ -69,17 +69,22 @@ export default function DeveloperApp() {
   }, []);
   const [tab, setTab] = useState<"curl" | "javascript">("curl");
   const [expanded, setExpanded] = useState("");
-  const code = tab === "curl" ? curlExample : `const response = await fetch("${endpoint}", {
+  const code = tab === "curl" ? curlExample : `// Run this on your server. Set KINGSHOT_API_KEY in the server environment.
+const response = await fetch("${endpoint}", {
   headers: {
-    Authorization: "Bearer YOUR_API_KEY",
+    Authorization: \`Bearer \${process.env.KINGSHOT_API_KEY}\`,
+    Accept: "application/json",
   },
 });
 
-if (!response.ok) {
-  throw new Error("API request failed: " + response.status);
+const result = await response.json().catch(() => null);
+const requestId = result?.meta?.requestId || response.headers.get("X-Request-Id");
+
+if (!response.ok || result?.success !== true) {
+  const error = result?.error || {};
+  throw new Error(\`\${error.code || "request_failed"}: \${error.message || response.status} (requestId=\${requestId})\`);
 }
 
-const result = await response.json();
 console.log(result.data.playerId, result.data.name);`;
   const card: React.CSSProperties = { background: "#131821", border: "1px solid #2b3442", borderRadius: 16, padding: "clamp(17px, 4vw, 24px)", boxSizing: "border-box" };
   const heading: React.CSSProperties = { margin: "0 0 10px", fontSize: 19, letterSpacing: "-.02em" };
@@ -147,7 +152,7 @@ console.log(result.data.playerId, result.data.name);`;
           </section>
           {accordion("authentication","Authentication and key safety",<><p style={paragraph}>Send the key as <code>Authorization: Bearer YOUR_API_KEY</code> over HTTPS. Keys are secrets: store them in server-side environment variables or a secrets manager, and never commit them to source control.</p><p style={paragraph}>A revoked or invalid key receives <code>401</code>. Do not share keys between unrelated applications. Rotate a key immediately if it may have leaked.</p></>)}
           <div style={{height:0}}/>
-          {accordion("limits","Rate limits and response codes",<><p style={paragraph}>Current limits: 60 requests per minute and 1,000 requests per day per key, plus 120 requests per minute per IP. Responses include rate-limit headers when available. On <code>429</code>, honor <code>Retry-After</code> and use bounded backoff. V4 responses always include <code>success</code>, <code>data</code>, <code>error</code>, and <code>meta</code>. Errors use <code>error.code</code> and <code>error.message</code>; every response includes <code>meta.apiVersion</code>, <code>meta.requestId</code>, and <code>meta.timestamp</code>. The request ID also appears in <code>X-Request-Id</code>, and <code>X-API-Version</code> is <code>4</code>. A redemption can complete with HTTP 200 even if the game rejects the code; inspect the response body and retry an ambiguous outcome only with the same Idempotency-Key and request body.</p><div style={{display:"grid",gap:8,marginTop:13}}>{[["200","API request processed; check data.ok for redemption"],["400","Invalid input or request fields"],["401","Missing, invalid, or revoked API key"],["404","Player not found"],["405","Method not allowed"],["409","Idempotency conflict or request still processing"],["415","Redemption requires application/json"],["429","Rate limit or quota exceeded"],["502","Upstream provider unavailable"],["503","Service temporarily unavailable"],["504","Upstream timeout; redemption outcome may be ambiguous"]].map(([status,desc])=><div key={status} style={{display:"flex",gap:12,borderBottom:"1px solid #252c38",padding:"7px 0"}}><code style={{width:38,color:status==="200"?"#9ce9c2":"#b8bdff"}}>{status}</code><span style={{color:"#aeb8ca",fontSize:13}}>{desc}</span></div>)}</div></>)}
+          {accordion("limits","Rate limits and response codes",<><p style={paragraph}>Current limits: 60 requests per minute and 1,000 requests per day per key, plus 120 requests per minute per IP. Responses include rate-limit headers when available. On <code>429</code>, honor <code>Retry-After</code> and use bounded backoff. Use <code>retryHint</code> to recover: <code>honor_retry_after</code>, <code>bounded_backoff</code>, <code>same_idempotency_key</code>, or <code>do_not_retry</code>. V4 responses always include <code>success</code>, <code>data</code>, <code>error</code>, and <code>meta</code>. Errors use <code>error.code</code>, <code>error.message</code>, <code>error.retryable</code>, and <code>error.retryHint</code>; every response includes <code>meta.apiVersion</code>, <code>meta.requestId</code>, and <code>meta.timestamp</code>. The body request ID and <code>X-Request-Id</code> always describe the current HTTP attempt, including idempotency replays. The request ID also appears in <code>X-Request-Id</code>, and <code>X-API-Version</code> is <code>4</code>. A redemption can complete with HTTP 200 even if the game rejects the code; inspect the response body and retry an ambiguous outcome only with the same Idempotency-Key and request body.</p><div style={{display:"grid",gap:8,marginTop:13}}>{[["200","API request processed; check data.ok for redemption"],["400","Invalid input or request fields"],["401","Missing, invalid, or revoked API key"],["404","Player not found"],["405","Method not allowed"],["409","Idempotency conflict or request still processing"],["415","Redemption requires application/json"],["429","Rate limit or quota exceeded"],["502","Upstream provider unavailable"],["503","Service temporarily unavailable"],["504","Upstream timeout; redemption outcome may be ambiguous"]].map(([status,desc])=><div key={status} style={{display:"flex",gap:12,borderBottom:"1px solid #252c38",padding:"7px 0"}}><code style={{width:38,color:status==="200"?"#9ce9c2":"#b8bdff"}}>{status}</code><span style={{color:"#aeb8ca",fontSize:13}}>{desc}</span></div>)}</div></>)}
           <div style={{height:0}}/>
           {accordion("lifecycle","API key lifecycle and availability",<><p style={paragraph}>Sign in with Discord to create and manage your own API keys. Keys are displayed in full only once; only a hash is stored. You can revoke a key from the account panel, and revoked keys stop authorizing requests.</p><p style={paragraph}>Developer accounts do not grant administrative access. Keep keys private and revoke any secret that may have been exposed.</p></>)}
           <section className="dev-card dev-maintainer-card" id="maintainer-contact" aria-labelledby="maintainer-contact-title">
