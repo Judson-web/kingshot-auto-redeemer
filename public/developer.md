@@ -2,7 +2,7 @@
 
 Interactive documentation: https://kingshot-autoredeemer.vercel.app/developer
 
-Current API version: **V3**. This crawler-friendly reference describes integration routes but does not provide credentials.
+Current API version: **V4**. Full V4 reference: https://kingshot-autoredeemer.vercel.app/developer-v4.md. This crawler-friendly reference describes integration routes but does not provide credentials.
 
 ## Response attribution
 
@@ -14,7 +14,7 @@ Documented public JSON responses include a top-level `dev` object on success and
       "url": "https://discord.com/users/871756466900598815"
     }
 
-This is project-maintainer contact information, not an API key or permission grant. The rest of each response keeps its normal endpoint-specific shape.
+This is project-maintainer contact information, not an API key or permission grant. V4 responses use a consistent success/data/error/meta envelope. V3 and V1 compatibility routes retain their existing response formats.
 
 ## Authentication
 
@@ -68,7 +68,7 @@ Typical statuses: 400 invalid input; 401 missing/invalid/revoked key; 404 not fo
 - GET /api/v1/player?id=PLAYER_ID
 - POST /api/v1/redeem
 
-Both are deprecated and emit migration headers while they remain operational. New integrations must use V3.
+Both are deprecated and emit migration headers while they remain operational. New integrations must use V4. V3 remains available for existing integrations.
 
 ## Website enrollment
 
