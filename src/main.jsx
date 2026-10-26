@@ -9,6 +9,7 @@ import"./manual-redesign.css";import"./auto-registration-redesign.css";import"./
 import MobileNavDrawer from"./components/MobileNavDrawer.jsx";
 import PublicSiteHeader from"./components/PublicSiteHeader.jsx";
 import TownCenterLevel from"./components/TownCenterLevel.tsx";
+import { useServiceStatus } from "./shared/service-status.js";
 import KingshotAvatar from"./components/KingshotAvatar.tsx";
 
 const LegalApp=React.lazy(()=>import("./LegalApp.jsx"));
@@ -272,10 +273,9 @@ function MaintenancePreflight({error}){
  return <div className="maintenance-preflight" role="status" aria-live="polite"><div className="maintenance-preflight-card"><div className="maintenance-loader" aria-hidden="true"><span className="maintenance-loader-orbit maintenance-loader-orbit-a"/><span className="maintenance-loader-orbit maintenance-loader-orbit-b"/><span className="maintenance-loader-core"><i/></span></div><span className="maintenance-kicker">PREPARING SECURE CONNECTION</span><h1 key={error?"availability":"status"}>{error?"Checking service availability":"Checking website status"}</h1><p key={error?"retry-copy":"status-copy"}>{error?"The maintenance status could not be confirmed yet. The website will stay hidden until the check succeeds. Retrying automatically.":"We check maintenance mode before loading the website."}</p><span className="maintenance-preflight-progress"><i/></span><small>{error?"RETRYING EVERY 5 SECONDS":"LIVE STATUS CHECK · PLEASE WAIT"}</small></div></div>
 }
 function MaintenanceGate({children}){
- const [state,setState]=useState(null),[verified,setVerified]=useState(false),[error,setError]=useState(false);
- useEffect(()=>{let live=true;let busy=false;const load=async()=>{if(busy)return;busy=true;try{const response=await fetch("/api/kingshot-admin-data?public=maintenance",{credentials:"same-origin",cache:"no-store",headers:{"cache-control":"no-cache"}});if(!response.ok)throw Error("Maintenance status unavailable");const data=await response.json();if(!data||typeof data.maintenanceEnabled!=="boolean")throw Error("Invalid maintenance status");if(!live)return;setState(previous=>{const next={maintenanceEnabled:data.maintenanceEnabled,message:data.message||"",endsAt:data.endsAt||null,updatedAt:data.updatedAt||null};return previous&&previous.maintenanceEnabled===next.maintenanceEnabled&&previous.message===next.message&&previous.endsAt===next.endsAt?previous:next});setVerified(true);setError(false)}catch{if(live){setError(true);/* Keep the last verified state during a transient outage. */}}finally{busy=false}};load();const timer=setInterval(load,5000);return()=>{live=false;clearInterval(timer)}},[]);
- if(!verified||!state)return <MaintenancePreflight error={error}/>;
- if(state.maintenanceEnabled)return <><MaintenanceScreen state={state}/><SupportWidget maintenanceMode/></>;
+ const {maintenance}=useServiceStatus({criticalMaintenance:true});
+ if(!maintenance.verified)return <MaintenancePreflight error={maintenance.error}/>;
+ if(maintenance.maintenanceEnabled)return <><MaintenanceScreen state={maintenance}/><SupportWidget maintenanceMode/></>;
  return children;
 }
 const announcementIcon=t=>t==="success"?CheckCircle:t==="warning"?AlertTriangle:t==="important"?OctagonAlert:Info;
