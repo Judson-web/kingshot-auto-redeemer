@@ -44,5 +44,14 @@
   "profile.personal": "Personal account",
   "profile.security": "Account security",
   "profile.shortcuts": "Shortcuts",
-  "profile.shortcutsDescription": "Quick access to your redemption tools and account resources."
+  "profile.shortcutsDescription": "Quick access to your redemption tools and account resources.",
+  "drawer.autoDescription": "Hands-off gift-code processing",
+  "drawer.manualDescription": "Submit a specific gift code",
+  "drawer.infoDescription": "Registration, checks, and results",
+  "drawer.developerDescription": "Build with the public API",
+  "drawer.accountNavigation": "ACCOUNT & NAVIGATION",
+  "drawer.navigation": "NAVIGATION",
+  "drawer.explore": "Explore",
+  "drawer.supportDescription": "Get help or continue a private ticket",
+  "drawer.passwordNotice": "Your game password is never requested."
 }
