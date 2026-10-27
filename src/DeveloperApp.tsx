@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import "./developer-page.css";
 import "./developer-redesign.css";
 import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
+import { useSiteLanguage } from "./shared/site-language.js";
 import DeveloperAccountPanel from "./DeveloperAccountPanel";
 import { Activity, BookOpen, Check, ChevronRight, Code2, Copy, ExternalLink, Gauge, KeyRound, MessageCircle, ShieldCheck, Terminal } from "lucide-react";
 import { copyToClipboard } from "./utils/clipboard-feedback";
@@ -16,11 +17,13 @@ const endpoint = ORIGIN + "/api/v4/players/43180889";
 const curlExample = 'curl "' + endpoint + '" \\\n  -H "Authorization: Bearer YOUR_API_KEY"';
 
 function CopyButton({ value, label = "Copy" }: { value: string; label?: string }) {
+  const { t } = useSiteLanguage();
   const [copied, setCopied] = useState(false);
-  return <button className="dev-copy-button" type="button" onClick={async () => { try { const feedbackLabel = label.replace(/^\s*copy\s*/i, "").trim() || "Text"; await copyToClipboard(value, feedbackLabel); setCopied(true); window.setTimeout(() => setCopied(false), 1600); } catch { setCopied(false); } }} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, border: "1px solid #343e4d", borderRadius: 9, padding: "8px 11px", background: "#202633", color: "#e8ebf5", font: "inherit", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}><Copy size={14}/>{copied ? "Copied" : label}</button>;
+  return <button className="dev-copy-button" type="button" onClick={async () => { try { const feedbackLabel = label.replace(/^\s*copy\s*/i, "").trim() || "Text"; await copyToClipboard(value, feedbackLabel); setCopied(true); window.setTimeout(() => setCopied(false), 1600); } catch { setCopied(false); } }} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, border: "1px solid #343e4d", borderRadius: 9, padding: "8px 11px", background: "#202633", color: "#e8ebf5", font: "inherit", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}><Copy size={14}/>{copied ? t("developer.copied","Copied") : t("developer.copy","Copy")}</button>;
 }
 
 export default function DeveloperApp() {
+  const { t } = useSiteLanguage();
   const [maintainerProfile, setMaintainerProfile] = useState<MaintainerDiscordProfile | null>(null);
   const [maintainerAvatarFailed, setMaintainerAvatarFailed] = useState(false);
   useEffect(() => {
@@ -95,25 +98,25 @@ console.log(result.data.playerId, result.data.name);`;
     <PublicSiteHeader current="developer" />
     <main className="dev-shell dev-page">
       <header className="dev-overview">
-        <div><div className="dev-eyebrow">Developer workspace / Overview</div><h1 id="developer-docs-title" className="dev-page-title">Developer API documentation</h1><p className="dev-muted">Manage your API credentials and integrate Kingshot player data into your tools.</p></div>
+        <div><div className="dev-eyebrow">{t("developer.workspace","Developer workspace")} / {t("developer.overview","Overview")}</div><h1 id="developer-docs-title" className="dev-page-title">{t("developer.title","Developer API documentation")}</h1><p className="dev-muted">{t("developer.intro","Manage your API credentials and integrate Kingshot player data into your tools.")}</p></div>
         <span className="dev-version-pill"><span style={{width:7,height:7,borderRadius:9,background:"#9ce9c2",boxShadow:"0 0 0 3px #9ce9c21c"}}/> API v4 <span style={{color:"#687487"}}>·</span> HTTPS</span>
       </header>
-      <div className="dev-stat-grid" aria-label="API overview">
-        <article className="dev-stat"><div className="dev-stat-label">Endpoint</div><div className="dev-stat-value"><code style={{fontSize:"inherit"}}>GET /api/v4/players/&#123;playerId&#125;</code></div><div className="dev-stat-detail">Single read-only player lookup</div></article>
-        <article className="dev-stat"><div className="dev-stat-label">Per-key quota</div><div className="dev-stat-value">60 / min</div><div className="dev-stat-detail">Up to 1,000 requests per day</div></article>
-        <article className="dev-stat"><div className="dev-stat-label">Additional protection</div><div className="dev-stat-value">120 / min / IP</div><div className="dev-stat-detail">Shared IP-level rate limit</div></article>
+      <div className="dev-stat-grid" aria-label={t("developer.apiOverview","API overview")}>
+        <article className="dev-stat"><div className="dev-stat-label">{t("developer.endpoint","Endpoint")}</div><div className="dev-stat-value"><code style={{fontSize:"inherit"}}>GET /api/v4/players/&#123;playerId&#125;</code></div><div className="dev-stat-detail">{t("developer.readOnlyLookup","Single read-only player lookup")}</div></article>
+        <article className="dev-stat"><div className="dev-stat-label">{t("developer.perKeyQuota","Per-key quota")}</div><div className="dev-stat-value">60 / min</div><div className="dev-stat-detail">{t("developer.dailyQuota","Up to 1,000 requests per day")}</div></article>
+        <article className="dev-stat"><div className="dev-stat-label">{t("developer.additionalProtection","Additional protection")}</div><div className="dev-stat-value">120 / min / IP</div><div className="dev-stat-detail">{t("developer.ipLimit","Shared IP-level rate limit")}</div></article>
       </div>
-      <div className="dev-section-nav" aria-label="Documentation sections"><a href="#quickstart"><Terminal size={13}/> Quick start</a><a href="#api-reference"><Activity size={13}/> Player lookup</a><a href="#manual-redemption"><Code2 size={13}/> Manual redeem</a><a href="#auto-redemption"><Gauge size={13}/> Auto redeem</a><a href="#limits"><Activity size={13}/> Limits &amp; errors</a><a href="#authentication"><ShieldCheck size={13}/> Security</a><a href="#maintainer-contact"><MessageCircle size={13}/> Contact</a></div><div className="dev-layout">
+      <div className="dev-section-nav" aria-label={t("developer.sections","Documentation sections")}><a href="#quickstart"><Terminal size={13}/> {t("developer.quickStart","Quick start")}</a><a href="#api-reference"><Activity size={13}/> {t("developer.playerLookup","Player lookup")}</a><a href="#manual-redemption"><Code2 size={13}/> {t("developer.manualRedeem","Manual redeem")}</a><a href="#auto-redemption"><Gauge size={13}/> {t("developer.autoRedeem","Auto redeem")}</a><a href="#limits"><Activity size={13}/> {t("developer.limitsErrors","Limits & errors")}</a><a href="#authentication"><ShieldCheck size={13}/> {t("developer.security","Security")}</a><a href="#maintainer-contact"><MessageCircle size={13}/> {t("developer.contact","Contact")}</a></div><div className="dev-layout">
         <aside className="dev-sidebar" aria-label="Account and API keys"><DeveloperAccountPanel/></aside>
         <div className="dev-content"><div className="dev-doc-grid">
           <section className="dev-card dev-feature-card">
             <div className="dev-section-kicker" style={{display:"flex",alignItems:"center",gap:7}}><ShieldCheck size={14}/> Kingshot REST API</div>
-            <h2 style={{fontSize:"clamp(21px,3vw,28px)",letterSpacing:"-.035em",lineHeight:1.25,margin:"10px 0 8px"}}>Look up players. Redeem codes. Enroll for auto-redeem.</h2>
+            <h2 style={{fontSize:"clamp(21px,3vw,28px)",letterSpacing:"-.035em",lineHeight:1.25,margin:"10px 0 8px"}}>{t("developer.featureTitle","Look up players. Redeem codes. Enroll for auto-redeem.")}</h2>
             <p className="dev-muted" style={{maxWidth:620}}>Use a developer key for versioned player lookup and manual redemption. V4 is the current developer API with a consistent success/data/error/meta response envelope. V3 remains available for existing integrations; V1 is deprecated. The automatic-redemption registration flow is documented separately. Keep keys and signing secrets out of browser code, source control, and URLs.</p>
             <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:15}}>{["Player lookup","Manual redemption","Auto-redeem enrollment","JSON responses","Bearer authentication"].map(tag=><span key={tag} style={{border:"1px solid #343e4d",borderRadius:7,padding:"5px 8px",fontSize:10,color:"#cbd3e2"}}>{tag}</span>)}</div>
           </section>
           <section className="dev-card" id="quickstart">
-            <div className="dev-card-head"><Terminal size={18} color="#b8bdff"/><h2 className="dev-card-title">Quick start</h2></div>
+            <div className="dev-card-head"><Terminal size={18} color="#b8bdff"/><h2 className="dev-card-title">{t("developer.quickStart","Quick start")}</h2></div>
             <p className="dev-muted" style={{marginBottom:15}}>Send your key in the Authorization header over HTTPS.</p>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap",marginBottom:10}}>
               <div style={{display:"flex",gap:6}}><button type="button" className="dev-tab" aria-pressed={tab==="curl"} onClick={()=>setTab("curl")}>cURL</button><button type="button" className="dev-tab" aria-pressed={tab==="javascript"} onClick={()=>setTab("javascript")}>JavaScript</button></div><CopyButton value={code} label="Copy example"/>
@@ -122,27 +125,27 @@ console.log(result.data.playerId, result.data.name);`;
             <p className="dev-muted" style={{fontSize:11,marginTop:10}}>Replace <code>YOUR_API_KEY</code> with your secret and the example Player ID with the one you want to look up.</p>
           </section>
           <section className="dev-card" id="api-reference">
-            <div className="dev-card-head"><Activity size={18} color="#b8bdff"/><h2 className="dev-card-title">API reference</h2></div>
+            <div className="dev-card-head"><Activity size={18} color="#b8bdff"/><h2 className="dev-card-title">{t("developer.apiReference","API reference")}</h2></div>
             <p className="dev-muted" style={{marginBottom:13}}>Fetch a player profile using a numeric Kingshot Player ID.</p>
             <div className="dev-endpoint"><span style={{background:"#164b39",color:"#9ce9c2",borderRadius:6,padding:"5px 8px",fontSize:10,fontWeight:900}}>GET</span><code style={{fontSize:12,overflowWrap:"anywhere",flex:"1 1 170px"}}>/api/v4/players/&#123;playerId&#125;</code><CopyButton value="/api/v4/players/{playerId}" label="Copy path"/></div>
             <p className="dev-muted" style={{marginTop:11}}>Required path parameter: <code>playerId</code> — 5 to 20 digits. A valid, active API key is required.</p>
-            <h3 style={{fontSize:13,margin:"19px 0 9px"}}>Example response</h3>
+            <h3 style={{fontSize:13,margin:"19px 0 9px"}}>{t("developer.exampleResponse","Example response")}</h3>
             <pre className="dev-code" tabIndex={0} aria-label="Example player API JSON response, horizontally scrollable"><code>{JSON.stringify({success:true,data:{playerId:"43180889",name:"Example Player",kingdomId:"1125",power:123456789,townCenterLevel:30,avatarUrl:null,allianceName:"Example Alliance",allianceTag:"EXA"},error:null,meta:{apiVersion:"4",requestId:"server-generated-id",timestamp:"2026-10-17T12:00:00.000Z",source:"mightpulse",stale:false,providerFresh:true,providerAgeSeconds:2,rateLimit:{perMinuteLimit:60,perMinuteRemaining:59,perDayLimit:1000,perDayRemaining:999,resetAt:"2026-10-17T12:01:00.000Z"}},dev:{name:DEVELOPER_NAME,discord:"@" + DEVELOPER_DISCORD_USERNAME,url:DEVELOPER_DISCORD_URL}},null,2)}</code></pre>
             <p className="dev-muted" style={{fontSize:11,marginTop:9}}>Illustrative values only. Some fields may be null when the upstream provider has no value. Public JSON responses also include a top-level <code>dev</code> object with maintainer contact details.</p>
           </section>
           <section className="dev-card" id="manual-redemption">
-            <div className="dev-card-head"><KeyRound size={18} color="#b8bdff"/><h2 className="dev-card-title">Manual redemption</h2></div>
+            <div className="dev-card-head"><KeyRound size={18} color="#b8bdff"/><h2 className="dev-card-title">{t("developer.manualRedemption","Manual redemption")}</h2></div>
             <div className="dev-endpoint"><span style={{background:"#4a3216",color:"#ffd28a",borderRadius:6,padding:"5px 8px",fontSize:10,fontWeight:900}}>POST</span><code style={{fontSize:12,overflowWrap:"anywhere",flex:"1 1 170px"}}>/api/v4/redemptions</code><CopyButton value="/api/v4/redemptions" label="Copy path"/></div>
             <p className="dev-muted" style={{marginTop:11}}>Requires a developer Bearer key. Submit one Player ID, gift code, and kingdom ID per request. Include an Idempotency-Key to replay the same outcome safely after an ambiguous timeout.</p>
             <pre className="dev-code" tabIndex={0} aria-label="Manual redemption cURL example, horizontally scrollable"><code>{`curl -X POST "${ORIGIN}/api/v4/redemptions" \\\n  -H "Authorization: Bearer $KINGSHOT_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -H "Idempotency-Key: redeem-43180889-example-001" \\\n  -d '{"playerId":"43180889","code":"EXAMPLECODE","kid":"1125"}'`}</code></pre>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8,marginTop:12}}>{[["playerId","5–20 digits"],["code","1–64 safe characters"],["kid","1–10 digit kingdom ID"]].map(([name,desc])=><div key={name} style={{border:"1px solid #2b3442",background:"#0d1118",borderRadius:9,padding:10}}><code style={{fontSize:12}}>{name}</code><p className="dev-muted" style={{fontSize:11,marginTop:4}}>{desc}</p></div>)}</div>
             <p className="dev-muted" style={{marginTop:12}}>Check <code>data.ok</code>, <code>data.status</code>, <code>data.message</code>, and <code>data.errorCategory</code>. HTTP success alone does not guarantee rewards were granted.</p>
-            <h3 style={{fontSize:13,margin:"19px 0 9px"}}>Example V4 response</h3>
+            <h3 style={{fontSize:13,margin:"19px 0 9px"}}>{t("developer.exampleV4","Example V4 response")}</h3>
             <pre className="dev-code" tabIndex={0} aria-label="Example V4 redemption response, horizontally scrollable"><code>{JSON.stringify({success:true,data:{ok:false,status:"ERROR",statusLabel:"Already redeemed",message:"This code has already been redeemed.",errorCategory:"ALREADY_REDEEMED",errCode:null},error:null,meta:{apiVersion:"4",requestId:"server-generated-id",timestamp:"2026-10-26T10:00:00.000Z",rateLimit:{perMinuteLimit:60,perMinuteRemaining:59,perDayLimit:1000,perDayRemaining:999}},dev:{name:DEVELOPER_NAME,discord:"@" + DEVELOPER_DISCORD_USERNAME,url:DEVELOPER_DISCORD_URL}},null,2)}</code></pre>
             <p className="dev-muted" style={{fontSize:11,marginTop:9}}>The API request can succeed even when the game rejects the redemption. Check <code>data.ok</code> and <code>data.status</code>; use <code>meta.requestId</code> when reporting issues.</p>
           </section>
           <section className="dev-card" id="auto-redemption">
-            <div className="dev-card-head"><Gauge size={18} color="#b8bdff"/><h2 className="dev-card-title">Automatic redemption enrollment</h2></div>
+            <div className="dev-card-head"><Gauge size={18} color="#b8bdff"/><h2 className="dev-card-title">{t("developer.autoEnrollment","Automatic redemption enrollment")}</h2></div>
             <div className="dev-endpoint"><span style={{background:"#164b39",color:"#9ce9c2",borderRadius:6,padding:"5px 8px",fontSize:10,fontWeight:900}}>POST</span><code style={{fontSize:12,overflowWrap:"anywhere",flex:"1 1 170px"}}>/api/kingshot-register</code><CopyButton value="/api/kingshot-register" label="Copy path"/></div>
             <p className="dev-muted" style={{marginTop:11}}>Enrolls a player in the existing scheduled auto-redeem workflow. One player per request. This public website route is rate limited and does not use a developer API key; the worker itself remains private.</p>
             <pre className="dev-code" tabIndex={0} aria-label="Automatic redemption registration cURL example, horizontally scrollable"><code>{`curl -X POST "${ORIGIN}/api/kingshot-register" \\\n  -H "Content-Type: application/json" \\\n  -d '{"playerId":"43180889","kingdomId":"1125","playerName":"Example Player"}'`}</code></pre>
@@ -157,7 +160,7 @@ console.log(result.data.playerId, result.data.name);`;
           {accordion("lifecycle","API key lifecycle and availability",<><p style={paragraph}>Sign in with Discord to create and manage your own API keys. Keys are displayed in full only once; only a hash is stored. You can revoke a key from the account panel, and revoked keys stop authorizing requests.</p><p style={paragraph}>Developer accounts do not grant administrative access. Keep keys private and revoke any secret that may have been exposed.</p></>)}
           <section className="dev-card dev-maintainer-card" id="maintainer-contact" aria-labelledby="maintainer-contact-title">
             <div className="dev-maintainer-heading">
-              <div className="dev-card-head"><MessageCircle size={18} color="#d4bd88"/><h2 className="dev-card-title" id="maintainer-contact-title">Built and maintained by {DEVELOPER_NAME}</h2></div>
+              <div className="dev-card-head"><MessageCircle size={18} color="#d4bd88"/><h2 className="dev-card-title" id="maintainer-contact-title">{t("developer.maintainedBy","Built and maintained by")} {DEVELOPER_NAME}</h2></div>
               <span className="dev-maintainer-badge"><ShieldCheck size={12}/> Project maintainer</span>
             </div>
             <p className="dev-muted dev-maintainer-intro">Independent community project for Kingshot players. For API integrations, tooling questions, or project feedback, contact the maintainer on Discord.</p>
@@ -180,7 +183,7 @@ console.log(result.data.playerId, result.data.name);`;
           </div>
         </div>
       </div>
-      <footer className="dev-footer"><span>API v4 · Supported developer API · V1 routes deprecated · Maintained by {DEVELOPER_NAME}</span><a href="#maintainer-contact">Maintainer & contact</a><a href={DEVELOPER_DISCORD_URL} target="_blank" rel="noopener noreferrer">Developer contact (Discord)</a><a href="/developer-v4.md">V4 API reference</a><a href="/developer.md">Plain-text docs for crawlers and integrations</a><a href="/openapi.json">OpenAPI specification</a><a href="/info" style={{display:"inline-flex",alignItems:"center",gap:5}}>Service overview <ExternalLink size={12}/></a><a href="/privacy?service=kingshot-auto" style={{color:"inherit"}}>Privacy</a></footer>
+      <footer className="dev-footer"><span>API v4 · Supported developer API · V1 routes deprecated · Maintained by {DEVELOPER_NAME}</span><a href="#maintainer-contact">{t("developer.maintainerContact","Maintainer & contact")}</a><a href={DEVELOPER_DISCORD_URL} target="_blank" rel="noopener noreferrer">{t("developer.discordContact","Developer contact (Discord)")}</a><a href="/developer-v4.md">V4 API reference</a><a href="/developer.md">Plain-text docs for crawlers and integrations</a><a href="/openapi.json">OpenAPI specification</a><a href="/info" style={{display:"inline-flex",alignItems:"center",gap:5}}>Service overview <ExternalLink size={12}/></a><a href="/privacy?service=kingshot-auto" style={{color:"inherit"}}>Privacy</a></footer>
     </main>
   </div>;
 }
