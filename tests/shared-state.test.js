@@ -108,7 +108,7 @@ test("profile dashboard access stays restricted while the signed-in header chip 
     "a Discord session without developer/admin access must hit the restricted profile gate");
   assert.match(profile, /Open Developer API/,
     "the restricted profile gate must direct users to the API-key panel");
-  assert.match(drawer, /id:"profile",href:"\/profile",label:t\("nav\.profile"\),description:t\("drawer\.profileDescription","Developer and admin account"\)/,
+  assert.match(drawer, /id:"profile",href:"\\/profile",label:t\\("nav\\.profile"\\),description:t\\("drawer\\.profileDescription","Developer and admin account"\\),Icon:UserRound/,
     "profile stays available in the navigation drawer");
   assert.match(legal, /at least one active developer API key/);
   assert.match(legal, /A successful Discord sign-in by itself verifies an identity but does not grant developer permissions/);
