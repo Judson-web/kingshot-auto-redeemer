@@ -53,7 +53,7 @@ function KingshotApp(){
   if(manualSubmissionRef.current)return;
   const id=playerId.trim(),gift=code.trim();
   if(!/^\d{5,20}$/.test(id)){setResult(null);setErrorTitle("Check Player ID");setError("Use the numeric Player ID shown in Kingshot under Profile → Info. It must contain 5–20 digits; your kingdom number is different.");return}
-  if(!/^[A-Za-z0-9_-]{6,32}$/.test(gift)){setResult(null);setErrorTitle("Check gift code");setError("Gift codes must be {t("manual.codeHelp","6–32 letters, numbers, underscores, or hyphens.")}");return}
+  if(!/^[A-Za-z0-9_-]{6,32}$/.test(gift)){setResult(null);setErrorTitle("Check gift code");setError(t("manual.codeHelp","Gift codes must be 6–32 letters, numbers, underscores, or hyphens."));return}
   manualSubmissionRef.current=true;setBusy(true);setError("");setErrorTitle("Couldn’t redeem that code.");setResult(null);
   try{
    let p=player;
