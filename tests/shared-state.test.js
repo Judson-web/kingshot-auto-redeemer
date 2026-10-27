@@ -174,6 +174,8 @@ test("English and Korean dictionaries are separate, complete, and share stable k
   assert.ok(Object.keys(en).length >= 100, "the locale files should cover common public product strings");
   assert.equal(ko["nav.auto"], "자동 교환");
   assert.equal(ko["manual.playerId"], "플레이어 ID");
+  assert.equal(en["developer.title"], "Developer API documentation");
+  assert.equal(ko["developer.title"], "개발자 API 문서");
   const helper = await readFile(new URL("../src/shared/i18n.js", import.meta.url), "utf8");
   assert.match(helper, /from "\.\.\/locales\/en\.json"/);
   assert.match(helper, /from "\.\.\/locales\/ko\.json"/);
