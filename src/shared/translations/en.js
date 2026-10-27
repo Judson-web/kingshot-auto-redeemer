@@ -648,4 +648,5 @@ export default {
   "developer.codeAutoRegistration": "Automatic redemption registration cURL example, horizontally scrollable",
   "pwa.updateToast": "New version available · Refresh",
   "common.loadingWorkspace": "Loading workspace…",
+  "brand.home":"Kingshot Redeemer home",
 };
