@@ -221,7 +221,6 @@ export default {
   "developer.maintainedBy":"Built and maintained by",
   "developer.maintainerContact":"Maintainer & contact",
   "developer.discordContact":"Developer contact (Discord)",
-  "giftCodes.actionFailed":"The action could not be completed."
   "legal.privacySection1": "Information used to provide the service",
   "legal.privacyBody1": "Depending on the features you use, we process the Kingshot Player ID and kingdom ID you submit; profile details returned by player-data providers; display information you choose to supply; gift codes submitted for redemption; registration status; redemption results and recovery records; and messages or photographs you send through support. When you use an account or developer features, we also process provider identity and account/session data needed to authenticate you, display your profile, and manage API keys. Do not send game passwords, payment information, authentication codes, or other secrets through the site.",
   "legal.privacySection2": "Website telemetry and connection information",
