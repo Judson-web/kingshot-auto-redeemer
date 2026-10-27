@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Bell, BellRing, CheckCircle2, LoaderCircle, X } from "lucide-react";
+import {useSiteLanguage} from "../shared/site-language.js";
 
 type PushState = "checking" | "unsupported" | "denied" | "off" | "on" | "busy" | "error";
 
@@ -36,6 +37,7 @@ const buttonStyle: React.CSSProperties = {
 };
 
 export default function PushNotifications() {
+  const {t}=useSiteLanguage();
   const [state, setState] = useState<PushState>("checking");
   const [hidden, setHidden] = useState(false);
   const [stateSignature, setStateSignature] = useState("unknown");
@@ -85,7 +87,7 @@ export default function PushNotifications() {
     setMessage("");
     try {
       if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-        throw Error("This browser does not support web push notifications.");
+        throw Error(t("pushNotifications.unsupported","This browser does not support web push notifications."));
       }
       const reg = await navigator.serviceWorker.ready;
       const existing = await reg.pushManager.getSubscription();
@@ -96,10 +98,10 @@ export default function PushNotifications() {
           body: JSON.stringify({ action: "PUSH_UNSUBSCRIBE", subscription: existing.toJSON() }),
           credentials: "same-origin",
         });
-        if (!response.ok) throw Error((await response.json().catch(() => ({}))).error || "We couldn't turn notifications off. Please try again.");
+        if (!response.ok) throw Error((await response.json().catch(() => ({}))).error || t("pushNotifications.turnOffFailed","We couldn't turn notifications off. Please try again."));
         await existing.unsubscribe();
         setState("off");
-        setMessage("Notifications are off on this device.");
+        setMessage(t("pushNotifications.offMessage","Notifications are off on this device."));
         return;
       }
       // A subscription can outlive a browser permission reset. Remove that stale
@@ -118,8 +120,8 @@ export default function PushNotifications() {
       if (permission !== "granted") {
         setState(permission === "denied" ? "denied" : "off");
         throw Error(permission === "denied"
-          ? "Notifications are blocked in your browser. Allow them in site settings, then try again."
-          : "Notification permission wasn't granted. You can try again whenever you're ready.");
+          ? t("pushNotifications.permissionBlocked","Notifications are blocked in your browser. Allow them in site settings, then try again.")
+          : t("pushNotifications.permissionNotGranted","Notification permission wasn't granted. You can try again whenever you're ready."));
       }
 
       const keyResponse = await fetch("/api/custom-message", {
@@ -130,7 +132,7 @@ export default function PushNotifications() {
         cache: "no-store",
       });
       const keyData = await keyResponse.json().catch(() => ({}));
-      if (!keyResponse.ok || !keyData.publicKey) throw Error(keyData.error || "Push notifications aren't configured yet.");
+      if (!keyResponse.ok || !keyData.publicKey) throw Error(keyData.error || t("pushNotifications.notConfigured","Push notifications aren't configured yet."));
 
       const subscription = await reg.pushManager.subscribe({
         userVisibleOnly: true,
@@ -144,13 +146,13 @@ export default function PushNotifications() {
       });
       if (!saveResponse.ok) {
         await subscription.unsubscribe().catch(() => {});
-        throw Error((await saveResponse.json().catch(() => ({}))).error || "We couldn't save this device. Please try again.");
+        throw Error((await saveResponse.json().catch(() => ({}))).error || t("pushNotifications.saveFailed","We couldn't save this device. Please try again."));
       }
       setState("on");
-      setMessage("Notifications are enabled on this device.");
+      setMessage(t("pushNotifications.enabledMessage","Notifications are enabled on this device."));
     } catch (error) {
       setState(current => current === "denied" ? "denied" : "error");
-      setMessage(error instanceof Error ? error.message : "We couldn't update notification settings. Please try again.");
+      setMessage(error instanceof Error ? error.message : t("pushNotifications.updateFailed","We couldn't update notification settings. Please try again."));
     }
   };
 
@@ -159,7 +161,7 @@ export default function PushNotifications() {
   const busy = state === "busy";
 
   return (
-    <aside style={panelStyle} aria-label="Notification opt-in">
+    <aside style={panelStyle} aria-label={t("pushNotifications.panelLabel","Notification opt-in")}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "16px 16px 12px" }}>
         <div style={{
           display: "grid", placeItems: "center", flex: "0 0 42px", width: 42, height: 42,
@@ -169,18 +171,18 @@ export default function PushNotifications() {
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <strong style={{ display: "block", fontSize: 15, lineHeight: 1.35 }}>
-            {enabled ? "Notifications are on" : state === "denied" ? "Notifications are blocked" : "Never miss a new gift code"}
+            {enabled ? t("pushNotifications.titleOn","Notifications are on") : state === "denied" ? t("pushNotifications.titleBlocked","Notifications are blocked") : t("pushNotifications.titleOff","Never miss a new gift code")}
           </strong>
           <p style={{ margin: "5px 0 0", color: "var(--muted, #a8afbf)", fontSize: 12, lineHeight: 1.5 }}>
             {enabled
-              ? "Get alerts for new gift codes and important site updates."
-              : state === "denied" ? "Allow notifications in your browser’s site settings, then retry here." : "Get alerts for new Kingshot gift codes and important site updates."}
+              ? t("pushNotifications.descriptionOn","Get alerts for new gift codes and important site updates.")
+              : state === "denied" ? t("pushNotifications.descriptionBlocked","Allow notifications in your browser’s site settings, then retry here.") : t("pushNotifications.descriptionOff","Get alerts for new Kingshot gift codes and important site updates.")}
           </p>
         </div>
         <button
           type="button"
           onClick={dismiss}
-          aria-label="Not now; dismiss notification prompt"
+          aria-label={t("pushNotifications.dismiss","Not now; dismiss notification prompt")}
           style={{ display: "grid", placeItems: "center", flex: "0 0 30px", width: 30, height: 30, padding: 0, border: 0, borderRadius: 8, background: "transparent", color: "var(--muted, #a8afbf)", cursor: "pointer" }}
         >
           <X size={17} />
@@ -216,7 +218,7 @@ export default function PushNotifications() {
           }}
         >
           {busy ? <LoaderCircle size={16} className="spin" /> : enabled ? <CheckCircle2 size={16} /> : <Bell size={16} />}
-          {busy ? "Please wait…" : enabled ? "Turn off" : state === "denied" ? "Retry after allowing" : "Enable notifications"}
+          {busy ? t("pushNotifications.pleaseWait","Please wait…") : enabled ? t("pushNotifications.turnOff","Turn off") : state === "denied" ? t("pushNotifications.retry","Retry after allowing") : t("pushNotifications.enable","Enable notifications")}
         </button>
       </div>
 
