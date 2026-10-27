@@ -144,7 +144,7 @@ export default function SupportWidget({maintenanceMode=false}: {maintenanceMode?
   if(!conversation)return;
   setPushBusy(true);setError("");setNotice("");
   try{await syncSupportPush(conversation,true);setPushEnabled(true);setNotice(t("support.notificationsEnabledNotice","Notifications enabled for replies in this conversation."));}
-  catch(e){setError(e instanceof Error?e.message:"Could not enable reply notifications.")}
+  catch(e){setError(e instanceof Error?e.message:t("support.enableNotificationsFailed","Could not enable reply notifications."))}
   finally{setPushBusy(false)}
  }
  useEffect(()=>{
@@ -174,7 +174,7 @@ export default function SupportWidget({maintenanceMode=false}: {maintenanceMode?
   void poll();const timer=window.setInterval(poll,open?12000:30000);
   return()=>{live=false;window.clearInterval(timer)};
  },[conversation?.conversationId,conversation?.token,open]);
- async function refresh(){if(!conversation)return;setRefreshing(true);try{const d=await request(API+"?conversationId="+encodeURIComponent(conversation.conversationId)+"&token="+encodeURIComponent(conversation.token));const next=(Array.isArray(d.messages)?d.messages:[]) as Msg[];setMessages(next);if(open){const latest=maxAdminId(next);saveId(SEEN_PREFIX+conversation.conversationId,latest);saveId(NOTIFIED_PREFIX+conversation.conversationId,latest);setUnread(0)}setError("");setNotice("")}catch(e){setError(e instanceof Error?e.message:"Could not load your conversation.")}finally{setRefreshing(false)}}
+ async function refresh(){if(!conversation)return;setRefreshing(true);try{const d=await request(API+"?conversationId="+encodeURIComponent(conversation.conversationId)+"&token="+encodeURIComponent(conversation.token));const next=(Array.isArray(d.messages)?d.messages:[]) as Msg[];setMessages(next);if(open){const latest=maxAdminId(next);saveId(SEEN_PREFIX+conversation.conversationId,latest);saveId(NOTIFIED_PREFIX+conversation.conversationId,latest);setUnread(0)}setError("");setNotice("")}catch(e){setError(e instanceof Error?e.message:t("support.loadConversationFailed","Could not load your conversation."))}finally{setRefreshing(false)}}
  async function submit(e:React.FormEvent){e.preventDefault();if(!message.trim()&&!attachment){setError(t("support.writeMessageOrAttach","Write a message or attach a photo."));return}setBusy(true);setError("");setNotice("");try{
   let image:string|undefined;if(attachment)image=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||""));reader.onerror=()=>reject(Error(t("support.readImageFailed","Could not read image.")));reader.readAsDataURL(attachment)});
   if(conversation){
