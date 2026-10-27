@@ -1,14 +1,16 @@
 import React from "react";
 import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
+import { useSiteLanguage } from "./shared/site-language.js";
 import "./legal-redesign.css";
 const BRAND_ICON="/favicon.svg";
 const LAST_UPDATED="October 27, 2026";
 const services={"kingshot-manual":{label:"Manual Redeemer",summary:"Submit a gift code for an individual player."},"kingshot-auto":{label:"Auto Redeem",summary:"Register a player for scheduled gift-code processing."}};
 export default function LegalApp({type}){
+ const {t}=useSiteLanguage();
  const key=new URLSearchParams(location.search).get("service"),service=services[key]||services["kingshot-manual"],privacy=type==="privacy",serviceKey=key||"kingshot-manual";
  return <div className="app ks-app legal-app">
   <PublicSiteHeader current={privacy?"privacy":"terms"} />
-  <main><section className="legal-hero"><div className="eyebrow"><span/>{privacy?"PRIVACY NOTICE":"TERMS OF USE"}</div><h1>{privacy?"Your data, explained.":"Use the service responsibly."}</h1><p className="hero-copy">{service.summary}</p><div className="legal-meta"><span>Updated {LAST_UPDATED}</span><span>Independent community project</span></div><div className="legal-tabs"><a className={!privacy?"active":""} href={"/terms?service="+serviceKey}>Terms</a><a className={privacy?"active":""} href={"/privacy?service="+serviceKey}>Privacy</a></div></section>
+  <main><section className="legal-hero"><div className="eyebrow"><span/>{privacy?t("legal.privacy").toUpperCase():t("legal.terms").toUpperCase()}</div><h1>{privacy?t("legal.heroPrivacy"):t("legal.heroTerms")}</h1><p className="hero-copy">{service.summary}</p><div className="legal-meta"><span>{t("legal.updated")} {LAST_UPDATED}</span><span>{t("legal.independent")}</span></div><div className="legal-tabs"><a className={!privacy?"active":""} href={"/terms?service="+serviceKey}>{t("legal.terms")}</a><a className={privacy?"active":""} href={"/privacy?service="+serviceKey}>{t("legal.privacy")}</a></div></section>
    <section className="legal-body">
    {privacy?<>
     <h2>Information used to provide the service</h2>
@@ -18,7 +20,7 @@ export default function LegalApp({type}){
     <h2>Developer API and abuse-prevention records</h2>
     <p>Developer API keys are shown in full only when created. The application stores a SHA-256 hash of each key, a short key prefix, its label, and lifecycle timestamps such as creation, last use and revocation. To enforce key-issuance and request limits, it also stores SHA-256 hashes derived from client IP addresses. These are pseudonymous identifiers, not guaranteed-anonymous data. The current database schema records a lifetime issuance cap of two keys per IP and has no automatic expiry configured for those issuance hashes or per-IP rate-limit rows. Revoking a key disables it but does not erase its audit, issuance or quota records.</p>
     <h2>Profile access and account roles</h2>
-    <p>The profile dashboard is reserved for accounts whose developer or administrator access has been verified by the service. Developer access requires at least one active developer API key; administrator access is granted separately to the configured administrator account. A successful Discord sign-in by itself verifies an identity but does not grant developer permissions or unlock the profile dashboard. The public header shows a profile shortcut only when a developer or administrator role has been verified; the navigation drawer may still list the route so users can reach the access explanation and the Developer API entry point. Role and key status are checked by server-side endpoints, and hiding a link is not used as an access-control mechanism.</p>
+    <p>The profile dashboard is reserved for accounts whose developer or administrator access has been verified by the service. Developer access requires at least one active developer API key; administrator access is granted separately to the configured administrator account. A successful Discord sign-in by itself verifies an identity but does not grant developer permissions or unlock the profile dashboard. The public header shows a profile shortcut for any signed-in account; the profile dashboard itself remains restricted to verified developers and administrators. The navigation drawer may also list the route so users can reach the access explanation and the Developer API entry point. Role and key status are checked by server-side endpoints, and hiding a link is not used as an access-control mechanism.</p>
     <h2>Support messages, attachments and registration removal</h2>
     <p>Support conversations and messages are stored so you and the support team can read the conversation and reply. Some support flows allow a photograph attachment; those files are stored in private Supabase Storage rather than a public image bucket. A Player ID may be optional in general support messages but can be needed to process an Auto Redeem removal request. Use the registration-removal option within support chat. It is a request workflow, not an instant purge of every related record or backup.</p>
     <h2>Notifications and browser storage</h2>
