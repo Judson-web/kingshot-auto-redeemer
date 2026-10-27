@@ -764,4 +764,6 @@ export default {
   "developer.copyPath": "Copy path",
   "developer.exampleLabel": "Example",
   "developer.pathLabel": "Path"
+,
+  "auto.validationLimitEnd": " at a time."
 };
