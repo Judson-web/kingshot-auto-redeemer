@@ -196,7 +196,7 @@ export default function PushNotifications() {
             onClick={dismiss}
             style={{ ...buttonStyle, flex: "1 1 0", border: "1px solid var(--border, #303642)", background: "transparent", color: "var(--text, #f4f6fb)" }}
           >
-            Not now
+            {t("pushNotifications.notNow","Not now")}
           </button>
         )}
         <button
