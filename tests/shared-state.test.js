@@ -194,15 +194,15 @@ test("auto, manual, profile, and legal pages use the shared English/Korean dicti
   const korean = await readFile(new URL("shared/translations/ko.js", root), "utf8");
 
   for (const source of [english, korean]) {
-    const keys = [...source.matchAll(/"([^"]+)"\\s*:/g)].map(match => match[1]);
+    const keys = [...source.matchAll(/"([^"]+)"\s*:/g)].map(match => match[1]);
     assert.equal(new Set(keys).size, keys.length, "translation dictionary keys must be unique");
   }
-  assert.match(main, /function KingshotApp\\(\\)[\\s\\S]*?useSiteLanguage/);
-  assert.match(main, /t\\("manual\\.title"/);
-  assert.match(main, /t\\("auto\\.title"/);
-  assert.match(main, /t\\("outcome\\.summaryKicker"/);
-  assert.match(profile, /tr\\("Live service status","실시간 서비스 상태"\\)/);
-  assert.match(legal, /t\\("legal\\.updated"/);
-  assert.match(english, /"manual\\.title":"Redeem a gift code"/);
-  assert.match(korean, /"manual\\.title":"기프트 코드 교환"/);
+  assert.match(main, /function KingshotApp\(\)[\s\S]*?useSiteLanguage/);
+  assert.match(main, /t\("manual\.title"/);
+  assert.match(main, /t\("auto\.title"/);
+  assert.match(main, /t\("outcome\.summaryKicker"/);
+  assert.match(profile, /tr\("Live service status","실시간 서비스 상태"\)/);
+  assert.match(legal, /t\("legal\.updated"/);
+  assert.match(english, /"manual\.title":"Redeem a gift code"/);
+  assert.match(korean, /"manual\.title":"기프트 코드 교환"/);
 });
