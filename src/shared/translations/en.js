@@ -483,4 +483,7 @@ export default {
   "announcement.title": "Announcement title",
   "announcement.message": "Your announcement message will appear here.",
   "announcement.learnMore": "Learn more",
+  "player.power": "Power",
+  "player.kingdom": "Kingdom",
+  "outcome.playerId": "Player ID",
 };
