@@ -44,22 +44,22 @@ function PlayerMetaLine({player,kingdom}) {
  return <span className="ks-player-meta-line"><span>Power {power}</span><span className="ks-player-meta-separator" aria-hidden="true">·</span><span>Kingdom {kingdom ?? player?.kid ?? player?.kingdom_id ?? "—"}</span><span className="ks-player-meta-separator" aria-hidden="true">·</span><span className="ks-player-meta-tc">TC <TownCenterLevel value={townCenter}/></span></span>;
 }
 function KingshotApp(){ const {t}=useTranslation();
- const [playerId,setPlayerId]=useState(""),[code,setCode]=useState(""),[player,setPlayer]=useState(null),[busy,setBusy]=useState(false),[result,setResult]=useState(null),[error,setError]=useState(""),[errorTitle,setErrorTitle]=useState("Couldn’t redeem that code.");
+ const [playerId,setPlayerId]=useState(""),[code,setCode]=useState(""),[player,setPlayer]=useState(null),[busy,setBusy]=useState(false),[result,setResult]=useState(null),[error,setError]=useState(""),[errorTitle,setErrorTitle]=useState(t("manual.redeemError"));
  const manualSubmissionRef=useRef(false);
  useEffect(()=>{const params=new URLSearchParams(window.location.search);const requestedCode=params.get("code");if(requestedCode&&/^[A-Za-z0-9_-]{6,32}$/.test(requestedCode))setCode(requestedCode)},[]);
  const redeem=async e=>{
   e.preventDefault();
   if(manualSubmissionRef.current)return;
   const id=playerId.trim(),gift=code.trim();
-  if(!/^\d{5,20}$/.test(id)){setResult(null);setErrorTitle("Check Player ID");setError("Use the numeric Player ID shown in Kingshot under Profile → Info. It must contain 5–20 digits; your kingdom number is different.");return}
-  if(!/^[A-Za-z0-9_-]{6,32}$/.test(gift)){setResult(null);setErrorTitle("Check gift code");setError("Gift codes must be 6–32 letters, numbers, underscores, or hyphens.");return}
-  manualSubmissionRef.current=true;setBusy(true);setError("");setErrorTitle("Couldn’t redeem that code.");setResult(null);
+  if(!/^\d{5,20}$/.test(id)){setResult(null);setErrorTitle(t("manual.checkPlayerId"));setError(t("manual.playerIdFormat"));return}
+  if(!/^[A-Za-z0-9_-]{6,32}$/.test(gift)){setResult(null);setErrorTitle(t("manual.checkCode"));setError(t("manual.codeFormat"));return}
+  manualSubmissionRef.current=true;setBusy(true);setError("");setErrorTitle(t("manual.redeemError"));setResult(null);
   try{
    let p=player;
    if(!p||String(p.governor_id||p.fid||p.id)!==id){
     const pr=await fetch("/api/kingshot-player?id="+encodeURIComponent(id),{signal:AbortSignal.timeout(15000)});
     const pd=await pr.json().catch(()=>({}));
-    if(!pr.ok)throw Object.assign(new Error(pd.error||"Could not find this player."),{code:pd.code,status:pr.status});
+    if(!pr.ok)throw Object.assign(new Error(pd.error||t("manual.playerNotFound")),{code:pd.code,status:pr.status});
     p=pd.player||pd;setPlayer(p);
    }
    const r=await fetch("/api/kingshot-redeem",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({playerId:id,code:gift,kid:String(p.kid??"")}),signal:AbortSignal.timeout(40000)});
@@ -73,7 +73,7 @@ function KingshotApp(){ const {t}=useTranslation();
    const issue=playerIdFeedback(e?.code,e?.message);
    const timedOut=e?.name==="TimeoutError"||e?.name==="AbortError";
    if(issue){setErrorTitle(issue.title);setError(issue.message)}
-   else{setErrorTitle(timedOut?"Request timed out":"Couldn’t redeem that code.");setError(timedOut?"The request timed out. It was not retried automatically because Kingshot may already have received it. Check in-game mail before submitting again.":e.message||"Redemption failed.")}
+   else{setErrorTitle(timedOut?"Request timed out":t("manual.redeemError"));setError(timedOut?"The request timed out. It was not retried automatically because Kingshot may already have received it. Check in-game mail before submitting again.":e.message||"Redemption failed.")}
   }finally{manualSubmissionRef.current=false;setBusy(false)}
  };
 
@@ -87,8 +87,8 @@ function KingshotApp(){ const {t}=useTranslation();
  <form className="ks-form manual-redeem-form" noValidate onSubmit={redeem}>
   <div className="manual-form-head"><div><span className="manual-form-kicker">01 · PLAYER DETAILS</span><h2>Your details</h2><p>We’ll look up your player before sending the code.</p></div><span className="manual-secure"><ShieldCheck size={14}/> Server-side</span></div>
   <div className="manual-fields">
-   <div className="ks-field manual-field-card"><label htmlFor="manual-player-id"><span>{t("manual.playerId")}</span><i>01</i></label><div className={error&&errorTitle==="Check Player ID"?"is-invalid":""}><Search size={16}/><input id="manual-player-id" inputMode="numeric" required minLength={5} maxLength={20} pattern="[0-9]{5,20}" aria-describedby={error&&errorTitle==="Check Player ID"?"manual-player-help manual-error":"manual-player-help"} aria-invalid={Boolean(error&&errorTitle==="Check Player ID")} enterKeyHint="next" autoComplete="off" value={playerId} onChange={e=>{setPlayerId(e.target.value.replace(/\D/g,""));setPlayer(null);setResult(null);setError("");setErrorTitle("Couldn’t redeem that code.")}} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();document.getElementById("manual-gift-code")?.focus()}}} placeholder={t("auto.playerIdHint","e.g. 43180889")}/></div><small id="manual-player-help">{t("manual.playerId")}: {t("auto.invalidId")}</small></div>
-   <div className="ks-field manual-field-card"><label htmlFor="manual-gift-code"><span>{t("manual.code")}</span><i>02</i></label><div className={error&&errorTitle==="Check gift code"?"is-invalid":""}><Gift size={16}/><input id="manual-gift-code" required minLength={6} maxLength={32} pattern="[A-Za-z0-9_-]{6,32}" aria-describedby={error&&errorTitle==="Check gift code"?"manual-code-help manual-error":"manual-code-help"} aria-invalid={Boolean(error&&errorTitle==="Check gift code")} value={code} onChange={e=>{setCode(e.target.value.replace(/\s/g,""));setError("");setErrorTitle("Couldn’t redeem that code.")}} placeholder={t("manual.codeHint","e.g. Hangul2026")} autoCapitalize="none" autoComplete="off" spellCheck="false" enterKeyHint="done"/></div><small id="manual-code-help">{t("manual.codeHelp")}</small></div>
+   <div className="ks-field manual-field-card"><label htmlFor="manual-player-id"><span>{t("manual.playerId")}</span><i>01</i></label><div className={error&&errorTitle===t("manual.checkPlayerId")?"is-invalid":""}><Search size={16}/><input id="manual-player-id" inputMode="numeric" required minLength={5} maxLength={20} pattern="[0-9]{5,20}" aria-describedby={error&&errorTitle===t("manual.checkPlayerId")?"manual-player-help manual-error":"manual-player-help"} aria-invalid={Boolean(error&&errorTitle===t("manual.checkPlayerId"))} enterKeyHint="next" autoComplete="off" value={playerId} onChange={e=>{setPlayerId(e.target.value.replace(/\D/g,""));setPlayer(null);setResult(null);setError("");setErrorTitle(t("manual.redeemError"))}} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();document.getElementById("manual-gift-code")?.focus()}}} placeholder={t("auto.playerIdHint","e.g. 43180889")}/></div><small id="manual-player-help">{t("manual.playerId")}: {t("auto.invalidId")}</small></div>
+   <div className="ks-field manual-field-card"><label htmlFor="manual-gift-code"><span>{t("manual.code")}</span><i>02</i></label><div className={error&&errorTitle===t("manual.checkCode")?"is-invalid":""}><Gift size={16}/><input id="manual-gift-code" required minLength={6} maxLength={32} pattern="[A-Za-z0-9_-]{6,32}" aria-describedby={error&&errorTitle===t("manual.checkCode")?"manual-code-help manual-error":"manual-code-help"} aria-invalid={Boolean(error&&errorTitle===t("manual.checkCode"))} value={code} onChange={e=>{setCode(e.target.value.replace(/\s/g,""));setError("");setErrorTitle(t("manual.redeemError"))}} placeholder={t("manual.codeHint","e.g. Hangul2026")} autoCapitalize="none" autoComplete="off" spellCheck="false" enterKeyHint="done"/></div><small id="manual-code-help">{t("manual.codeHelp")}</small></div>
   </div>
   <div className="manual-submit-row"><span>Your game password is never requested.</span><button className="ks-submit manual-submit" disabled={busy}>{busy?<><span className="manual-spinner" aria-hidden="true"><span></span><LoaderCircle size={15}/></span><span className="manual-submit-label"><strong>Processing</strong><small>Sending securely…</small></span></>:<><Gift size={16}/> Redeem code</>}</button></div>
  </form>
@@ -172,7 +172,7 @@ function AutoRedeemApp(){
   <span className="ks-register-card-limit">UP TO 10</span>
  </div>
  <div className="ks-register-field">
-  <div className="ks-register-label-row"><label htmlFor="auto-player-ids">{t("manual.playerIds")}</label><span>{t("auto.playerIdHint","5–20 digits each")}</span></div>
+  <div className="ks-register-label-row"><label htmlFor="auto-player-ids">{t("manual.playerIds")}</label><span>{t("auto.inputHelp")}</span></div>
   <div className="ks-register-entry"><Gift size={18} aria-hidden="true"/><textarea ref={idInputRef} id="auto-player-ids" rows={1} inputMode="numeric" enterKeyHint="enter" value={ids} onChange={e=>{const value=e.target.value,clean=sanitizeRegistrationInput(value),containsUnsupported=/[^0-9,\s]/.test(value);if(clean!==value)pendingCaretRef.current=sanitizeRegistrationInput(value.slice(0,e.target.selectionStart)).length;else pendingCaretRef.current=null;setIds(clean);setInputNotice(containsUnsupported?t("auto.inputError"):"");if(error)setError("")}} onBeforeInput={e=>{const event=e.nativeEvent,field=e.currentTarget;if(event.inputType==="insertLineBreak"||event.inputType==="insertParagraph"){e.preventDefault();insertCleanText(field," ");return}if(!event.data)return;if(/[^0-9, ]/.test(event.data)){e.preventDefault();const value=field.value,start=field.selectionStart??0,end=field.selectionEnd??start,left=Math.max(value.lastIndexOf(",",start-1),value.lastIndexOf(" ",start-1))+1,tail=value.slice(end),nextSeparator=tail.search(/[, ]/),right=nextSeparator<0?value.length:end+nextSeparator,next=value.slice(0,left)+value.slice(right);discardTokenRef.current=true;pendingCaretRef.current=next===value?null:left;setIds(next);setInputNotice("Letters and symbols are not accepted. Use digits, commas, or spaces.");return}if(discardTokenRef.current){if(event.data===","||event.data===" ")discardTokenRef.current=false;else{e.preventDefault();return}}}} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();insertCleanText(e.currentTarget," ")}}} onPaste={e=>{e.preventDefault();insertCleanText(e.currentTarget,e.clipboardData.getData("text/plain"))}} onDrop={e=>{e.preventDefault();insertCleanText(e.currentTarget,e.dataTransfer.getData("text/plain"))}} placeholder="e.g. 43180889, 51234567" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck="false" maxLength={256} aria-describedby={error?"auto-register-help auto-register-error":"auto-register-help"} aria-invalid={Boolean(error)}/></div>
   <small id="auto-register-help">Use Enter between IDs, or paste a comma/space-separated list.</small>
   {inputNotice&&<small className="ks-register-input-notice" role="status" aria-live="polite">{inputNotice}</small>}
