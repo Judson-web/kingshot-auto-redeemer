@@ -752,4 +752,10 @@ export default {
   "outcome.disabledLabel": "비활성",
   "outcome.attentionLabel": "확인 필요",
   "player.townCenter": "시청"
+,
+"manual.playerNotFoundTitle": "플레이어를 찾을 수 없습니다",
+  "manual.playerNotFoundMessage": "해당 ID의 플레이어를 찾을 수 없습니다. Kingshot의 프로필 → 정보에서 숫자를 다시 확인해 주세요. ID가 정확하다면 잠시 후 다시 시도해 주세요.",
+  "outcome.summaryInvalidId": "Kingshot의 프로필 → 정보에 표시된 숫자 플레이어 ID를 사용해 주세요. ID는 숫자 5~20자리이며 왕국 번호와 다릅니다.",
+  "outcome.summaryNotFound": "해당 ID의 플레이어를 찾을 수 없습니다. Kingshot의 프로필 → 정보에서 숫자를 다시 확인해 주세요. ID가 정확하다면 잠시 후 다시 시도해 주세요.",
+  "outcome.reasonDisabledDefault": "이 플레이어 ID는 자동 교환이 비활성화되어 있습니다."
 };
