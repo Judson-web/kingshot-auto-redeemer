@@ -765,5 +765,22 @@ export default {
   "developer.exampleLabel": "예제",
   "developer.pathLabel": "경로"
 ,
-  "auto.validationLimitEnd": "개씩 나누어 제출해 주세요."
+  "auto.validationLimitEnd": "개씩 나누어 제출해 주세요.",
+"developer.metaTitle": "Kingshot 개발자 API 문서",
+  "developer.metaDescription": "Kingshot 자동 교환 API v4 연동 안내입니다. 일관된 응답 형식, 플레이어 조회, 수동 교환, 요청 한도 및 멱등성 처리 방법을 확인하세요.",
+  "developer.restApi": "Kingshot REST API",
+  "developer.featureSummary": "개발자 API 키를 사용해 버전별 플레이어 조회와 수동 교환 기능을 연동할 수 있습니다. 현재 권장 버전은 일관된 success/data/error/meta 응답 구조를 제공하는 v4입니다. 기존 연동을 위해 v3도 계속 제공되며 v1은 지원이 종료된 버전입니다. 자동 교환 등록 절차는 별도 문서에서 안내합니다. API 키와 서명용 비밀 정보는 브라우저 코드, 소스 저장소, URL에 포함하지 마세요.",
+  "developer.tagPlayerLookup": "플레이어 조회",
+  "developer.tagManualRedemption": "수동 교환",
+  "developer.tagAutoEnrollment": "자동 교환 등록",
+  "developer.tagJsonResponses": "JSON 응답",
+  "developer.tagBearerAuth": "Bearer 인증",
+  "developer.autoEnrollmentDescription": "플레이어를 기존 예약형 자동 교환 절차에 등록합니다. 요청 한 번에 플레이어 한 명을 등록합니다. 이 공개 웹사이트 경로에는 요청 제한이 적용되며 개발자 API 키는 필요하지 않습니다. 실제 작업자(worker)는 외부에 공개되지 않습니다.",
+  "developer.fieldDigits": "숫자 5~20자리",
+  "developer.fieldSafeCharacters": "안전한 문자 1~64자",
+  "developer.fieldKingdomId": "숫자 1~10자리 왕국 ID",
+  "developer.maintainerAvatarLabel": "관리자 프레임이 적용된 유지관리자의 Discord 프로필",
+  "support.openConversation": "대화 열기",
+  "support.dismissNotification": "닫기",
+  "support.unreadRepliesAriaSuffix": "개의 읽지 않은 지원 답변"
 };
