@@ -3,6 +3,7 @@ import { useServiceStatus, refreshServiceStatus } from "./shared/service-status.
 import { useAccountState, setAccountState } from "./shared/account-state.js";
 import "./profile-redesign.css";
 import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
+import { translate as t } from "./locales/index.js";
 import { useSiteLanguage } from "./shared/site-language.js";
 
 import{MessageCircle,LogOut,ShieldCheck,UserRound,LoaderCircle,ArrowRight,CheckCircle2,AlertCircle,LockKeyhole,Activity,Wrench,WifiOff,RefreshCw,Copy,ExternalLink,Gift,Zap}from"lucide-react";
@@ -22,7 +23,7 @@ async function request(body?:Record<string,unknown>){const r=await fetch(API,{me
 function readToken(){try{return sessionStorage.getItem("ks-profile-oauth-token")||""}catch{return""}}
 function saveToken(token:string){try{if(token)sessionStorage.setItem("ks-profile-oauth-token",token)}catch{}}
 function clearToken(){try{sessionStorage.removeItem("ks-profile-oauth-token")}catch{}}
-export default function ProfileApp(){const {account:user}=useAccountState() as {account:Profile|null};const {isKorean}=useSiteLanguage();const tr=(english:string,korean:string)=>isKorean?korean:english;const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
+export default function ProfileApp(){const {account:user}=useAccountState() as {account:Profile|null};const {isKorean}=useSiteLanguage();const tr=(english:string,_korean:string)=>t(english,isKorean?"ko":"en");const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
 useEffect(()=>{
  let live=true;
  const hash=new URLSearchParams(location.hash.slice(1));

@@ -120,7 +120,7 @@ test("language selector supports English and Korean with a persistent selection"
   const language = await readFile(new URL("../src/shared/site-language.js", import.meta.url), "utf8");
   const styles = await readFile(new URL("../src/public-site-header.css", import.meta.url), "utf8");
   assert.match(language, /flag:"🇺🇸".*label:"English"/s);
-  assert.match(header, /ko:"자동 교환"/);
+  assert.match(header, /translate as t.*locales\/index\.js/);
   assert.match(header, /role="listbox"/);
   assert.match(language, /localStorage\.setItem\(KEY,next\)/);
   assert.match(language, /document\.documentElement\.lang=next/);
