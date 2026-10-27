@@ -603,4 +603,11 @@ export default {
   "meta.privacyDescription": "Read how Kingshot Redeemer handles account information, player IDs, redemption history, support messages, and browser data.",
   "meta.termsTitle": "Terms of use | Kingshot Redeemer",
   "meta.termsDescription": "Review the terms and risks of using Kingshot Redeemer, an independent community service.",
+  "maintenance.active": "Maintenance active",
+  "maintenance.mode": "MAINTENANCE MODE",
+  "maintenance.inProgress": "IN PROGRESS",
+  "maintenance.messageFallback": "The service is temporarily unavailable while maintenance is in progress. Please check back shortly.",
+  "maintenance.supportSubject": "Maintenance support request",
+  "maintenance.supportPageTitle": "Service maintenance",
+  "maintenance.footer": "Independent community service",
 };
