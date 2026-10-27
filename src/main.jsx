@@ -224,25 +224,25 @@ function MaintenanceScreen({state}){
  const hours=totalSeconds===null?0:Math.floor((totalSeconds%86400)/3600);
  const minutes=totalSeconds===null?0:Math.floor((totalSeconds%3600)/60);
  const seconds=totalSeconds===null?0:totalSeconds%60;
- const contactSupport=()=>window.dispatchEvent(new CustomEvent("ks-support-open",{detail:{topic:"Other",subject:"Maintenance support request",pageTitle:"Service maintenance",returnFocus:supportButtonRef.current||undefined}}));
+ const contactSupport=()=>window.dispatchEvent(new CustomEvent("ks-support-open",{detail:{topic:"Other",subject:t("maintenance.supportSubject","Maintenance support request"),pageTitle:t("maintenance.supportPageTitle","Service maintenance"),returnFocus:supportButtonRef.current||undefined}}));
  return <div className="maintenance-app">
   <main className="maintenance-shell">
    <header className="maintenance-brand">
     <span className="maintenance-brand-mark"><Gift size={17}/></span>
     <span><b>KINGSHOT REDEEMER</b><small>{t("maintenance.serviceStatus","SERVICE STATUS")}</small></span>
-    <span className="maintenance-current-status"><i aria-hidden="true"/>Maintenance active</span>
+    <span className="maintenance-current-status"><i aria-hidden="true"/>{t("maintenance.active","Maintenance active")}</span>
    </header>
    <section className="maintenance-card" aria-labelledby="maintenance-title">
-    <div className="maintenance-topline"><span className="maintenance-status"><i aria-hidden="true"/>MAINTENANCE MODE</span><span className="maintenance-live"><i aria-hidden="true"/>IN PROGRESS</span></div>
+    <div className="maintenance-topline"><span className="maintenance-status"><i aria-hidden="true"/>{t("maintenance.mode","MAINTENANCE MODE")}</span><span className="maintenance-live"><i aria-hidden="true"/>{t("maintenance.inProgress","IN PROGRESS")}</span></div>
     <div className="maintenance-visual" aria-hidden="true"><div className="maintenance-icon"><Wrench size={21}/></div></div>
     <span className="maintenance-kicker">{t("maintenance.serviceUpdate","SERVICE UPDATE")}</span>
     <h1 id="maintenance-title">{t("maintenance.title","We’re making a few improvements.")}</h1>
-    <p className="maintenance-message">{state?.message||"The service is temporarily unavailable while maintenance is in progress. Please check back shortly."}</p>
-    {remaining!==null&&remaining>0?<><div className="maintenance-countdown-label"><span>{t("maintenance.estimatedReturn","ESTIMATED RETURN")}</span><b>{days?days+t("maintenance.daysRemaining","d remaining"):hours?hours+t("maintenance.hourUnit","h ")+String(minutes).padStart(2,"0")+t("maintenance.minuteRemaining","m remaining"):minutes?minutes+t("maintenance.minuteRemaining","m remaining"):seconds+t("maintenance.secondRemaining","s remaining")"}</b></div><div className={"maintenance-countdown "+(days?"has-days":"")} aria-label={t("maintenance.timeRemaining","Estimated time remaining")}>{days>0&&<div className="maintenance-time"><b>{String(days).padStart(2,"0")}</b><span>{t("maintenance.days","DAYS")}</span></div>}<div className="maintenance-time"><b>{String(hours).padStart(2,"0")}</b><span>{t("maintenance.hours","HOURS")}</span></div><div className="maintenance-time"><b>{String(minutes).padStart(2,"0")}</b><span>{t("maintenance.minutes","MINUTES")}</span></div><div className="maintenance-time"><b>{String(seconds).padStart(2,"0")}</b><span>{t("maintenance.seconds","SECONDS")}</span></div></div></>:<p className="maintenance-estimate-note">{estimateAvailable?t("maintenance.windowPassed","The estimated window has passed. We’re checking for recovery automatically."):t("maintenance.noReturnTime","No return time has been scheduled. We’re checking for recovery automatically.")}</p>}
+    <p className="maintenance-message">{state?.message||t("maintenance.messageFallback","The service is temporarily unavailable while maintenance is in progress. Please check back shortly.")}</p>
+    {remaining!==null&&remaining>0?<><div className="maintenance-countdown-label"><span>{t("maintenance.estimatedReturn","ESTIMATED RETURN")}</span><b>{days?days+t("maintenance.daysRemaining","d remaining"):hours?hours+t("maintenance.hourUnit","h ")+String(minutes).padStart(2,"0")+t("maintenance.minuteRemaining","m remaining"):minutes?minutes+t("maintenance.minuteRemaining","m remaining"):seconds+t("maintenance.secondRemaining","s remaining")}</b></div><div className={"maintenance-countdown "+(days?"has-days":"")} aria-label={t("maintenance.timeRemaining","Estimated time remaining")}>{days>0&&<div className="maintenance-time"><b>{String(days).padStart(2,"0")}</b><span>{t("maintenance.days","DAYS")}</span></div>}<div className="maintenance-time"><b>{String(hours).padStart(2,"0")}</b><span>{t("maintenance.hours","HOURS")}</span></div><div className="maintenance-time"><b>{String(minutes).padStart(2,"0")}</b><span>{t("maintenance.minutes","MINUTES")}</span></div><div className="maintenance-time"><b>{String(seconds).padStart(2,"0")}</b><span>{t("maintenance.seconds","SECONDS")}</span></div></div></>:<p className="maintenance-estimate-note">{estimateAvailable?t("maintenance.windowPassed","The estimated window has passed. We’re checking for recovery automatically."):t("maintenance.noReturnTime","No return time has been scheduled. We’re checking for recovery automatically.")}</p>}
     <p className="maintenance-note"><CheckCircle size={14}/><span>{t("maintenance.autoRefreshNote","Status refreshes automatically. This page will return to the site when service is restored.")}</span></p>
     <div className="maintenance-actions"><button ref={supportButtonRef} type="button" className="maintenance-support-button" onClick={contactSupport}><MessageCircle size={16}/>{t("maintenance.contactSupport","Contact support")}</button><span>{t("maintenance.needHelp","Need help while the site is paused?")}</span></div>
    </section>
-   <footer className="maintenance-footer">Kingshot Redeemer <span>·</span> Independent community service</footer>
+   <footer className="maintenance-footer">Kingshot Redeemer <span>·</span> {t("maintenance.footer","Independent community service")}</footer>
   </main>
  </div>
 }
