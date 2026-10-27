@@ -751,7 +751,7 @@ export default {
   "outcome.blockedLabel": "blocked",
   "outcome.disabledLabel": "disabled",
   "outcome.attentionLabel": "need attention",
-  "player.townCenter": "Town Centre"
+  "player.townCenter": "Town Center"
 ,
 "manual.playerNotFoundTitle": "Player not found",
   "manual.playerNotFoundMessage": "No player was found for this ID. Check every digit against Kingshot → Profile → Info. If the ID is correct, try again shortly.",
