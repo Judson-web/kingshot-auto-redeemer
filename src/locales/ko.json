@@ -131,5 +131,16 @@
   "manual.step3": "결과 확인",
   "manual.step1Text": "교환 전에 플레이어 ID로 현재 왕국을 조회합니다.",
   "manual.step2Text": "교환 요청은 서버에서 서명되며 서명 비밀 정보는 외부에 노출되지 않습니다.",
-  "manual.step3Text": "게임 API 응답을 이해하기 쉬운 교환 상태로 표시합니다."
+  "manual.step3Text": "게임 API 응답을 이해하기 쉬운 교환 상태로 표시합니다.",
+  "developer.workspace": "개발자 작업 공간",
+  "developer.lifecycle": "API 키 수명 주기 및 이용 가능 여부",
+  "support.topic": "문의 주제",
+  "support.category": "요청 유형",
+  "support.removalHint": "검토 문의가 생성됩니다. 등록이 즉시 삭제되지는 않습니다.",
+  "support.removalReason": "삭제 사유",
+  "support.removalPlaceholder": "등록을 삭제해야 하는 이유를 설명해 주세요…",
+  "support.writePlaceholder": "메시지를 입력하세요…",
+  "support.photoAttached": "사진 첨부됨",
+  "support.sending": "전송 중",
+  "support.submitRemoval": "삭제 요청 제출"
 }
