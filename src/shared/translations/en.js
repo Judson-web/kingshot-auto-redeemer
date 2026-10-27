@@ -760,5 +760,8 @@ export default {
   "outcome.reasonDisabledDefault": "Auto-redemption is disabled for this Player ID."
 ,
   "outcome.playerProfile": "Player profile",
-  "developer.copyExample": "Copy example"
+  "developer.copyExample": "Copy example",
+  "developer.copyPath": "Copy path",
+  "developer.exampleLabel": "Example",
+  "developer.pathLabel": "Path"
 };
