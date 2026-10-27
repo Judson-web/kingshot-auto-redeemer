@@ -9,8 +9,7 @@ import{MessageCircle,LogOut,ShieldCheck,UserRound,LoaderCircle,ArrowRight,CheckC
 type LiveStatus={kind:"checking"|"online"|"maintenance"|"offline";label:string;message:string;worker?:string|null;lastCompletedAt?:string|null;locked?:boolean;endsAt?:string|null;checkedAt?:number};
 function LiveStatusPanel({role}:{role:"admin"|"developer"}){
  const {maintenance,health}=useServiceStatus({includeHealth:true});
- const {isKorean}=useSiteLanguage();
- const tr=(english:string,korean:string)=>isKorean?korean:english;
+ const {t}=useSiteLanguage();
  const [refreshing,setRefreshing]=useState(false);
  const kind:LiveStatus["kind"]=!maintenance.verified||health.kind==="checking"?"checking":maintenance.maintenanceEnabled?"maintenance":health.kind==="online"?"online":"offline";
  const state:LiveStatus={kind,label:kind==="checking"?t("profile.copy001","Checking"):kind==="maintenance"?t("profile.copy002","Maintenance"):kind==="online"?t("profile.copy003","Operational"):t("profile.copy004","Needs attention"),message:kind==="checking"?t("profile.copy005","Checking production services."):kind==="maintenance"?(maintenance.message||t("profile.copy006","The service is temporarily unavailable.")):kind==="online"?t("profile.copy007","Production health checks are responding normally."):t("profile.copy008","Production health checks are not reporting a healthy service."),worker:health.status,lastCompletedAt:health.lastCompletedAt,locked:health.locked,endsAt:maintenance.endsAt,checkedAt:Math.max(maintenance.checkedAt||0,health.checkedAt||0)||undefined};
