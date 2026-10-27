@@ -299,7 +299,7 @@ assertCheck("API-key management reuses the verified profile session before the d
  developerAccountApi.includes("const p_session_hash=sha(s)"));
 assertCheck("Developer account sessions use secure HttpOnly cookies", developerAuth.includes("HttpOnly; Secure; SameSite=Strict") && developerAuth.includes("randomBytes(32)"));
 assertCheck("Account dashboard uses Discord-only OAuth and key management", developerAccountUi.includes("Continue with Discord") && !developerAccountUi.includes("Continue with GitHub") && !developerAccountUi.includes("signup") && developerAccountUi.includes('action:"oauth"') && developerAccountUi.includes("Create API key") && developerAccountUi.includes("Revoke"));
-assertCheck("Developer account uses shared copy confirmation while preserving key-state feedback", developerAccountUi.includes("Checking your sign-in…") && developerAccountUi.includes("developer-auth-spinner") && developerAccountUi.includes('copyToClipboard(newKey,"API key")') && developerAccountUi.includes('copied?"Copied!":"Copy key"') && developerAccountUi.includes("Clipboard access is unavailable"));
+assertCheck("Developer account uses shared copy confirmation while preserving key-state feedback", developerAccountUi.includes("Checking your sign-in…") && developerAccountUi.includes("developer-auth-spinner") && developerAccountUi.includes('copyToClipboard(newKey,"API key")') && (developerAccountUi.includes('copied?"Copied!":"Copy key"') || developerAccountUi.includes('copied?t("developer.copied","Copied!"):t("developer.copyKey","Copy key")')) && developerAccountUi.includes("Clipboard access is unavailable"));
 assertCheck("Developer API has a database-backed per-IP issuance cap and quotas", developerMigration.includes("lifetime limit of two API keys") && developerMigration.includes("kingshot_developer_authorize_key") && developerMigration.includes("request_count"));
 assertCheck("Developer API CORS is limited to public bearer-key routes", developerApi.includes('const publicApiRoute = path === "player" || path === "redeem"') && developerApi.includes("if (publicApiRoute)") && developerApi.includes('res.setHeader("Access-Control-Allow-Origin", "*")'));
 assertCheck("Developer portal documents V4 as current, preserves V3 compatibility, and deprecates V1", vercelConfig.rewrites.some(item => item.source === "/developer" && ["/index.html", "/developer.html"].includes(item.destination)) && vercelConfig.rewrites.some(item => item.source === "/api/v1/player/:path*" && item.destination === "/api/kingshot-player?developer=player") && vercelConfig.rewrites.some(item => item.source === "/api/v3/players/:playerId" && item.destination === "/api/kingshot-player?developer=v3-player&id=:playerId") && vercelConfig.rewrites.some(item => item.source === "/api/v3/redemptions" && item.destination === "/api/kingshot-player?developer=v3-redemptions") && vercelConfig.rewrites.some(item => item.source === "/api/v4/players/:playerId" && item.destination === "/api/kingshot-player?developer=v4-player&id=:playerId") && vercelConfig.rewrites.some(item => item.source === "/api/v4/redemptions" && item.destination === "/api/kingshot-player?developer=v4-redemptions") && developerUi.includes("/api/v4/players/43180889") && developerUi.includes("V4 is the current developer API") && developerUi.includes("V1 is deprecated") && developerApi.includes('res.setHeader("Deprecation", "true")') && developerApi.includes("successor-version") && developerApi.includes("/api/v4/players/{playerId}") && developerApi.includes("/api/v4/redemptions"));
@@ -358,7 +358,7 @@ assertCheck(
 
 assertCheck("Support drawer exposes a persistent, labelled close button",
  supportWidget.includes('className="support-drawer-close"') &&
- supportWidget.includes('aria-label="Close support chat"') &&
+ (supportWidget.includes('aria-label="Close support chat"') || supportWidget.includes('aria-label={t("support.closeChat","Close support chat")}')) &&
  supportWidget.includes('onClick={()=>{restoreFocusRef.current=true;setOpen(false)}}'));
 assertCheck("Support drawer closes on Escape",
  supportWidget.includes('event.key==="Escape"') && supportWidget.includes('restoreFocusRef.current=true;setOpen(false)'));
@@ -399,7 +399,7 @@ assertCheck("Support drawer accepts explicit context from page-level open events
  supportWidget.includes('CustomEvent<{topic?:string;subject?:string;pageTitle?:string;returnFocus?:HTMLElement}>') &&
  supportWidget.includes('window.addEventListener("ks-support-open",openGeneral)'));
 assertCheck("New support threads refresh topic context for the current page",
- supportWidget.includes('function newConversation(){const next=getPageContext()') &&
+ (supportWidget.includes('function newConversation(){const next=getPageContext()') || supportWidget.includes('function newConversation(){const next=getPageContext(language)')) &&
  supportWidget.includes('setTopic(next.topic)'));
 assertCheck("Registration-removal entry point retains its dedicated topic",
  supportWidget.includes('setTopic("Registration removal")') &&
