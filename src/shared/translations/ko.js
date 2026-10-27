@@ -767,7 +767,6 @@ export default {
 ,
   "auto.validationLimitEnd": "개씩 나누어 제출해 주세요.",
 "developer.metaTitle": "Kingshot 개발자 API 문서",
-  "developer.metaDescription": "Kingshot 자동 교환 API v4 연동 안내입니다. 일관된 응답 형식, 플레이어 조회, 수동 교환, 요청 한도 및 멱등성 처리 방법을 확인하세요.",
   "developer.restApi": "Kingshot REST API",
   "developer.featureSummary": "개발자 API 키를 사용해 버전별 플레이어 조회와 수동 교환 기능을 연동할 수 있습니다. 현재 권장 버전은 일관된 success/data/error/meta 응답 구조를 제공하는 v4입니다. 기존 연동을 위해 v3도 계속 제공되며 v1은 지원이 종료된 버전입니다. 자동 교환 등록 절차는 별도 문서에서 안내합니다. API 키와 서명용 비밀 정보는 브라우저 코드, 소스 저장소, URL에 포함하지 마세요.",
   "developer.tagPlayerLookup": "플레이어 조회",
@@ -782,5 +781,9 @@ export default {
   "developer.maintainerAvatarLabel": "관리자 프레임이 적용된 유지관리자의 Discord 프로필",
   "support.openConversation": "대화 열기",
   "support.dismissNotification": "닫기",
-  "support.unreadRepliesAriaSuffix": "개의 읽지 않은 지원 답변"
+  "support.unreadRepliesAriaSuffix": "개의 읽지 않은 지원 답변",
+"manual.playerIdPlaceholder": "예: 43180889",
+  "manual.giftCodePlaceholder": "예: Hangul2026",
+  "auto.playerIdsPlaceholder": "예: 43180889, 51234567",
+  "support.ticketPrefix": "문의 티켓 "
 };
