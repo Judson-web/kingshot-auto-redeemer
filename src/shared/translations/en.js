@@ -759,5 +759,6 @@ export default {
   "outcome.summaryNotFound": "No player was found for this ID. Check every digit against Kingshot → Profile → Info. If the ID is correct, try again shortly.",
   "outcome.reasonDisabledDefault": "Auto-redemption is disabled for this Player ID."
 ,
-  "outcome.playerProfile": "Player profile"
+  "outcome.playerProfile": "Player profile",
+  "developer.copyExample": "Copy example"
 };
