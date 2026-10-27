@@ -63,7 +63,7 @@ function notificationPreview(message:Msg){
 }
 function notifyReply(c:Saved,message:Msg){
  if(typeof Notification==="undefined"||Notification.permission!=="granted")return;
- const subject=String(c.subject||"Support conversation").trim();
+ const subject=String(c.subject||st("supportConversation","Support conversation")).trim();
  const title=(st("supportRepliedPrefix","Support replied · ")+subject).slice(0,100);
  const ticket=String(c.supportTicketId||"").trim();
  const preview=notificationPreview(message);
@@ -77,7 +77,7 @@ function notifyReply(c:Saved,message:Msg){
   renotify:true,
   timestamp:Date.parse(message?.created_at||"")||Date.now(),
   data:{url},
-  actions:[{action:"open-support",title:"Open conversation"},{action:"dismiss",title:"Dismiss"}]
+  actions:[{action:"open-support",title:st("openConversation","Open conversation")},{action:"dismiss",title:st("dismissNotification","Dismiss")}]
  };
  if(message?.attachment_url){try{const image=new URL(message.attachment_url);if(image.protocol==="https:"&&!image.username&&!image.password)options.image=image.href}catch{}}
  if("serviceWorker"in navigator){
@@ -187,7 +187,7 @@ export default function SupportWidget({maintenanceMode=false}: {maintenanceMode?
     const ticketResponse=await request("/api/kingshot-support",{method:"POST",body:JSON.stringify({playerId,reason:message.trim()})});ticketId=String(ticketResponse.ticket?.id||"");if(!ticketId)throw Error(t("support.removalNotConfirmed","The removal request could not be confirmed. Please retry."));
    }
    let d;
-   try{d=await request(API,{method:"POST",body:JSON.stringify({action:"start",playerId,subject:(subject.trim()||topic).slice(0,120),message,attachment:image,attachmentName:attachment?.name,supportTicketId:ticketId})})}
+   try{d=await request(API,{method:"POST",body:JSON.stringify({action:"start",playerId,subject:(subject.trim()||t(({"Account & registration":"support.accountRegistration","Registration removal":"support.registrationRemoval","Gift code redemption":"support.giftCodeRedemption","Discord / profile login":"support.discordProfileLogin","Developer API":"support.developerApi","Bug report":"support.bugReport","Other":"support.other"} as Record<string,string>)[topic]||"support.other",topic)).slice(0,120),message,attachment:image,attachmentName:attachment?.name,supportTicketId:ticketId})})}
    catch(err){if(ticketId){setNotice(t("support.removalTicketSaved","Your removal request was recorded as ticket")+" "+ticketId+t("support.removalTicketSuffix",". The chat thread could not be opened, but the request is safely queued for review."));throw Error("Removal request saved; chat setup failed. Your request remains queued for review.")}throw err}
    const c={conversationId:d.conversation.id,token:d.token,subject:d.conversation.subject,supportTicketId:d.conversation.support_ticket_id||ticketId};
    localStorage.setItem(STORAGE,JSON.stringify(c));saveId(SEEN_PREFIX+c.conversationId,maxAdminId(d.messages||[]));saveId(NOTIFIED_PREFIX+c.conversationId,maxAdminId(d.messages||[]));
@@ -198,7 +198,7 @@ export default function SupportWidget({maintenanceMode=false}: {maintenanceMode?
  return <div className="support-float-root" ref={rootRef}>
   {!open&&!maintenanceMode&&<button ref={triggerRef} className="support-float-trigger" type="button" aria-label={t("support.openChat","Open support chat")+(unread?" ("+unread+" "+t("support.unreadReplies","unread replies")+")":"")} aria-expanded={false} onClick={()=>{const context=getPageContext(language);setPageContext(context);if(!conversation&&topic===pageContext.topic)setTopic(context.topic);setNotice("");setOpen(true)}}>
    <MessageCircle size={21}/>
-   {unread>0&&<span className="support-unread-badge" aria-label={unread+" unread support replies"}>{unread>9?"9+":unread}</span>}
+   {unread>0&&<span className="support-unread-badge" aria-label={unread+(language==="ko"?"":" ")+t("support.unreadRepliesAriaSuffix","unread support replies")}>{unread>9?"9+":unread}</span>}
    <span className="support-float-trigger-label">{t("support.support","Support")}</span>
   </button>}
   {open&&<><div className="support-float-backdrop" aria-hidden="true" onClick={event=>{if(event.target===event.currentTarget){restoreFocusRef.current=true;setOpen(false)}}}/><section ref={panelRef} className={"support-float-panel support-chat-panel "+(conversation?"support-chat-panel-thread"+(messages.length<=3?" support-chat-panel-thread-compact":""):"support-chat-panel-new")} role="dialog" aria-modal="true" aria-labelledby="support-dialog-title" aria-describedby="support-dialog-description">
