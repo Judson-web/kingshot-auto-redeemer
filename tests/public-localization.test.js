@@ -32,6 +32,10 @@ test("public-facing secondary copy uses localized dictionary entries", async () 
   assert.ok(support.includes('t("support.unreadRepliesAriaSuffix"'), "Unread reply accessibility text should be localized");
   assert.ok(support.includes('st("openConversation"'), "Support notification action should be localized");
   assert.ok(support.includes('st("ticketPrefix"'), "Support ticket notification prefix should be localized");
+  const languageModule = await readFile(new URL("../src/shared/site-language.js", import.meta.url), "utf8");
+  assert.match(languageModule, /currentSiteLanguage=detected/);
+  assert.match(languageModule, /getSavedSiteLanguage\(\)\|\|currentSiteLanguage/);
+  assert.ok(support.includes("getSiteLanguage()"), "Support notifications should use the detected effective language");
   assert.ok(!developer.includes("Enrolls a player in the existing scheduled auto-redeem workflow. One player per request."), "Developer enrollment copy must not remain hardcoded in JSX");
   assert.ok(!legal.includes('<p className="legal-note">This page is a plain-language'), "Legal disclaimer must not remain hardcoded in JSX");
 });
