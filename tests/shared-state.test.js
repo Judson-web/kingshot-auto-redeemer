@@ -190,6 +190,7 @@ test("auto, manual, profile, and legal pages use the shared English/Korean dicti
   const main = await readFile(new URL("main.jsx", root), "utf8");
   const profile = await readFile(new URL("ProfileApp.tsx", root), "utf8");
   const legal = await readFile(new URL("LegalApp.jsx", root), "utf8");
+  const developer = await readFile(new URL("DeveloperApp.tsx", root), "utf8");
   const english = await readFile(new URL("shared/translations/en.js", root), "utf8");
   const korean = await readFile(new URL("shared/translations/ko.js", root), "utf8");
 
@@ -203,6 +204,8 @@ test("auto, manual, profile, and legal pages use the shared English/Korean dicti
   assert.match(main, /t\("outcome\.summaryKicker"/);
   assert.match(profile, /tr\("Live service status","실시간 서비스 상태"\)/);
   assert.match(legal, /t\("legal\.updated"/);
+  assert.match(developer, /t\("developer\.title"/);
+  assert.match(developer, /t\("developer\.quickStart"/);
   assert.match(english, /"manual\.title":"Redeem a gift code"/);
   assert.match(korean, /"manual\.title":"기프트 코드 교환"/);
 });
