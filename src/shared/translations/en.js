@@ -679,4 +679,10 @@ export default {
   "profile.startSignInFailed": "Could not start Discord sign-in.",
   "profile.logoutUnconfirmed": "Signed out locally, but server-side logout could not be fully confirmed.",
   "profile.signOutFailed": "Could not sign out.",
+  "manual.playerIdHint": "Use the numeric Player ID shown in Kingshot under Profile → Info. It must contain 5–20 digits; your kingdom number is different.",
+  "developer.clipboardUnavailable": "Clipboard access is unavailable. Open this page in a secure browser and copy the key manually.",
+  "developer.signedInNotice": "Signed in. Your API keys are scoped to this account.",
+  "developer.lastKeyRevoked": "Last active API key revoked. Developer access has been removed; your Discord profile remains signed in.",
+  "developer.keyRevoked": "API key revoked.",
+  "developer.signedOutNotice": "You are signed out.",
 };
