@@ -765,5 +765,5 @@ export default {
   "developer.exampleLabel": "Example",
   "developer.pathLabel": "Path"
 ,
-  "auto.validationLimitEnd": " at a time."
+  "auto.validationLimitEnd": " IDs."
 };
