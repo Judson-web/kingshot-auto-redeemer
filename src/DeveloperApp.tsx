@@ -5,6 +5,7 @@ import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
 import DeveloperAccountPanel from "./DeveloperAccountPanel";
 import { Activity, BookOpen, Check, ChevronRight, Code2, Copy, ExternalLink, Gauge, KeyRound, MessageCircle, ShieldCheck, Terminal } from "lucide-react";
 import { copyToClipboard } from "./utils/clipboard-feedback";
+import { translate as t } from "./shared/translate.js";
 
 const ORIGIN = "https://kingshot-autoredeemer.vercel.app";
 const DEVELOPER_NAME = "Judson";
@@ -17,7 +18,7 @@ const curlExample = 'curl "' + endpoint + '" \\\n  -H "Authorization: Bearer YOU
 
 function CopyButton({ value, label = "Copy" }: { value: string; label?: string }) {
   const [copied, setCopied] = useState(false);
-  return <button className="dev-copy-button" type="button" onClick={async () => { try { const feedbackLabel = label.replace(/^\s*copy\s*/i, "").trim() || "Text"; await copyToClipboard(value, feedbackLabel); setCopied(true); window.setTimeout(() => setCopied(false), 1600); } catch { setCopied(false); } }} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, border: "1px solid #343e4d", borderRadius: 9, padding: "8px 11px", background: "#202633", color: "#e8ebf5", font: "inherit", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}><Copy size={14}/>{copied ? "Copied" : label}</button>;
+  return <button className="dev-copy-button" type="button" onClick={async () => { try { const feedbackLabel = label.replace(/^\s*copy\s*/i, "").trim() || "Text"; await copyToClipboard(value, feedbackLabel); setCopied(true); window.setTimeout(() => setCopied(false), 1600); } catch { setCopied(false); } }} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, border: "1px solid #343e4d", borderRadius: 9, padding: "8px 11px", background: "#202633", color: "#e8ebf5", font: "inherit", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}><Copy size={14}/>{copied ? t("account.copy") : label}</button>;
 }
 
 export default function DeveloperApp() {
@@ -95,21 +96,21 @@ console.log(result.data.playerId, result.data.name);`;
     <PublicSiteHeader current="developer" />
     <main className="dev-shell dev-page">
       <header className="dev-overview">
-        <div><div className="dev-eyebrow">Developer workspace / Overview</div><h1 id="developer-docs-title" className="dev-page-title">Developer API documentation</h1><p className="dev-muted">Manage your API credentials and integrate Kingshot player data into your tools.</p></div>
+        <div><div className="dev-eyebrow">{t("dev.eyebrow")}</div><h1 id="developer-docs-title" className="dev-page-title">{t("dev.title")}</h1><p className="dev-muted">{t("dev.subtitle")}</p></div>
         <span className="dev-version-pill"><span style={{width:7,height:7,borderRadius:9,background:"#9ce9c2",boxShadow:"0 0 0 3px #9ce9c21c"}}/> API v4 <span style={{color:"#687487"}}>·</span> HTTPS</span>
       </header>
       <div className="dev-stat-grid" aria-label="API overview">
-        <article className="dev-stat"><div className="dev-stat-label">Endpoint</div><div className="dev-stat-value"><code style={{fontSize:"inherit"}}>GET /api/v4/players/&#123;playerId&#125;</code></div><div className="dev-stat-detail">Single read-only player lookup</div></article>
-        <article className="dev-stat"><div className="dev-stat-label">Per-key quota</div><div className="dev-stat-value">60 / min</div><div className="dev-stat-detail">Up to 1,000 requests per day</div></article>
-        <article className="dev-stat"><div className="dev-stat-label">Additional protection</div><div className="dev-stat-value">120 / min / IP</div><div className="dev-stat-detail">Shared IP-level rate limit</div></article>
+        <article className="dev-stat"><div className="dev-stat-label">{t("dev.endpoint")}</div><div className="dev-stat-value"><code style={{fontSize:"inherit"}}>GET /api/v4/players/&#123;playerId&#125;</code></div><div className="dev-stat-detail">{t("dev.endpoint.detail")}</div></article>
+        <article className="dev-stat"><div className="dev-stat-label">{t("dev.quota")}</div><div className="dev-stat-value">60 / min</div><div className="dev-stat-detail">{t("dev.quota.detail")}</div></article>
+        <article className="dev-stat"><div className="dev-stat-label">{t("dev.protection")}</div><div className="dev-stat-value">120 / min / IP</div><div className="dev-stat-detail">{t("dev.protection.detail")}</div></article>
       </div>
-      <div className="dev-section-nav" aria-label="Documentation sections"><a href="#quickstart"><Terminal size={13}/> Quick start</a><a href="#api-reference"><Activity size={13}/> Player lookup</a><a href="#manual-redemption"><Code2 size={13}/> Manual redeem</a><a href="#auto-redemption"><Gauge size={13}/> Auto redeem</a><a href="#limits"><Activity size={13}/> Limits &amp; errors</a><a href="#authentication"><ShieldCheck size={13}/> Security</a><a href="#maintainer-contact"><MessageCircle size={13}/> Contact</a></div><div className="dev-layout">
+      <div className="dev-section-nav" aria-label="Documentation sections"><a href="#quickstart"><Terminal size={13}/> {t("dev.quickstart")}</a><a href="#api-reference"><Activity size={13}/> {t("dev.player")}</a><a href="#manual-redemption"><Code2 size={13}/> {t("dev.manual")}</a><a href="#auto-redemption"><Gauge size={13}/> {t("dev.auto")}</a><a href="#limits"><Activity size={13}/> {t("dev.limits")}</a><a href="#authentication"><ShieldCheck size={13}/> {t("dev.security")}</a><a href="#maintainer-contact"><MessageCircle size={13}/> {t("dev.contact")}</a></div><div className="dev-layout">
         <aside className="dev-sidebar" aria-label="Account and API keys"><DeveloperAccountPanel/></aside>
         <div className="dev-content"><div className="dev-doc-grid">
           <section className="dev-card dev-feature-card">
-            <div className="dev-section-kicker" style={{display:"flex",alignItems:"center",gap:7}}><ShieldCheck size={14}/> Kingshot REST API</div>
-            <h2 style={{fontSize:"clamp(21px,3vw,28px)",letterSpacing:"-.035em",lineHeight:1.25,margin:"10px 0 8px"}}>Look up players. Redeem codes. Enroll for auto-redeem.</h2>
-            <p className="dev-muted" style={{maxWidth:620}}>Use a developer key for versioned player lookup and manual redemption. V4 is the current developer API with a consistent success/data/error/meta response envelope. V3 remains available for existing integrations; V1 is deprecated. The automatic-redemption registration flow is documented separately. Keep keys and signing secrets out of browser code, source control, and URLs.</p>
+            <div className="dev-section-kicker" style={{display:"flex",alignItems:"center",gap:7}}><ShieldCheck size={14}/> {t("dev.api")}</div>
+            <h2 style={{fontSize:"clamp(21px,3vw,28px)",letterSpacing:"-.035em",lineHeight:1.25,margin:"10px 0 8px"}}>{t("dev.feature.title")}</h2>
+            <p className="dev-muted" style={{maxWidth:620}}>{t("dev.feature.body")}</p>
             <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:15}}>{["Player lookup","Manual redemption","Auto-redeem enrollment","JSON responses","Bearer authentication"].map(tag=><span key={tag} style={{border:"1px solid #343e4d",borderRadius:7,padding:"5px 8px",fontSize:10,color:"#cbd3e2"}}>{tag}</span>)}</div>
           </section>
           <section className="dev-card" id="quickstart">
