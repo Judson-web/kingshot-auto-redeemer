@@ -705,7 +705,7 @@ export default {
   "auto.validationCharacters": "숫자, 쉼표, 공백만 사용할 수 있습니다. 문자와 기호는 입력할 수 없습니다.",
   "auto.validationLengthPrefix": "플레이어 ID는 숫자 5~20자리여야 합니다. 확인할 ID: ",
   "auto.validationLimitPrefix": "한 번에 등록할 수 있는 플레이어 ID는 최대 ",
-  "auto.validationLimitSuffix": "개까지 한 번에 등록할 수 있습니다. 더 많은 ID는 ",
+  "auto.validationLimitSuffix": "개입니다. 더 많은 ID는 ",
   "auto.summaryMaxIds": "최대 10개 ID",
   "auto.summarySeparators": "쉼표 또는 공백으로 구분",
   "auto.summaryNone": "인식된 ID 없음",
@@ -764,4 +764,6 @@ export default {
   "developer.copyPath": "경로 복사",
   "developer.exampleLabel": "예제",
   "developer.pathLabel": "경로"
+,
+  "auto.validationLimitEnd": "개씩 나누어 제출해 주세요."
 };
