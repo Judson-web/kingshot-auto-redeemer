@@ -3,6 +3,7 @@ import "./developer-page.css";
 import "./developer-redesign.css";
 import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
 import DeveloperAccountPanel from "./DeveloperAccountPanel";
+import {useTranslation} from "./shared/i18n.js";
 import { Activity, BookOpen, Check, ChevronRight, Code2, Copy, ExternalLink, Gauge, KeyRound, MessageCircle, ShieldCheck, Terminal } from "lucide-react";
 import { copyToClipboard } from "./utils/clipboard-feedback";
 
@@ -20,7 +21,7 @@ function CopyButton({ value, label = "Copy" }: { value: string; label?: string }
   return <button className="dev-copy-button" type="button" onClick={async () => { try { const feedbackLabel = label.replace(/^\s*copy\s*/i, "").trim() || "Text"; await copyToClipboard(value, feedbackLabel); setCopied(true); window.setTimeout(() => setCopied(false), 1600); } catch { setCopied(false); } }} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, border: "1px solid #343e4d", borderRadius: 9, padding: "8px 11px", background: "#202633", color: "#e8ebf5", font: "inherit", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}><Copy size={14}/>{copied ? "Copied" : label}</button>;
 }
 
-export default function DeveloperApp() {
+export default function DeveloperApp() { const {t}=useTranslation();
   const [maintainerProfile, setMaintainerProfile] = useState<MaintainerDiscordProfile | null>(null);
   const [maintainerAvatarFailed, setMaintainerAvatarFailed] = useState(false);
   useEffect(() => {
@@ -95,7 +96,7 @@ console.log(result.data.playerId, result.data.name);`;
     <PublicSiteHeader current="developer" />
     <main className="dev-shell dev-page">
       <header className="dev-overview">
-        <div><div className="dev-eyebrow">Developer workspace / Overview</div><h1 id="developer-docs-title" className="dev-page-title">Developer API documentation</h1><p className="dev-muted">Manage your API credentials and integrate Kingshot player data into your tools.</p></div>
+        <div><div className="dev-eyebrow">{t("developer.workspace","Developer workspace")} / {t("common.status")}</div><h1 id="developer-docs-title" className="dev-page-title">{t("developer.title")}</h1><p className="dev-muted">{t("developer.subtitle")}</p></div>
         <span className="dev-version-pill"><span style={{width:7,height:7,borderRadius:9,background:"#9ce9c2",boxShadow:"0 0 0 3px #9ce9c21c"}}/> API v4 <span style={{color:"#687487"}}>·</span> HTTPS</span>
       </header>
       <div className="dev-stat-grid" aria-label="API overview">
@@ -104,7 +105,7 @@ console.log(result.data.playerId, result.data.name);`;
         <article className="dev-stat"><div className="dev-stat-label">Additional protection</div><div className="dev-stat-value">120 / min / IP</div><div className="dev-stat-detail">Shared IP-level rate limit</div></article>
       </div>
       <div className="dev-section-nav" aria-label="Documentation sections"><a href="#quickstart"><Terminal size={13}/> Quick start</a><a href="#api-reference"><Activity size={13}/> Player lookup</a><a href="#manual-redemption"><Code2 size={13}/> Manual redeem</a><a href="#auto-redemption"><Gauge size={13}/> Auto redeem</a><a href="#limits"><Activity size={13}/> Limits &amp; errors</a><a href="#authentication"><ShieldCheck size={13}/> Security</a><a href="#maintainer-contact"><MessageCircle size={13}/> Contact</a></div><div className="dev-layout">
-        <aside className="dev-sidebar" aria-label="Account and API keys"><DeveloperAccountPanel/></aside>
+        <aside className="dev-sidebar" aria-label={t("developer.account")+" & "+t("developer.keys")}><DeveloperAccountPanel/></aside>
         <div className="dev-content"><div className="dev-doc-grid">
           <section className="dev-card dev-feature-card">
             <div className="dev-section-kicker" style={{display:"flex",alignItems:"center",gap:7}}><ShieldCheck size={14}/> Kingshot REST API</div>
@@ -154,7 +155,7 @@ console.log(result.data.playerId, result.data.name);`;
           <div style={{height:0}}/>
           {accordion("limits","Rate limits and response codes",<><p style={paragraph}>Current limits: 60 requests per minute and 1,000 requests per day per key, plus 120 requests per minute per IP. Responses include rate-limit headers when available. On <code>429</code>, honor <code>Retry-After</code> and use bounded backoff. Use <code>retryHint</code> to recover: <code>honor_retry_after</code>, <code>bounded_backoff</code>, <code>same_idempotency_key</code>, or <code>do_not_retry</code>. V4 responses always include <code>success</code>, <code>data</code>, <code>error</code>, and <code>meta</code>. Errors use <code>error.code</code>, <code>error.message</code>, <code>error.retryable</code>, and <code>error.retryHint</code>; every response includes <code>meta.apiVersion</code>, <code>meta.requestId</code>, and <code>meta.timestamp</code>. The body request ID and <code>X-Request-Id</code> always describe the current HTTP attempt, including idempotency replays. The request ID also appears in <code>X-Request-Id</code>, and <code>X-API-Version</code> is <code>4</code>. A redemption can complete with HTTP 200 even if the game rejects the code; inspect the response body and retry an ambiguous outcome only with the same Idempotency-Key and request body.</p><div style={{display:"grid",gap:8,marginTop:13}}>{[["200","API request processed; check data.ok for redemption"],["400","Invalid input or request fields"],["401","Missing, invalid, or revoked API key"],["404","Player not found"],["405","Method not allowed"],["409","Idempotency conflict or request still processing"],["415","Redemption requires application/json"],["429","Rate limit or quota exceeded"],["502","Upstream provider unavailable"],["503","Service temporarily unavailable"],["504","Upstream timeout; redemption outcome may be ambiguous"]].map(([status,desc])=><div key={status} style={{display:"flex",gap:12,borderBottom:"1px solid #252c38",padding:"7px 0"}}><code style={{width:38,color:status==="200"?"#9ce9c2":"#b8bdff"}}>{status}</code><span style={{color:"#aeb8ca",fontSize:13}}>{desc}</span></div>)}</div></>)}
           <div style={{height:0}}/>
-          {accordion("lifecycle","API key lifecycle and availability",<><p style={paragraph}>Sign in with Discord to create and manage your own API keys. Keys are displayed in full only once; only a hash is stored. You can revoke a key from the account panel, and revoked keys stop authorizing requests.</p><p style={paragraph}>Developer accounts do not grant administrative access. Keep keys private and revoke any secret that may have been exposed.</p></>)}
+          {accordion("lifecycle",t("developer.lifecycle","API key lifecycle and availability"),<><p style={paragraph}>Sign in with Discord to create and manage your own API keys. Keys are displayed in full only once; only a hash is stored. You can revoke a key from the account panel, and revoked keys stop authorizing requests.</p><p style={paragraph}>Developer accounts do not grant administrative access. Keep keys private and revoke any secret that may have been exposed.</p></>)}
           <section className="dev-card dev-maintainer-card" id="maintainer-contact" aria-labelledby="maintainer-contact-title">
             <div className="dev-maintainer-heading">
               <div className="dev-card-head"><MessageCircle size={18} color="#d4bd88"/><h2 className="dev-card-title" id="maintainer-contact-title">Built and maintained by {DEVELOPER_NAME}</h2></div>
@@ -175,7 +176,7 @@ console.log(result.data.playerId, result.data.name);`;
                 <a className="dev-maintainer-discord" href={DEVELOPER_DISCORD_URL} target="_blank" rel="noopener noreferrer" aria-describedby="maintainer-contact-note" aria-label={"Open Discord profile for " + DEVELOPER_NAME + " in a new tab"}><MessageCircle size={15}/> Open Discord profile <ExternalLink size={13}/></a>
               </div>
             </div>
-            <p className="dev-maintainer-note" id="maintainer-contact-note"><ShieldCheck size={15}/><span><b>Developer contact only.</b> This opens Judson’s Discord profile; it does not sign you in or create an account. Direct messages depend on Discord privacy settings. For account or redemption issues, use the in-app Support Centre. Never share passwords, API keys, or sign-in codes.</span></p>
+            <p className="dev-maintainer-note" id="maintainer-contact-note"><ShieldCheck size={15}/><span><b>{t("legal.contact")}.</b> This opens Judson’s Discord profile; it does not sign you in or create an account. Direct messages depend on Discord privacy settings. For account or redemption issues, use the in-app Support Centre. Never share passwords, API keys, or sign-in codes.</span></p>
           </section>
           </div>
         </div>
