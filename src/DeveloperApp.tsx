@@ -172,7 +172,7 @@ console.log(result.data.playerId, result.data.name);`;
                     <span className="site-account-role-mark" aria-hidden="true">★</span>
                   </span>
                 </span>
-                <span className="dev-maintainer-identity-copy"><b>{DEVELOPER_NAME}</b><span className="dev-maintainer-handle-row"><small>@{maintainerHandle}</small><CopyButton value={"@" + maintainerHandle} label={t("developer.copy","Copy")}/></span></span>
+                <span className="dev-maintainer-identity-copy"><b>{DEVELOPER_NAME}</b><span className="dev-maintainer-handle-row"><small>@{maintainerHandle}</small><CopyButton value={"@" + maintainerHandle} label="Copy"/></span></span>
               </div>
               <div className="dev-maintainer-actions">
                 <a className="dev-maintainer-discord" href={DEVELOPER_DISCORD_URL} target="_blank" rel="noopener noreferrer" aria-describedby="maintainer-contact-note" aria-label={t("developer.openDiscordProfileFor","Open Discord profile for")+" "+DEVELOPER_NAME+" "+t("developer.inNewTab","in a new tab")}><MessageCircle size={15}/> {t("developer.openDiscordProfile","Open Discord profile")} <ExternalLink size={13}/></a>
