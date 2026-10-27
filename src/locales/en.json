@@ -53,5 +53,20 @@
   "drawer.navigation": "NAVIGATION",
   "drawer.explore": "Explore",
   "drawer.supportDescription": "Get help or continue a private ticket",
-  "drawer.passwordNotice": "Your game password is never requested."
+  "drawer.passwordNotice": "Your game password is never requested.",
+  "info.about": "ABOUT THE SERVICE",
+  "info.basicFlow": "The basic flow.",
+  "info.register": "Register your player",
+  "info.registerDesc": "Your Player ID is checked and linked to its current kingdom.",
+  "info.activePool": "Codes enter the active pool",
+  "info.activePoolDesc": "Public sources are checked for active gift codes. Codes known to be expired are excluded.",
+  "info.workers": "Workers process eligible players",
+  "info.workersDesc": "The service checks registered players and processes eligible codes automatically.",
+  "info.results": "Results are remembered",
+  "info.resultsDesc": "Each result is saved to prevent duplicate attempts and keep a redemption history.",
+  "legal.privacyEyebrow": "PRIVACY NOTICE",
+  "legal.termsEyebrow": "TERMS OF USE",
+  "legal.privacyTitle": "Your data, explained.",
+  "legal.termsTitle": "Use the service responsibly.",
+  "legal.independent": "Independent community project"
 }
