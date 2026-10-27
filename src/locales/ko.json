@@ -52,6 +52,21 @@
   "drawer.accountNavigation": "계정 및 메뉴",
   "drawer.navigation": "메뉴",
   "drawer.explore": "둘러보기",
-  "drawer.supportDescription": "도움말을 확인하거나 비공개 문의를 이어가세요",
-  "drawer.passwordNotice": "게임 비밀번호를 요청하지 않습니다."
+  "drawer.supportDescription": "도움을 받거나 비공개 문의를 이어가세요",
+  "drawer.passwordNotice": "게임 비밀번호를 요청하지 않습니다.",
+  "info.about": "서비스 소개",
+  "info.basicFlow": "기본 이용 절차",
+  "info.register": "플레이어 등록",
+  "info.registerDesc": "플레이어 ID를 확인하고 현재 왕국과 연결합니다.",
+  "info.activePool": "사용 가능한 코드 수집",
+  "info.activePoolDesc": "공개 출처에서 활성 기프트 코드를 확인하고 만료된 것으로 알려진 코드는 제외합니다.",
+  "info.workers": "대상 플레이어 처리",
+  "info.workersDesc": "등록된 플레이어를 확인하고 사용 가능한 코드를 자동으로 처리합니다.",
+  "info.results": "결과 기록",
+  "info.resultsDesc": "중복 시도를 방지하고 교환 내역을 유지하기 위해 각 결과를 저장합니다.",
+  "legal.privacyEyebrow": "개인정보 처리방침",
+  "legal.termsEyebrow": "이용약관",
+  "legal.privacyTitle": "개인정보 처리 안내",
+  "legal.termsTitle": "서비스를 책임감 있게 이용해 주세요.",
+  "legal.independent": "독립 커뮤니티 프로젝트"
 }
