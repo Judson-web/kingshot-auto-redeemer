@@ -108,7 +108,8 @@ test("profile dashboard access stays restricted while the signed-in header chip 
     "a Discord session without developer/admin access must hit the restricted profile gate");
   assert.match(profile, /Open Developer API/,
     "the restricted profile gate must direct users to the API-key panel");
-  assert.match(drawer, /id:"profile",href:"\/profile",label:"Profile",description:"Developer and admin account"/,
+  assert.match(drawer, /id:"profile"/, "profile stays available in the navigation drawer");
+  assert.match(drawer, /nav\.profileDescription/, "profile navigation copy uses the shared translation dictionary");
     "profile stays available in the navigation drawer");
   assert.match(legal, /at least one active developer API key/);
   assert.match(legal, /A successful Discord sign-in by itself verifies an identity but does not grant developer permissions/);
@@ -164,4 +165,48 @@ test("support topic picker and developer contact/code examples meet accessible-n
   assert.match(developer, /aria-label=\{"Open Discord profile for " \+ DEVELOPER_NAME/);
   const keyboardCodeExamples = developer.match(/<pre className="dev-code" tabIndex=\{0\} aria-label=/g) || [];
   assert.equal(keyboardCodeExamples.length, 5, "all five horizontally scrollable code examples should be keyboard-focusable, including the V4 redemption response");
+});
+
+test("language dictionaries are separate, persistent, and used by public navigation", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const root = new URL("../src/", import.meta.url);
+  const language = await readFile(new URL("shared/site-language.js", root), "utf8");
+  const english = await readFile(new URL("shared/translations/en.js", root), "utf8");
+  const korean = await readFile(new URL("shared/translations/ko.js", root), "utf8");
+  const header = await readFile(new URL("components/PublicSiteHeader.jsx", root), "utf8");
+  const drawer = await readFile(new URL("components/MobileNavDrawer.jsx", root), "utf8");
+  assert.match(language, /localStorage\.setItem\(KEY,next\)/);
+  assert.match(language, /import en from "\.\/translations\/en\.js"/);
+  assert.match(language, /import ko from "\.\/translations\/ko\.js"/);
+  assert.match(english, /"nav.auto":"Auto Redeem"/);
+  assert.match(korean, /"nav.auto":"자동 교환"/);
+  assert.match(header, /t\(link\.key,link\.label\)/);
+  assert.match(drawer, /useSiteLanguage/);
+});
+
+
+test("auto, manual, profile, and legal pages use the shared English/Korean dictionaries", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const root = new URL("../src/", import.meta.url);
+  const main = await readFile(new URL("main.jsx", root), "utf8");
+  const profile = await readFile(new URL("ProfileApp.tsx", root), "utf8");
+  const legal = await readFile(new URL("LegalApp.jsx", root), "utf8");
+  const developer = await readFile(new URL("DeveloperApp.tsx", root), "utf8");
+  const english = await readFile(new URL("shared/translations/en.js", root), "utf8");
+  const korean = await readFile(new URL("shared/translations/ko.js", root), "utf8");
+
+  for (const source of [english, korean]) {
+    const keys = [...source.matchAll(/"([^"]+)"\s*:/g)].map(match => match[1]);
+    assert.equal(new Set(keys).size, keys.length, "translation dictionary keys must be unique");
+  }
+  assert.match(main, /function KingshotApp\(\)[\s\S]*?useSiteLanguage/);
+  assert.match(main, /t\("manual\.title"/);
+  assert.match(main, /t\("auto\.title"/);
+  assert.match(main, /t\("outcome\.summaryKicker"/);
+  assert.match(profile, /tr\("Live service status","실시간 서비스 상태"\)/);
+  assert.match(legal, /t\("legal\.updated"/);
+  assert.match(developer, /t\("developer\.title"/);
+  assert.match(developer, /t\("developer\.quickStart"/);
+  assert.match(english, /"manual\.title":"Redeem a gift code"/);
+  assert.match(korean, /"manual\.title":"기프트 코드 교환"/);
 });

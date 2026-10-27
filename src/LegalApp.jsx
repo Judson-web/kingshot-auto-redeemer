@@ -1,17 +1,19 @@
 import React from "react";
 import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
+import {useSiteLanguage} from "./shared/site-language.js";
 import "./legal-redesign.css";
 const BRAND_ICON="/favicon.svg";
 const LAST_UPDATED="October 27, 2026";
-const services={"kingshot-manual":{label:"Manual Redeemer",summary:"Submit a gift code for an individual player."},"kingshot-auto":{label:"Auto Redeem",summary:"Register a player for scheduled gift-code processing."}};
+const services={"kingshot-manual":{label:"Manual Redeemer",summaryKey:"legal.manualSummary",summary:"Submit a gift code for an individual player."},"kingshot-auto":{label:"Auto Redeem",summaryKey:"legal.autoSummary",summary:"Register a player for scheduled gift-code processing."}};
 export default function LegalApp({type}){
  const key=new URLSearchParams(location.search).get("service"),service=services[key]||services["kingshot-manual"],privacy=type==="privacy",serviceKey=key||"kingshot-manual";
+ const {t}=useSiteLanguage();
  return <div className="app ks-app legal-app">
   <PublicSiteHeader current={privacy?"privacy":"terms"} />
-  <main><section className="legal-hero"><div className="eyebrow"><span/>{privacy?"PRIVACY NOTICE":"TERMS OF USE"}</div><h1>{privacy?"Your data, explained.":"Use the service responsibly."}</h1><p className="hero-copy">{service.summary}</p><div className="legal-meta"><span>Updated {LAST_UPDATED}</span><span>Independent community project</span></div><div className="legal-tabs"><a className={!privacy?"active":""} href={"/terms?service="+serviceKey}>Terms</a><a className={privacy?"active":""} href={"/privacy?service="+serviceKey}>Privacy</a></div></section>
+  <main><section className="legal-hero"><div className="eyebrow"><span/>{privacy?t("legal.privacyEyebrow","PRIVACY NOTICE"):t("legal.termsEyebrow","TERMS OF USE")}</div><h1>{privacy?t("legal.privacyTitle","Your data, explained."):t("legal.termsTitle","Use the service responsibly.")}</h1><p className="hero-copy">{t(service.summaryKey||"legal.manualSummary",service.summary)}</p><div className="legal-meta"><span>{t("legal.updated","Updated")} {t("legal.updatedDate",LAST_UPDATED)}</span><span>{t("legal.independent","Independent community project")}</span></div><div className="legal-tabs"><a className={!privacy?"active":""} href={"/terms?service="+serviceKey}>{t("legal.termsTab","Terms")}</a><a className={privacy?"active":""} href={"/privacy?service="+serviceKey}>{t("legal.privacyTab","Privacy")}</a></div></section>
    <section className="legal-body">
    {privacy?<>
-    <h2>Information used to provide the service</h2>
+    <h2>{t("legal.information","Information used to provide the service")}</h2>
     <p>Depending on the features you use, we process the Kingshot Player ID and kingdom ID you submit; profile details returned by player-data providers; display information you choose to supply; gift codes submitted for redemption; registration status; redemption results and recovery records; and messages or photographs you send through support. When you use an account or developer features, we also process provider identity and account/session data needed to authenticate you, display your profile, and manage API keys. Do not send game passwords, payment information, authentication codes, or other secrets through the site.</p>
     <h2>Website telemetry and connection information</h2>
     <p>When a page view is recorded, the service may store the request IP address when available, country, region, city and timezone supplied by the hosting platform, page path without query parameters, referrer hostname, user-agent string, inferred browser/operating-system/device category, accepted language, approximate screen-size class, and event timestamp. Visitor-event rows have a 30-day expiry and a scheduled daily job deletes expired rows. Collection is best-effort and rate-limited and runs at most once per page path per tab session. It does not intentionally record form values, game credentials, precise GPS coordinates, or a cross-site advertising fingerprint. Hosting providers may separately process request metadata under their own settings and policies.</p>
@@ -50,6 +52,6 @@ export default function LegalApp({type}){
    <p className="legal-note">This page is a plain-language description of current service practices and rules, not legal advice. Applicable legal rights and obligations depend on the circumstances and the laws that apply to you.</p>
    </section>
   </main>
-  <footer><a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={BRAND_ICON} alt="Kingshot Redeemer"/></span><span>Kingshot Redeemer</span></a><span>Independent community service · Maintained by Judson</span><span><a href="https://discord.com/users/871756466900598815" target="_blank" rel="noopener noreferrer">Developer contact</a> · <a href={"/terms?service="+serviceKey}>Terms</a> · <a href={"/privacy?service="+serviceKey}>Privacy</a></span></footer>
+  <footer><a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={BRAND_ICON} alt="Kingshot Redeemer"/></span><span>Kingshot Redeemer</span></a><span>{t("legal.footer","Independent community service · Maintained by Judson")}</span><span><a href="https://discord.com/users/871756466900598815" target="_blank" rel="noopener noreferrer">{t("legal.contact","Developer contact")}</a> · <a href={"/terms?service="+serviceKey}>{t("legal.termsTab","Terms")}</a> · <a href={"/privacy?service="+serviceKey}>{t("legal.privacyTab","Privacy")}</a></span></footer>
  </div>;
 }
