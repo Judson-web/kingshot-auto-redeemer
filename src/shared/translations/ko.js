@@ -619,4 +619,6 @@ export default {
   "support.updateStatusFailed": "상태를 업데이트할 수 없습니다.",
   "support.copyConversationIdFailed": "대화 ID를 복사할 수 없습니다.",
   "support.replyFailed": "답변을 보내지 못했습니다.",
+  "support.enableNotificationsFailed": "답변 알림을 활성화할 수 없습니다.",
+  "developer.footerMeta": "API v4 · 지원 개발자 API · V1 경로 사용 중단 · 유지관리자:",
 };
