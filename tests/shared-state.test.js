@@ -102,7 +102,7 @@ test("profile dashboard access stays restricted while the signed-in header chip 
 
   assert.match(chip, /if\(!account\)return null;/,
     "the profile shortcut must appear for any signed-in account, regardless of first API-key generation");
-  assert.match(chip, /isDeveloper=account\.role==="developer"\|\|account\.kind==="developer"/,
+  assert.match(chip, /dev=account\.role==="developer"\|\|account\.kind==="developer"/,
     "developer styling must still reflect verified developer status rather than ordinary sign-in");
   assert.match(profile, /if\(user&&!hasProfileAccess\)/,
     "a Discord session without developer/admin access must hit the restricted profile gate");
