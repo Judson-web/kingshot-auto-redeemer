@@ -758,4 +758,6 @@ export default {
   "outcome.summaryInvalidId": "Use the numeric Player ID shown in Kingshot under Profile → Info. It must contain 5–20 digits; your kingdom number is different.",
   "outcome.summaryNotFound": "No player was found for this ID. Check every digit against Kingshot → Profile → Info. If the ID is correct, try again shortly.",
   "outcome.reasonDisabledDefault": "Auto-redemption is disabled for this Player ID."
+,
+  "outcome.playerProfile": "Player profile"
 };
