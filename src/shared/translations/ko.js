@@ -760,5 +760,8 @@ export default {
   "outcome.reasonDisabledDefault": "이 플레이어 ID는 자동 교환이 비활성화되어 있습니다."
 ,
   "outcome.playerProfile": "플레이어 프로필",
-  "developer.copyExample": "예제 복사"
+  "developer.copyExample": "예제 복사",
+  "developer.copyPath": "경로 복사",
+  "developer.exampleLabel": "예제",
+  "developer.pathLabel": "경로"
 };
