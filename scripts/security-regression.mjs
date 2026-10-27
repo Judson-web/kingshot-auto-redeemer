@@ -68,7 +68,7 @@ const v3PlayerHandler=read("lib/api-v3/player-handler.ts");
 const legacyDeveloperApi=read("lib/developer-api.ts");
 assertCheck("Manual redemption gives actionable Player ID errors instead of a generic redemption failure",
  manualUi.includes('playerIdFeedback(e?.code,e?.message)') &&
- manualUi.includes('<b>{errorTitle}</b>') &&
+ manualUi.includes('manual.errorTitlePlayerId') && manualUi.includes('manual.playerNotFoundTitle') &&
  manualUi.includes('setErrorTitle("Check Player ID")') &&
  manualUi.includes('Use the numeric Player ID shown in Kingshot under Profile → Info.') &&
  manualUi.includes('aria-invalid={Boolean(error&&errorTitle==="Check Player ID")}') &&
