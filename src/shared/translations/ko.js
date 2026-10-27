@@ -100,5 +100,8 @@ export default {
   "auto.step2":"자동 확인",
   "auto.step2Text":"이전의 유효한 코드를 포함해 사용 가능한 코드를 확인합니다.",
   "auto.step3":"개별 결과",
-  "auto.step3Text":"각 ID의 결과를 따로 처리하므로 한 플레이어의 문제가 다른 플레이어를 중단시키지 않습니다."
+  "auto.step3Text":"각 ID의 결과를 따로 처리하므로 한 플레이어의 문제가 다른 플레이어를 중단시키지 않습니다.",
+  "auto.progressOf":"de",
+  "auto.progressComplete":"완료",
+  "auto.progressLabel":"플레이어 등록 진행 상황"
 };
