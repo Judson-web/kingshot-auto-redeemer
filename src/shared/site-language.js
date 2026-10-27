@@ -11,7 +11,7 @@ export function getSiteLanguage(){return getSavedSiteLanguage()||"en"}
 export function setSiteLanguage(language){const next=language==="ko"?"ko":"en";languageSelectionVersion++;try{localStorage.setItem(KEY,next)}catch{}if(typeof document!=="undefined")document.documentElement.lang=next;if(typeof window!=="undefined")window.dispatchEvent(new CustomEvent(CHANGE_EVENT,{detail:next}));return next}
 function detectDefaultLanguage(){
  if(!localeDetectionPromise){
-  localeDetectionPromise=fetch("/api/site-locale",{method:"GET",credentials:"same-origin",cache:"no-store",headers:{accept:"application/json"}})
+  localeDetectionPromise=fetch("/api/ops-tools/visitor",{method:"GET",credentials:"same-origin",cache:"no-store",headers:{accept:"application/json"},signal:typeof AbortSignal!=="undefined"&&typeof AbortSignal.timeout==="function"?AbortSignal.timeout(2500):undefined})
    .then(response=>{if(!response.ok)throw new Error("Locale detection unavailable");return response.json()})
    .then(data=>String(data?.countryCode||"").toUpperCase()==="KR"?"ko":"en")
    .catch(()=> "en");
