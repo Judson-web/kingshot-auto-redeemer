@@ -603,4 +603,11 @@ export default {
   "meta.privacyDescription": "Kingshot Redeemer가 계정 정보, 플레이어 ID, 교환 기록, 고객지원 메시지 및 브라우저 데이터를 처리하는 방법을 확인하세요.",
   "meta.termsTitle": "이용약관 | Kingshot Redeemer",
   "meta.termsDescription": "독립 커뮤니티 서비스인 Kingshot Redeemer의 이용 조건과 위험을 확인하세요.",
+  "maintenance.active": "점검 진행 중",
+  "maintenance.mode": "점검 모드",
+  "maintenance.inProgress": "진행 중",
+  "maintenance.messageFallback": "현재 점검으로 인해 서비스를 일시적으로 이용할 수 없습니다. 잠시 후 다시 확인해 주세요.",
+  "maintenance.supportSubject": "점검 관련 문의",
+  "maintenance.supportPageTitle": "서비스 점검",
+  "maintenance.footer": "독립 커뮤니티 서비스",
 };
