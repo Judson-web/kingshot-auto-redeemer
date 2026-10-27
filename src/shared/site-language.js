@@ -6,9 +6,10 @@ export const LANGUAGE_OPTIONS=[{id:"EN",code:"en",flag:"🇺🇸",label:"English
 export const TRANSLATIONS={en,ko};
 let languageSelectionVersion=0;
 let localeDetectionPromise=null;
+let currentSiteLanguage="en";
 export function getSavedSiteLanguage(){try{const saved=localStorage.getItem(KEY);if(saved==="ko"||saved==="en")return saved}catch{}return null}
-export function getSiteLanguage(){return getSavedSiteLanguage()||"en"}
-export function setSiteLanguage(language){const next=language==="ko"?"ko":"en";languageSelectionVersion++;try{localStorage.setItem(KEY,next)}catch{}if(typeof document!=="undefined")document.documentElement.lang=next;if(typeof window!=="undefined")window.dispatchEvent(new CustomEvent(CHANGE_EVENT,{detail:next}));return next}
+export function getSiteLanguage(){return getSavedSiteLanguage()||currentSiteLanguage||"en"}
+export function setSiteLanguage(language){const next=language==="ko"?"ko":"en";currentSiteLanguage=next;languageSelectionVersion++;try{localStorage.setItem(KEY,next)}catch{}if(typeof document!=="undefined")document.documentElement.lang=next;if(typeof window!=="undefined")window.dispatchEvent(new CustomEvent(CHANGE_EVENT,{detail:next}));return next}
 function detectDefaultLanguage(){
  if(!localeDetectionPromise){
   localeDetectionPromise=fetch("/api/ops-tools/visitor",{method:"GET",credentials:"same-origin",cache:"no-store",headers:{accept:"application/json"},signal:typeof AbortSignal!=="undefined"&&typeof AbortSignal.timeout==="function"?AbortSignal.timeout(2500):undefined})
@@ -41,6 +42,7 @@ export function useSiteLanguage(){
  useEffect(()=>{
   const sync=event=>setLanguage(event?.detail||getSiteLanguage());
   window.addEventListener(CHANGE_EVENT,sync);
+  currentSiteLanguage=language;
   document.documentElement.lang=language;
   syncDocumentMetadata(language);
   return()=>window.removeEventListener(CHANGE_EVENT,sync)
@@ -51,6 +53,7 @@ export function useSiteLanguage(){
   let active=true;
   detectDefaultLanguage().then(detected=>{
    if(!active||getSavedSiteLanguage()||selectionVersion!==languageSelectionVersion)return;
+   currentSiteLanguage=detected;
    setLanguage(detected);
   });
   return()=>{active=false};
