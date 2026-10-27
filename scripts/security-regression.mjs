@@ -55,7 +55,7 @@ assertCheck("Equipped Kingshot avatar frames render app-wide through a safe same
   cspHeader?.value.includes("connect-src 'self'") &&
   !cspHeader?.value.includes("https://www.mightpulse.com"));
 assertCheck("Manual redemption is one compact player card without redundant footer actions",
- manualUi.includes("ks-result-compact") && (manualUi.includes("REDEMPTION RESULT") || manualUi.includes('t("manual.result")')) &&
+ manualUi.includes("ks-result-compact") && (manualUi.includes("REDEMPTION RESULT") || manualUi.includes('t("manual.result")') || manualUi.includes('t("manual.results")')) &&
  !manualUi.includes("Copy reference") && !manualUi.includes("Redeem another code") &&
  resultUiCss.includes(".ks-result-compact"));
 
