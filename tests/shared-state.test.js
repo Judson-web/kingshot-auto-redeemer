@@ -108,7 +108,7 @@ test("profile dashboard access stays restricted while the signed-in header chip 
     "a Discord session without developer/admin access must hit the restricted profile gate");
   assert.match(profile, /Open Developer API/,
     "the restricted profile gate must direct users to the API-key panel");
-  assert.match(drawer, /id:"profile",href:"\/profile",label:"Profile",description:"Developer and admin account"/,
+  assert.match(drawer, /id:"profile",href:"\/profile",label:t\("nav\.profile","Profile"\),description:t\("drawer\.profileDescription","Developer and admin account"\)/,
     "profile stays available in the navigation drawer");
   assert.match(legal, /at least one active developer API key/);
   assert.match(legal, /A successful Discord sign-in by itself verifies an identity but does not grant developer permissions/);
@@ -118,9 +118,13 @@ test("language selector supports English and Korean with a persistent selection"
   const { readFile } = await import("node:fs/promises");
   const header = await readFile(new URL("../src/components/PublicSiteHeader.jsx", import.meta.url), "utf8");
   const language = await readFile(new URL("../src/shared/site-language.js", import.meta.url), "utf8");
+  const english = await readFile(new URL("../src/locales/en.json", import.meta.url), "utf8");
+  const korean = await readFile(new URL("../src/locales/ko.json", import.meta.url), "utf8");
   const styles = await readFile(new URL("../src/public-site-header.css", import.meta.url), "utf8");
   assert.match(language, /flag:"🇺🇸".*label:"English"/s);
-  assert.match(header, /ko:"자동 교환"/);
+  assert.match(header, /key:"nav\.auto"/);
+  assert.match(english, /"nav\.auto": "Auto Redeem"/);
+  assert.match(korean, /"nav\.auto": "자동 교환"/);
   assert.match(header, /role="listbox"/);
   assert.match(language, /localStorage\.setItem\(KEY,next\)/);
   assert.match(language, /document\.documentElement\.lang=next/);

@@ -1,14 +1,18 @@
 import React from "react";
 import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
+import { useSiteLanguage } from "./shared/site-language.js";
+import { translate } from "./shared/i18n.js";
 import "./legal-redesign.css";
 const BRAND_ICON="/favicon.svg";
 const LAST_UPDATED="October 27, 2026";
 const services={"kingshot-manual":{label:"Manual Redeemer",summary:"Submit a gift code for an individual player."},"kingshot-auto":{label:"Auto Redeem",summary:"Register a player for scheduled gift-code processing."}};
 export default function LegalApp({type}){
+ const {language}=useSiteLanguage();
+ const t=(key,fallback="")=>translate(key,language,fallback);
  const key=new URLSearchParams(location.search).get("service"),service=services[key]||services["kingshot-manual"],privacy=type==="privacy",serviceKey=key||"kingshot-manual";
  return <div className="app ks-app legal-app">
   <PublicSiteHeader current={privacy?"privacy":"terms"} />
-  <main><section className="legal-hero"><div className="eyebrow"><span/>{privacy?"PRIVACY NOTICE":"TERMS OF USE"}</div><h1>{privacy?"Your data, explained.":"Use the service responsibly."}</h1><p className="hero-copy">{service.summary}</p><div className="legal-meta"><span>Updated {LAST_UPDATED}</span><span>Independent community project</span></div><div className="legal-tabs"><a className={!privacy?"active":""} href={"/terms?service="+serviceKey}>Terms</a><a className={privacy?"active":""} href={"/privacy?service="+serviceKey}>Privacy</a></div></section>
+  <main><section className="legal-hero"><div className="eyebrow"><span/>{privacy?t("legal.privacyEyebrow","PRIVACY NOTICE"):t("legal.termsEyebrow","TERMS OF USE")}</div><h1>{privacy?t("legal.privacyTitle","Your data, explained."):t("legal.termsTitle","Use the service responsibly.")}</h1><p className="hero-copy">{service.summary}</p><div className="legal-meta"><span>{t("legal.updated","Updated")} {LAST_UPDATED}</span><span>{t("legal.independent","Independent community project")}</span></div><div className="legal-tabs"><a className={!privacy?"active":""} href={"/terms?service="+serviceKey}>{t("legal.terms","Terms")}</a><a className={privacy?"active":""} href={"/privacy?service="+serviceKey}>{t("legal.privacy","Privacy")}</a></div></section>
    <section className="legal-body">
    {privacy?<>
     <h2>Information used to provide the service</h2>
