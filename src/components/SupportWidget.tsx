@@ -1,5 +1,4 @@
 import React,{useEffect,useState}from"react";
-import {useSiteLanguage} from "../shared/site-language.js";
 import "../support-chat-polish.css";
 import "../support-centre-redesign.css";
 import{MessageCircle,X,Send,LoaderCircle,CheckCircle2,LifeBuoy,ArrowLeft,RefreshCw,ShieldCheck,Headset,UserRound,LockKeyhole,Paperclip,Image as ImageIcon,ChevronDown,Check,BellRing}from"lucide-react";
@@ -12,7 +11,7 @@ async function request(url:string,init:RequestInit={}){const r=await fetch(url,{
 function saved():Saved|null{try{const x=JSON.parse(localStorage.getItem(STORAGE)||"null");return x&&typeof x.conversationId==="string"&&typeof x.token==="string"?x:null}catch{return null}}
 
 type PageContext={title:string;topic:string;hint:string};
-function getPageContext(language:"en"|"ko"="en"):PageContext{
+function getPageContext(language:string="en"):PageContext{
  const tr=(key:string,fallback:string)=>translate(language,key,fallback);
  const path=typeof window==="undefined"?"/":window.location.pathname;
  if(path==="/developer")return{title:tr("support.contextDeveloper","Developer API"),topic:"Developer API",hint:tr("support.developerHint","Include the endpoint, request ID, and response status if relevant.")};
@@ -34,8 +33,8 @@ function storedId(key:string){try{const n=Number(localStorage.getItem(key));retu
 function saveId(key:string,id:number){try{localStorage.setItem(key,String(Math.max(0,id)))}catch{}}
 function safeDate(value:string){const date=new Date(value);return Number.isNaN(date.getTime())?null:date}
 function dayKey(value:string){const date=safeDate(value);return date?date.toLocaleDateString():"unknown"}
-function dayLabel(value:string,language:"en"|"ko"="en"){const date=safeDate(value);if(!date)return st("dateUnavailable","Date unavailable");const today=new Date();if(date.toDateString()===today.toDateString())return st("today","Today");const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);if(date.toDateString()===yesterday.toDateString())return st("yesterday","Yesterday");return date.toLocaleDateString(language==="ko"?"ko-KR":"en-US",{weekday:"short",month:"short",day:"numeric",year:date.getFullYear()===today.getFullYear()?undefined:"numeric"})}
-function timeLabel(value:string,language:"en"|"ko"="en"){const date=safeDate(value);return date?date.toLocaleTimeString(language==="ko"?"ko-KR":"en-US",{hour:"numeric",minute:"2-digit"}):st("timeUnavailable","Time unavailable")}
+function dayLabel(value:string,language:string="en"){const date=safeDate(value);if(!date)return st("dateUnavailable","Date unavailable");const today=new Date();if(date.toDateString()===today.toDateString())return st("today","Today");const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);if(date.toDateString()===yesterday.toDateString())return st("yesterday","Yesterday");return date.toLocaleDateString(language==="ko"?"ko-KR":"en-US",{weekday:"short",month:"short",day:"numeric",year:date.getFullYear()===today.getFullYear()?undefined:"numeric"})}
+function timeLabel(value:string,language:string="en"){const date=safeDate(value);return date?date.toLocaleTimeString(language==="ko"?"ko-KR":"en-US",{hour:"numeric",minute:"2-digit"}):st("timeUnavailable","Time unavailable")}
 
 async function syncSupportPush(c:Saved,createIfMissing:boolean){
  if(!("serviceWorker"in navigator)||!("PushManager"in window))throw Error(st("backgroundNotificationsUnsupported","This browser does not support background notifications."));
