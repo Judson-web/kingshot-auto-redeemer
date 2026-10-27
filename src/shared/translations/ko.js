@@ -672,7 +672,7 @@ export default {
   "pushNotifications.retry": "권한 허용 후 다시 시도",
   "pushNotifications.enable": "알림 켜기",
   "common.text": "텍스트",
-  "common.copiedSuccessfully": "복사되었습니다",
+  "common.copiedSuccessfully": "복사 완료",
   "profile.requestFailed": "요청에 실패했습니다.",
   "profile.signInFailed": "Discord 로그인에 실패했습니다.",
   "profile.signInNotConfigured": "Discord 로그인이 설정되지 않았습니다.",
@@ -759,5 +759,6 @@ export default {
   "outcome.summaryNotFound": "해당 ID의 플레이어를 찾을 수 없습니다. Kingshot의 프로필 → 정보에서 숫자를 다시 확인해 주세요. ID가 정확하다면 잠시 후 다시 시도해 주세요.",
   "outcome.reasonDisabledDefault": "이 플레이어 ID는 자동 교환이 비활성화되어 있습니다."
 ,
-  "outcome.playerProfile": "플레이어 프로필"
+  "outcome.playerProfile": "플레이어 프로필",
+  "developer.copyExample": "예제 복사"
 };
