@@ -646,4 +646,6 @@ export default {
   "developer.codeManualRedemption": "Manual redemption cURL example, horizontally scrollable",
   "developer.codeRedemptionJson": "Example V4 redemption response, horizontally scrollable",
   "developer.codeAutoRegistration": "Automatic redemption registration cURL example, horizontally scrollable",
+  "pwa.updateToast": "New version available · Refresh",
+  "common.loadingWorkspace": "Loading workspace…",
 };
