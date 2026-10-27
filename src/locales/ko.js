@@ -1,0 +1,7 @@
+export default {
+skip:"본문으로 건너뛰기",back:"자동 교환으로 돌아가기",eyebrow:"서비스 소개",title:"이용 방법",hero:"플레이어 등록, 자동 코드 확인, 교환 기록 및 계정 정보 보호 방식에 대한 안내입니다.",
+flowTitle:"기본 진행 과정",step1:"플레이어 등록",step1Text:"플레이어 ID를 확인하고 현재 왕국 정보와 연결합니다.",step2:"사용 가능한 코드 수집",step2Text:"공개된 출처에서 사용 가능한 기프트 코드를 확인하고, 만료된 것으로 알려진 코드는 제외합니다.",step3:"대상 플레이어 처리",step3Text:"서비스가 등록된 플레이어를 확인하고 조건에 맞는 코드를 자동으로 처리합니다.",step4:"결과 기록",step4Text:"중복 시도를 방지하고 교환 기록을 유지하기 위해 각 결과를 저장합니다.",
+featuresTitle:"서비스 주요 기능",autoTitle:"자동 교환",autoText:"플레이어 ID를 한 번 등록하면 사용 가능한 기프트 코드를 자동으로 확인합니다.",olderTitle:"이전 코드 확인",olderText:"아직 유효하고 사용되지 않은 이전 코드도 확인할 수 있습니다.",historyTitle:"교환 기록",historyText:"중복 시도를 방지하기 위해 플레이어와 코드별 결과를 저장합니다.",discoveryTitle:"코드 탐색",discoveryText:"공개된 출처를 확인하고 만료된 것으로 알려진 코드를 걸러냅니다.",secureTitle:"안전한 처리",secureText:"교환 요청은 서버에서 전송됩니다. 서명 키와 권한이 필요한 자격 증명은 비공개로 유지됩니다.",passwordTitle:"게임 비밀번호 불필요",passwordText:"등록 과정에서 Kingshot 비밀번호나 계정 로그인 정보를 요구하지 않습니다.",
+failuresTitle:"처리가 완료되지 않는 경우",expiredTitle:"만료되었거나 이미 처리됨",expiredText:"코드가 만료되었거나 사용 한도에 도달했거나 해당 플레이어가 이미 교환했을 수 있습니다.",limitsTitle:"일시적인 제한",limitsText:"외부 서비스의 일시적인 제한으로 교환이 지연될 수 있습니다. 서비스는 안전하게 재시도합니다.",mismatchTitle:"플레이어 또는 왕국 정보 불일치",mismatchText:"플레이어 정보를 검증하여 잘못되었거나 오래된 정보로 요청하는 일을 방지합니다.",
+ctaKicker:"시작할 준비가 되셨나요?",ctaTitle:"원하는 교환 방식을 선택하세요.",ctaText:"플레이어를 등록해 자동 확인을 이용하거나 원하는 기프트 코드를 직접 제출할 수 있습니다.",ctaAuto:"자동 교환",ctaManual:"수동 교환",footer:"독립적인 커뮤니티 서비스 · Judson이 제작 및 유지 관리합니다. Century Games와 제휴 관계가 없습니다.",contact:"Discord로 개발자에게 문의",footerInfo:"이용 방법",terms:"이용약관",privacy:"개인정보 처리방침"
+};
