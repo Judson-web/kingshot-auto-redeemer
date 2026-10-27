@@ -221,7 +221,6 @@ export default {
   "developer.maintainedBy":"개발 및 유지 관리",
   "developer.maintainerContact":"관리자 및 문의",
   "developer.discordContact":"Discord 개발자 문의",
-  "giftCodes.actionFailed":"작업을 완료하지 못했습니다."
   "legal.privacySection1": "서비스 제공을 위해 사용하는 정보",
   "legal.privacyBody1": "사용하는 기능에 따라 제출한 Kingshot 플레이어 ID와 왕국 ID, 플레이어 데이터 제공업체가 반환하는 프로필 정보, 직접 입력한 표시 정보, 교환을 위해 제출한 기프트 코드, 등록 상태, 교환 결과와 복구 기록, 고객지원으로 보낸 메시지나 사진을 처리합니다. 계정 또는 개발자 기능을 사용하면 본인 확인, 프로필 표시, API 키 관리를 위해 필요한 제공업체 신원 정보와 계정·세션 정보도 처리합니다. 게임 비밀번호, 결제 정보, 인증 코드 또는 기타 비밀 정보는 사이트에 보내지 마세요.",
   "legal.privacySection2": "웹사이트 이용 기록 및 연결 정보",
