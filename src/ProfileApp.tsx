@@ -3,7 +3,7 @@ import { useServiceStatus, refreshServiceStatus } from "./shared/service-status.
 import { useAccountState, setAccountState } from "./shared/account-state.js";
 import "./profile-redesign.css";
 import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
-import { useSiteLanguage } from "./shared/site-language.js";
+import { useSiteLanguage,translate,getSiteLanguage } from "./shared/site-language.js";
 
 import{MessageCircle,LogOut,ShieldCheck,UserRound,LoaderCircle,ArrowRight,CheckCircle2,AlertCircle,LockKeyhole,Activity,Wrench,WifiOff,RefreshCw,Copy,ExternalLink,Gift,Zap}from"lucide-react";
 type LiveStatus={kind:"checking"|"online"|"maintenance"|"offline";label:string;message:string;worker?:string|null;lastCompletedAt?:string|null;locked?:boolean;endsAt?:string|null;checkedAt?:number};
@@ -19,7 +19,7 @@ function LiveStatusPanel({role}:{role:"admin"|"developer"}){
 }
 type Profile={email?:string|null;username?:string|null;display_name?:string|null;discord_username?:string|null;global_name?:string|null;discord_profile_fetched_at?:string|null;avatar_url?:string|null;provider?:string;providers?:string[];providerIds?:string[];discord_id?:string|null;kind?:"user"|"developer"|"admin";role?:string};
 const API="/api/kingshot-player?developer=account-auth";
-async function request(body?:Record<string,unknown>){const r=await fetch(API,{method:body?"POST":"GET",credentials:"same-origin",cache:"no-store",headers:body?{"content-type":"application/json"}:undefined,body:body?JSON.stringify(body):undefined});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||"Request failed.");return d}
+async function request(body?:Record<string,unknown>){const r=await fetch(API,{method:body?"POST":"GET",credentials:"same-origin",cache:"no-store",headers:body?{"content-type":"application/json"}:undefined,body:body?JSON.stringify(body):undefined});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||translate(getSiteLanguage(),"profile.requestFailed","Request failed."));return d}
 function readToken(){try{return sessionStorage.getItem("ks-profile-oauth-token")||""}catch{return""}}
 function saveToken(token:string){try{if(token)sessionStorage.setItem("ks-profile-oauth-token",token)}catch{}}
 function clearToken(){try{sessionStorage.removeItem("ks-profile-oauth-token")}catch{}}
@@ -40,13 +40,13 @@ useEffect(()=>{
    setNotice(t("profile.copy024","Signed in with Discord."));
    if(["/devsupport","/message","/gift-codes","/admin/players","/admin/maintenance"].includes(returnTo||""))location.assign(returnTo);
   }).catch(e=>{
-   if(live){setAccountState(null,{error:e instanceof Error?e.message:"Discord sign-in failed."});setError(e instanceof Error?e.message:"Discord sign-in failed.")}
+   if(live){setAccountState(null,{error:e instanceof Error?e.message:t("profile.signInFailed","Discord sign-in failed.")});setError(e instanceof Error?e.message:"Discord sign-in failed.")}
   }).finally(()=>{if(live)setBusy(false)});
  }
  return()=>{live=false};
 },[]);
-async function signIn(){setBusy(true);setError("");try{const d=await request({action:"profile-discord-url"});if(!d.url)throw Error("Discord sign-in is not configured.");location.assign(d.url)}catch(e){setError(e instanceof Error?e.message:"Could not start Discord sign-in.");setBusy(false)}}
-async function logout(){setBusy(true);setError("");setNotice("");try{const r=await fetch(API,{method:"DELETE",credentials:"same-origin",cache:"no-store",headers:{"content-type":"application/json"},body:JSON.stringify({access_token:readToken()})});const d=await r.json().catch(()=>({}));clearToken();setAccountState(null);if(!r.ok)throw Error(d.error||"Signed out locally, but server-side logout could not be fully confirmed.");setNotice(t("profile.copy025","Signed out successfully."))}catch(e){setError(e instanceof Error?e.message:"Could not sign out.")}finally{setBusy(false)}}
+async function signIn(){setBusy(true);setError("");try{const d=await request({action:"profile-discord-url"});if(!d.url)throw Error(t("profile.signInNotConfigured","Discord sign-in is not configured."));location.assign(d.url)}catch(e){setError(e instanceof Error?e.message:t("profile.startSignInFailed","Could not start Discord sign-in."));setBusy(false)}}
+async function logout(){setBusy(true);setError("");setNotice("");try{const r=await fetch(API,{method:"DELETE",credentials:"same-origin",cache:"no-store",headers:{"content-type":"application/json"},body:JSON.stringify({access_token:readToken()})});const d=await r.json().catch(()=>({}));clearToken();setAccountState(null);if(!r.ok)throw Error(d.error||t("profile.logoutUnconfirmed","Signed out locally, but server-side logout could not be fully confirmed."));setNotice(t("profile.copy025","Signed out successfully."))}catch(e){setError(e instanceof Error?e.message:t("profile.signOutFailed","Could not sign out."))}finally{setBusy(false)}}
 const hasProfileAccess=Boolean(user&&(user.role==="admin"||user.kind==="admin"||user.role==="developer"||user.kind==="developer"));
 const profileLoginAllowed=["/devsupport","/message","/gift-codes","/admin/players","/admin/maintenance"].includes(new URLSearchParams(location.search).get("returnTo")||"");
 const avatar=user?.avatar_url||"https://cdn.discordapp.com/embed/avatars/0.png?size=128";
