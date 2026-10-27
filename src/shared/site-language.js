@@ -14,7 +14,7 @@ function detectDefaultLanguage(){
  if(!localeDetectionPromise){
   localeDetectionPromise=fetch("/api/ops-tools/visitor",{method:"GET",credentials:"same-origin",cache:"no-store",headers:{accept:"application/json"},signal:typeof AbortSignal!=="undefined"&&typeof AbortSignal.timeout==="function"?AbortSignal.timeout(2500):undefined})
    .then(response=>{if(!response.ok)throw new Error("Locale detection unavailable");return response.json()})
-   .then(data=>String(data?.countryCode||"").toUpperCase()==="KR"?"ko":"en")
+   .then(data=>{const country=String(data?.countryCode||data?.country_code||"").trim().toUpperCase();if(country==="KR")return "ko";if(country)return "en";const accepted=typeof navigator!=="undefined"?String(navigator.languages?.join(",")||navigator.language||"").toLowerCase():"";return /(^|[,;\s])ko(?:-|_|[,;\s]|$)/.test(accepted)?"ko":"en"})
    .catch(()=> "en");
  }
  return localeDetectionPromise;
