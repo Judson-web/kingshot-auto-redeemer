@@ -103,5 +103,9 @@ export default {
   "auto.step3Text":"One result per ID. An issue with one player does not stop the others.",
   "auto.progressOf":"of",
   "auto.progressComplete":"complete",
-  "auto.progressLabel":"Player registration progress"
+  "auto.progressLabel":"Player registration progress",
+  "common.footer":"Independent Kingshot community service. Not affiliated with Century Games.",
+  "auto.footer":"Automatic redemption is a community service. Not affiliated with Century Games.",
+  "manual.eyebrow":"KINGSHOT GIFT CODE REDEEMER",
+  "auto.eyebrow":"KINGSHOT AUTO REDEEM"
 };
