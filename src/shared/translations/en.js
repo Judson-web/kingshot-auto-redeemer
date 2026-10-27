@@ -100,5 +100,8 @@ export default {
   "auto.step2":"Automatic checks",
   "auto.step2Text":"Eligible codes, including older valid codes, are checked.",
   "auto.step3":"Individual results",
-  "auto.step3Text":"One result per ID. An issue with one player does not stop the others."
+  "auto.step3Text":"One result per ID. An issue with one player does not stop the others.",
+  "auto.progressOf":"of",
+  "auto.progressComplete":"complete",
+  "auto.progressLabel":"Player registration progress"
 };
