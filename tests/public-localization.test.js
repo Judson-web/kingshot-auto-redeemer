@@ -36,7 +36,7 @@ test("public-facing secondary copy uses localized dictionary entries", async () 
   assert.match(languageModule, /currentSiteLanguage=detected/);
   assert.match(languageModule, /getSavedSiteLanguage\(\)\|\|currentSiteLanguage/);
   assert.ok(support.includes("getSiteLanguage()"), "Support notifications should use the detected effective language");
-  assert.ok(!developer.includes("Enrolls a player in the existing scheduled auto-redeem workflow. One player per request."), "Developer enrollment copy must not remain hardcoded in JSX");
+  assert.ok(developer.includes('t("developer.autoEnrollmentDescription"'), "Developer enrollment description must use the locale dictionary");
   assert.ok(!legal.includes('<p className="legal-note">This page is a plain-language'), "Legal disclaimer must not remain hardcoded in JSX");
 });
 
