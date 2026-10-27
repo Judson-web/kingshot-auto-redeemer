@@ -35,5 +35,12 @@ export default {
   "info.failureMismatchText":"플레이어 확인 절차를 통해 잘못되었거나 오래된 정보의 제출을 방지합니다.",
   "nav.support":"지원",
   "nav.supportDescription":"도움을 받거나 비공개 문의를 이어가세요",
-  "nav.passwordNotice":"게임 비밀번호를 요청하지 않습니다."
+  "nav.passwordNotice":"게임 비밀번호를 요청하지 않습니다.",
+  "profile.myProfile":"내 프로필",
+  "profile.open":"프로필 열기",
+  "legal.manualSummary":"개별 플레이어의 기프트 코드를 제출합니다.",
+  "legal.autoSummary":"기프트 코드 자동 처리를 위해 플레이어를 등록합니다.",
+  "legal.footer":"독립 커뮤니티 서비스 · Judson이 관리합니다.",
+  "legal.contact":"개발자 문의",
+  "legal.updatedDate":"2026년 10월 27일"
 };
