@@ -610,4 +610,13 @@ export default {
   "maintenance.supportSubject": "Maintenance support request",
   "maintenance.supportPageTitle": "Service maintenance",
   "maintenance.footer": "Independent community service",
+  "developer.addKeyLabel": "Add a label for this API key before creating it.",
+  "developer.signInFirst": "Sign in with Discord on your profile page first. Your profile sign-in is shared across the site.",
+  "developer.keyCreatedNotice": "Developer access enabled and your first API key was created. Copy it now; the full secret will not be shown again.",
+  "developer.createKeyFailed": "Could not create key",
+  "support.readImageFailed": "Could not read image.",
+  "support.openLinkedConversationFailed": "Could not open linked conversation.",
+  "support.updateStatusFailed": "Could not update status.",
+  "support.copyConversationIdFailed": "Could not copy conversation ID.",
+  "support.replyFailed": "Reply failed.",
 };
