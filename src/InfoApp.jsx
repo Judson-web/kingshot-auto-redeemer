@@ -3,6 +3,8 @@ import {ArrowLeft,ArrowRight,Clock3,Database,History,LockKeyhole,RefreshCw,Zap,M
 import "./how-it-works-redesign.css";
 import MobileNavDrawer from "./components/MobileNavDrawer.jsx";
 import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
+import { useSiteLanguage } from "./shared/site-language.js";
+import { translate } from "./shared/i18n.js";
 const BRAND_ICON="/favicon.svg";
 function KsLogo(){return <a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={BRAND_ICON} alt="Kingshot Redeemer"/></span><span>Kingshot Redeemer</span></a>}
 const PROFILE_CHIP_CACHE="ks-profile-chip-v1";
@@ -30,7 +32,7 @@ function InfoApp(){
   <a className="skip-link" href="#main-content">Skip to main content</a>
   <PublicSiteHeader current="info" />
   <main id="main-content">
-   <section className="info-hero"><a className="info-back" href="/auto"><ArrowLeft size={14}/> Back to Auto Redeem</a><div className="eyebrow"><span/>ABOUT THE SERVICE</div><h1>How it works</h1><p className="hero-copy">A guide to registration, automatic code checks, redemption history, and how your account details stay protected.</p></section>
+   <section className="info-hero"><a className="info-back" href="/auto"><ArrowLeft size={14}/> Back to Auto Redeem</a><div className="eyebrow"><span/>ABOUT THE SERVICE</div><h1>{t("info.title","How it works")}</h1><p className="hero-copy">{t("info.subtitle","A guide to registration, automatic code checks, redemption history, and how your account details stay protected.")}</p></section>
    <section className="info-flow"><div className="section-title"><span>01</span><h2>The basic flow.</h2></div><div className="info-steps"><article><b>01</b><div><strong>Register your player</strong><p>Your Player ID is checked and linked to its current kingdom.</p></div></article><article><b>02</b><div><strong>Codes enter the active pool</strong><p>Public sources are checked for active gift codes. Codes known to be expired are excluded.</p></div></article><article><b>03</b><div><strong>Workers process eligible players</strong><p>The service checks registered players and processes eligible codes automatically.</p></div></article><article><b>04</b><div><strong>Results are remembered</strong><p>Each result is saved to prevent duplicate attempts and keep a redemption history.</p></div></article></div></section>
    <section className="info-features"><div className="section-title"><span>02</span><h2>What the service does.</h2></div><div className="info-grid">{sections.map(({icon:Icon,title,text})=><article key={title}><div className="info-icon"><Icon size={18}/></div><div><h3>{title}</h3><p>{text}</p></div></article>)}</div></section>
    
