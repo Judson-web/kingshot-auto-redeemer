@@ -182,3 +182,27 @@ test("language dictionaries are separate, persistent, and used by public navigat
   assert.match(header, /t\(link\.key,link\.label\)/);
   assert.match(drawer, /useSiteLanguage/);
 });
+
+
+test("auto, manual, profile, and legal pages use the shared English/Korean dictionaries", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const root = new URL("../src/", import.meta.url);
+  const main = await readFile(new URL("main.jsx", root), "utf8");
+  const profile = await readFile(new URL("ProfileApp.tsx", root), "utf8");
+  const legal = await readFile(new URL("LegalApp.jsx", root), "utf8");
+  const english = await readFile(new URL("shared/translations/en.js", root), "utf8");
+  const korean = await readFile(new URL("shared/translations/ko.js", root), "utf8");
+
+  for (const source of [english, korean]) {
+    const keys = [...source.matchAll(/"([^"]+)"\\s*:/g)].map(match => match[1]);
+    assert.equal(new Set(keys).size, keys.length, "translation dictionary keys must be unique");
+  }
+  assert.match(main, /function KingshotApp\\(\\)[\\s\\S]*?useSiteLanguage/);
+  assert.match(main, /t\\("manual\\.title"/);
+  assert.match(main, /t\\("auto\\.title"/);
+  assert.match(main, /t\\("outcome\\.summaryKicker"/);
+  assert.match(profile, /tr\\("Live service status","실시간 서비스 상태"\\)/);
+  assert.match(legal, /t\\("legal\\.updated"/);
+  assert.match(english, /"manual\\.title":"Redeem a gift code"/);
+  assert.match(korean, /"manual\\.title":"기프트 코드 교환"/);
+});
