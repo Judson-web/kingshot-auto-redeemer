@@ -671,4 +671,6 @@ export default {
   "pushNotifications.turnOff": "끄기",
   "pushNotifications.retry": "권한 허용 후 다시 시도",
   "pushNotifications.enable": "알림 켜기",
+  "common.text": "텍스트",
+  "common.copiedSuccessfully": "복사되었습니다",
 };
