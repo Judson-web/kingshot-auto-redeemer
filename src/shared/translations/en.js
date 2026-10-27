@@ -673,4 +673,10 @@ export default {
   "pushNotifications.enable": "Enable notifications",
   "common.text": "Text",
   "common.copiedSuccessfully": "copied successfully",
+  "profile.requestFailed": "Request failed.",
+  "profile.signInFailed": "Discord sign-in failed.",
+  "profile.signInNotConfigured": "Discord sign-in is not configured.",
+  "profile.startSignInFailed": "Could not start Discord sign-in.",
+  "profile.logoutUnconfirmed": "Signed out locally, but server-side logout could not be fully confirmed.",
+  "profile.signOutFailed": "Could not sign out.",
 };
