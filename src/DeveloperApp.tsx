@@ -52,8 +52,8 @@ export default function DeveloperApp() {
   const maintainerAvatarSrc = avatarHash ? "/api/discord-avatar?id=" + encodeURIComponent(DEVELOPER_DISCORD_ID) + "&hash=" + encodeURIComponent(avatarHash) + "&format=" + avatarFormat + "&size=128" : fallbackAvatarUrl;
   useEffect(() => { setMaintainerAvatarFailed(false); }, [maintainerAvatarSrc]);
   useEffect(() => {
-    const title = t("developer.metaTitle", "Kingshot Developer API Documentation");
-    const description = t("developer.metaDescription", "V4 integration guide for the Kingshot Auto Redeemer API: consistent responses, player lookup, manual redemption, quotas, and idempotency.");
+    const title = t("meta.developerTitle", "Kingshot Redeemer Developer API");
+    const description = t("meta.developerDescription", "Build with the Kingshot Redeemer API. Explore endpoints, authentication, examples, and integration guidance.");
     document.title = title;
     let meta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
     if (!meta) { meta = document.createElement("meta"); meta.name = "description"; document.head.appendChild(meta); }
