@@ -765,5 +765,22 @@ export default {
   "developer.exampleLabel": "Example",
   "developer.pathLabel": "Path"
 ,
-  "auto.validationLimitEnd": " IDs."
+  "auto.validationLimitEnd": " IDs.",
+"developer.metaTitle": "Kingshot Developer API Documentation",
+  "developer.metaDescription": "V4 integration guide for the Kingshot Auto Redeemer API: consistent responses, player lookup, manual redemption, quotas, and idempotency.",
+  "developer.restApi": "Kingshot REST API",
+  "developer.featureSummary": "Use a developer key for versioned player lookup and manual redemption. V4 is the current developer API with a consistent success/data/error/meta response envelope. V3 remains available for existing integrations; V1 is deprecated. The automatic-redemption registration flow is documented separately. Keep keys and signing secrets out of browser code, source control, and URLs.",
+  "developer.tagPlayerLookup": "Player lookup",
+  "developer.tagManualRedemption": "Manual redemption",
+  "developer.tagAutoEnrollment": "Auto-redeem enrollment",
+  "developer.tagJsonResponses": "JSON responses",
+  "developer.tagBearerAuth": "Bearer authentication",
+  "developer.autoEnrollmentDescription": "Enrolls a player in the existing scheduled auto-redeem workflow. One player per request. This public website route is rate limited and does not use a developer API key; the worker itself remains private.",
+  "developer.fieldDigits": "5–20 digits",
+  "developer.fieldSafeCharacters": "1–64 safe characters",
+  "developer.fieldKingdomId": "1–10 digit kingdom ID",
+  "developer.maintainerAvatarLabel": "Maintainer Discord profile with administrator frame",
+  "support.openConversation": "Open conversation",
+  "support.dismissNotification": "Dismiss",
+  "support.unreadRepliesAriaSuffix": "unread support replies"
 };
