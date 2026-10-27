@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import "./developer-page.css";
 import "./developer-redesign.css";
 import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
+import { useSiteLanguage } from "./shared/site-language.js";
 import DeveloperAccountPanel from "./DeveloperAccountPanel";
 import { Activity, BookOpen, Check, ChevronRight, Code2, Copy, ExternalLink, Gauge, KeyRound, MessageCircle, ShieldCheck, Terminal } from "lucide-react";
 import { copyToClipboard } from "./utils/clipboard-feedback";
@@ -41,6 +42,7 @@ export default function DeveloperApp() {
     window.addEventListener("focus", onFocus);
     return () => { active = false; version++; window.removeEventListener("focus", onFocus); };
   }, []);
+  const { t } = useSiteLanguage();
   const maintainerHandle = maintainerProfile?.username || DEVELOPER_DISCORD_USERNAME;
   const avatarHash = typeof maintainerProfile?.avatar === "string" && /^[A-Za-z0-9_]{20,80}$/.test(maintainerProfile.avatar) ? maintainerProfile.avatar : "";
   const avatarFormat = avatarHash.startsWith("a_") || maintainerProfile?.animated ? "gif" : "png";
@@ -95,22 +97,22 @@ console.log(result.data.playerId, result.data.name);`;
     <PublicSiteHeader current="developer" />
     <main className="dev-shell dev-page">
       <header className="dev-overview">
-        <div><div className="dev-eyebrow">Developer workspace / Overview</div><h1 id="developer-docs-title" className="dev-page-title">Developer API documentation</h1><p className="dev-muted">Manage your API credentials and integrate Kingshot player data into your tools.</p></div>
+        <div><div className="dev-eyebrow">{t("developer.workspace")}</div><h1 id="developer-docs-title" className="dev-page-title">{t("developer.title")}</h1><p className="dev-muted">{t("developer.subtitle")}</p></div>
         <span className="dev-version-pill"><span style={{width:7,height:7,borderRadius:9,background:"#9ce9c2",boxShadow:"0 0 0 3px #9ce9c21c"}}/> API v4 <span style={{color:"#687487"}}>·</span> HTTPS</span>
       </header>
-      <div className="dev-stat-grid" aria-label="API overview">
-        <article className="dev-stat"><div className="dev-stat-label">Endpoint</div><div className="dev-stat-value"><code style={{fontSize:"inherit"}}>GET /api/v4/players/&#123;playerId&#125;</code></div><div className="dev-stat-detail">Single read-only player lookup</div></article>
-        <article className="dev-stat"><div className="dev-stat-label">Per-key quota</div><div className="dev-stat-value">60 / min</div><div className="dev-stat-detail">Up to 1,000 requests per day</div></article>
-        <article className="dev-stat"><div className="dev-stat-label">Additional protection</div><div className="dev-stat-value">120 / min / IP</div><div className="dev-stat-detail">Shared IP-level rate limit</div></article>
+      <div className="dev-stat-grid" aria-label={t("developer.overview")}>
+        <article className="dev-stat"><div className="dev-stat-label">{t("developer.endpoint")}</div><div className="dev-stat-value"><code style={{fontSize:"inherit"}}>GET /api/v4/players/&#123;playerId&#125;</code></div><div className="dev-stat-detail">{t("developer.lookup")}</div></article>
+        <article className="dev-stat"><div className="dev-stat-label">{t("developer.quota")}</div><div className="dev-stat-value">60 / min</div><div className="dev-stat-detail">{t("developer.dailyQuota")}</div></article>
+        <article className="dev-stat"><div className="dev-stat-label">{t("developer.protection")}</div><div className="dev-stat-value">120 / min / IP</div><div className="dev-stat-detail">{t("developer.ipLimit")}</div></article>
       </div>
-      <div className="dev-section-nav" aria-label="Documentation sections"><a href="#quickstart"><Terminal size={13}/> Quick start</a><a href="#api-reference"><Activity size={13}/> Player lookup</a><a href="#manual-redemption"><Code2 size={13}/> Manual redeem</a><a href="#auto-redemption"><Gauge size={13}/> Auto redeem</a><a href="#limits"><Activity size={13}/> Limits &amp; errors</a><a href="#authentication"><ShieldCheck size={13}/> Security</a><a href="#maintainer-contact"><MessageCircle size={13}/> Contact</a></div><div className="dev-layout">
+      <div className="dev-section-nav" aria-label={t("developer.sections")}><a href="#quickstart"><Terminal size={13}/> {t("developer.quickStart")}</a><a href="#api-reference"><Activity size={13}/> {t("developer.playerLookup")}</a><a href="#manual-redemption"><Code2 size={13}/> {t("developer.manualRedeem")}</a><a href="#auto-redemption"><Gauge size={13}/> {t("developer.autoRedeem")}</a><a href="#limits"><Activity size={13}/> {t("developer.limits")}</a><a href="#authentication"><ShieldCheck size={13}/> {t("developer.security")}</a><a href="#maintainer-contact"><MessageCircle size={13}/> {t("developer.contact")}</a></div><div className="dev-layout">
         <aside className="dev-sidebar" aria-label="Account and API keys"><DeveloperAccountPanel/></aside>
         <div className="dev-content"><div className="dev-doc-grid">
           <section className="dev-card dev-feature-card">
-            <div className="dev-section-kicker" style={{display:"flex",alignItems:"center",gap:7}}><ShieldCheck size={14}/> Kingshot REST API</div>
-            <h2 style={{fontSize:"clamp(21px,3vw,28px)",letterSpacing:"-.035em",lineHeight:1.25,margin:"10px 0 8px"}}>Look up players. Redeem codes. Enroll for auto-redeem.</h2>
-            <p className="dev-muted" style={{maxWidth:620}}>Use a developer key for versioned player lookup and manual redemption. V4 is the current developer API with a consistent success/data/error/meta response envelope. V3 remains available for existing integrations; V1 is deprecated. The automatic-redemption registration flow is documented separately. Keep keys and signing secrets out of browser code, source control, and URLs.</p>
-            <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:15}}>{["Player lookup","Manual redemption","Auto-redeem enrollment","JSON responses","Bearer authentication"].map(tag=><span key={tag} style={{border:"1px solid #343e4d",borderRadius:7,padding:"5px 8px",fontSize:10,color:"#cbd3e2"}}>{tag}</span>)}</div>
+            <div className="dev-section-kicker" style={{display:"flex",alignItems:"center",gap:7}}><ShieldCheck size={14}/> {t("developer.rest")}</div>
+            <h2 style={{fontSize:"clamp(21px,3vw,28px)",letterSpacing:"-.035em",lineHeight:1.25,margin:"10px 0 8px"}}>{t("developer.featureTitle")}</h2>
+            <p className="dev-muted" style={{maxWidth:620}}>{t("developer.featureDescription")}</p>
+            <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:15}}>{[t("developer.tagPlayer"),t("developer.tagManual"),t("developer.tagAuto"),t("developer.tagJson"),t("developer.tagBearer")].map(tag=><span key={tag} style={{border:"1px solid #343e4d",borderRadius:7,padding:"5px 8px",fontSize:10,color:"#cbd3e2"}}>{tag}</span>)}</div>
           </section>
           <section className="dev-card" id="quickstart">
             <div className="dev-card-head"><Terminal size={18} color="#b8bdff"/><h2 className="dev-card-title">Quick start</h2></div>
