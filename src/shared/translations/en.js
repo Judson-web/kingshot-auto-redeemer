@@ -767,7 +767,6 @@ export default {
 ,
   "auto.validationLimitEnd": " IDs.",
 "developer.metaTitle": "Kingshot Developer API Documentation",
-  "developer.metaDescription": "V4 integration guide for the Kingshot Auto Redeemer API: consistent responses, player lookup, manual redemption, quotas, and idempotency.",
   "developer.restApi": "Kingshot REST API",
   "developer.featureSummary": "Use a developer key for versioned player lookup and manual redemption. V4 is the current developer API with a consistent success/data/error/meta response envelope. V3 remains available for existing integrations; V1 is deprecated. The automatic-redemption registration flow is documented separately. Keep keys and signing secrets out of browser code, source control, and URLs.",
   "developer.tagPlayerLookup": "Player lookup",
@@ -782,5 +781,9 @@ export default {
   "developer.maintainerAvatarLabel": "Maintainer Discord profile with administrator frame",
   "support.openConversation": "Open conversation",
   "support.dismissNotification": "Dismiss",
-  "support.unreadRepliesAriaSuffix": "unread support replies"
+  "support.unreadRepliesAriaSuffix": "unread support replies",
+"manual.playerIdPlaceholder": "e.g. 43180889",
+  "manual.giftCodePlaceholder": "e.g. Hangul2026",
+  "auto.playerIdsPlaceholder": "e.g. 43180889, 51234567",
+  "support.ticketPrefix": "Ticket "
 };
