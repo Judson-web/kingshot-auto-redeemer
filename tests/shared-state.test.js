@@ -165,3 +165,17 @@ test("support topic picker and developer contact/code examples meet accessible-n
   const keyboardCodeExamples = developer.match(/<pre className="dev-code" tabIndex=\{0\} aria-label=/g) || [];
   assert.equal(keyboardCodeExamples.length, 5, "all five horizontally scrollable code examples should be keyboard-focusable, including the V4 redemption response");
 });
+
+
+test("English and Korean locale dictionaries are separate and preference persists", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const en = await readFile(new URL("../src/locales/en.js", import.meta.url), "utf8");
+  const ko = await readFile(new URL("../src/locales/ko.js", import.meta.url), "utf8");
+  const language = await readFile(new URL("../src/shared/site-language.js", import.meta.url), "utf8");
+  assert.match(en, /"nav\.auto": "Auto Redeem"/);
+  assert.match(ko, /"nav\.auto": "자동 교환"/);
+  assert.match(language, /localStorage\.setItem\(KEY,next\)/);
+  assert.match(language, /document\.documentElement\.lang=next/);
+  assert.match(language, /import en from "\.\.\/locales\/en\.js"/);
+  assert.match(language, /import ko from "\.\.\/locales\/ko\.js"/);
+});
