@@ -108,7 +108,7 @@ test("profile dashboard access stays restricted while the signed-in header chip 
     "a Discord session without developer/admin access must hit the restricted profile gate");
   assert.match(profile, /Open Developer API/,
     "the restricted profile gate must direct users to the API-key panel");
-  assert.match(drawer, /id:"profile",href:"\/profile",label:"Profile",description:"Developer and admin account"/,
+  assert.match(drawer, /id:"profile",href:"\/profile",label:t\("nav\.profile"\),description:t\("drawer\.profileDescription","Developer and admin account"\)/,
     "profile stays available in the navigation drawer");
   assert.match(legal, /at least one active developer API key/);
   assert.match(legal, /A successful Discord sign-in by itself verifies an identity but does not grant developer permissions/);
@@ -159,7 +159,7 @@ test("support topic picker and developer contact/code examples meet accessible-n
   assert.ok(topicButton, "support topic picker button exists");
   assert.doesNotMatch(topicButton, /aria-label=|aria-labelledby=/, "topic picker name must come from visible content");
   assert.match(topicButton, /<b id="support-topic-selected-value">\{topic\}<\/b>/);
-  assert.match(support, /id="support-topic-selected-label">REQUEST CATEGORY/);
+  assert.match(support, /id="support-topic-selected-label">\{t\("support\.category","REQUEST CATEGORY"\)\}/);
   assert.match(support, /id="support-topic-selected-value">\{topic\}/);
   assert.match(developer, /aria-label=\{"Open Discord profile for " \+ DEVELOPER_NAME/);
   const keyboardCodeExamples = developer.match(/<pre className="dev-code" tabIndex=\{0\} aria-label=/g) || [];
