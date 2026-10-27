@@ -40,7 +40,7 @@ export default function MobileNavDrawer({open,onClose,current}) {
   {id:"manual",href:"/manual",label:"Manual Redeem",description:"Submit a specific gift code",Icon:Gift},
   {id:"info",href:"/info",label:"How it works",description:"Registration, checks, and results",Icon:Info},
   {id:"developer",href:"/developer",label:"Developer API",description:"Build with the public API",Icon:ShieldCheck},
-  {id:"profile",href:"/profile",label:"Your profile",description:"Account and sign-in settings",Icon:UserRound}
+  {id:"profile",href:"/profile",label:"Profile",description:"Developer and admin account",Icon:UserRound}
  ];
  const close=()=>closeRef.current?.();
  const title=current==="info"?"How it works":current==="terms"?"Terms of use":current==="privacy"?"Privacy notice":current==="developer"?"Developer API":current==="profile"?"Your profile":current==="manual"?"Manual Redeem":"Auto Redeem";
