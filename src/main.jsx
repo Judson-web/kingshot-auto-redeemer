@@ -8,7 +8,7 @@ import"./styles.css";import"./registration-outcomes.css";import"./ux-feedback.cs
 import"./manual-redesign.css";import"./auto-registration-redesign.css";import"./drawer-redesign.css";import"./maintenance-redesign.css";import"./icon-palette.css";import"./public-site-header.css";
 import MobileNavDrawer from"./components/MobileNavDrawer.jsx";
 import PublicSiteHeader from"./components/PublicSiteHeader.jsx";
-import {useSiteLanguage} from "./shared/site-language.js";
+import {useSiteLanguage,translate,getSiteLanguage} from "./shared/site-language.js";
 import TownCenterLevel from"./components/TownCenterLevel.tsx";
 import { useServiceStatus } from "./shared/service-status.js";
 import KingshotAvatar from"./components/KingshotAvatar.tsx";
@@ -268,7 +268,7 @@ const publicPage=location.pathname==="/auto"||location.pathname==="/" ? <AutoRed
   const toast=document.createElement("button");
   toast.id="ks-update-toast";
   toast.type="button";
-  toast.textContent=document.documentElement.lang==="ko"?"새 버전 사용 가능 · 새로고침":"New version available · Refresh";
+  toast.textContent=translate(getSiteLanguage(),"pwa.updateToast","New version available · Refresh");
   Object.assign(toast.style,{position:"fixed",left:"50%",bottom:"18px",transform:"translateX(-50%)",zIndex:"9999",padding:"11px 15px",border:"1px solid #3b3327",borderRadius:"999px",background:"#11131a",color:"#f2eee8",font:"700 11px system-ui,sans-serif",boxShadow:"0 14px 40px #0009",cursor:"pointer"});
   toast.onclick=()=>{
    const waiting=window.__ksWaitingWorker;
@@ -316,4 +316,4 @@ const isPrivateWorkspace=privateWorkspacePaths.has(location.pathname);
 const showNotificationPrompt=["/","/auto","/manual","/redeem"].includes(location.pathname);
 const showPublicSupport=!isPrivateWorkspace;
 const maintenanceAdminAccess=location.pathname==="/admin/maintenance"||(location.pathname==="/profile"&&new URLSearchParams(location.search).get("returnTo")==="/admin/maintenance");
-createRoot(document.getElementById("root")).render(<><React.Suspense fallback={<div role="status" aria-live="polite" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,minHeight:"45vh",padding:24,color:"#d4bd88",fontSize:13}}><LoaderCircle size={18}/> {document.documentElement.lang==="ko"?"작업 공간을 불러오는 중…":"Loading workspace…"}</div>}>{maintenanceAdminAccess?publicPage:<MaintenanceGate>{isPrivateWorkspace?publicPage:<PublicAnnouncements>{publicPage}</PublicAnnouncements>}{!isPrivateWorkspace&&<InstallAppPrompt/>}{showNotificationPrompt&&<PushNotifications/>}{showPublicSupport&&<SupportWidget/>}</MaintenanceGate>}</React.Suspense><CopyToastHost/></>);
+createRoot(document.getElementById("root")).render(<><React.Suspense fallback={<div role="status" aria-live="polite" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,minHeight:"45vh",padding:24,color:"#d4bd88",fontSize:13}}><LoaderCircle size={18}/> {translate(getSiteLanguage(),"common.loadingWorkspace","Loading workspace…")}</div>}>{maintenanceAdminAccess?publicPage:<MaintenanceGate>{isPrivateWorkspace?publicPage:<PublicAnnouncements>{publicPage}</PublicAnnouncements>}{!isPrivateWorkspace&&<InstallAppPrompt/>}{showNotificationPrompt&&<PushNotifications/>}{showPublicSupport&&<SupportWidget/>}</MaintenanceGate>}</React.Suspense><CopyToastHost/></>);
