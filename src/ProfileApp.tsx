@@ -38,7 +38,7 @@ useEffect(()=>{
    if(!live)return;
    const next=d.user?{...d.user,kind:(d.role==="admin"?"admin":d.kind==="developer"?"developer":"user") as "user"|"developer"|"admin",role:d.role||"user"}:null;
    setAccountState(next);
-   setNotice("{tr("Signed in with Discord.","Discord로 로그인했습니다.")}");
+   setNotice(tr("Signed in with Discord.","Discord로 로그인했습니다."));
    if(["/devsupport","/message","/gift-codes","/admin/players","/admin/maintenance"].includes(returnTo||""))location.assign(returnTo);
   }).catch(e=>{
    if(live){setAccountState(null,{error:e instanceof Error?e.message:"Discord sign-in failed."});setError(e instanceof Error?e.message:"Discord sign-in failed.")}
@@ -47,7 +47,7 @@ useEffect(()=>{
  return()=>{live=false};
 },[]);
 async function signIn(){setBusy(true);setError("");try{const d=await request({action:"profile-discord-url"});if(!d.url)throw Error("Discord sign-in is not configured.");location.assign(d.url)}catch(e){setError(e instanceof Error?e.message:"Could not start Discord sign-in.");setBusy(false)}}
-async function logout(){setBusy(true);setError("");setNotice("");try{const r=await fetch(API,{method:"DELETE",credentials:"same-origin",cache:"no-store",headers:{"content-type":"application/json"},body:JSON.stringify({access_token:readToken()})});const d=await r.json().catch(()=>({}));clearToken();setAccountState(null);if(!r.ok)throw Error(d.error||"Signed out locally, but server-side logout could not be fully confirmed.");setNotice("{tr("Signed out successfully.","로그아웃했습니다.")}")}catch(e){setError(e instanceof Error?e.message:"Could not sign out.")}finally{setBusy(false)}}
+async function logout(){setBusy(true);setError("");setNotice("");try{const r=await fetch(API,{method:"DELETE",credentials:"same-origin",cache:"no-store",headers:{"content-type":"application/json"},body:JSON.stringify({access_token:readToken()})});const d=await r.json().catch(()=>({}));clearToken();setAccountState(null);if(!r.ok)throw Error(d.error||"Signed out locally, but server-side logout could not be fully confirmed.");setNotice(tr("Signed out successfully.","로그아웃했습니다."))}catch(e){setError(e instanceof Error?e.message:"Could not sign out.")}finally{setBusy(false)}}
 const hasProfileAccess=Boolean(user&&(user.role==="admin"||user.kind==="admin"||user.role==="developer"||user.kind==="developer"));
 const profileLoginAllowed=["/devsupport","/message","/gift-codes","/admin/players","/admin/maintenance"].includes(new URLSearchParams(location.search).get("returnTo")||"");
 const avatar=user?.avatar_url||"https://cdn.discordapp.com/embed/avatars/0.png?size=128";
