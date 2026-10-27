@@ -480,4 +480,7 @@ export default {
   "pwa.installHelp": "홈 화면에 추가해 더 빠르게 이용하세요.",
   "pwa.install": "설치",
   "pwa.dismissInstall": "설치 안내 닫기",
+  "announcement.title": "공지 제목",
+  "announcement.message": "공지 내용이 여기에 표시됩니다.",
+  "announcement.learnMore": "자세히 보기",
 };
