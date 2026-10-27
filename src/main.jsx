@@ -32,9 +32,10 @@ const manualResultMeta=(status,t)=>{const s=String(status||"").toUpperCase();if(
 const BRAND_ICON="/favicon.svg";
 function KsLogo(){return <a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={BRAND_ICON} alt="Kingshot Redeemer"/></span><span>Kingshot Redeemer</span></a>}
 function CopyToastHost(){
+ const {t}=useSiteLanguage();
  const [message,setMessage]=useState("");
  const timerRef=useRef(0);
- useEffect(()=>{const handleCopied=event=>{const label=String(event?.detail?.label||"Text").trim()||"Text";setMessage(label+" copied successfully");window.clearTimeout(timerRef.current);timerRef.current=window.setTimeout(()=>setMessage(""),2600)};window.addEventListener("ks-copy-success",handleCopied);return()=>{window.removeEventListener("ks-copy-success",handleCopied);window.clearTimeout(timerRef.current)}},[]);
+ useEffect(()=>{const handleCopied=event=>{const rawLabel=String(event?.detail?.label||"Text").trim()||"Text";const label=rawLabel==="Text"?t("common.text","Text"):rawLabel;setMessage(label+" "+t("common.copiedSuccessfully","copied successfully"));window.clearTimeout(timerRef.current);timerRef.current=window.setTimeout(()=>setMessage(""),2600)};window.addEventListener("ks-copy-success",handleCopied);return()=>{window.removeEventListener("ks-copy-success",handleCopied);window.clearTimeout(timerRef.current)}},[t]);
  if(!message)return null;
  return <div className="ks-copy-toast" role="status" aria-live="polite" aria-atomic="true"><CheckCircle size={16}/><span>{message}</span></div>;
 }
