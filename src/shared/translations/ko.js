@@ -103,5 +103,9 @@ export default {
   "auto.step3Text":"각 ID의 결과를 따로 처리하므로 한 플레이어의 문제가 다른 플레이어를 중단시키지 않습니다.",
   "auto.progressOf":"de",
   "auto.progressComplete":"완료",
-  "auto.progressLabel":"플레이어 등록 진행 상황"
+  "auto.progressLabel":"플레이어 등록 진행 상황",
+  "common.footer":"독립 Kingshot 커뮤니티 서비스입니다. Century Games와 제휴하지 않습니다.",
+  "auto.footer":"자동 교환은 커뮤니티 서비스이며 Century Games와 제휴하지 않습니다.",
+  "manual.eyebrow":"KINGSHOT 기프트 코드 교환",
+  "auto.eyebrow":"KINGSHOT 자동 교환"
 };
