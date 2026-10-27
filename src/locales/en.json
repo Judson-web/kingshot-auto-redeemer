@@ -142,5 +142,6 @@
   "support.writePlaceholder": "Write your message…",
   "support.photoAttached": "Photo attached",
   "support.sending": "Sending",
-  "support.submitRemoval": "Submit removal request"
+  "support.submitRemoval": "Submit removal request",
+  "manual.playerId": "Player ID"
 }
