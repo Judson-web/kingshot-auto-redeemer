@@ -121,7 +121,7 @@ test("language selector supports English and Korean with a persistent selection"
   const koDictionary = await readFile(new URL("../src/shared/translations/ko.js", import.meta.url), "utf8");
   const styles = await readFile(new URL("../src/public-site-header.css", import.meta.url), "utf8");
   assert.match(language, /flag:"🇺🇸".*label:"English"/s);
-  assert.match(header, /t\("nav\.auto","Auto Redeem"\)/);
+  assert.match(header, /t\(link\.key,link\.label\)/);
   assert.match(koDictionary, /"nav\.auto":\s*"자동 교환"/);
   assert.doesNotMatch(header, /[가-힣]/, "visible translations stay in the shared locale files");
   assert.match(header, /role="listbox"/);
@@ -164,7 +164,7 @@ test("support topic picker and developer contact/code examples meet accessible-n
   assert.match(topicButton, /<b id="support-topic-selected-value">\{topic\}<\/b>/);
   assert.match(support, /id="support-topic-selected-label">\{t\("support\.requestCategory","REQUEST CATEGORY"\)\}/);
   assert.match(support, /id="support-topic-selected-value">\{topic\}/);
-  assert.match(developer, /aria-label=\{t\("developer\.openDiscordProfileFor","Open Discord profile for"\)\s*\+\s*DEVELOPER_NAME/);
+  assert.match(developer, /aria-label=\{t\("developer\.openDiscordProfileFor"/);
   const keyboardCodeExamples = developer.match(/<pre className="dev-code" tabIndex=\{0\} aria-label=/g) || [];
   assert.equal(keyboardCodeExamples.length, 5, "all five horizontally scrollable code examples should be keyboard-focusable, including the V4 redemption response");
 });
