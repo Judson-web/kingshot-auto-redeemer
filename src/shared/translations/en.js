@@ -619,4 +619,6 @@ export default {
   "support.updateStatusFailed": "Could not update status.",
   "support.copyConversationIdFailed": "Could not copy conversation ID.",
   "support.replyFailed": "Reply failed.",
+  "support.enableNotificationsFailed": "Could not enable reply notifications.",
+  "developer.footerMeta": "API v4 · Supported developer API · V1 routes deprecated · Maintained by",
 };
