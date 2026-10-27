@@ -17,7 +17,7 @@ const endpoint = ORIGIN + "/api/v4/players/43180889";
 const curlExample = 'curl "' + endpoint + '" \\\n  -H "Authorization: Bearer YOUR_API_KEY"';
 
 function CopyButton({ value, label = "Copy" }: { value: string; label?: string }) {
-  const { t } = useSiteLanguage();
+  const { t, language } = useSiteLanguage();
   const [copied, setCopied] = useState(false);
   return <button className="dev-copy-button" type="button" onClick={async () => { try { const feedbackLabel = label === "Copy example" ? t("developer.exampleLabel", "Example") : label === "Copy path" ? t("developer.pathLabel", "Path") : label.replace(/^\s*copy\s*/i, "").trim() || "Text"; await copyToClipboard(value, feedbackLabel); setCopied(true); window.setTimeout(() => setCopied(false), 1600); } catch { setCopied(false); } }} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, border: "1px solid #343e4d", borderRadius: 9, padding: "8px 11px", background: "#202633", color: "#e8ebf5", font: "inherit", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}><Copy size={14}/>{copied ? t("developer.copied","Copied") : label === "Copy" ? t("developer.copy","Copy") : label === "Copy example" ? t("developer.copyExample","Copy example") : label === "Copy path" ? t("developer.copyPath","Copy path") : label}</button>;
 }
@@ -52,8 +52,8 @@ export default function DeveloperApp() {
   const maintainerAvatarSrc = avatarHash ? "/api/discord-avatar?id=" + encodeURIComponent(DEVELOPER_DISCORD_ID) + "&hash=" + encodeURIComponent(avatarHash) + "&format=" + avatarFormat + "&size=128" : fallbackAvatarUrl;
   useEffect(() => { setMaintainerAvatarFailed(false); }, [maintainerAvatarSrc]);
   useEffect(() => {
-    const title = "Kingshot Developer API Documentation";
-    const description = "V4 integration guide for the Kingshot Auto Redeemer API: consistent responses, player lookup, manual redemption, quotas, and idempotency.";
+    const title = t("developer.metaTitle", "Kingshot Developer API Documentation");
+    const description = t("developer.metaDescription", "V4 integration guide for the Kingshot Auto Redeemer API: consistent responses, player lookup, manual redemption, quotas, and idempotency.");
     document.title = title;
     let meta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
     if (!meta) { meta = document.createElement("meta"); meta.name = "description"; document.head.appendChild(meta); }
@@ -69,7 +69,7 @@ export default function DeveloperApp() {
     if (!script) { script = document.createElement("script"); script.id = "developer-api-jsonld"; script.type = "application/ld+json"; document.head.appendChild(script); }
     script.textContent = JSON.stringify(schema);
     return () => { document.title = "Kingshot Auto Redeem"; meta?.setAttribute("content", "Redeem Kingshot gift codes with less hassle. Register your player for automatic code checks or use the manual redemption tool."); canonical?.setAttribute("href", ORIGIN + "/"); script?.remove(); };
-  }, []);
+  }, [language]);
   const [tab, setTab] = useState<"curl" | "javascript">("curl");
   const [expanded, setExpanded] = useState("");
   const code = tab === "curl" ? curlExample : `// Run this on your server. Set KINGSHOT_API_KEY in the server environment.
@@ -110,16 +110,16 @@ console.log(result.data.playerId, result.data.name);`;
         <aside className="dev-sidebar" aria-label={t("developer.accountAndKeys","Account and API keys")}><DeveloperAccountPanel/></aside>
         <div className="dev-content"><div className="dev-doc-grid">
           <section className="dev-card dev-feature-card">
-            <div className="dev-section-kicker" style={{display:"flex",alignItems:"center",gap:7}}><ShieldCheck size={14}/> Kingshot REST API</div>
+            <div className="dev-section-kicker" style={{display:"flex",alignItems:"center",gap:7}}><ShieldCheck size={14}/> {t("developer.restApi","Kingshot REST API")}</div>
             <h2 style={{fontSize:"clamp(21px,3vw,28px)",letterSpacing:"-.035em",lineHeight:1.25,margin:"10px 0 8px"}}>{t("developer.featureTitle","Look up players. Redeem codes. Enroll for auto-redeem.")}</h2>
-            <p className="dev-muted" style={{maxWidth:620}}>Use a developer key for versioned player lookup and manual redemption. V4 is the current developer API with a consistent success/data/error/meta response envelope. V3 remains available for existing integrations; V1 is deprecated. The automatic-redemption registration flow is documented separately. Keep keys and signing secrets out of browser code, source control, and URLs.</p>
-            <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:15}}>{["Player lookup","Manual redemption","Auto-redeem enrollment","JSON responses","Bearer authentication"].map(tag=><span key={tag} style={{border:"1px solid #343e4d",borderRadius:7,padding:"5px 8px",fontSize:10,color:"#cbd3e2"}}>{tag}</span>)}</div>
+            <p className="dev-muted" style={{maxWidth:620}}>{t("developer.featureSummary","Use a developer key for versioned player lookup and manual redemption. V4 is the current developer API with a consistent success/data/error/meta response envelope. V3 remains available for existing integrations; V1 is deprecated. The automatic-redemption registration flow is documented separately. Keep keys and signing secrets out of browser code, source control, and URLs.")}</p>
+            <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:15}}>{[[t("developer.tagPlayerLookup","Player lookup"),"lookup"],[t("developer.tagManualRedemption","Manual redemption"),"manual"],[t("developer.tagAutoEnrollment","Auto-redeem enrollment"),"auto"],[t("developer.tagJsonResponses","JSON responses"),"json"],[t("developer.tagBearerAuth","Bearer authentication"),"bearer"]].map(([tag,id])=><span key={id} style={{border:"1px solid #343e4d",borderRadius:7,padding:"5px 8px",fontSize:10,color:"#cbd3e2"}}>{tag}</span>)}</div>
           </section>
           <section className="dev-card" id="quickstart">
             <div className="dev-card-head"><Terminal size={18} color="#b8bdff"/><h2 className="dev-card-title">{t("developer.quickStart","Quick start")}</h2></div>
             <p className="dev-muted" style={{marginBottom:15}}>{t("developer.authHeaderHelp","Send your key in the Authorization header over HTTPS.")}</p>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap",marginBottom:10}}>
-              <div style={{display:"flex",gap:6}}><button type="button" className="dev-tab" aria-pressed={tab==="curl"} onClick={()=>setTab("curl")}>cURL</button><button type="button" className="dev-tab" aria-pressed={tab==="javascript"} onClick={()=>setTab("javascript")}>JavaScript</button></div><CopyButton value={code} label="Copy example"/>
+              <div style={{display:"flex",gap:6}}><button type="button" className="dev-tab" aria-pressed={tab==="curl"} onClick={()=>setTab("curl")}>cURL</button><button type="button" className="dev-tab" aria-pressed={tab==="javascript"} onClick={()=>setTab("javascript")}>JavaScript</button></div><CopyButton value={code} label={t("developer.copyExample","Copy example")}/>
             </div>
             <pre className="dev-code" tabIndex={0} aria-label={t("developer.codePlayerLookup","Player lookup code example, horizontally scrollable")}><code>{code}</code></pre>
             <p className="dev-muted" style={{fontSize:11,marginTop:10}}>{t("developer.replaceKeyPrefix","Replace ")}<code>YOUR_API_KEY</code>{t("developer.replaceKeySuffix"," with your secret and the example Player ID with the one you want to look up.")}</p>
@@ -127,7 +127,7 @@ console.log(result.data.playerId, result.data.name);`;
           <section className="dev-card" id="api-reference">
             <div className="dev-card-head"><Activity size={18} color="#b8bdff"/><h2 className="dev-card-title">{t("developer.apiReference","API reference")}</h2></div>
             <p className="dev-muted" style={{marginBottom:13}}>{t("developer.playerLookupIntro","Fetch a player profile using a numeric Kingshot Player ID.")}</p>
-            <div className="dev-endpoint"><span style={{background:"#164b39",color:"#9ce9c2",borderRadius:6,padding:"5px 8px",fontSize:10,fontWeight:900}}>GET</span><code style={{fontSize:12,overflowWrap:"anywhere",flex:"1 1 170px"}}>/api/v4/players/&#123;playerId&#125;</code><CopyButton value="/api/v4/players/{playerId}" label="Copy path"/></div>
+            <div className="dev-endpoint"><span style={{background:"#164b39",color:"#9ce9c2",borderRadius:6,padding:"5px 8px",fontSize:10,fontWeight:900}}>GET</span><code style={{fontSize:12,overflowWrap:"anywhere",flex:"1 1 170px"}}>/api/v4/players/&#123;playerId&#125;</code><CopyButton value="/api/v4/players/{playerId}" label={t("developer.copyPath","Copy path")}/></div>
             <p className="dev-muted" style={{marginTop:11}}>{t("developer.requiredPathParam","Required path parameter: ")}<code>playerId</code>{t("developer.pathParamHelp"," — 5 to 20 digits. A valid, active API key is required.")}</p>
             <h3 style={{fontSize:13,margin:"19px 0 9px"}}>{t("developer.exampleResponse","Example response")}</h3>
             <pre className="dev-code" tabIndex={0} aria-label={t("developer.codePlayerJson","Example player API JSON response, horizontally scrollable")}><code>{JSON.stringify({success:true,data:{playerId:"43180889",name:"Example Player",kingdomId:"1125",power:123456789,townCenterLevel:30,avatarUrl:null,allianceName:"Example Alliance",allianceTag:"EXA"},error:null,meta:{apiVersion:"4",requestId:"server-generated-id",timestamp:"2026-10-17T12:00:00.000Z",source:"mightpulse",stale:false,providerFresh:true,providerAgeSeconds:2,rateLimit:{perMinuteLimit:60,perMinuteRemaining:59,perDayLimit:1000,perDayRemaining:999,resetAt:"2026-10-17T12:01:00.000Z"}},dev:{name:DEVELOPER_NAME,discord:"@" + DEVELOPER_DISCORD_USERNAME,url:DEVELOPER_DISCORD_URL}},null,2)}</code></pre>
@@ -138,7 +138,7 @@ console.log(result.data.playerId, result.data.name);`;
             <div className="dev-endpoint"><span style={{background:"#4a3216",color:"#ffd28a",borderRadius:6,padding:"5px 8px",fontSize:10,fontWeight:900}}>POST</span><code style={{fontSize:12,overflowWrap:"anywhere",flex:"1 1 170px"}}>/api/v4/redemptions</code><CopyButton value="/api/v4/redemptions" label="Copy path"/></div>
             <p className="dev-muted" style={{marginTop:11}}>{t("developer.redemptionEndpointHelp","Requires a developer Bearer key. Submit one Player ID, gift code, and kingdom ID per request. Include an Idempotency-Key to replay the same outcome safely after an ambiguous timeout.")}</p>
             <pre className="dev-code" tabIndex={0} aria-label={t("developer.codeManualRedemption","Manual redemption cURL example, horizontally scrollable")}><code>{`curl -X POST "${ORIGIN}/api/v4/redemptions" \\\n  -H "Authorization: Bearer $KINGSHOT_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -H "Idempotency-Key: redeem-43180889-example-001" \\\n  -d '{"playerId":"43180889","code":"EXAMPLECODE","kid":"1125"}'`}</code></pre>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8,marginTop:12}}>{[["playerId","5–20 digits"],["code","1–64 safe characters"],["kid","1–10 digit kingdom ID"]].map(([name,desc])=><div key={name} style={{border:"1px solid #2b3442",background:"#0d1118",borderRadius:9,padding:10}}><code style={{fontSize:12}}>{name}</code><p className="dev-muted" style={{fontSize:11,marginTop:4}}>{desc}</p></div>)}</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8,marginTop:12}}>{[["playerId",t("developer.fieldDigits","5–20 digits")],["code",t("developer.fieldSafeCharacters","1–64 safe characters")],["kid",t("developer.fieldKingdomId","1–10 digit kingdom ID")]].map(([name,desc])=><div key={name} style={{border:"1px solid #2b3442",background:"#0d1118",borderRadius:9,padding:10}}><code style={{fontSize:12}}>{name}</code><p className="dev-muted" style={{fontSize:11,marginTop:4}}>{desc}</p></div>)}</div>
             <p className="dev-muted" style={{marginTop:12}}>{t("developer.checkResponsePrefix","Check ")}<code>data.ok</code>, <code>data.status</code>, <code>data.message</code>, {t("developer.checkResponseAnd","and ")}<code>data.errorCategory</code>{t("developer.checkResponseSuffix",". HTTP success alone does not guarantee rewards were granted.")}</p>
             <h3 style={{fontSize:13,margin:"19px 0 9px"}}>{t("developer.exampleV4","Example V4 response")}</h3>
             <pre className="dev-code" tabIndex={0} aria-label={t("developer.codeRedemptionJson","Example V4 redemption response, horizontally scrollable")}><code>{JSON.stringify({success:true,data:{ok:false,status:"ERROR",statusLabel:"Already redeemed",message:"This code has already been redeemed.",errorCategory:"ALREADY_REDEEMED",errCode:null},error:null,meta:{apiVersion:"4",requestId:"server-generated-id",timestamp:"2026-10-26T10:00:00.000Z",rateLimit:{perMinuteLimit:60,perMinuteRemaining:59,perDayLimit:1000,perDayRemaining:999}},dev:{name:DEVELOPER_NAME,discord:"@" + DEVELOPER_DISCORD_USERNAME,url:DEVELOPER_DISCORD_URL}},null,2)}</code></pre>
@@ -147,7 +147,7 @@ console.log(result.data.playerId, result.data.name);`;
           <section className="dev-card" id="auto-redemption">
             <div className="dev-card-head"><Gauge size={18} color="#b8bdff"/><h2 className="dev-card-title">{t("developer.autoEnrollment","Automatic redemption enrollment")}</h2></div>
             <div className="dev-endpoint"><span style={{background:"#164b39",color:"#9ce9c2",borderRadius:6,padding:"5px 8px",fontSize:10,fontWeight:900}}>POST</span><code style={{fontSize:12,overflowWrap:"anywhere",flex:"1 1 170px"}}>/api/kingshot-register</code><CopyButton value="/api/kingshot-register" label="Copy path"/></div>
-            <p className="dev-muted" style={{marginTop:11}}>Enrolls a player in the existing scheduled auto-redeem workflow. One player per request. This public website route is rate limited and does not use a developer API key; the worker itself remains private.</p>
+            <p className="dev-muted" style={{marginTop:11}}>{t("developer.autoEnrollmentDescription","Enrolls a player in the existing scheduled auto-redeem workflow. One player per request. This public website route is rate limited and does not use a developer API key; the worker itself remains private.")}</p>
             <pre className="dev-code" tabIndex={0} aria-label={t("developer.codeAutoRegistration","Automatic redemption registration cURL example, horizontally scrollable")}><code>{`curl -X POST "${ORIGIN}/api/kingshot-register" \\\n  -H "Content-Type: application/json" \\\n  -d '{"playerId":"43180889","kingdomId":"1125","playerName":"Example Player"}'`}</code></pre>
             <p className="dev-muted" style={{marginTop:12}}>{t("developer.requiredFields","Required: ")}<code>playerId</code>{t("developer.optionalFields"," Optional: ")}<code>kingdomId</code>, <code>playerName</code>, <code>avatarUrl</code>{t("developer.registrationResponsePrefix",". The response reports ")}<code>registered</code>, <code>alreadyRegistered</code>, <code>registrationStatus</code>{t("developer.registrationResponseSuffix",", and kingdom verification state.")}</p>
             <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:13}}><a href="/auto" style={{display:"inline-flex",alignItems:"center",gap:7,border:"1px solid #343e4d",borderRadius:9,padding:"9px 12px",color:"#d5d8ff",textDecoration:"none",fontSize:12}}>{t("developer.openAutoPage","Open Auto Redeem page")} <ExternalLink size={13}/></a><a href="/manual" style={{display:"inline-flex",alignItems:"center",gap:7,border:"1px solid #343e4d",borderRadius:9,padding:"9px 12px",color:"#d5d8ff",textDecoration:"none",fontSize:12}}>{t("developer.openManualPage","Open Manual Redeem page")} <ExternalLink size={13}/></a></div>
@@ -166,13 +166,13 @@ console.log(result.data.playerId, result.data.name);`;
             <p className="dev-muted dev-maintainer-intro">{t("developer.maintainerIntro","Independent community project for Kingshot players. For API integrations, tooling questions, or project feedback, contact the maintainer on Discord.")}</p>
             <div className="dev-maintainer-contact">
               <div className="dev-maintainer-identity">
-                <span className="dev-maintainer-avatar site-account-admin" role="img" aria-label={DEVELOPER_NAME + "'s Discord profile with administrator frame"}>
+                <span className="dev-maintainer-avatar site-account-admin" role="img" aria-label={t("developer.maintainerAvatarLabel","Maintainer Discord profile with administrator frame")}>
                   <span className="site-account-avatar-frame">
                     {maintainerAvatarSrc && !maintainerAvatarFailed ? <img src={maintainerAvatarSrc} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setMaintainerAvatarFailed(true)}/> : <span className="dev-maintainer-avatar-fallback">J</span>}
                     <span className="site-account-role-mark" aria-hidden="true">★</span>
                   </span>
                 </span>
-                <span className="dev-maintainer-identity-copy"><b>{DEVELOPER_NAME}</b><span className="dev-maintainer-handle-row"><small>@{maintainerHandle}</small><CopyButton value={"@" + maintainerHandle} label="Copy"/></span></span>
+                <span className="dev-maintainer-identity-copy"><b>{DEVELOPER_NAME}</b><span className="dev-maintainer-handle-row"><small>@{maintainerHandle}</small><CopyButton value={"@" + maintainerHandle} label={t("developer.copy","Copy")}/></span></span>
               </div>
               <div className="dev-maintainer-actions">
                 <a className="dev-maintainer-discord" href={DEVELOPER_DISCORD_URL} target="_blank" rel="noopener noreferrer" aria-describedby="maintainer-contact-note" aria-label={t("developer.openDiscordProfileFor","Open Discord profile for")+" "+DEVELOPER_NAME+" "+t("developer.inNewTab","in a new tab")}><MessageCircle size={15}/> {t("developer.openDiscordProfile","Open Discord profile")} <ExternalLink size={13}/></a>
