@@ -165,3 +165,16 @@ test("support topic picker and developer contact/code examples meet accessible-n
   const keyboardCodeExamples = developer.match(/<pre className="dev-code" tabIndex=\{0\} aria-label=/g) || [];
   assert.equal(keyboardCodeExamples.length, 5, "all five horizontally scrollable code examples should be keyboard-focusable, including the V4 redemption response");
 });
+
+test("English and Korean dictionaries are separate, complete, and share stable keys", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const en = JSON.parse(await readFile(new URL("../src/locales/en.json", import.meta.url), "utf8"));
+  const ko = JSON.parse(await readFile(new URL("../src/locales/ko.json", import.meta.url), "utf8"));
+  assert.deepEqual(Object.keys(en).sort(), Object.keys(ko).sort(), "every English string should have a Korean counterpart");
+  assert.ok(Object.keys(en).length >= 100, "the locale files should cover common public product strings");
+  assert.equal(ko["nav.auto"], "자동 교환");
+  assert.equal(ko["manual.playerId"], "플레이어 ID");
+  const helper = await readFile(new URL("../src/shared/i18n.js", import.meta.url), "utf8");
+  assert.match(helper, /from "\.\.\/locales\/en\.json"/);
+  assert.match(helper, /from "\.\.\/locales\/ko\.json"/);
+});
