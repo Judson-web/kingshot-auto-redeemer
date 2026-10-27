@@ -44,5 +44,14 @@
   "profile.personal": "개인 계정",
   "profile.security": "계정 보안",
   "profile.shortcuts": "바로가기",
-  "profile.shortcutsDescription": "교환 도구와 계정 리소스에 빠르게 접근하세요."
+  "profile.shortcutsDescription": "교환 도구와 계정 리소스에 빠르게 접근하세요.",
+  "drawer.autoDescription": "기프트 코드 자동 처리",
+  "drawer.manualDescription": "기프트 코드 직접 제출",
+  "drawer.infoDescription": "등록, 확인 및 결과 안내",
+  "drawer.developerDescription": "공개 API로 개발하기",
+  "drawer.accountNavigation": "계정 및 메뉴",
+  "drawer.navigation": "메뉴",
+  "drawer.explore": "둘러보기",
+  "drawer.supportDescription": "도움말을 확인하거나 비공개 문의를 이어가세요",
+  "drawer.passwordNotice": "게임 비밀번호를 요청하지 않습니다."
 }
