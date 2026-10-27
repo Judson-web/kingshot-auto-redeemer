@@ -110,7 +110,6 @@ test("profile dashboard access stays restricted while the signed-in header chip 
     "the restricted profile gate must direct users to the API-key panel");
   assert.match(drawer, /id:"profile"/, "profile stays available in the navigation drawer");
   assert.match(drawer, /nav\.profileDescription/, "profile navigation copy uses the shared translation dictionary");
-    "profile stays available in the navigation drawer");
   assert.match(legal, /at least one active developer API key/);
   assert.match(legal, /A successful Discord sign-in by itself verifies an identity but does not grant developer permissions/);
 });
@@ -119,9 +118,12 @@ test("language selector supports English and Korean with a persistent selection"
   const { readFile } = await import("node:fs/promises");
   const header = await readFile(new URL("../src/components/PublicSiteHeader.jsx", import.meta.url), "utf8");
   const language = await readFile(new URL("../src/shared/site-language.js", import.meta.url), "utf8");
+  const koDictionary = await readFile(new URL("../src/shared/translations/ko.js", import.meta.url), "utf8");
   const styles = await readFile(new URL("../src/public-site-header.css", import.meta.url), "utf8");
   assert.match(language, /flag:"🇺🇸".*label:"English"/s);
-  assert.match(header, /ko:"자동 교환"/);
+  assert.match(header, /t\("nav\.auto","Auto Redeem"\)/);
+  assert.match(koDictionary, /"nav\.auto":\s*"자동 교환"/);
+  assert.doesNotMatch(header, /[가-힣]/, "visible translations stay in the shared locale files");
   assert.match(header, /role="listbox"/);
   assert.match(language, /localStorage\.setItem\(KEY,next\)/);
   assert.match(language, /document\.documentElement\.lang=next/);
