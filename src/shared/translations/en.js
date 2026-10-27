@@ -480,4 +480,7 @@ export default {
   "pwa.installHelp": "Add it to your home screen for faster access.",
   "pwa.install": "Install",
   "pwa.dismissInstall": "Dismiss install prompt",
+  "announcement.title": "Announcement title",
+  "announcement.message": "Your announcement message will appear here.",
+  "announcement.learnMore": "Learn more",
 };
