@@ -131,5 +131,16 @@
   "manual.step3": "Get the result",
   "manual.step1Text": "Your Player ID is used to retrieve the current kingdom before redemption.",
   "manual.step2Text": "The redemption request is signed server-side. Your signing secret is never exposed.",
-  "manual.step3Text": "We translate the game API response into a clear redemption status."
+  "manual.step3Text": "We translate the game API response into a clear redemption status.",
+  "developer.workspace": "Developer workspace",
+  "developer.lifecycle": "API key lifecycle and availability",
+  "support.topic": "Topic",
+  "support.category": "Request category",
+  "support.removalHint": "This creates a review ticket. It does not remove the registration immediately.",
+  "support.removalReason": "Reason for removal",
+  "support.removalPlaceholder": "Explain why this registration should be removed…",
+  "support.writePlaceholder": "Write your message…",
+  "support.photoAttached": "Photo attached",
+  "support.sending": "Sending",
+  "support.submitRemoval": "Submit removal request"
 }
