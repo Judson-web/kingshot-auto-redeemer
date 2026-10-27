@@ -26,12 +26,12 @@ test("public-facing secondary copy uses localized dictionary entries", async () 
     "developer.featureSummary", "developer.tagPlayerLookup", "developer.tagManualRedemption",
     "developer.tagAutoEnrollment", "developer.tagJsonResponses", "developer.tagBearerAuth",
     "developer.autoEnrollmentDescription", "developer.fieldDigits", "developer.fieldSafeCharacters",
-    "developer.fieldKingdomId", "developer.maintainerAvatarLabel", "developer.metaTitle",
-    "developer.metaDescription"
+    "developer.fieldKingdomId", "developer.maintainerAvatarLabel"
   ]) assert.ok(developer.includes(key), `Developer page should use ${key}`);
   assert.ok(legal.includes('t("legal.note"'), "Legal disclaimer should follow the selected language");
   assert.ok(support.includes('t("support.unreadRepliesAriaSuffix"'), "Unread reply accessibility text should be localized");
   assert.ok(support.includes('st("openConversation"'), "Support notification action should be localized");
+  assert.ok(support.includes('st("ticketPrefix"'), "Support ticket notification prefix should be localized");
   assert.ok(!developer.includes("Enrolls a player in the existing scheduled auto-redeem workflow. One player per request."), "Developer enrollment copy must not remain hardcoded in JSX");
   assert.ok(!legal.includes('<p className="legal-note">This page is a plain-language'), "Legal disclaimer must not remain hardcoded in JSX");
 });
@@ -39,9 +39,13 @@ test("public-facing secondary copy uses localized dictionary entries", async () 
 test("developer metadata follows language changes and copy buttons retain translated labels", async () => {
   const developer = await readFile(new URL("../src/DeveloperApp.tsx", import.meta.url), "utf8");
   assert.match(developer, /const \{ t, language \} = useSiteLanguage\(\)/);
-  assert.match(developer, /t\("developer\.metaTitle"/);
-  assert.match(developer, /t\("developer\.metaDescription"/);
+  assert.match(developer, /t\("meta\.developerTitle"/);
+  assert.match(developer, /t\("meta\.developerDescription"/);
   assert.match(developer, /\}, \[language\]\);/);
   assert.ok(developer.includes('label="Copy example"'), "CopyButton owns the translated display label");
   assert.ok(developer.includes('label="Copy path"'), "CopyButton owns the translated display label");
+  const main = await readFile(new URL("../src/main.jsx", import.meta.url), "utf8");
+  assert.ok(main.includes('placeholder={t("manual.playerIdPlaceholder"'), "Manual Player ID example should be localized");
+  assert.ok(main.includes('placeholder={t("manual.giftCodePlaceholder"'), "Manual gift-code example should be localized");
+  assert.ok(main.includes('placeholder={t("auto.playerIdsPlaceholder"'), "Auto registration example should be localized");
 });
