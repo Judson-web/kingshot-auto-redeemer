@@ -56,11 +56,11 @@ export default function MobileNavDrawer({open,onClose,current}) {
    <nav aria-label={t("nav.sections","Site sections")}>
     {links.slice(0,3).map(item=><a key={item.id} className={"ks-nav-drawer-link"+(item.id===current?" is-current":"")} href={item.href} aria-current={item.id===current?"page":undefined}><span className="ks-nav-drawer-icon"><item.Icon size={18} aria-hidden="true"/></span><span className="ks-nav-drawer-copy"><b>{item.label}</b><small>{item.description}</small></span><ArrowRight className="ks-nav-drawer-arrow" size={16} aria-hidden="true"/></a>)}
     <button className="ks-nav-drawer-support" type="button" onClick={()=>{restoreFocusRef.current=null;close();window.dispatchEvent(new CustomEvent("ks-support-open",{detail:{topic:"Other",subject:current==="info"?"How it works question":current==="terms"||current==="privacy"?"Legal page question":current==="profile"?"Profile & sign-in question":"Support request",pageTitle:document.title}}))}}>
-     <span className="ks-nav-drawer-support-icon"><LifeBuoy size={19} aria-hidden="true"/></span><span className="ks-nav-drawer-support-copy"><b>Support</b><small>Get help or continue a private ticket</small></span><ArrowRight className="ks-nav-drawer-arrow" size={16} aria-hidden="true"/>
+     <span className="ks-nav-drawer-support-icon"><LifeBuoy size={19} aria-hidden="true"/></span><span className="ks-nav-drawer-support-copy"><b>{t("nav.support","Support")}</b><small>{t("nav.supportDescription","Get help or continue a private ticket")}</small></span><ArrowRight className="ks-nav-drawer-arrow" size={16} aria-hidden="true"/>
     </button>
     {links.slice(3).map(item=><a key={item.id} className={"ks-nav-drawer-link"+(item.id===current?" is-current":"")} href={item.href} aria-current={item.id===current?"page":undefined}><span className="ks-nav-drawer-icon"><item.Icon size={18} aria-hidden="true"/></span><span className="ks-nav-drawer-copy"><b>{item.label}</b><small>{item.description}</small></span><ArrowRight className="ks-nav-drawer-arrow" size={16} aria-hidden="true"/></a>)}
    </nav>
-   <div className="ks-nav-drawer-footer"><ShieldCheck size={14}/><span>Your game password is never requested.</span></div>
+   <div className="ks-nav-drawer-footer"><ShieldCheck size={14}/><span>{t("nav.passwordNotice","Your game password is never requested.")}</span></div>
   </aside>
  </>;
 }
