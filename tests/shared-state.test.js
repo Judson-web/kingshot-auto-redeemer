@@ -93,6 +93,25 @@ test("maintenance gate, profile status and shared header consume common state st
 });
 
 
+test("profile dashboard and public header require verified developer or admin access", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const chip = await readFile(new URL("../src/components/PublicAccountChip.jsx", import.meta.url), "utf8");
+  const drawer = await readFile(new URL("../src/components/MobileNavDrawer.jsx", import.meta.url), "utf8");
+  const profile = await readFile(new URL("../src/ProfileApp.tsx", import.meta.url), "utf8");
+  const legal = await readFile(new URL("../src/LegalApp.jsx", import.meta.url), "utf8");
+
+  assert.match(chip, /if \(!account \|\| \(!isAdmin && !isDeveloper\)\) return null;/,
+    "ordinary signed-in users and anonymous visitors must not see a header profile shortcut");
+  assert.match(profile, /if\(user&&!hasProfileAccess\)/,
+    "a Discord session without developer/admin access must hit the restricted profile gate");
+  assert.match(profile, /Open Developer API/,
+    "the restricted profile gate must direct users to the API-key panel");
+  assert.match(drawer, /id:"profile",href:"\/profile",label:"Profile",description:"Developer and admin account"/,
+    "profile stays available in the navigation drawer");
+  assert.match(legal, /at least one active developer API key/);
+  assert.match(legal, /A successful Discord sign-in by itself verifies an identity but does not grant developer permissions/);
+});
+
 test("account subscription and refresh requests share the same in-flight promise", async () => {
   const store = await import("../src/shared/account-state.js?account-reentrant-refresh");
   const calls = [];
