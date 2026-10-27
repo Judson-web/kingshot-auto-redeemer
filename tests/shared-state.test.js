@@ -161,9 +161,10 @@ test("support topic picker and developer contact/code examples meet accessible-n
   const topicButton = topicButtonStart >= 0 && topicButtonEnd > topicButtonStart ? support.slice(topicButtonStart, topicButtonEnd) : "";
   assert.ok(topicButton, "support topic picker button exists");
   assert.doesNotMatch(topicButton, /aria-label=|aria-labelledby=/, "topic picker name must come from visible content");
-  assert.match(topicButton, /<b id="support-topic-selected-value">\{topic\}<\/b>/);
+  assert.match(topicButton, /<b id="support-topic-selected-value">\\{t\\(\\(\\{/);
   assert.match(support, /id="support-topic-selected-label">\{t\("support\.requestCategory","REQUEST CATEGORY"\)\}/);
-  assert.match(support, /id="support-topic-selected-value">\{topic\}/);
+  assert.match(support, /"Account & registration":"support\\.accountRegistration"/, "selected support topic is localized while its canonical value stays stable");
+  assert.match(support, /id="support-topic-selected-value">\\{t\\(/);
   assert.match(developer, /aria-label=\{t\("developer\.openDiscordProfileFor"/);
   const keyboardCodeExamples = developer.match(/<pre className="dev-code" tabIndex=\{0\} aria-label=/g) || [];
   assert.equal(keyboardCodeExamples.length, 5, "all five horizontally scrollable code examples should be keyboard-focusable, including the V4 redemption response");
