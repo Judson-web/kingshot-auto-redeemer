@@ -671,4 +671,6 @@ export default {
   "pushNotifications.turnOff": "Turn off",
   "pushNotifications.retry": "Retry after allowing",
   "pushNotifications.enable": "Enable notifications",
+  "common.text": "Text",
+  "common.copiedSuccessfully": "copied successfully",
 };
