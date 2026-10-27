@@ -67,7 +67,7 @@ function notifyReply(c:Saved,message:Msg){
  const title=(st("supportRepliedPrefix","Support replied · ")+subject).slice(0,100);
  const ticket=String(c.supportTicketId||"").trim();
  const preview=notificationPreview(message);
- const body=(ticket?"Ticket "+ticket+" · ":"")+preview;
+ const body=(ticket?st("ticketPrefix","Ticket ")+ticket+" · ":"")+preview;
  const url="/?supportConversation="+encodeURIComponent(c.conversationId);
  const options:NotificationOptions & {image?:string;renotify?:boolean;timestamp?:number;actions?:Array<{action:string;title:string}>}={
   body:body.slice(0,220),
