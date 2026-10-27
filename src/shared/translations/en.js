@@ -12,7 +12,28 @@ export default {
   "legal.privacy":"Privacy","legal.terms":"Terms","legal.updated":"Updated","legal.privacyTitle":"Your data, explained.","legal.termsTitle":"Use the service responsibly.",
   "legal.privacyEyebrow":"PRIVACY NOTICE","legal.termsEyebrow":"TERMS OF USE","legal.community":"Independent community project",
   "profile.account":"Account","profile.developer":"Developer","profile.admin":"Admin","profile.signOut":"Sign out","profile.accessRequired":"Developer access required",
-  "common.back":"Back","common.loading":"Loading…","common.cancel":"Cancel","common.save":"Save","common.close":"Close","common.retry":"Try again"
+  "common.back":"Back","common.loading":"Loading…","common.cancel":"Cancel","common.save":"Save","common.close":"Close","common.retry":"Try again",
 
-  "info.skip":"Skip to main content","info.back":"Back to Auto Redeem","info.about":"ABOUT THE SERVICE","info.hero":"A guide to registration, automatic code checks, redemption history, and how your account details stay protected.","info.basicFlow":"The basic flow.","info.step1":"Register your player","info.step1Text":"Your Player ID is checked and linked to its current kingdom.","info.step2":"Codes enter the active pool","info.step2Text":"Public sources are checked for active gift codes. Codes known to be expired are excluded.","info.step3":"Workers process eligible players","info.step3Text":"The service checks registered players and processes eligible codes automatically.","info.step4":"Results are remembered","info.step4Text":"Each result is saved to prevent duplicate attempts and keep a redemption history.","info.features":"What the service does.","info.failures":"When something does not go through.","info.ready":"READY TO START?","info.choose":"Choose how you want to redeem.","info.chooseText":"Register a player for automatic checks, or submit a specific gift code yourself.","info.autoLink":"Automatic redemption","info.manualLink":"Manual redemption","info.footer":"Independent community service · Built and maintained by Judson. Not affiliated with Century Games.","info.contact":"Contact developer on Discord","legal.termsTitle":"Use the service responsibly.","legal.privacyTitle":"Your data, explained.","legal.termsDescription":"Submit a gift code for an individual player.","legal.privacyDescription":"Register a player for scheduled gift-code processing.","legal.termsTab":"Terms","legal.privacyTab":"Privacy","legal.updatedDate":"October 27, 2026","legal.updated":"Updated","legal.independent":"Independent community project","legal.information":"Information used to provide the service"
+  "info.skip":"Skip to main content","info.back":"Back to Auto Redeem","info.about":"ABOUT THE SERVICE","info.hero":"A guide to registration, automatic code checks, redemption history, and how your account details stay protected.","info.basicFlow":"The basic flow.","info.step1":"Register your player","info.step1Text":"Your Player ID is checked and linked to its current kingdom.","info.step2":"Codes enter the active pool","info.step2Text":"Public sources are checked for active gift codes. Codes known to be expired are excluded.","info.step3":"Workers process eligible players","info.step3Text":"The service checks registered players and processes eligible codes automatically.","info.step4":"Results are remembered","info.step4Text":"Each result is saved to prevent duplicate attempts and keep a redemption history.","info.features":"What the service does.","info.failures":"When something does not go through.","info.ready":"READY TO START?","info.choose":"Choose how you want to redeem.","info.chooseText":"Register a player for automatic checks, or submit a specific gift code yourself.","info.autoLink":"Automatic redemption","info.manualLink":"Manual redemption","info.footer":"Independent community service · Built and maintained by Judson. Not affiliated with Century Games.","info.contact":"Contact developer on Discord","legal.termsTitle":"Use the service responsibly.","legal.privacyTitle":"Your data, explained.","legal.termsDescription":"Submit a gift code for an individual player.","legal.privacyDescription":"Register a player for scheduled gift-code processing.","legal.termsTab":"Terms","legal.privacyTab":"Privacy","legal.updatedDate":"October 27, 2026","legal.updated":"Updated","legal.independent":"Independent community project","legal.information":"Information used to provide the service",
+  "info.cardAutomatic":"Automatic redemption",
+  "info.cardAutomaticText":"Register your Player ID once. Eligible gift codes are checked automatically.",
+  "info.cardOlder":"Older valid codes",
+  "info.cardOlderText":"Older codes can still be checked while they remain valid and unclaimed.",
+  "info.cardHistory":"Redemption history",
+  "info.cardHistoryText":"Results are saved per player and code to avoid duplicate attempts.",
+  "info.cardDiscovery":"Code discovery",
+  "info.cardDiscoveryText":"The service checks public sources and filters codes known to be expired.",
+  "info.cardSecure":"Secure processing",
+  "info.cardSecureText":"Redemptions are submitted from the server. Signing keys and privileged credentials stay private.",
+  "info.cardPassword":"No game password",
+  "info.cardPasswordText":"Registration never asks for your Kingshot password or account credentials.",
+  "info.failureExpired":"Expired or already handled",
+  "info.failureExpiredText":"A code may be expired, exhausted, or already redeemed by your player.",
+  "info.failureLimits":"Temporary limits",
+  "info.failureLimitsText":"Temporary provider limits can delay a redemption. The service retries safely.",
+  "info.failureMismatch":"Player or kingdom mismatch",
+  "info.failureMismatchText":"Player validation helps prevent submissions for invalid or outdated player details.",
+  "nav.support":"Support",
+  "nav.supportDescription":"Get help or continue a private ticket",
+  "nav.passwordNotice":"Your game password is never requested."
 };
