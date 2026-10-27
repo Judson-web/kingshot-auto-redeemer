@@ -165,3 +165,20 @@ test("support topic picker and developer contact/code examples meet accessible-n
   const keyboardCodeExamples = developer.match(/<pre className="dev-code" tabIndex=\{0\} aria-label=/g) || [];
   assert.equal(keyboardCodeExamples.length, 5, "all five horizontally scrollable code examples should be keyboard-focusable, including the V4 redemption response");
 });
+
+test("language dictionaries are separate, persistent, and used by public navigation", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const root = new URL("../src/", import.meta.url);
+  const language = await readFile(new URL("shared/site-language.js", root), "utf8");
+  const english = await readFile(new URL("shared/translations/en.js", root), "utf8");
+  const korean = await readFile(new URL("shared/translations/ko.js", root), "utf8");
+  const header = await readFile(new URL("components/PublicSiteHeader.jsx", root), "utf8");
+  const drawer = await readFile(new URL("components/MobileNavDrawer.jsx", root), "utf8");
+  assert.match(language, /localStorage\.setItem\(KEY,next\)/);
+  assert.match(language, /import en from "\.\/translations\/en\.js"/);
+  assert.match(language, /import ko from "\.\/translations\/ko\.js"/);
+  assert.match(english, /"nav.auto":"Auto Redeem"/);
+  assert.match(korean, /"nav.auto":"자동 교환"/);
+  assert.match(header, /t\(link\.key,link\.label\)/);
+  assert.match(drawer, /useSiteLanguage/);
+});
