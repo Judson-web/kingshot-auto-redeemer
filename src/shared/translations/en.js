@@ -35,5 +35,12 @@ export default {
   "info.failureMismatchText":"Player validation helps prevent submissions for invalid or outdated player details.",
   "nav.support":"Support",
   "nav.supportDescription":"Get help or continue a private ticket",
-  "nav.passwordNotice":"Your game password is never requested."
+  "nav.passwordNotice":"Your game password is never requested.",
+  "profile.myProfile":"My profile",
+  "profile.open":"Open profile",
+  "legal.manualSummary":"Submit a gift code for an individual player.",
+  "legal.autoSummary":"Register a player for scheduled gift-code processing.",
+  "legal.footer":"Independent community service · Maintained by Judson",
+  "legal.contact":"Developer contact",
+  "legal.updatedDate":"October 27, 2026"
 };
