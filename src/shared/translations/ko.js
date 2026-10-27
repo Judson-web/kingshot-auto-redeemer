@@ -483,4 +483,7 @@ export default {
   "announcement.title": "공지 제목",
   "announcement.message": "공지 내용이 여기에 표시됩니다.",
   "announcement.learnMore": "자세히 보기",
+  "player.power": "전투력",
+  "player.kingdom": "왕국",
+  "outcome.playerId": "플레이어 ID",
 };
