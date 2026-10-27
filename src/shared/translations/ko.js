@@ -679,4 +679,10 @@ export default {
   "profile.startSignInFailed": "Discord 로그인을 시작할 수 없습니다.",
   "profile.logoutUnconfirmed": "이 기기에서는 로그아웃했지만 서버 로그아웃을 확인하지 못했습니다.",
   "profile.signOutFailed": "로그아웃할 수 없습니다.",
+  "manual.playerIdHint": "Kingshot의 프로필 → 정보에 표시된 숫자 플레이어 ID를 사용하세요. 5~20자리 숫자여야 하며 왕국 번호와는 다릅니다.",
+  "developer.clipboardUnavailable": "클립보드를 사용할 수 없습니다. 보안 연결이 적용된 브라우저에서 페이지를 열고 키를 직접 복사하세요.",
+  "developer.signedInNotice": "로그인되었습니다. API 키는 이 계정에 연결됩니다.",
+  "developer.lastKeyRevoked": "마지막 활성 API 키가 폐기되어 개발자 권한이 제거되었습니다. Discord 프로필 로그인은 유지됩니다.",
+  "developer.keyRevoked": "API 키가 폐기되었습니다.",
+  "developer.signedOutNotice": "로그아웃되었습니다.",
 };
