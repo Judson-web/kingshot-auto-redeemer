@@ -610,4 +610,13 @@ export default {
   "maintenance.supportSubject": "점검 관련 문의",
   "maintenance.supportPageTitle": "서비스 점검",
   "maintenance.footer": "독립 커뮤니티 서비스",
+  "developer.addKeyLabel": "API 키를 만들기 전에 라벨을 입력하세요.",
+  "developer.signInFirst": "먼저 프로필 페이지에서 Discord로 로그인하세요. 로그인 상태는 사이트 전체에서 공유됩니다.",
+  "developer.keyCreatedNotice": "개발자 권한이 활성화되고 첫 API 키가 생성되었습니다. 전체 비밀 키는 다시 표시되지 않으니 지금 복사하세요.",
+  "developer.createKeyFailed": "API 키를 생성할 수 없습니다.",
+  "support.readImageFailed": "이미지를 읽을 수 없습니다.",
+  "support.openLinkedConversationFailed": "연결된 대화를 열 수 없습니다.",
+  "support.updateStatusFailed": "상태를 업데이트할 수 없습니다.",
+  "support.copyConversationIdFailed": "대화 ID를 복사할 수 없습니다.",
+  "support.replyFailed": "답변을 보내지 못했습니다.",
 };
