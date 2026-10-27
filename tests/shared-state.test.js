@@ -93,15 +93,17 @@ test("maintenance gate, profile status and shared header consume common state st
 });
 
 
-test("profile dashboard and public header require verified developer or admin access", async () => {
+test("profile dashboard access stays restricted while the signed-in header chip is available to all accounts", async () => {
   const { readFile } = await import("node:fs/promises");
   const chip = await readFile(new URL("../src/components/PublicAccountChip.jsx", import.meta.url), "utf8");
   const drawer = await readFile(new URL("../src/components/MobileNavDrawer.jsx", import.meta.url), "utf8");
   const profile = await readFile(new URL("../src/ProfileApp.tsx", import.meta.url), "utf8");
   const legal = await readFile(new URL("../src/LegalApp.jsx", import.meta.url), "utf8");
 
-  assert.match(chip, /if \(!account \|\| \(!isAdmin && !isDeveloper\)\) return null;/,
-    "ordinary signed-in users and anonymous visitors must not see a header profile shortcut");
+  assert.match(chip, /if\(!account\)return null;/,
+    "the profile shortcut must appear for any signed-in account, regardless of first API-key generation");
+  assert.match(chip, /isDeveloper=account\.role==="developer"\|\|account\.kind==="developer"/,
+    "developer styling must still reflect verified developer status rather than ordinary sign-in");
   assert.match(profile, /if\(user&&!hasProfileAccess\)/,
     "a Discord session without developer/admin access must hit the restricted profile gate");
   assert.match(profile, /Open Developer API/,
@@ -110,6 +112,19 @@ test("profile dashboard and public header require verified developer or admin ac
     "profile stays available in the navigation drawer");
   assert.match(legal, /at least one active developer API key/);
   assert.match(legal, /A successful Discord sign-in by itself verifies an identity but does not grant developer permissions/);
+});
+
+test("language selector supports English and Korean with a persistent selection", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const header = await readFile(new URL("../src/components/PublicSiteHeader.jsx", import.meta.url), "utf8");
+  const language = await readFile(new URL("../src/shared/site-language.js", import.meta.url), "utf8");
+  const styles = await readFile(new URL("../src/public-site-header.css", import.meta.url), "utf8");
+  assert.match(header, /flag:"🇺🇸".*label:"English"/s);
+  assert.match(header, /ko:"자동 교환"/);
+  assert.match(header, /role="listbox"/);
+  assert.match(language, /localStorage\.setItem\(KEY,next\)/);
+  assert.match(language, /document\.documentElement\.lang=next/);
+  assert.match(styles, /\.ks-language-menu/);
 });
 
 test("account subscription and refresh requests share the same in-flight promise", async () => {
