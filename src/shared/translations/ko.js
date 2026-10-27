@@ -673,4 +673,10 @@ export default {
   "pushNotifications.enable": "알림 켜기",
   "common.text": "텍스트",
   "common.copiedSuccessfully": "복사되었습니다",
+  "profile.requestFailed": "요청에 실패했습니다.",
+  "profile.signInFailed": "Discord 로그인에 실패했습니다.",
+  "profile.signInNotConfigured": "Discord 로그인이 설정되지 않았습니다.",
+  "profile.startSignInFailed": "Discord 로그인을 시작할 수 없습니다.",
+  "profile.logoutUnconfirmed": "이 기기에서는 로그아웃했지만 서버 로그아웃을 확인하지 못했습니다.",
+  "profile.signOutFailed": "로그아웃할 수 없습니다.",
 };
