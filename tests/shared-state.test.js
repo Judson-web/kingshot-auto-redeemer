@@ -213,3 +213,39 @@ test("auto, manual, profile, and legal pages use the shared English/Korean dicti
   assert.match(english, /"manual\.title":"Redeem a gift code"/);
   assert.match(korean, /"manual\.title":"기프트 코드 교환"/);
 });
+
+test("public English and Korean dictionaries stay in sync across every shared public component", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const root = new URL("../src/", import.meta.url);
+  const paths = [
+    "main.jsx",
+    "InfoApp.jsx",
+    "LegalApp.jsx",
+    "ProfileApp.tsx",
+    "DeveloperApp.tsx",
+    "DeveloperAccountPanel.tsx",
+    "components/PublicSiteHeader.jsx",
+    "components/PublicAccountChip.jsx",
+    "components/MobileNavDrawer.jsx",
+    "components/PushNotifications.tsx",
+    "components/SupportWidget.tsx"
+  ];
+  const sources = await Promise.all(paths.map(path => readFile(new URL(path, root), "utf8")));
+  const english = await readFile(new URL("shared/translations/en.js", root), "utf8");
+  const korean = await readFile(new URL("shared/translations/ko.js", root), "utf8");
+  const dictionaryKeys = source => [...source.matchAll(/^\s*"([^"]+)"\s*:/gm)].map(match => match[1]);
+  const englishKeys = dictionaryKeys(english);
+  const koreanKeys = dictionaryKeys(korean);
+  assert.deepEqual([...koreanKeys].sort(), [...englishKeys].sort(), "English and Korean dictionaries must have the same keys");
+  const available = new Set(englishKeys);
+  for (let index = 0; index < sources.length; index++) {
+    for (const match of sources[index].matchAll(/\b(?:t|tr)\(\s*["']([^"']+)["']/g)) {
+      assert.ok(available.has(match[1]), paths[index] + " references missing translation key " + match[1]);
+    }
+    if (paths[index] === "components/SupportWidget.tsx") {
+      for (const match of sources[index].matchAll(/\bst\(\s*["']([^"']+)["']/g)) {
+        assert.ok(available.has("support." + match[1]), paths[index] + " references missing translation key support." + match[1]);
+      }
+    }
+  }
+});
