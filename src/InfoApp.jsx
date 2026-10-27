@@ -3,6 +3,7 @@ import {ArrowLeft,ArrowRight,Clock3,Database,History,LockKeyhole,RefreshCw,Zap,M
 import "./how-it-works-redesign.css";
 import MobileNavDrawer from "./components/MobileNavDrawer.jsx";
 import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
+import { useTranslations } from "./locales/useTranslations.js";
 const BRAND_ICON="/favicon.svg";
 function KsLogo(){return <a className="brand ks-brand" href="/"><span className="brand-mark ks-brand-mark"><img src={BRAND_ICON} alt="Kingshot Redeemer"/></span><span>Kingshot Redeemer</span></a>}
 const PROFILE_CHIP_CACHE="ks-profile-chip-v1";
@@ -17,27 +18,28 @@ function DiscordChip(){
 }
 
 const sections=[
- {icon:Zap,title:"Automatic redemption",text:"Register your Player ID once. Eligible gift codes are checked automatically."},
- {icon:History,title:"Older valid codes",text:"Older codes can still be checked while they remain valid and unclaimed."},
- {icon:Database,title:"Redemption history",text:"Results are saved per player and code to avoid duplicate attempts."},
- {icon:RefreshCw,title:"Code discovery",text:"The service checks public sources and filters codes known to be expired."},
- {icon:ShieldCheck,title:"Secure processing",text:"Redemptions are submitted from the server. Signing keys and privileged credentials stay private."},
- {icon:LockKeyhole,title:"No game password",text:"Registration never asks for your Kingshot password or account credentials."},
+ {icon:Zap,titleKey:"autoTitle",textKey:"autoText"},
+ {icon:History,titleKey:"olderTitle",textKey:"olderText"},
+ {icon:Database,titleKey:"historyTitle",textKey:"historyText"},
+ {icon:RefreshCw,titleKey:"discoveryTitle",textKey:"discoveryText"},
+ {icon:ShieldCheck,titleKey:"secureTitle",textKey:"secureText"},
+ {icon:LockKeyhole,titleKey:"passwordTitle",textKey:"passwordText"},
 ];
 
 function InfoApp(){
+ const t=useTranslations();
  return <div className="app ks-app info-app">
-  <a className="skip-link" href="#main-content">Skip to main content</a>
+  <a className="skip-link" href="#main-content">{t("skip")}</a>
   <PublicSiteHeader current="info" />
   <main id="main-content">
-   <section className="info-hero"><a className="info-back" href="/auto"><ArrowLeft size={14}/> Back to Auto Redeem</a><div className="eyebrow"><span/>ABOUT THE SERVICE</div><h1>How it works</h1><p className="hero-copy">A guide to registration, automatic code checks, redemption history, and how your account details stay protected.</p></section>
-   <section className="info-flow"><div className="section-title"><span>01</span><h2>The basic flow.</h2></div><div className="info-steps"><article><b>01</b><div><strong>Register your player</strong><p>Your Player ID is checked and linked to its current kingdom.</p></div></article><article><b>02</b><div><strong>Codes enter the active pool</strong><p>Public sources are checked for active gift codes. Codes known to be expired are excluded.</p></div></article><article><b>03</b><div><strong>Workers process eligible players</strong><p>The service checks registered players and processes eligible codes automatically.</p></div></article><article><b>04</b><div><strong>Results are remembered</strong><p>Each result is saved to prevent duplicate attempts and keep a redemption history.</p></div></article></div></section>
-   <section className="info-features"><div className="section-title"><span>02</span><h2>What the service does.</h2></div><div className="info-grid">{sections.map(({icon:Icon,title,text})=><article key={title}><div className="info-icon"><Icon size={18}/></div><div><h3>{title}</h3><p>{text}</p></div></article>)}</div></section>
+   <section className="info-hero"><a className="info-back" href="/auto"><ArrowLeft size={14}/> {t("back")}</a><div className="eyebrow"><span/>{t("eyebrow")}</div><h1>{t("title")}</h1><p className="hero-copy">{t("hero")}</p></section>
+   <section className="info-flow"><div className="section-title"><span>01</span><h2>{t("flowTitle")}</h2></div><div className="info-steps"><article><b>01</b><div><strong>{t("step1")}</strong><p>{t("step1Text")}</p></div></article><article><b>02</b><div><strong>{t("step2")}</strong><p>{t("step2Text")}</p></div></article><article><b>03</b><div><strong>{t("step3")}</strong><p>{t("step3Text")}</p></div></article><article><b>04</b><div><strong>{t("step4")}</strong><p>{t("step4Text")}</p></div></article></div></section>
+   <section className="info-features"><div className="section-title"><span>02</span><h2>{t("featuresTitle")}</h2></div><div className="info-grid">{sections.map(({icon:Icon,titleKey,textKey})=><article key={titleKey}><div className="info-icon"><Icon size={18}/></div><div><h3>{t(titleKey)}</h3><p>{t(textKey)}</p></div></article>)}</div></section>
    
-   <section className="info-failures"><div className="section-title"><span>03</span><h2>When something does not go through.</h2></div><div className="info-grid"><article><div className="info-icon"><Clock3 size={18}/></div><div><h3>Expired or already handled</h3><p>A code may be expired, exhausted, or already redeemed by your player.</p></div></article><article><div className="info-icon"><RefreshCw size={18}/></div><div><h3>Temporary limits</h3><p>Temporary provider limits can delay a redemption. The service retries safely.</p></div></article><article><div className="info-icon"><ShieldCheck size={18}/></div><div><h3>Player or kingdom mismatch</h3><p>Player validation helps prevent submissions for invalid or outdated player details.</p></div></article></div></section>
-   <section className="info-cta"><div className="info-cta-copy"><span className="info-cta-kicker">READY TO START?</span><h2>Choose how you want to redeem.</h2><p>Register a player for automatic checks, or submit a specific gift code yourself.</p></div><div className="info-cta-links"><a href="/auto">Automatic redemption <ArrowRight size={14}/></a><a href="/manual">Manual redemption <ArrowRight size={14}/></a></div></section>
+   <section className="info-failures"><div className="section-title"><span>03</span><h2>{t("failuresTitle")}</h2></div><div className="info-grid"><article><div className="info-icon"><Clock3 size={18}/></div><div><h3>{t("expiredTitle")}</h3><p>{t("expiredText")}</p></div></article><article><div className="info-icon"><RefreshCw size={18}/></div><div><h3>{t("limitsTitle")}</h3><p>{t("limitsText")}</p></div></article><article><div className="info-icon"><ShieldCheck size={18}/></div><div><h3>{t("mismatchTitle")}</h3><p>{t("mismatchText")}</p></div></article></div></section>
+   <section className="info-cta"><div className="info-cta-copy"><span className="info-cta-kicker">{t("ctaKicker")}</span><h2>{t("ctaTitle")}</h2><p>{t("ctaText")}</p></div><div className="info-cta-links"><a href="/auto">{t("ctaAuto")} <ArrowRight size={14}/></a><a href="/manual">{t("ctaManual")} <ArrowRight size={14}/></a></div></section>
   </main>
-  <footer><KsLogo/><span>Independent community service · Built and maintained by Judson. Not affiliated with Century Games.</span><span><a href="https://discord.com/users/871756466900598815" target="_blank" rel="noopener noreferrer">Contact developer on Discord</a> · <a href="/info">How it works</a> · <a href="/terms?service=kingshot-auto">Terms</a> · <a href="/privacy?service=kingshot-auto">Privacy</a></span></footer>
+  <footer><KsLogo/><span>{t("footer")}</span><span><a href="https://discord.com/users/871756466900598815" target="_blank" rel="noopener noreferrer">{t("contact")}</a> · <a href="/info">{t("footerInfo")}</a> · <a href="/terms?service=kingshot-auto">{t("terms")}</a> · <a href="/privacy?service=kingshot-auto">{t("privacy")}</a></span></footer>
  </div>
 }
 export default InfoApp;
