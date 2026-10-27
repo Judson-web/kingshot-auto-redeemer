@@ -19,12 +19,12 @@ function DiscordChip(){
 }
 
 const sections=[
- {icon:Zap,title:"{tr("Automatic redemption")}",text:"{tr("Register your Player ID once. Eligible gift codes are checked automatically.")}"},
- {icon:History,title:"{tr("Older valid codes")}",text:"{tr("Older codes can still be checked while they remain valid and unclaimed.")}"},
- {icon:Database,title:"{tr("Redemption history")}",text:"{tr("Results are saved per player and code to avoid duplicate attempts.")}"},
- {icon:RefreshCw,title:"{tr("Code discovery")}",text:"{tr("The service checks public sources and filters codes known to be expired.")}"},
- {icon:ShieldCheck,title:"{tr("Secure processing")}",text:"{tr("Redemptions are submitted from the server. Signing keys and privileged credentials stay private.")}"},
- {icon:LockKeyhole,title:"{tr("No game password")}",text:"{tr("Registration never asks for your Kingshot password or account credentials.")}"},
+ {icon:Zap,title:"Automatic redemption",text:"Register your Player ID once. Eligible gift codes are checked automatically."},
+ {icon:History,title:"Older valid codes",text:"Older codes can still be checked while they remain valid and unclaimed."},
+ {icon:Database,title:"Redemption history",text:"Results are saved per player and code to avoid duplicate attempts."},
+ {icon:RefreshCw,title:"Code discovery",text:"The service checks public sources and filters codes known to be expired."},
+ {icon:ShieldCheck,title:"Secure processing",text:"Redemptions are submitted from the server. Signing keys and privileged credentials stay private."},
+ {icon:LockKeyhole,title:"No game password",text:"Registration never asks for your Kingshot password or account credentials."},
 ];
 
 function InfoApp(){
@@ -36,7 +36,7 @@ function InfoApp(){
   <main id="main-content">
    <section className="info-hero"><a className="info-back" href="/auto"><ArrowLeft size={14}/> {tr("Back to Auto Redeem")}</a><div className="eyebrow"><span/>{tr("ABOUT THE SERVICE")}</div><h1>{tr("How it works")}</h1><p className="hero-copy">{tr("A guide to registration, automatic code checks, redemption history, and how your account details stay protected.")}</p></section>
    <section className="info-flow"><div className="section-title"><span>01</span><h2>{tr("The basic flow.")}</h2></div><div className="info-steps"><article><b>01</b><div><strong>{tr("Register your player")}</strong><p>{tr("Your Player ID is checked and linked to its current kingdom.")}</p></div></article><article><b>02</b><div><strong>{tr("Codes enter the active pool")}</strong><p>{tr("Public sources are checked for active gift codes. Codes known to be expired are excluded.")}</p></div></article><article><b>03</b><div><strong>{tr("Workers process eligible players")}</strong><p>{tr("The service checks registered players and processes eligible codes automatically.")}</p></div></article><article><b>04</b><div><strong>{tr("Results are remembered")}</strong><p>{tr("Each result is saved to prevent duplicate attempts and keep a redemption history.")}</p></div></article></div></section>
-   <section className="info-features"><div className="section-title"><span>02</span><h2>{tr("What the service does.")}</h2></div><div className="info-grid">{sections.map(({icon:Icon,title,text})=><article key={title}><div className="info-icon"><Icon size={18}/></div><div><h3>{title}</h3><p>{text}</p></div></article>)}</div></section>
+   <section className="info-features"><div className="section-title"><span>02</span><h2>{tr("What the service does.")}</h2></div><div className="info-grid">{sections.map(({icon:Icon,title,text})=><article key={title}><div className="info-icon"><Icon size={18}/></div><div><h3>{tr(title)}</h3><p>{tr(text)}</p></div></article>)}</div></section>
    
    <section className="info-failures"><div className="section-title"><span>03</span><h2>{tr("When something does not go through.")}</h2></div><div className="info-grid"><article><div className="info-icon"><Clock3 size={18}/></div><div><h3>{tr("Expired or already handled")}</h3><p>{tr("A code may be expired, exhausted, or already redeemed by your player.")}</p></div></article><article><div className="info-icon"><RefreshCw size={18}/></div><div><h3>Temporary limits</h3><p>Temporary provider limits can delay a redemption. The service retries safely.</p></div></article><article><div className="info-icon"><ShieldCheck size={18}/></div><div><h3>Player or kingdom mismatch</h3><p>Player validation helps prevent submissions for invalid or outdated player details.</p></div></article></div></section>
    <section className="info-cta"><div className="info-cta-copy"><span className="info-cta-kicker">READY TO START?</span><h2>Choose how you want to redeem.</h2><p>Register a player for automatic checks, or submit a specific gift code yourself.</p></div><div className="info-cta-links"><a href="/auto">{tr("Automatic redemption")} <ArrowRight size={14}/></a><a href="/manual">Manual redemption <ArrowRight size={14}/></a></div></section>
