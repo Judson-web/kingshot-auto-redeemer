@@ -12,7 +12,28 @@ export default {
   "legal.privacy":"개인정보","legal.terms":"이용약관","legal.updated":"업데이트","legal.privacyTitle":"개인정보 처리 안내","legal.termsTitle":"서비스를 책임감 있게 이용해 주세요.",
   "legal.privacyEyebrow":"개인정보 처리방침","legal.termsEyebrow":"이용약관","legal.community":"독립 커뮤니티 프로젝트",
   "profile.account":"계정","profile.developer":"개발자","profile.admin":"관리자","profile.signOut":"로그아웃","profile.accessRequired":"개발자 권한이 필요합니다",
-  "common.back":"뒤로","common.loading":"불러오는 중…","common.cancel":"취소","common.save":"저장","common.close":"닫기","common.retry":"다시 시도"
+  "common.back":"뒤로","common.loading":"불러오는 중…","common.cancel":"취소","common.save":"저장","common.close":"닫기","common.retry":"다시 시도",
 
-  "info.skip":"본문으로 건너뛰기","info.back":"자동 교환으로 돌아가기","info.about":"서비스 소개","info.hero":"등록 방법, 자동 코드 확인, 교환 기록 및 계정 정보 보호 방식을 안내합니다.","info.basicFlow":"기본 진행 과정","info.step1":"플레이어 등록","info.step1Text":"플레이어 ID를 확인하고 현재 왕국 정보와 연결합니다.","info.step2":"활성 코드 목록에 추가","info.step2Text":"공개 출처에서 사용 가능한 기프트 코드를 확인하며 만료된 코드는 제외합니다.","info.step3":"작업자가 대상 플레이어 처리","info.step3Text":"등록된 플레이어를 확인하고 사용 가능한 코드를 자동으로 처리합니다.","info.step4":"결과 저장","info.step4Text":"중복 시도를 방지하고 교환 기록을 유지하기 위해 각 결과를 저장합니다.","info.features":"서비스가 제공하는 기능","info.failures":"처리가 완료되지 않는 경우","info.ready":"시작할 준비가 되셨나요?","info.choose":"교환 방법을 선택하세요.","info.chooseText":"플레이어를 등록해 자동 확인을 이용하거나 기프트 코드를 직접 제출할 수 있습니다.","info.autoLink":"자동 교환","info.manualLink":"수동 교환","info.footer":"독립 커뮤니티 서비스 · Judson이 개발 및 관리합니다. Century Games와 제휴하지 않습니다.","info.contact":"Discord로 개발자에게 문의","legal.termsTitle":"서비스를 책임감 있게 이용해 주세요.","legal.privacyTitle":"개인정보 처리 안내","legal.termsDescription":"개별 플레이어의 기프트 코드를 제출합니다.","legal.privacyDescription":"기프트 코드 자동 처리를 위해 플레이어를 등록합니다.","legal.termsTab":"이용약관","legal.privacyTab":"개인정보","legal.updatedDate":"2026년 10월 27일","legal.updated":"업데이트","legal.independent":"독립 커뮤니티 프로젝트","legal.information":"서비스 제공에 사용하는 정보"
+  "info.skip":"본문으로 건너뛰기","info.back":"자동 교환으로 돌아가기","info.about":"서비스 소개","info.hero":"등록 방법, 자동 코드 확인, 교환 기록 및 계정 정보 보호 방식을 안내합니다.","info.basicFlow":"기본 진행 과정","info.step1":"플레이어 등록","info.step1Text":"플레이어 ID를 확인하고 현재 왕국 정보와 연결합니다.","info.step2":"활성 코드 목록에 추가","info.step2Text":"공개 출처에서 사용 가능한 기프트 코드를 확인하며 만료된 코드는 제외합니다.","info.step3":"작업자가 대상 플레이어 처리","info.step3Text":"등록된 플레이어를 확인하고 사용 가능한 코드를 자동으로 처리합니다.","info.step4":"결과 저장","info.step4Text":"중복 시도를 방지하고 교환 기록을 유지하기 위해 각 결과를 저장합니다.","info.features":"서비스가 제공하는 기능","info.failures":"처리가 완료되지 않는 경우","info.ready":"시작할 준비가 되셨나요?","info.choose":"교환 방법을 선택하세요.","info.chooseText":"플레이어를 등록해 자동 확인을 이용하거나 기프트 코드를 직접 제출할 수 있습니다.","info.autoLink":"자동 교환","info.manualLink":"수동 교환","info.footer":"독립 커뮤니티 서비스 · Judson이 개발 및 관리합니다. Century Games와 제휴하지 않습니다.","info.contact":"Discord로 개발자에게 문의","legal.termsTitle":"서비스를 책임감 있게 이용해 주세요.","legal.privacyTitle":"개인정보 처리 안내","legal.termsDescription":"개별 플레이어의 기프트 코드를 제출합니다.","legal.privacyDescription":"기프트 코드 자동 처리를 위해 플레이어를 등록합니다.","legal.termsTab":"이용약관","legal.privacyTab":"개인정보","legal.updatedDate":"2026년 10월 27일","legal.updated":"업데이트","legal.independent":"독립 커뮤니티 프로젝트","legal.information":"서비스 제공에 사용하는 정보",
+  "info.cardAutomatic":"자동 교환",
+  "info.cardAutomaticText":"플레이어 ID를 한 번 등록하면 사용 가능한 기프트 코드를 자동으로 확인합니다.",
+  "info.cardOlder":"이전의 유효한 코드",
+  "info.cardOlderText":"아직 유효하고 사용되지 않은 이전 코드도 확인할 수 있습니다.",
+  "info.cardHistory":"교환 기록",
+  "info.cardHistoryText":"중복 시도를 방지하기 위해 플레이어와 코드별 결과를 저장합니다.",
+  "info.cardDiscovery":"코드 탐색",
+  "info.cardDiscoveryText":"공개 출처에서 코드를 확인하고 만료된 것으로 알려진 코드는 제외합니다.",
+  "info.cardSecure":"안전한 처리",
+  "info.cardSecureText":"교환 요청은 서버에서 제출하며 서명 키와 권한이 높은 자격 증명은 비공개로 유지됩니다.",
+  "info.cardPassword":"게임 비밀번호 불필요",
+  "info.cardPasswordText":"등록 과정에서 Kingshot 비밀번호나 계정 자격 증명을 요구하지 않습니다.",
+  "info.failureExpired":"만료되었거나 이미 처리됨",
+  "info.failureExpiredText":"코드가 만료되었거나 사용 한도에 도달했거나 해당 플레이어가 이미 사용했을 수 있습니다.",
+  "info.failureLimits":"일시적인 제한",
+  "info.failureLimitsText":"서비스 제공자의 일시적인 제한으로 교환이 지연될 수 있습니다. 서비스는 안전하게 재시도합니다.",
+  "info.failureMismatch":"플레이어 또는 왕국 정보 불일치",
+  "info.failureMismatchText":"플레이어 확인 절차를 통해 잘못되었거나 오래된 정보의 제출을 방지합니다.",
+  "nav.support":"지원",
+  "nav.supportDescription":"도움을 받거나 비공개 문의를 이어가세요",
+  "nav.passwordNotice":"게임 비밀번호를 요청하지 않습니다."
 };
