@@ -143,5 +143,11 @@
   "support.photoAttached": "Photo attached",
   "support.sending": "Sending",
   "support.submitRemoval": "Submit removal request",
-  "manual.playerId": "Player ID"
+  "manual.playerId": "Player ID",
+  "manual.checkPlayerId": "Check Player ID",
+  "manual.playerIdFormat": "Use the numeric Player ID shown in Kingshot under Profile → Info. It must contain 5–20 digits; your kingdom number is different.",
+  "manual.checkCode": "Check gift code",
+  "manual.codeFormat": "Gift codes must be 6–32 letters, numbers, underscores, or hyphens.",
+  "manual.redeemError": "Couldn’t redeem that code.",
+  "manual.playerNotFound": "Could not find this player."
 }
