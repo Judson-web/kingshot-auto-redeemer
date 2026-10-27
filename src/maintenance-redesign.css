@@ -142,11 +142,11 @@
 }
 .maintenance-card h1 {
   max-width: 540px;
-  margin: 0 0 16px !important;
+  margin: 0 0 13px !important;
   color: #f0efe9 !important;
-  font-size: clamp(34px, 6vw, 48px) !important;
+  font-size: clamp(29px, 4.7vw, 40px) !important;
   font-weight: 650 !important;
-  line-height: 1.08 !important;
+  line-height: 1.2 !important;
   letter-spacing: -.045em !important;
 }
 .maintenance-card h1 em {
@@ -185,6 +185,7 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px !important;
   margin-top: 10px !important;
+  perspective: 700px;
 }
 .maintenance-countdown.has-days { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .maintenance-time {
@@ -193,16 +194,23 @@
   border: 1px solid #30312c !important;
   border-radius: 9px !important;
   background: #171814 !important;
-  transition: none !important;
+  transition: border-color .2s ease, background-color .2s ease, transform .2s ease !important;
+  animation: maintenance-tile-in .42s cubic-bezier(.2,.75,.25,1) both;
 }
+.maintenance-time:nth-child(2) { animation-delay: 45ms; }
+.maintenance-time:nth-child(3) { animation-delay: 90ms; }
+.maintenance-time:nth-child(4) { animation-delay: 135ms; }
 .maintenance-time:hover { transform: none !important; border-color: #45453d !important; }
 .maintenance-time b {
+  display: block;
   color: #efeee8 !important;
   font-size: clamp(20px, 4vw, 26px) !important;
   font-weight: 620 !important;
   letter-spacing: -.035em !important;
 }
 .maintenance-time span {
+  display: block;
+  margin-top: 5px;
   color: #a0a197 !important;
   font-size: 9px !important;
   letter-spacing: .08em !important;
@@ -344,6 +352,16 @@
   .maintenance-time b { font-size: 17px !important; }
   .maintenance-actions { align-items: flex-start; flex-direction: column; }
 }
+@keyframes maintenance-tile-in {
+  from { opacity: 0; transform: translateY(7px) rotateX(-5deg); }
+  to { opacity: 1; transform: translateY(0) rotateX(0); }
+}
+@keyframes maintenance-tick {
+  0% { opacity: .45; transform: translateY(-3px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.maintenance-time b.tick { animation: maintenance-tick .24s ease-out; }
 @media (prefers-reduced-motion: reduce) {
   .maintenance-support-button { transition: none !important; }
+  .maintenance-time, .maintenance-time b.tick { animation: none !important; }
 }
