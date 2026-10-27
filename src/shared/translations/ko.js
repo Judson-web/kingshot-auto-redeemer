@@ -646,4 +646,6 @@ export default {
   "developer.codeManualRedemption": "수동 교환 cURL 예제, 가로 스크롤 가능",
   "developer.codeRedemptionJson": "V4 교환 응답 예제, 가로 스크롤 가능",
   "developer.codeAutoRegistration": "자동 교환 등록 cURL 예제, 가로 스크롤 가능",
+  "pwa.updateToast": "새 버전 사용 가능 · 새로고침",
+  "common.loadingWorkspace": "작업 공간을 불러오는 중…",
 };
