@@ -838,7 +838,7 @@ export default {
   "alliance.rateLimitExhausted": "The registration rate limit did not clear. Retry this member shortly.",
   "alliance.cancelRegistration":"Cancel remaining registrations",
   "alliance.cancelPending":"Stopping after this player…",
-  "alliance.cancelled":"Registration stopped after the current player. Remaining selected players were not submitted."
+  "alliance.cancelled":"Registration stopped after the current player. Remaining selected players were not submitted.",
   "alliance.registrationFailed": "Registration could not be confirmed. Check the result before retrying.",
   "alliance.requestTimeout": "The request timed out. Confirm this Player ID’s status before retrying.",
   "alliance.connectionInterrupted": "The connection was interrupted. Confirm this Player ID’s status before retrying.",
