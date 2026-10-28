@@ -9,8 +9,8 @@ const korean = await readFile(new URL("../src/shared/translations/ko.js", import
 
 test("alliance registration requires explicit member selection before registering", () => {
   assert.match(component, /setSelected\(\[\]\);/);
-  assert.match(component, /disabled=\{registering \|\| !selected\.length \|\| !roster\.members\.length\}/);
-  assert.match(component, /const BATCH_LIMIT = 100/);
+  assert.match(component, /disabled=\{registering \|\| !selected\.length\}/);
+  assert.match(component, /const BATCH_LIMIT = 100/);\n  assert.match(component, /if \(!batch\.length\) return/);
 });
 
 test("alliance lookup ignores stale responses after a newer search or roster request", () => {
