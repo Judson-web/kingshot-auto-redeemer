@@ -40,13 +40,10 @@ export default function AllianceRegistration() {
   const [kingdomId, setKingdomId] = useState("");
   const [query, setQuery] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
-  const [showAllAlliances, setShowAllAlliances] = useState(false);
   const [alliances, setAlliances] = useState<AllianceEntry[]>([]);
   const [discovering, setDiscovering] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [activeAlliance, setActiveAlliance] = useState<AllianceEntry | null>(null);
-  const [tagFallbackOpen, setTagFallbackOpen] = useState(false);
-  const [exactTag, setExactTag] = useState("");
   const [roster, setRoster] = useState<AllianceResult | null>(null);
   const [loadingRoster, setLoadingRoster] = useState(false);
   const [rosterError, setRosterError] = useState("");
@@ -101,10 +98,9 @@ export default function AllianceRegistration() {
       if (!response.ok) throw new Error(data.error || t("alliance.searchFailed", "Could not load alliances for this kingdom."));
       const list = Array.isArray(data.alliances) ? data.alliances as AllianceEntry[] : [];
       setAlliances(list);
-      setShowAllAlliances(false);
-      if (!list.length) setSearchError(t("alliance.noneFound", "No alliance list was returned for this kingdom. Try the exact-tag option below."));
+      if (!list.length) setSearchError(t("alliance.noneFound", "No alliance list was returned for this kingdom. Try again shortly."));
       else if (query.trim() && !list.some(item => (item.name + " " + item.tag).toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))) {
-        setSearchError(t("alliance.noMatches", "No matches in the returned ranking. You can try the exact alliance tag below."));
+        setSearchError(t("alliance.noMatches", "No alliances match that filter. Try another name or tag."));
       }
     } catch (cause) {
       if (requestId === searchRequestRef.current) setSearchError(cause instanceof Error ? cause.message : t("alliance.searchFailed", "Could not load alliances for this kingdom."));
@@ -174,18 +170,6 @@ export default function AllianceRegistration() {
     }
   };
 
-  const loadExactTag = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const tag = exactTag.trim();
-    if (!/^[A-Za-z0-9_-]{1,20}$/.test(tag)) {
-      setRosterError(t("alliance.invalidTag", "Enter the exact alliance tag using letters, digits, underscores or hyphens."));
-      return;
-    }
-    await loadRoster({
-      name: tag, tag, kingdomId: kingdomId.trim(), power: null, memberCount: null,
-      leaderName: "", flagUrl: "", rank: null
-    });
-  };
 
   const toggleMember = (id: string) => {
     setSelected(current => {
@@ -317,21 +301,14 @@ export default function AllianceRegistration() {
         {alliances.length > 0 && <div className="ks-alliance-results">
           <div className="ks-alliance-results-head"><div><strong>{t("alliance.resultsHeading", "Matching alliances")}</strong><small>{t("alliance.resultsHint", "Choose an alliance to preview its roster.")}</small></div><span>{filteredAlliances.length} found</span></div>
           {filteredAlliances.length === 0 ? <p className="ks-alliance-empty">{t("alliance.noMatches", "No matches in the returned ranking. You can try the exact alliance tag below.")}</p> : <div className="ks-alliance-cards">
-            {(showAllAlliances || query.trim() ? filteredAlliances : filteredAlliances.slice(0, 6)).map(item => <button type="button" key={item.kingdomId + ":" + item.tag} className={"ks-alliance-card" + (activeAlliance?.tag === item.tag && activeAlliance?.kingdomId === item.kingdomId ? " is-active" : "")} onClick={() => { void loadRoster(item); }} disabled={loadingRoster || registering}>
-              <span className="ks-alliance-flag">{item.flagUrl ? <img src={item.flagUrl} alt="" loading="lazy"/> : <Users size={18}/>}</span>
+            {filteredAlliances.map(item => <button type="button" key={item.kingdomId + ":" + item.tag} className={"ks-alliance-card" + (activeAlliance?.tag === item.tag && activeAlliance?.kingdomId === item.kingdomId ? " is-active" : "")} onClick={() => { void loadRoster(item); }} disabled={loadingRoster || registering}>
+              <span className="ks-alliance-flag"><Users size={18} aria-hidden="true"/>{item.flagUrl && <img src={item.flagUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={event => { event.currentTarget.style.display = "none"; }}/>}</span>
               <span className="ks-alliance-card-copy"><strong>[{item.tag}] {item.name || item.tag}</strong><small>{t("alliance.kingdomLabel", "Kingdom")} {item.kingdomId}</small><small>{t("alliance.rankLabel", "Power rank")} {item.rank ?? "—"} · {item.memberCount ?? "—"} {t("alliance.members", "members")}</small></span>
               <ArrowRight size={17} aria-hidden="true"/>
             </button>)}
           </div>}
-          {!query.trim() && filteredAlliances.length > 6 && <button type="button" className="ks-alliance-show-more" onClick={() => setShowAllAlliances(value => !value)}>{showAllAlliances ? t("alliance.showFewer", "Show fewer alliances") : t("alliance.showAll", "Show all") + " (" + filteredAlliances.length + ")"}</button>}
         </div>}
-        <div className="ks-alliance-exact">
-          <button type="button" className="ks-alliance-text-toggle" aria-expanded={tagFallbackOpen} onClick={() => setTagFallbackOpen(value => !value)}><span>{t("alliance.exactTagToggle", "Know the exact alliance tag?")}</span><ChevronDown size={15} aria-hidden="true"/></button>
-          {tagFallbackOpen && <form className="ks-alliance-exact-form" onSubmit={loadExactTag}>
-            <label className="ks-alliance-field"><span>{t("alliance.exactTagLabel", "Exact alliance tag")}</span><input value={exactTag} onChange={event => setExactTag(event.target.value.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 20))} required autoComplete="off" placeholder={t("alliance.tagPlaceholder", "e.g. APX")} disabled={loadingRoster || registering}/></label>
-            <button className="ks-alliance-secondary" type="submit" disabled={loadingRoster || registering || !kingdomId.trim() || !exactTag.trim()}>{loadingRoster ? <LoaderCircle size={16} className="ks-alliance-spin"/> : <ArrowRight size={16}/>} {t("alliance.loadTag", "Load roster by tag")}</button>
-          </form>}
-        </div>
+
       </section>
 
       {loadingRoster && <div className="ks-alliance-loading" role="status"><LoaderCircle size={19} className="ks-alliance-spin"/><span>{t("alliance.loadingRoster", "Loading the alliance roster…")}</span></div>}
@@ -361,7 +338,7 @@ export default function AllianceRegistration() {
             <input type="checkbox" checked={selected.includes(member.playerId)} onChange={() => toggleMember(member.playerId)} disabled={registering || (!selected.includes(member.playerId) && selected.length >= BATCH_LIMIT)}/>
             {member.avatarUrl ? <img className="ks-alliance-member-avatar" src={member.avatarUrl} alt="" loading="lazy"/> : <span className="ks-alliance-member-avatar ks-alliance-avatar-fallback"><UserRound size={16}/></span>}
             <span className="ks-alliance-member-copy"><strong>{member.name || t("alliance.unknownPlayer", "Kingshot Player")}</strong><small><span>ID {member.playerId}</span><i>·</i><span>{formatNumber(member.power)} {t("alliance.power", "power")}</span>{member.allianceRank && <><i>·</i><span>{member.allianceRank}</span></>}</small></span>
-            {selected.includes(member.playerId) && <Check size={16} className="ks-alliance-selected-check" aria-hidden="true"/>}
+            {outcomes.some(item => item.id === member.playerId && item.kind === "existing") && <span className="ks-alliance-status-pill is-existing">{t("alliance.alreadyRegistered", "Already registered")}</span>}{selected.includes(member.playerId) && <Check size={16} className="ks-alliance-selected-check" aria-hidden="true"/>}
           </label>)}
           {!visibleMembers.length && <div className="ks-alliance-empty-state"><span><Search size={19}/></span><strong>{roster.members.length ? t("alliance.noMembersMatch", "No members match this filter.") : t("alliance.emptyRosterTitle", "No valid player IDs found")}</strong><p>{roster.members.length ? t("alliance.clearFilterHint", "Try a shorter name or clear the filter to see more members.") : t("alliance.emptyRosterBody", "This provider response did not include registerable player IDs. Try refreshing the roster or use the exact-tag lookup again later.")}</p>{memberFilter && <button type="button" className="ks-alliance-secondary" onClick={() => setMemberFilter("")}>{t("alliance.clearFilter", "Clear filter")}</button>}</div>}
         </div>
@@ -372,7 +349,7 @@ export default function AllianceRegistration() {
         {registering && <div className="ks-alliance-progress" role="status" aria-live="polite" aria-atomic="true"><div className="ks-alliance-progress-top"><strong>{t("alliance.registeringBatch", "Registering batch")}</strong><span>{progress.done} / {progress.total}</span></div><progress max={progress.total || 1} value={progress.done} aria-label={t("alliance.progressLabel", "Alliance registration progress")}/><small>{progress.currentId ? t("alliance.processingId", "Processing Player ID") + " " + progress.currentId : t("alliance.finalizing", "Finishing this batch…")}</small>{progress.note && <small className="ks-alliance-progress-note">{progress.note}</small>}</div>}
         {outcomes.length > 0 && <div className="ks-alliance-outcomes">
           <div className="ks-alliance-outcomes-head"><div><span className="ks-alliance-step">03</span><div><h2>{t("alliance.outcomesHeading", "Registration results")}</h2><p>{summary.registered + summary.existing + summary.reactivated} {t("alliance.activeResults", "active")} · {summary.disabled} {t("alliance.disabledResults", "disabled")} · {summary.failed} {t("alliance.failedResults", "need attention")}</p></div></div><button type="button" className="ks-alliance-link-button" onClick={() => { setSelected(outcomes.filter(item => item.kind === "failed" || item.kind === "disabled").map(item => item.id).slice(0, BATCH_LIMIT)); setRosterError(""); }} disabled={registering || !outcomes.some(item => item.kind === "failed" || item.kind === "disabled")}><RotateCcw size={14}/>{t("alliance.retryAttention", "Select issues to retry")}</button></div>
-          <div className="ks-alliance-outcome-list">{outcomes.map(item => <article className={"ks-alliance-outcome is-" + item.kind} key={item.id}><span className="ks-alliance-outcome-mark">{["registered", "existing", "reactivated"].includes(item.kind) ? <CheckCircle2 size={15}/> : <CircleAlert size={15}/>}</span><div><strong>{item.name || t("alliance.unknownPlayer", "Kingshot Player")}</strong><small>ID {item.id} · {item.label}</small><p>{item.summary}</p></div></article>)}</div>
+          <div className="ks-alliance-outcome-list" role="list" aria-label={t("alliance.outcomesHeading", "Registration results")}>{outcomes.map(item => <article className={"ks-alliance-outcome is-" + item.kind} key={item.id} role="listitem"><span className="ks-alliance-outcome-mark">{["registered", "existing", "reactivated"].includes(item.kind) ? <CheckCircle2 size={15}/> : <CircleAlert size={15}/>}</span><div><strong>{item.name || t("alliance.unknownPlayer", "Kingshot Player")}</strong><small>ID {item.id} · {item.label}</small>{item.kind === "existing" && <span className="ks-alliance-status-pill is-existing">{t("alliance.alreadyRegistered", "Already registered")}</span>}{["registered", "reactivated"].includes(item.kind) && <span className="ks-alliance-status-pill">{t("alliance.registeredThisSession", "Registered in this batch")}</span>}<p>{item.summary}</p></div></article>)}</div>
         </div>}
       </section>}
     </main>
