@@ -53,6 +53,7 @@ export default function AllianceRegistration() {
   const [rosterError, setRosterError] = useState("");
   const [memberFilter, setMemberFilter] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
+  const [registeredIds, setRegisteredIds] = useState<string[]>([]);
   const [outcomes, setOutcomes] = useState<Outcome[]>([]);
   const [processedIds, setProcessedIds] = useState<string[]>([]);
   const [registering, setRegistering] = useState(false);
@@ -148,7 +149,7 @@ export default function AllianceRegistration() {
     );
   }, [roster, memberFilter]);
   const summary = useMemo(() => summarizeRegistrationOutcomes(outcomes), [outcomes]);
-  const remainingCount = (roster?.members || []).filter(member => !processedIds.includes(member.playerId)).length;
+  const remainingCount = (roster?.members || []).filter(member => !registeredIds.includes(member.playerId) && !processedIds.includes(member.playerId)).length;
   const completedCount = processedIds.length;
   const selectedVisibleCount = visibleMembers.filter(member => selected.includes(member.playerId)).length;
 
@@ -163,6 +164,7 @@ export default function AllianceRegistration() {
     setActiveAlliance(null);
     setAlliances([]);
     setSelected([]);
+    setRegisteredIds([]);
     setOutcomes([]);
     setProcessedIds([]);
     if (!/^\d{1,10}$/.test(kingdomId.trim())) {
@@ -232,6 +234,17 @@ export default function AllianceRegistration() {
         stale: Boolean(normalized.stale || (typeof normalized.ageSeconds === "number" && normalized.ageSeconds > 3600)),
         members: [...unique.values()]
       };
+      // Supabase is authoritative. Do not show selectable members until every roster ID has been checked.
+      const registered = new Set<string>();
+      for (let offset = 0; offset < clean.members.length; offset += 150) {
+        const ids = clean.members.slice(offset, offset + 150).map(member => member.playerId);
+        const statusParams = new URLSearchParams({ developer: "alliance-lookup", mode: "registration-status", kingdomId: clean.alliance.kingdomId || kingdomId.trim(), ids: ids.join(",") });
+        const statusResponse = await fetch("/api/kingshot-player?" + statusParams.toString(), { cache: "no-store", credentials: "same-origin", signal: AbortSignal.timeout(15_000) });
+        const statusData = await statusResponse.json().catch(() => ({}));
+        if (!statusResponse.ok || !Array.isArray(statusData.registeredIds)) throw new Error(statusData.error || t("alliance.registrationStatusFailed", "Could not verify existing registrations. Refresh the roster before selecting members."));
+        for (const id of statusData.registeredIds) if (typeof id === "string") registered.add(id);
+      }
+      setRegisteredIds([...registered]);
       if (sameAlliance && roster) {
         const previousById = new Map(roster.members.map(member => [member.playerId, member]));
         const currentById = new Map(clean.members.map(member => [member.playerId, member]));
@@ -245,7 +258,7 @@ export default function AllianceRegistration() {
       if (sameAlliance) {
         // Keep the session's attempt history even if a member has since left the roster.
         // Only the current selection must be reconciled against the refreshed member list.
-        setSelected(current => current.filter(id => validIds.has(id)));
+        setSelected(current => current.filter(id => validIds.has(id) && !registered.has(id)));
       } else {
         setProcessedIds([]);
         setOutcomes([]);
@@ -260,6 +273,7 @@ export default function AllianceRegistration() {
 
 
   const toggleMember = (id: string) => {
+    if (registeredIds.includes(id)) return;
     setSelected(current => {
       if (current.includes(id)) return current.filter(value => value !== id);
       if (current.length >= BATCH_LIMIT) {
@@ -272,7 +286,7 @@ export default function AllianceRegistration() {
   };
 
   const selectVisible = () => {
-    const visible = visibleMembers.filter(member => !outcomes.some(item => item.id === member.playerId && item.kind === "existing")).map(member => member.playerId);
+    const visible = visibleMembers.filter(member => !registeredIds.includes(member.playerId) && !outcomes.some(item => item.id === member.playerId && item.kind === "existing")).map(member => member.playerId);
     const unselected = visible.filter(id => !selected.includes(id));
     if (selected.length + unselected.length > BATCH_LIMIT) {
       setSelected(current => [...new Set([...current, ...unselected])].slice(0, BATCH_LIMIT));
@@ -285,14 +299,14 @@ export default function AllianceRegistration() {
 
   const selectNewMembers = () => {
     if (!roster || !rosterChanges?.added.length) return;
-    const eligible = rosterChanges.added.filter(member => !processedIds.includes(member.playerId));
+    const eligible = rosterChanges.added.filter(member => !registeredIds.includes(member.playerId) && !processedIds.includes(member.playerId));
     setSelected(eligible.slice(0, BATCH_LIMIT).map(member => member.playerId));
     setRosterError(eligible.length > BATCH_LIMIT ? t("alliance.newMembersCapped", "Selected the first 100 new members. Register the rest in another batch.") : "");
   };
 
   const selectNextBatch = () => {
     if (!roster) return;
-    const next = roster.members.filter(member => !processedIds.includes(member.playerId))
+    const next = roster.members.filter(member => !registeredIds.includes(member.playerId) && !processedIds.includes(member.playerId))
       .slice(0, BATCH_LIMIT).map(member => member.playerId);
     setSelected(next);
     setRosterError(next.length ? "" : t("alliance.noUnprocessed", "No unprocessed members remain. Select individual members to retry them."));
@@ -300,7 +314,7 @@ export default function AllianceRegistration() {
 
   const registerSelected = async () => {
     if (!roster || registering) return;
-    const batch = roster.members.filter(member => selected.includes(member.playerId)).slice(0, BATCH_LIMIT);
+    const batch = roster.members.filter(member => selected.includes(member.playerId) && !registeredIds.includes(member.playerId)).slice(0, BATCH_LIMIT);
     if (!batch.length) return;
     if (batch.length > BATCH_LIMIT) {
       setRosterError(t("alliance.batchLimit", "A batch can contain at most 100 unique Player IDs."));
@@ -359,6 +373,7 @@ export default function AllianceRegistration() {
         processed.add(id);
         setProcessedIds([...processed]);
         setOutcomes(current => [...current.filter(item => item.id !== id), outcome as Outcome]);
+        if (outcome && ["registered", "existing", "reactivated"].includes(outcome.kind)) setRegisteredIds(current => current.includes(id) ? current : [...current, id]);
         setProgress({ done: index + 1, total: batch.length, currentId: index + 1 < batch.length ? batch[index + 1].playerId : "", note: "" });
       }
     } finally {
@@ -367,7 +382,7 @@ export default function AllianceRegistration() {
     }
   };
 
-  const selectableVisibleMembers = visibleMembers.filter(member => !outcomes.some(item => item.id === member.playerId && item.kind === "existing"));
+  const selectableVisibleMembers = visibleMembers.filter(member => !registeredIds.includes(member.playerId) && !outcomes.some(item => item.id === member.playerId && item.kind === "existing"));
   const allVisibleSelected = selectableVisibleMembers.length > 0 && selectableVisibleMembers.every(member => selected.includes(member.playerId));
   if (accountState.status !== "authenticated" || !accountState.account) {
     const checking = accountState.status === "checking" || accountState.status === "cached";
@@ -393,7 +408,7 @@ export default function AllianceRegistration() {
           <div><h2 id="alliance-find-heading">{t("alliance.findHeading", "Find your alliance")}</h2><p>{t("alliance.findDescription", "Search the alliance rankings for your kingdom, then choose the matching alliance.")}</p></div>
         </div>
         <form className="ks-alliance-discover-form" onSubmit={discover}>
-          <label className="ks-alliance-field"><span>{t("alliance.kingdom", "Kingdom ID")}</span><input value={kingdomId} onChange={event => { setKingdomId(event.target.value.replace(/\D/g, "").slice(0, 10)); searchRequestRef.current++; rosterRequestRef.current++; setDiscovering(false); setLoadingRoster(false); setAlliances([]); setActiveAlliance(null); setRoster(null); setSelected([]); setOutcomes([]); setProcessedIds([]); setSearchError(""); setRosterError(""); }} inputMode="numeric" pattern="[0-9]*" maxLength={10} autoComplete="off" required aria-describedby="alliance-kingdom-help" placeholder={t("alliance.kingdomPlaceholder", "e.g. 1125")} disabled={discovering || registering}/><small className="ks-alliance-field-help" id="alliance-kingdom-help">{t("alliance.kingdomHelp", "Digits only. Use the kingdom where the alliance currently plays.")}</small></label>
+          <label className="ks-alliance-field"><span>{t("alliance.kingdom", "Kingdom ID")}</span><input value={kingdomId} onChange={event => { setKingdomId(event.target.value.replace(/\D/g, "").slice(0, 10)); searchRequestRef.current++; rosterRequestRef.current++; setDiscovering(false); setLoadingRoster(false); setAlliances([]); setActiveAlliance(null); setRoster(null); setSelected([]); setRegisteredIds([]); setOutcomes([]); setProcessedIds([]); setSearchError(""); setRosterError(""); }} inputMode="numeric" pattern="[0-9]*" maxLength={10} autoComplete="off" required aria-describedby="alliance-kingdom-help" placeholder={t("alliance.kingdomPlaceholder", "e.g. 1125")} disabled={discovering || registering}/><small className="ks-alliance-field-help" id="alliance-kingdom-help">{t("alliance.kingdomHelp", "Digits only. Use the kingdom where the alliance currently plays.")}</small></label>
           <div className="ks-alliance-optional-filter"><button type="button" className="ks-alliance-text-toggle" aria-expanded={filterOpen} onClick={() => setFilterOpen(value => !value)}><span>{t("alliance.filterOptional", "Filter by alliance name or tag (optional)")}</span><ChevronDown size={15} aria-hidden="true"/></button>{filterOpen && <label className="ks-alliance-field"><span>{t("alliance.searchLabel", "Alliance name or tag")}</span><div className="ks-alliance-search-input"><Search size={16} aria-hidden="true"/><input value={query} onChange={event => { setQuery(event.target.value); setSearchError(""); }} autoComplete="off" aria-label={t("alliance.searchLabel", "Alliance name or tag")} placeholder={t("alliance.searchPlaceholder", "Search by name or tag")} disabled={discovering || registering}/>{query && <button type="button" className="ks-alliance-input-clear" aria-label={t("alliance.clearSearch", "Clear alliance search")} onClick={() => { setQuery(""); setSearchError(""); }} disabled={discovering || registering}><X size={14}/></button>}</div></label>}</div>
           <button className="ks-alliance-primary" type="submit" disabled={discovering || registering || !kingdomId.trim()}>{discovering ? <LoaderCircle size={16} className="ks-alliance-spin"/> : <Search size={16}/>}<span>{discovering ? t("alliance.searching", "Searching…") : t("alliance.searchButton", "Search alliances")}</span></button>
         </form>
@@ -442,10 +457,10 @@ export default function AllianceRegistration() {
         <label className="ks-alliance-member-filter"><Search size={15} aria-hidden="true"/><input value={memberFilter} onChange={event => setMemberFilter(event.target.value)} placeholder={t("alliance.memberFilterPlaceholder", "Filter by name, Player ID or rank")} aria-label={t("alliance.memberFilterLabel", "Filter alliance members")} disabled={registering}/></label>
         <div className="ks-alliance-member-list" role="group" aria-label={t("alliance.memberListLabel", "Alliance member selection")}>
           {visibleMembers.map(member => <label className={"ks-alliance-member" + (selected.includes(member.playerId) ? " is-selected" : "")} key={member.playerId}>
-            <input type="checkbox" checked={selected.includes(member.playerId)} onChange={() => toggleMember(member.playerId)} disabled={registering || outcomes.some(item => item.id === member.playerId && item.kind === "existing") || (!selected.includes(member.playerId) && selected.length >= BATCH_LIMIT)}/>
+            <input type="checkbox" checked={selected.includes(member.playerId)} onChange={() => toggleMember(member.playerId)} disabled={registering || registeredIds.includes(member.playerId) || outcomes.some(item => item.id === member.playerId && item.kind === "existing") || (!selected.includes(member.playerId) && selected.length >= BATCH_LIMIT)}/>
             {member.avatarUrl ? <img className="ks-alliance-member-avatar" src={member.avatarUrl} alt="" loading="lazy"/> : <span className="ks-alliance-member-avatar ks-alliance-avatar-fallback"><UserRound size={16}/></span>}
             <span className="ks-alliance-member-copy"><strong>{member.name || t("alliance.unknownPlayer", "Kingshot Player")}</strong><small><span>ID {member.playerId}</span><i>·</i><span>{formatNumber(member.power)} {t("alliance.power", "power")}</span>{member.allianceRank && <><i>·</i><span>{member.allianceRank}</span></>}</small></span>
-            {outcomes.some(item => item.id === member.playerId && item.kind === "existing") && <span className="ks-alliance-status-pill is-existing">{t("alliance.alreadyRegistered", "Already registered")}</span>}{selected.includes(member.playerId) && <Check size={16} className="ks-alliance-selected-check" aria-hidden="true"/>}
+            {(registeredIds.includes(member.playerId) || outcomes.some(item => item.id === member.playerId && item.kind === "existing")) && <span className="ks-alliance-status-pill is-existing">{t("alliance.alreadyRegistered", "Already registered")}</span>}{selected.includes(member.playerId) && <Check size={16} className="ks-alliance-selected-check" aria-hidden="true"/>}
           </label>)}
           {!visibleMembers.length && <div className="ks-alliance-empty-state"><span><Search size={19}/></span><strong>{roster.members.length ? t("alliance.noMembersMatch", "No members match this filter.") : t("alliance.emptyRosterTitle", "No valid player IDs found")}</strong><p>{roster.members.length ? t("alliance.clearFilterHint", "Try a shorter name or clear the filter to see more members.") : t("alliance.emptyRosterBody", "This provider response did not include registerable player IDs. Try refreshing the roster or use the exact-tag lookup again later.")}</p>{memberFilter && <button type="button" className="ks-alliance-secondary" onClick={() => setMemberFilter("")}>{t("alliance.clearFilter", "Clear filter")}</button>}</div>}
         </div>
