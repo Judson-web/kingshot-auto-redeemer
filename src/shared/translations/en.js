@@ -866,7 +866,7 @@ export default {
   "alliance.disabledResults": "disabled",
   "alliance.failedResults": "need attention",
   "alliance.retryAttention": "Select issues to retry",
-  "alliance.unknownPlayer": "Kingshot Player"
+  "alliance.unknownPlayer": "Kingshot Player",
   "alliance.flowLabel": "Registration steps",
   "alliance.flowFind": "Find alliance",
   "alliance.flowReview": "Review members",
