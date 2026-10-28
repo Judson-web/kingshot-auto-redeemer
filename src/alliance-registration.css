@@ -333,3 +333,11 @@
 .ks-alliance-status-pill.is-existing { border-color: #5a4b2e; background: #282216; color: #e1c98d; }
 .ks-alliance-member > .ks-alliance-status-pill { flex: 0 0 auto; margin: 0 0 0 auto; }
 @media (max-width: 720px) { .ks-alliance-cards { grid-template-columns: 1fr; padding: 9px; } .ks-alliance-member > .ks-alliance-status-pill { max-width: 105px; white-space: normal; text-align: center; } }
+
+
+/* Keep the complete alliance roster available in a compact, independently scrollable panel. */
+.ks-alliance-cards { max-height: min(58vh, 480px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #4c4c4f #161719; }
+.ks-alliance-cards::-webkit-scrollbar { width: 7px; }
+.ks-alliance-cards::-webkit-scrollbar-track { background: #161719; border-radius: 8px; }
+.ks-alliance-cards::-webkit-scrollbar-thumb { background: #4c4c4f; border: 2px solid #161719; border-radius: 8px; }
+@media (max-width: 720px) { .ks-alliance-cards { max-height: min(56vh, 420px); } }
