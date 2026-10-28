@@ -904,6 +904,7 @@ export default {
   "alliance.refreshRoster": "명단 새로고침",
   "alliance.alreadyRegistered": "이미 등록됨",
   "alliance.registeredThisSession": "이번 배치에서 등록됨",
+  "alliance.drawerDescription": "연맹원을 여러 명씩 등록",
   "alliance.autoSyncTitle": "연맹 자동 동기화",
   "alliance.autoSyncDescription": "새로운 연맹원을 정기적으로 확인하고 새로 발견된 플레이어만 등록합니다. 기존 등록은 삭제되지 않습니다.",
   "alliance.syncInterval": "동기화 주기",
