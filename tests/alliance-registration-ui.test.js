@@ -6,6 +6,7 @@ const component = await readFile(new URL("../src/AllianceRegistration.tsx", impo
 const styles = await readFile(new URL("../src/alliance-registration.css", import.meta.url), "utf8");
 const english = await readFile(new URL("../src/shared/translations/en.js", import.meta.url), "utf8");
 const korean = await readFile(new URL("../src/shared/translations/ko.js", import.meta.url), "utf8");
+const api = await readFile(new URL("../api/kingshot-player.ts", import.meta.url), "utf8");
 
 test("alliance registration requires explicit member selection before registering", () => {
   assert.match(component, /setSelected\(\[\]\);/);
