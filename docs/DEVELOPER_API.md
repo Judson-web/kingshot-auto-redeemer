@@ -36,7 +36,7 @@ The registration endpoint enrolls a player in the existing workflow; it does not
 
 ## Authentication
 
-Create a developer account at https://kingshot-autoredeemer.vercel.app/developer using Discord sign-in, then create a key. The full key is displayed only once; the database stores a SHA-256 hash of it. Send it in the Authorization header:
+Sign in with your shared Discord account at https://kingshot-autoredeemer.vercel.app/developer, then create an API key for your integration. The full key is displayed only once; the database stores a SHA-256 hash of it. Send it in the Authorization header:
 
     Authorization: Bearer ks_live_YOUR_64_CHARACTER_SECRET
 
