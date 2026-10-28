@@ -803,6 +803,7 @@ export default {
   "support.ticketPrefix": "Ticket ",
   "alliance.title": "Register alliance members",
   "alliance.registerSelectedMembers": "Register selected members",
+  "alliance.registerButton": "Register",
   "alliance.registerEntireAlliance": "Register entire alliance",
   "alliance.allianceAlreadyRegistered": "Alliance registered",
   "alliance.kingdomAllianceCapReached": "3/3 alliance sync slots used in this kingdom. Individual member registration is still available.",
