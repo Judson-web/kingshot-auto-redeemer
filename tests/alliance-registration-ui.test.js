@@ -7,6 +7,7 @@ const styles = await readFile(new URL("../src/alliance-registration.css", import
 const english = await readFile(new URL("../src/shared/translations/en.js", import.meta.url), "utf8");
 const korean = await readFile(new URL("../src/shared/translations/ko.js", import.meta.url), "utf8");
 const api = await readFile(new URL("../api/kingshot-player.ts", import.meta.url), "utf8");
+const metadata = await readFile(new URL("../alliance-registration.html", import.meta.url), "utf8");
 
 test("alliance registration uses one server-side whole-alliance action", () => {
   assert.match(component, /const registerEntireAlliance = async/);
@@ -134,4 +135,21 @@ test("cancellation guidance is available in English and Korean", () => {
     assert.ok(english.includes('"' + key + '"'), "missing English translation: " + key);
     assert.ok(korean.includes('"' + key + '"'), "missing Korean translation: " + key);
   }
+});
+
+
+test("accepted alliance registration immediately shows Registered and explains server-side continuation", () => {
+  assert.match(component, /setAllianceSyncCapacity\(current => \(\{[\s\S]*?isRegistered: true[\s\S]*?canRegister: false/);
+  assert.match(component, /alliance\.serverContinues/);
+  assert.match(component, /\(registering \|\| allianceSyncCapacity\?\.isRegistered\)/);
+  assert.match(component, /const switchingAlliance =/);
+});
+
+test("alliance loading copy and social preview describe the current registration flow", () => {
+  assert.match(component, /alliance\.loadingAllianceInfo/);
+  assert.match(english, /"alliance\.loadingAllianceInfo": "Loading"/);
+  assert.match(korean, /"alliance\.loadingAllianceInfo": "불러오는 중"/);
+  assert.match(metadata, /og:title" content="Alliance Registration"/);
+  assert.match(metadata, /route=alliance-registration&v=4/);
+  assert.doesNotMatch(metadata, /select individuals|select individual members/);
 });
