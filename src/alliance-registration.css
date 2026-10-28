@@ -360,3 +360,15 @@
 .ks-alliance-login-button{margin:24px auto 0;text-decoration:none}
 .ks-alliance-login-gate>small{display:block;margin-top:20px;color:#858680;font-size:11px;line-height:1.6}
 @media(max-width:560px){.ks-alliance-announcement{gap:8px}.ks-alliance-announcement-label{padding-left:10px}.ks-alliance-announcement a{margin-right:8px}.ks-alliance-login-gate{margin-top:24px}}
+
+.ks-alliance-roster-diff{margin:0 22px 18px;padding:14px;border:1px solid #39352a;border-radius:12px;background:linear-gradient(135deg,#1b1a15,#121314)}
+.ks-alliance-roster-diff-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ks-alliance-roster-diff-head strong{font-size:12px;color:#ece5d2}.ks-alliance-roster-diff-head>span{font-size:10px;color:#a5a39a}
+.ks-alliance-roster-diff-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.ks-alliance-roster-diff-stats>span{display:flex;flex-direction:column;gap:3px;padding:10px;border:1px solid #303033;border-radius:9px;background:#111214}
+.ks-alliance-roster-diff-stats b{font-size:20px;font-variant-numeric:tabular-nums}.ks-alliance-roster-diff-stats small{font-size:10px;color:#a5a6a8}
+.ks-alliance-roster-diff-stats .is-added b{color:#9fd5ad}.ks-alliance-roster-diff-stats .is-removed b{color:#dca0a0}
+.ks-alliance-diff-list{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:14px;padding-top:12px;border-top:1px solid #303033}
+.ks-alliance-diff-list>strong{font-size:11px;margin-bottom:2px}.ks-alliance-diff-list>span{font-size:11px;color:#d6d4cc;overflow-wrap:anywhere}.ks-alliance-diff-list small{color:#92938f;font-size:10px}.ks-alliance-diff-list .ks-alliance-secondary{margin-top:5px}
+.ks-alliance-roster-diff>p{margin:12px 0 0;color:#a5a6a8;font-size:12px}
+@media(max-width:560px){.ks-alliance-roster-diff{margin-left:12px;margin-right:12px}.ks-alliance-roster-diff-stats{gap:5px}.ks-alliance-roster-diff-stats>span{padding:8px}.ks-alliance-roster-diff-stats b{font-size:17px}}
