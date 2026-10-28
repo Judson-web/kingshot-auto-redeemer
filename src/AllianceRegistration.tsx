@@ -49,7 +49,7 @@ export default function AllianceRegistration() {
   const [activeAlliance, setActiveAlliance] = useState<AllianceEntry | null>(null);
   const [roster, setRoster] = useState<AllianceResult | null>(null);
   const [rosterChanges, setRosterChanges] = useState<{added: AllianceMember[]} | null>(null);
-  const [allianceSyncCapacity, setAllianceSyncCapacity] = useState<{registeredCount:number;limit:number;isRegistered:boolean;managedByCurrentUser:boolean;enabled:boolean;status:string|null;canRegister:boolean}|null>(null);\n  const [syncHistory, setSyncHistory] = useState<{runs:Array<{id:string;status:string;created_at:string;finished_at:string|null;roster_count:number|null;added_count:number|null;skipped_count:number|null;error_code:string|null;error_message:string|null}>;departedCount:number}>({runs:[],departedCount:0});\n  const [loadingSyncHistory, setLoadingSyncHistory] = useState(false);
+  const [allianceSyncCapacity, setAllianceSyncCapacity] = useState<{registeredCount:number;limit:number;isRegistered:boolean;managedByCurrentUser:boolean;enabled:boolean;status:string|null;canRegister:boolean}|null>(null);\n  const [syncHistory, setSyncHistory] = useState<{runs:Array<{id:string;status:string;created_at:string;finished_at:string|null;roster_count:number|null;added_count:number|null;skipped_count:number|null;departed_count:number|null;error_code:string|null;error_message:string|null}>;departedCount:number}>({runs:[],departedCount:0});\n  const [loadingSyncHistory, setLoadingSyncHistory] = useState(false);
   const [loadingRoster, setLoadingRoster] = useState(false);
   const [rosterError, setRosterError] = useState("");
   const [memberFilter, setMemberFilter] = useState("");
@@ -535,7 +535,7 @@ export default function AllianceRegistration() {
           {loadingSyncHistory ? <p className="ks-alliance-history-empty" role="status">{t("alliance.historyLoading", "Loading sync history…")}</p> : syncHistory.runs.length ? <ol className="ks-alliance-history-list">
             {syncHistory.runs.map(run => <li key={run.id} className={"ks-alliance-history-item is-" + String(run.status || "unknown")}>
               <div className="ks-alliance-history-item-top"><strong>{t("alliance.syncRunStatus", "Sync")}: {t("alliance.runStatus." + run.status, run.status || t("alliance.unknownStatus", "Unknown"))}</strong><time dateTime={run.created_at}>{new Date(run.created_at).toLocaleString()}</time></div>
-              <p>{t("alliance.historyRoster", "Roster")}: {run.roster_count ?? "—"} · {t("alliance.historyAdded", "New registrations")}: {run.added_count ?? 0} · {t("alliance.historySkipped", "Already registered / skipped")}: {run.skipped_count ?? 0}</p>
+              <p>{t("alliance.historyRoster", "Roster")}: {run.roster_count ?? "—"} · {t("alliance.historyAdded", "New registrations")}: {run.added_count ?? 0} · {t("alliance.historySkipped", "Already registered / skipped")}: {run.skipped_count ?? 0} · {t("alliance.historyDeparted", "Departed this run")}: {run.departed_count ?? 0}</p>
               {run.error_message && <p className="ks-alliance-history-error"><strong>{t("alliance.historyNeedsAttention", "Needs attention")}:</strong> {run.error_message} {t("alliance.historyRetryHint", "Refresh the roster and retry registration only after checking the affected Player IDs.")}</p>}
             </li>)}
           </ol> : <p className="ks-alliance-history-empty">{t("alliance.historyEmpty", "No completed sync runs are recorded yet. Registering this alliance will start its sync history.")}</p>}
