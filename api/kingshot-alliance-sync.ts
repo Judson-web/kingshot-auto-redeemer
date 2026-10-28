@@ -84,7 +84,7 @@ async function performSync(config:any,ownerId:string,manual:boolean,leaseToken:s
    // Retry failed/pending discoveries, but never reprocess a successfully tracked member.
    if(!isNew&&!["pending","error"].includes(prior)){skipped++;continue}
    if(alreadyRegisteredIds.has(member.id)){
-    await db\`update public.alliance_sync_seen_players set registration_status=\'already_registered\',registered_at=coalesce(registered_at,now()),last_error_code=null where config_id=\${config.id}::uuid and player_id=\${member.id}\`;
+    await db`update public.alliance_sync_seen_players set registration_status='already_registered',registered_at=coalesce(registered_at,now()),last_error_code=null where config_id=${config.id}::uuid and player_id=${member.id}`;
     skipped++;
     continue;
    }
