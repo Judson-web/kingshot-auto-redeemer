@@ -445,3 +445,11 @@
 /* Keep alliance sync information visible without a large standalone panel. */
 .ks-alliance-sync-note { display: flex; align-items: flex-start; gap: 7px; margin: 9px 0 0; color: #8e8f89; font-size: 10px; line-height: 1.5; }
 .ks-alliance-sync-note svg { flex: 0 0 auto; margin-top: 1px; color: #b9a675; }
+
+
+/* Keep the main alliance action beside its identity, not below the entire roster. */
+.ks-alliance-roster-summary{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px 18px}
+.ks-alliance-roster-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.ks-alliance-register-near-info{min-height:38px;min-width:0;padding:0 13px;white-space:nowrap}
+.ks-alliance-roster-summary .ks-alliance-roster-stats{grid-column:1/-1;padding-top:12px;border-top:1px solid rgba(255,255,255,.07)}
+@media(max-width:620px){.ks-alliance-roster-summary{grid-template-columns:minmax(0,1fr);gap:12px}.ks-alliance-roster-actions{justify-content:flex-start}.ks-alliance-register-near-info{min-height:36px}.ks-alliance-roster-summary .ks-alliance-roster-stats{grid-column:auto}}
