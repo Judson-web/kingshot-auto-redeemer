@@ -29,6 +29,10 @@
       "destination": "/auto.html"
     },
     {
+      "source": "/alliance-registration",
+      "destination": "/alliance-registration.html"
+    },
+    {
       "source": "/developer",
       "destination": "/developer.html"
     },

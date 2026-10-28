@@ -8,6 +8,7 @@ export default defineConfig({
       input: {
         main: "index.html",
         auto: "auto.html",
+        allianceRegistration: "alliance-registration.html",
         redeem: "redeem.html",
         manual: "manual.html",
         developer: "developer.html",

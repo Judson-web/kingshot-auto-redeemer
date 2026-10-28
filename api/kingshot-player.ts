@@ -235,11 +235,167 @@ async function handleMightPulseFrameRequest(req: RequestLike, res: ResponseLike,
  sendError(res, 400, "invalid_frame_request", "Invalid frame request.", requestId);
 }
 
+
+function findAllianceRows(value: unknown, depth = 0): Record<string, any>[] {
+ if (!value || typeof value !== "object" || depth > 5) return [];
+ if (Array.isArray(value)) {
+  const rows = value.filter((item): item is Record<string, any> => Boolean(
+   item && typeof item === "object" && (item.abbr != null || item.tag != null) &&
+   (item.name != null || item.alliance_name != null || item.power != null || item.score != null)
+  ));
+  if (rows.length) return rows;
+  for (const item of value) {
+   const nested = findAllianceRows(item, depth + 1);
+   if (nested.length) return nested;
+  }
+  return [];
+ }
+ for (const nestedValue of Object.values(value as Record<string, unknown>)) {
+  const nested = findAllianceRows(nestedValue, depth + 1);
+  if (nested.length) return nested;
+ }
+ return [];
+}
+
+async function handleAllianceLookup(req: RequestLike, res: ResponseLike): Promise<void> {
+ if (req.method && req.method.toUpperCase() !== "GET") {
+  res.setHeader("Allow", "GET");
+  res.status(405).json({ error: "Method not allowed." });
+  return;
+ }
+ if (!rateLimit(req, res, "alliance-lookup", 20, 60_000)) {
+  res.status(429).json({ error: "Too many alliance lookups. Please wait before trying again.", code: "rate_limit_exceeded" });
+  return;
+ }
+ res.setHeader("Cache-Control", "private, no-store");
+ const url = new URL(req.url || "/", "http://localhost");
+ const param = (key: string) => String(req.query?.[key] ?? url.searchParams.get(key) ?? "").trim();
+ const kingdomId = param("kingdomId").slice(0, 10);
+ const tag = param("tag").slice(0, 20);
+ const mode = param("mode");
+ if (!/^\d{1,10}$/.test(kingdomId)) {
+  res.status(400).json({ error: "Enter a numeric kingdom ID.", code: "invalid_kingdom_id" });
+  return;
+ }
+
+ try {
+  if (mode === "search") {
+   const upstreamUrl = "https://api.mightpulse.com/v1/kingdoms/" + encodeURIComponent(kingdomId) + "/ranks?board=alliance_power&limit=100";
+   const upstream = await fetchMightPulse(upstreamUrl, { headers: { Accept: "application/json" } }, { timeoutMs: 20_000 });
+   const body = await upstream.json().catch(() => ({})) as Record<string, any>;
+   if (!upstream.ok) {
+    if (upstream.status === 404) {
+     res.status(404).json({ error: "That kingdom was not found in the alliance rankings.", code: "kingdom_not_found" });
+     return;
+    }
+    if (upstream.status === 429) {
+     res.status(429).json({ error: "The game data provider is busy. Please wait a moment and try again.", code: "provider_rate_limited" });
+     return;
+    }
+    res.status(502).json({ error: "Alliance rankings are temporarily unavailable. Please try again shortly.", code: "provider_unavailable" });
+    return;
+   }
+   const rows = findAllianceRows(body);
+   const alliances = rows.flatMap((row, index) => {
+    const allianceTag = String(row.abbr ?? row.tag ?? row.alliance_tag ?? "").trim().slice(0, 20);
+    if (!/^[A-Za-z0-9_-]{1,20}$/.test(allianceTag)) return [];
+    const name = String(row.name ?? row.alliance_name ?? allianceTag).trim().slice(0, 80) || allianceTag;
+    const powerRaw = row.power ?? row.score ?? row.alliance_power;
+    const countRaw = row.member_count ?? row.memberCount ?? row.count;
+    const flag = String(row.flag_url ?? row.flagUrl ?? "").trim();
+    return [{
+     name, tag: allianceTag, kingdomId: String(row.kid ?? kingdomId),
+     power: powerRaw == null || !Number.isFinite(Number(powerRaw)) ? null : Number(powerRaw),
+     memberCount: countRaw == null || !Number.isFinite(Number(countRaw)) ? null : Number(countRaw),
+     leaderName: String(row.leader_name ?? row.leaderName ?? "").trim().slice(0, 80),
+     flagUrl: /^https:\/\//i.test(flag) ? flag : "",
+     rank: Number.isFinite(Number(row.rank)) ? Number(row.rank) : index + 1
+    }];
+   });
+   const needle = param("q").toLocaleLowerCase();
+   const matches = needle ? alliances.filter(item => (item.name + " " + item.tag).toLocaleLowerCase().includes(needle)) : alliances;
+   res.status(200).json({
+    alliances: matches,
+    totalReturned: alliances.length,
+    limitedToTop: 100,
+    sourceFresh: typeof body.fresh === "boolean" ? body.fresh : null,
+    cachedAt: typeof body.cached_at === "string" ? body.cached_at : null,
+    ageSeconds: Number.isFinite(Number(body.age_seconds)) ? Number(body.age_seconds) : null
+   });
+   return;
+  }
+
+  if (!/^[A-Za-z0-9_-]{1,20}$/.test(tag)) {
+   res.status(400).json({ error: "Enter the exact alliance tag/abbreviation shown in Kingshot.", code: "invalid_alliance_tag" });
+   return;
+  }
+  const upstreamUrl = "https://api.mightpulse.com/v1/alliances/" + encodeURIComponent(kingdomId) + "/" + encodeURIComponent(tag) + "?include=info,roster";
+  const upstream = await fetchMightPulse(upstreamUrl, { headers: { Accept: "application/json" } }, { timeoutMs: 20_000 });
+  const body = await upstream.json().catch(() => ({})) as Record<string, any>;
+  if (!upstream.ok) {
+   if (upstream.status === 404) {
+    res.status(404).json({ error: "No alliance was found for that kingdom and tag. Check both values and try again.", code: "alliance_not_found" });
+    return;
+   }
+   if (upstream.status === 429) {
+    res.status(429).json({ error: "The game data provider is busy. Please wait a moment and try again.", code: "provider_rate_limited" });
+    return;
+   }
+   res.status(502).json({ error: "Alliance data is temporarily unavailable. Please try again shortly.", code: "provider_unavailable" });
+   return;
+  }
+  const source = body.data && typeof body.data === "object" ? body.data : body;
+  const alliance = source.alliance ?? source;
+  const rawMembers = Array.isArray(source.members) ? source.members
+   : Array.isArray(source.roster) ? source.roster
+   : Array.isArray(alliance.members) ? alliance.members : [];
+  const members = rawMembers.flatMap((member: Record<string, any>) => {
+   const playerId = String(member.governor_id ?? member.fid ?? "").trim();
+   if (!/^\d{5,20}$/.test(playerId)) return [];
+   const avatarUrl = String(member.avatar_url ?? member.avatarUrl ?? "").trim();
+   return [{
+    playerId,
+    name: String(member.nick_name ?? member.name ?? member.nickname ?? "Kingshot Player").trim().slice(0, 80) || "Kingshot Player",
+    power: member.power == null || !Number.isFinite(Number(member.power)) ? null : Number(member.power),
+    townCenterLevel: member.town_center_level == null || !Number.isFinite(Number(member.town_center_level)) ? null : Number(member.town_center_level),
+    avatarUrl: /^https:\/\//i.test(avatarUrl) ? avatarUrl : "",
+    allianceRank: String(member.alliance_rank_label ?? member.alliance_rank ?? "").trim().slice(0, 30),
+    kingdomId: String(member.kid ?? kingdomId)
+   }];
+  });
+  const allianceTag = String(alliance.abbr ?? alliance.tag ?? tag).trim().slice(0, 20) || tag;
+  res.status(200).json({
+   alliance: {
+    name: String(alliance.name ?? alliance.alliance_name ?? tag).trim().slice(0, 80) || tag,
+    tag: allianceTag,
+    kingdomId,
+    power: alliance.power == null || !Number.isFinite(Number(alliance.power)) ? null : Number(alliance.power),
+    count: Number.isFinite(Number(alliance.count)) ? Number(alliance.count) : members.length,
+    memberCount: Number.isFinite(Number(alliance.count)) ? Number(alliance.count) : members.length,
+    leaderName: String(alliance.leader_name ?? "").trim().slice(0, 80)
+   },
+   members,
+   stale: body.fresh === false || Boolean(body.stale),
+   fresh: typeof body.fresh === "boolean" ? body.fresh : null,
+   fetchedAt: typeof body.cached_at === "string" ? body.cached_at : null,
+   ageSeconds: Number.isFinite(Number(body.age_seconds)) ? Number(body.age_seconds) : null
+  });
+ } catch (error) {
+  const typed = error as { status?: number; message?: string };
+  if (typed.status === 429) {
+   res.status(429).json({ error: "The game data provider is busy. Please wait a moment and try again.", code: "provider_rate_limited" });
+   return;
+  }
+  res.status(502).json({ error: "Could not reach the alliance data provider. Please try again shortly.", code: "provider_unavailable" });
+ }
+}
+
 export default async function handler(req: RequestLike, res: ResponseLike): Promise<void> {
  const requestId = globalThis.crypto?.randomUUID?.() || `req-${Date.now().toString(36)}`;
  res.setHeader("X-Request-Id", requestId);
  const requestUrl = new URL(req.url || "/", "http://localhost");
  const developerPath = String(req.query?.developerPath || requestUrl.searchParams.get("developerPath") || req.query?.developer || requestUrl.searchParams.get("developer") || "").replace(/^\/+|\/+$/g, "");
+ if (developerPath === "alliance-lookup") return handleAllianceLookup(req, res);
  if (developerPath === "account-auth") return developerAuth(req, res);
  if (developerPath === "account-keys") return developerAccount(req, res);
  if (developerPath.startsWith("v3-")) return developerApiV3(req, res, developerPath.slice(3));
