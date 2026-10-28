@@ -65,6 +65,14 @@ export default function AllianceRegistration() {
   const [allianceServerProgress, setAllianceServerProgress] = useState<{active:boolean;processedCount:number;totalCount:number;currentPlayerId:string;allianceTag:string;allianceName:string}|null>(null);
   const searchRequestRef = useRef(0);
   const rosterRequestRef = useRef(0);
+  const restoredAllianceRef = useRef(false);
+  const updateAllianceLocation = (kingdom?: string, tag?: string) => {
+    const params = new URLSearchParams(window.location.search);
+    if (kingdom && tag) { params.set("kingdomId", kingdom); params.set("allianceTag", tag); }
+    else { params.delete("kingdomId"); params.delete("allianceTag"); }
+    const queryString = params.toString();
+    window.history.replaceState(null, "", window.location.pathname + (queryString ? "?" + queryString : "") + window.location.hash);
+  };
 
 
   const filteredAlliances = useMemo(() => {
@@ -92,7 +100,7 @@ export default function AllianceRegistration() {
     setRosterError("");
     setLoadingRoster(false);
     setRoster(null);
-    setActiveAlliance(null);
+    setActiveAlliance(null); updateAllianceLocation();
     setAlliances([]);
     setSelected([]);
     setRegisteredIds([]);
@@ -123,6 +131,7 @@ export default function AllianceRegistration() {
   };
 
   const loadRoster = async (alliance: AllianceEntry, forceRefresh = false) => {
+    updateAllianceLocation(alliance.kingdomId || kingdomId.trim(), alliance.tag);
     const requestId = ++rosterRequestRef.current;
     const sameAlliance = Boolean(
       roster &&
@@ -211,6 +220,17 @@ export default function AllianceRegistration() {
   };
 
 
+  useEffect(() => {
+    if (restoredAllianceRef.current || accountState.status !== "authenticated" || !accountState.account) return;
+    const params = new URLSearchParams(window.location.search);
+    const savedKingdom = String(params.get("kingdomId") || "").trim();
+    const savedTag = String(params.get("allianceTag") || "").trim();
+    if (!/^\d{1,10}$/.test(savedKingdom) || !/^[A-Za-z0-9_-]{1,20}$/.test(savedTag)) return;
+    restoredAllianceRef.current = true;
+    setKingdomId(savedKingdom);
+    void loadRoster({ kingdomId: savedKingdom, tag: savedTag, name: savedTag, power: null, memberCount: null, leaderName: "", flagUrl: "", rank: null });
+  }, [accountState.status, accountState.account]);
+  
   const toggleMember = (id: string) => {
     if (registeredIds.includes(id)) return;
     setSelected(current => {
@@ -458,14 +478,14 @@ export default function AllianceRegistration() {
           <div><h2 id="alliance-find-heading">{t("alliance.findHeading", "Find your alliance")}</h2><p>{t("alliance.findDescription", "Search the alliance rankings for your kingdom, then choose the matching alliance.")}</p></div>
         </div>
         <form className="ks-alliance-discover-form" onSubmit={discover}>
-          <label className="ks-alliance-field"><span>{t("alliance.kingdom", "Kingdom ID")}</span><input value={kingdomId} onChange={event => { setKingdomId(event.target.value.replace(/\D/g, "").slice(0, 10)); searchRequestRef.current++; rosterRequestRef.current++; setDiscovering(false); setLoadingRoster(false); setAlliances([]); setActiveAlliance(null); setRoster(null); setSelected([]); setRegisteredIds([]); setOutcomes([]); setProcessedIds([]); setSearchError(""); setRosterError(""); }} inputMode="numeric" pattern="[0-9]*" maxLength={10} autoComplete="off" required aria-describedby="alliance-kingdom-help" placeholder={t("alliance.kingdomPlaceholder", "e.g. 1125")} disabled={discovering || registering}/><small className="ks-alliance-field-help" id="alliance-kingdom-help">{t("alliance.kingdomHelp", "Digits only. Use the kingdom where the alliance currently plays.")}</small></label>
+          <label className="ks-alliance-field"><span>{t("alliance.kingdom", "Kingdom ID")}</span><input value={kingdomId} onChange={event => { setKingdomId(event.target.value.replace(/\D/g, "").slice(0, 10)); searchRequestRef.current++; rosterRequestRef.current++; setDiscovering(false); setLoadingRoster(false); setAlliances([]); setActiveAlliance(null); updateAllianceLocation(); setRoster(null); setSelected([]); setRegisteredIds([]); setOutcomes([]); setProcessedIds([]); setSearchError(""); setRosterError(""); }} inputMode="numeric" pattern="[0-9]*" maxLength={10} autoComplete="off" required aria-describedby="alliance-kingdom-help" placeholder={t("alliance.kingdomPlaceholder", "e.g. 1125")} disabled={discovering || registering}/><small className="ks-alliance-field-help" id="alliance-kingdom-help">{t("alliance.kingdomHelp", "Digits only. Use the kingdom where the alliance currently plays.")}</small></label>
           {alliances.length > 0 && !activeAlliance && <div className="ks-alliance-optional-filter"><button type="button" className="ks-alliance-text-toggle" aria-expanded={filterOpen} onClick={() => setFilterOpen(value => !value)}><span>{t("alliance.filterOptional", "Filter alliances (optional)")}</span><ChevronDown size={15} aria-hidden="true"/></button>{filterOpen && <label className="ks-alliance-field"><span>{t("alliance.searchLabel", "Alliance name or tag")}</span><div className="ks-alliance-search-input"><Search size={16} aria-hidden="true"/><input value={query} onChange={event => { setQuery(event.target.value); setSearchError(""); }} autoComplete="off" aria-label={t("alliance.searchLabel", "Alliance name or tag")} placeholder={t("alliance.searchPlaceholder", "Search by name or tag")} disabled={discovering || registering}/>{query && <button type="button" className="ks-alliance-input-clear" aria-label={t("alliance.clearSearch", "Clear alliance search")} onClick={() => { setQuery(""); setSearchError(""); }} disabled={discovering || registering}><X size={14}/></button>}</div></label>}</div>}
           <button className="ks-alliance-primary" type="submit" disabled={discovering || registering || !kingdomId.trim()}>{discovering ? <LoaderCircle size={16} className="ks-alliance-spin"/> : <Search size={16}/>}<span>{discovering ? t("alliance.searching", "Searching…") : t("alliance.searchButton", "Search alliances")}</span></button>
         </form>
         <p className="ks-alliance-provider-note">{t("alliance.providerNote", "Alliance and roster data may not include every alliance and can be up to 60 minutes old. Review the member list before registering.")}</p>
         {searchError && <p className="ks-alliance-alert" role="status"><CircleAlert size={16}/><span>{searchError}</span></p>}
         {activeAlliance && loadingRoster && <div className="ks-alliance-loading ks-alliance-loading-inline" role="status"><LoaderCircle size={19} className="ks-alliance-spin"/><span>{t("alliance.loadingRosterFor", "Loading members for")} <strong>[{activeAlliance.tag}] {activeAlliance.name}</strong>…</span></div>}
-        {activeAlliance && !roster && <button type="button" className="ks-alliance-link-button ks-alliance-back-to-list" onClick={() => { rosterRequestRef.current++; setLoadingRoster(false); setActiveAlliance(null); setRosterError(""); }} disabled={registering}><ChevronDown size={14} aria-hidden="true"/>{t("alliance.backToList", "Back to alliance list")}</button>}
+        {activeAlliance && !roster && <button type="button" className="ks-alliance-link-button ks-alliance-back-to-list" onClick={() => { rosterRequestRef.current++; setLoadingRoster(false); setActiveAlliance(null); updateAllianceLocation(); setRosterError(""); }} disabled={registering}><ChevronDown size={14} aria-hidden="true"/>{t("alliance.backToList", "Back to alliance list")}</button>}
         {!activeAlliance && alliances.length > 0 && <div className="ks-alliance-results">
           <div className="ks-alliance-results-head"><div><strong>{t("alliance.resultsHeading", "Matching alliances")}</strong><small>{t("alliance.resultsHint", "Choose an alliance to preview its roster.")}</small></div><span>{filteredAlliances.length} found</span></div>
           {filteredAlliances.length === 0 ? <p className="ks-alliance-empty">{t("alliance.noMatches", "No matches in the returned ranking. You can try the exact alliance tag below.")}</p> : <div className="ks-alliance-cards">
@@ -484,7 +504,7 @@ export default function AllianceRegistration() {
       {activeAlliance && roster && <section className="ks-alliance-panel ks-alliance-roster" aria-labelledby="alliance-roster-heading">
         <div className="ks-alliance-panel-head">
           <div className="ks-alliance-step">02</div>
-          <div><h2 id="alliance-roster-heading">{t("alliance.rosterHeading", "Review the roster")}</h2><p>{t("alliance.rosterDescription", "Choose the members to register. Selection is capped at 100 IDs per batch.")}</p><button type="button" className="ks-alliance-link-button ks-alliance-back-to-list" onClick={() => { if (!registering) setActiveAlliance(null); }} disabled={registering}><ChevronDown size={14} aria-hidden="true"/>{t("alliance.backToList", "Back to alliance list")}</button></div>
+          <div><h2 id="alliance-roster-heading">{t("alliance.rosterHeading", "Review the roster")}</h2><p>{t("alliance.rosterDescription", "Choose the members to register. Selection is capped at 100 IDs per batch.")}</p><button type="button" className="ks-alliance-link-button ks-alliance-back-to-list" onClick={() => { if (!registering) setActiveAlliance(null); updateAllianceLocation(); }} disabled={registering}><ChevronDown size={14} aria-hidden="true"/>{t("alliance.backToList", "Back to alliance list")}</button></div>
         </div>
         <div className="ks-alliance-roster-summary">
           <div className="ks-alliance-roster-identity"><span className="ks-alliance-tag ks-alliance-roster-flag"><Users size={18} aria-hidden="true"/>{(roster.alliance.flagUrl || activeAlliance.flagUrl) && <img src={roster.alliance.flagUrl || activeAlliance.flagUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={event => { event.currentTarget.style.display = "none"; }}/>}</span><div><strong>[{roster.alliance.tag}] {roster.alliance.name}</strong><small>{t("alliance.kingdomLabel", "Kingdom")} {roster.alliance.kingdomId} · {roster.members.length} {t("alliance.members", "members")}</small></div></div>
