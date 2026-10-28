@@ -578,7 +578,7 @@ export default {
   "profile.copy029": "Discord로 로그인해 Kingshot Redeemer 계정을 관리하세요.",
   "profile.copy030": "Discord 인증 완료",
   "profile.copy031": "계정 시작하기",
-  "profile.copy032": "Discord 로그인이 확인되었습니다. 아직 개발자 권한이 없습니다. Developer API 페이지에서 첫 API 키를 만들면 개발자 도구를 사용할 수 있습니다. 관리자 권한은 별도로 부여됩니다.",
+  "profile.copy032": "Discord에 로그인되어 있습니다. 계정을 사용할 수 있습니다. API 연동을 개발하려는 경우에만 Developer API 페이지에서 API 키를 만드세요. 관리자 권한은 별도로 부여됩니다.",
   "profile.copy033": "Developer API 열기",
   "profile.copy034": "로그아웃",
   "profile.copy035": "인증된 접근 권한 필요",
