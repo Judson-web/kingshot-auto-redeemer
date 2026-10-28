@@ -18,6 +18,8 @@ test("alliance page shows roster freshness and an inline read-only sync history"
   assert.match(handler, /if\(action==="history"\)/);
   assert.match(handler, /order by created_at desc limit 10/);
   assert.match(handler, /registration_status='departed'/);
+  assert.match(handler, /departed_count/);
+  assert.match(handler, /returning seen\.player_id/);
 });
 
 test("history is read-only and does not expose pause, resume, or deletion controls", () => {
@@ -35,7 +37,7 @@ test("English and Korean have matching keys for the new history and freshness UI
     "alliance.rosterStaleTitle", "alliance.rosterFreshTitle", "alliance.lastFetched",
     "alliance.capacityRemaining", "alliance.capacityFullNote", "alliance.syncHistoryTitle",
     "alliance.refreshHistory", "alliance.historyLoading", "alliance.historyEmpty",
-    "alliance.historyRetryHint", "alliance.runStatus.success", "alliance.runStatus.partial",
+    "alliance.historyRetryHint", "alliance.historyDeparted", "alliance.runStatus.success", "alliance.runStatus.partial",
     "alliance.runStatus.error", "alliance.runStatus.running"
   ];
   for (const key of keys) {
