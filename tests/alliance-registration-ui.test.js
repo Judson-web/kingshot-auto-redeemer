@@ -150,7 +150,7 @@ test("alliance loading copy and social preview describe the current registration
   assert.match(english, /"alliance\.loadingAllianceInfo": "Loading"/);
   assert.match(korean, /"alliance\.loadingAllianceInfo": "불러오는 중"/);
   assert.match(metadata, /og:title" content="Alliance Registration"/);
-  assert.match(metadata, /route=alliance-registration&v=4/);
+  assert.match(metadata, /route=alliance-registration&v=5/);
   assert.doesNotMatch(metadata, /select individuals|select individual members/);
 });
 
