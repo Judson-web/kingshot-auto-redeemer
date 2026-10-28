@@ -93,6 +93,7 @@ function KingshotApp(){
     if(!pr.ok)throw Object.assign(new Error(pd.error||"Could not find this player."),{code:pd.code,status:pr.status});
     p=pd.player||pd;setPlayer(p);
    }
+   if(manualAbortReasonRef.current==="user")throw Object.assign(new Error("Cancelled before submission"),{name:"AbortError"});
    const r=await requestManualFetch("/api/kingshot-redeem",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({playerId:id,code:gift,kid:String(p.kid??"")})},40000,"redeem");
    const d=await r.json().catch(()=>({}));
    if(d.status||d.statusLabel||d.message){
@@ -200,6 +201,7 @@ function AutoRedeemApp(){
     setOutcomes([...collected]);
     setProgress({done:collected.length,total:raw.length,currentId:collected.length<raw.length?raw[collected.length]:""});
    }
+   if(cancelRequestedRef.current)setError(t("auto.cancelled","Stopped after the current ID. IDs that had not started were not submitted."));
   }catch(failure){setError(t("auto.registrationFailed","Registration could not be completed. Please try again."))}
   finally{registrationBusyRef.current=false;setBusy(false);setCancelRequested(false);setProgress(current=>({...current,currentId:""}))}
  };
