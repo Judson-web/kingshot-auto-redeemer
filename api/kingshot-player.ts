@@ -305,7 +305,7 @@ async function handleAllianceLookup(req: RequestLike, res: ResponseLike): Promis
    res.status(503).json({ error: "Could not verify existing registrations. Please refresh and try again.", code: "registration_status_unavailable" });
    return;
   }
-  res.status(200).json({ registeredIds: [...new Set(rows.map((row: Record<string, unknown>) => String(row.player_id || "")).filter(id => ids.includes(id))] });
+  res.status(200).json({ registeredIds: [...new Set(rows.map((row: Record<string, unknown>) => String(row.player_id || "")).filter(id => ids.includes(id)))] });
   return;
  }
  if (!/^\d{1,10}$/.test(kingdomId)) {
