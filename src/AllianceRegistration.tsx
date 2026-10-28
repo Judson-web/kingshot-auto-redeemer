@@ -315,6 +315,7 @@ export default function AllianceRegistration() {
         if (outcome && ["registered", "existing", "reactivated"].includes(outcome.kind)) setRegisteredIds(current => current.includes(id) ? current : [...current, id]);
         setProgress({ done: index + 1, total: batch.length, currentId: index + 1 < batch.length ? batch[index + 1].playerId : "", note: "" });
       }
+      if (cancelRequestedRef.current) setRosterError(t("alliance.cancelled", "Registration stopped after the current player. Remaining selected players were not submitted."));
     } finally {
       registrationBusyRef.current = false;
       setRegistering(false);
