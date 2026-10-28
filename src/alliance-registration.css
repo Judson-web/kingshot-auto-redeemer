@@ -462,3 +462,8 @@
 
 /* Unregistered roster members remain visible without manual-selection controls. */
 .ks-alliance-status-pill.is-unregistered{border-color:#3b3c3e;background:#1a1b1d;color:#a5a6a1}
+
+
+/* Keep the server-side continuation note legible beside alliance registration status. */
+.ks-alliance-server-note{flex-basis:100%;display:block;color:var(--muted,#a9a9a6);font-size:12px;line-height:1.5;margin:4px 0 0;text-align:right}
+@media(max-width:560px){.ks-alliance-server-note{text-align:left}}
