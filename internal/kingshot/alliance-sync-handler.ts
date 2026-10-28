@@ -104,7 +104,7 @@ async function performSync(config:any,ownerId:string,manual:boolean,leaseToken:s
     continue;
    }
   }
-  const nextRun=new Date(Date.now()+Number(config.interval_hours||24)*3600000).toISOString();
+  const nextRun=new Date(Date.now()+24*3600000).toISOString();
   const completed=await db`update public.alliance_sync_config set alliance_name=${roster.name},last_attempt_at=now(),last_success_at=now(),next_run_at=${nextRun}::timestamptz,lease_token=null,lease_expires_at=null,consecutive_failures=case when ${failed}>0 then consecutive_failures+1 else 0 end,last_status=case when not enabled then 'paused' when ${failed}>0 then 'partial' else 'success' end,last_error_code=case when ${failed}>0 then 'registration_failed' else null end,last_error_message=${failures.slice(0,5).join('; ').slice(0,500)||null},last_roster_count=${roster.members.length},last_added_count=${added},updated_at=now() where id=${config.id}::uuid and lease_token=${leaseToken}::uuid returning id`;
   if(!completed.length) throw new Error('Sync lease was lost before completion.');
   await db`update public.alliance_sync_runs set finished_at=now(),status=${failed>0?'partial':'success'},roster_count=${roster.members.length},added_count=${added},skipped_count=${skipped},error_code=${failed>0?'registration_failed':null},error_message=${failures.slice(0,5).join('; ').slice(0,500)||null} where id=${runId}::uuid`;
@@ -134,9 +134,8 @@ export default async function handler(req:Req,res:Res){
   }
   if(action==="create"){
    const kingdom=String(req.body?.kingdomId??"").trim(),tag=String(req.body?.allianceTag??"").trim(),name=String(req.body?.allianceName??tag).trim().slice(0,80);
-   const interval=Number(req.body?.intervalHours??24);
+   const interval=24;
    if(!validKingdom(kingdom)||!validTag(tag))return fail(res,400,"invalid_alliance","Check the kingdom ID and alliance tag.");
-   if(![24,48,72,168].includes(interval))return fail(res,400,"invalid_interval","Sync interval must be 24, 48, 72, or 168 hours.");
    // A single alliance can have only one scheduler/owner. Preflight gives a friendly
    // response; the database unique index is the final race-safe guard.
    const existing=await db`select owner_user_id,id from public.alliance_sync_config where kingdom_id=${kingdom} and lower(alliance_tag)=lower(${tag}) limit 1`;
