@@ -8,6 +8,7 @@ const english = await readFile(new URL("../src/shared/translations/en.js", impor
 const korean = await readFile(new URL("../src/shared/translations/ko.js", import.meta.url), "utf8");
 const api = await readFile(new URL("../api/kingshot-player.ts", import.meta.url), "utf8");
 const metadata = await readFile(new URL("../alliance-registration.html", import.meta.url), "utf8");
+const metadata = await readFile(new URL("../alliance-registration.html", import.meta.url), "utf8");
 
 test("alliance registration uses one server-side whole-alliance action", () => {
   assert.match(component, /const registerEntireAlliance = async/);
@@ -152,4 +153,31 @@ test("alliance loading copy and social preview describe the current registration
   assert.match(metadata, /og:title" content="Alliance Registration"/);
   assert.match(metadata, /route=alliance-registration&v=4/);
   assert.doesNotMatch(metadata, /select individuals|select individual members/);
+});
+
+
+test("mobile search card keeps its submit button inside the panel", () => {
+  assert.match(styles, /ks-alliance-discover-form\{padding-bottom:20px!important\}/);
+  assert.match(styles, /ks-alliance-discovery\{overflow:visible!important\}/);
+});
+
+test("alliance registration explains the three-alliance kingdom cap", () => {
+  assert.match(component, /kingdom_alliance_limit/);
+  assert.match(component, /alliance\.kingdomAllianceCapTitle/);
+  assert.match(component, /allianceSyncCapacity\.registeredCount >= allianceSyncCapacity\.limit/);
+  assert.match(english, /"alliance\.kingdomAllianceCapReached": "This kingdom already has 3 registered alliances/);
+  assert.match(korean, /"alliance\.kingdomAllianceCapReached": "이 왕국에는 이미 연맹 3개/);
+});
+
+test("alliance registration is branded as a full feature without beta copy", async () => {
+  const nav = await readFile(new URL("../src/components/MobileNavDrawer.jsx", import.meta.url), "utf8");
+  const banner = await readFile(new URL("../src/components/AllianceFeatureAnnouncement.jsx", import.meta.url), "utf8");
+  assert.doesNotMatch(nav, /ks-beta-tag|BETA|Register a whole alliance or selected members/);
+  assert.doesNotMatch(banner, /ks-beta-tag|BETA|Alliance Member Registration/);
+  assert.match(english, /"alliance\.pageTitle": "Alliance Registration"/);
+});
+
+test("refreshes roster when server-side alliance processing finishes", () => {
+  assert.match(component, /const completed = Boolean\(allianceServerProgress\?\.active\)/);
+  assert.match(component, /if \(completed && !cancelled\) void loadRoster\(activeAlliance, true\)/);
 });
