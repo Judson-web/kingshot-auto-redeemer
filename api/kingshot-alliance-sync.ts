@@ -3,6 +3,7 @@ import { isAuthenticatedProfileRequest } from "../lib/developer-auth.js";
 import { neon } from "@neondatabase/serverless";
 import { randomUUID } from "node:crypto";
 import { normalizeRegistrationInput, registerPlayer } from "../internal/kingshot/register.js";
+import { getRegisteredPlayerIds } from "../internal/kingshot/registered-player-ids.js";
 
 interface Req { method?: string; url?: string; headers: Record<string,string|string[]|undefined>; body?: Record<string,unknown>; query?: Record<string,unknown>; }
 interface Res { status(n:number):Res; json(v:unknown):Res; setHeader(k:string,v:string|string[]):void; }
@@ -67,6 +68,8 @@ async function performSync(config:any,ownerId:string,manual:boolean,leaseToken:s
  try{
   await db`insert into public.alliance_sync_runs (id,config_id,status) values (${runId}::uuid,${config.id}::uuid,'running')`;
   const roster=await readAlliance(String(config.kingdom_id),String(config.alliance_tag));
+  // Reconcile first, in read-only batches. If Supabase is unavailable, fail closed before any player writes.
+  const alreadyRegisteredIds=await getRegisteredPlayerIds(roster.members.map(member=>member.id));
   let added=0,skipped=0,failed=0;
   const failures:string[]=[];
   for(const member of roster.members){
@@ -80,6 +83,11 @@ async function performSync(config:any,ownerId:string,manual:boolean,leaseToken:s
    const prior=String(inserted[0]?.registration_status||"pending");
    // Retry failed/pending discoveries, but never reprocess a successfully tracked member.
    if(!isNew&&!["pending","error"].includes(prior)){skipped++;continue}
+   if(alreadyRegisteredIds.has(member.id)){
+    await db\`update public.alliance_sync_seen_players set registration_status=\'already_registered\',registered_at=coalesce(registered_at,now()),last_error_code=null where config_id=\${config.id}::uuid and player_id=\${member.id}\`;
+    skipped++;
+    continue;
+   }
    try{
     // Keep the established RPC for the actual player insert, including its idempotency and policy checks.
     const input=normalizeRegistrationInput({playerId:member.id,kingdomId:String(config.kingdom_id),playerName:member.name,avatarUrl:member.avatarUrl});
