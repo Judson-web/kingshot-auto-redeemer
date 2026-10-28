@@ -421,3 +421,10 @@
 .ks-alliance-sync-dot.is-on{box-shadow:0 0 0 4px rgba(133,199,156,.1),0 0 15px rgba(133,199,156,.18)!important}
 .ks-alliance-page-footer{gap:12px!important;line-height:1.7!important}
 @media(max-width:620px){.ks-alliance-app main{width:calc(100% - 24px)!important;padding-top:18px!important}.ks-alliance-panel-head{padding:17px 16px 15px!important}.ks-alliance-discover-form{padding:16px 16px 0!important;grid-template-columns:minmax(0,1fr)!important}.ks-alliance-page-head{margin-bottom:22px!important}.ks-alliance-page-head>p{font-size:13px!important}.ks-alliance-panel{border-radius:15px!important}}
+
+
+/* Shared beta label for alliance announcement, navigation drawer and registration page. */
+.ks-beta-tag{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;min-height:17px;padding:2px 6px;border:1px solid rgba(218,183,119,.42);border-radius:5px;background:rgba(218,183,119,.12);color:#e8c985;font-size:9px;font-weight:850;line-height:1;letter-spacing:.08em;white-space:nowrap}
+.ks-alliance-feature-kicker .ks-beta-tag{margin-left:6px}
+.ks-nav-drawer-copy .ks-beta-tag{margin-left:6px;transform:translateY(-1px)}
+.ks-beta-tag-page{margin-left:8px;transform:translateY(-4px)}
