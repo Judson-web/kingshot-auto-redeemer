@@ -119,7 +119,7 @@ async function performSync(config:any,ownerId:string,manual:boolean,leaseToken:s
     set registration_status='departed',last_error_code=null
     where seen.config_id=${config.id}::uuid
       and seen.registration_status<>'departed'
-      and not (seen.player_id = any(${currentMemberIds}::text[]))`);
+      and not (seen.player_id = any(${currentMemberIds}::text[]))`;
    const nextRun=new Date(Date.now()+24*3600000).toISOString();
   const completed=await db`update public.alliance_sync_config set alliance_name=${roster.name},last_attempt_at=now(),last_success_at=now(),next_run_at=${nextRun}::timestamptz,lease_token=null,lease_expires_at=null,consecutive_failures=case when ${failed}>0 then consecutive_failures+1 else 0 end,last_status=case when not enabled then 'paused' when ${failed}>0 then 'partial' else 'success' end,last_error_code=case when ${failed}>0 then 'registration_failed' else null end,last_error_message=${failures.slice(0,5).join('; ').slice(0,500)||null},last_roster_count=${roster.members.length},last_added_count=${added},updated_at=now() where id=${config.id}::uuid and lease_token=${leaseToken}::uuid returning id`;
   if(!completed.length) throw new Error('Sync lease was lost before completion.');
