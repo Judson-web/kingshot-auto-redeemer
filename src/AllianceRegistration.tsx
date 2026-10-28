@@ -49,7 +49,7 @@ export default function AllianceRegistration() {
   const [activeAlliance, setActiveAlliance] = useState<AllianceEntry | null>(null);
   const [roster, setRoster] = useState<AllianceResult | null>(null);
   const [rosterChanges, setRosterChanges] = useState<{added: AllianceMember[]} | null>(null);
-  const [allianceSyncCapacity, setAllianceSyncCapacity] = useState<{registeredCount:number;limit:number;isRegistered:boolean;managedByCurrentUser:boolean;enabled:boolean;status:string|null;canRegister:boolean}|null>(null);
+  const [allianceSyncCapacity, setAllianceSyncCapacity] = useState<{registeredCount:number;limit:number;isRegistered:boolean;managedByCurrentUser:boolean;enabled:boolean;status:string|null;canRegister:boolean}|null>(null);\n  const [syncHistory, setSyncHistory] = useState<{runs:Array<{id:string;status:string;created_at:string;finished_at:string|null;roster_count:number|null;added_count:number|null;skipped_count:number|null;departed_count:number|null;error_code:string|null;error_message:string|null}>;departedCount:number}>({runs:[],departedCount:0});\n  const [loadingSyncHistory, setLoadingSyncHistory] = useState(false);
   const [loadingRoster, setLoadingRoster] = useState(false);
   const [rosterError, setRosterError] = useState("");
   const [memberFilter, setMemberFilter] = useState("");
@@ -167,6 +167,18 @@ export default function AllianceRegistration() {
         const capacityData = await capacityResponse.json().catch(() => ({}));
         if (capacityResponse.ok && Number.isFinite(Number(capacityData.registeredCount)) && capacityData.limit === 3) setAllianceSyncCapacity({registeredCount:Number(capacityData.registeredCount),limit:3,isRegistered:Boolean(capacityData.isRegistered),managedByCurrentUser:Boolean(capacityData.managedByCurrentUser),enabled:Boolean(capacityData.enabled),status:typeof capacityData.status==="string"?capacityData.status:null,canRegister:Boolean(capacityData.canRegister)});
       } catch { setAllianceSyncCapacity(null); }
+      setLoadingSyncHistory(true);
+      try {
+        const historyResponse = await fetch("/api/kingshot-alliance-sync", { method:"POST", credentials:"same-origin", cache:"no-store", headers:{"content-type":"application/json"}, body:JSON.stringify({action:"history",kingdomId:alliance.kingdomId || kingdomId.trim(),allianceTag:alliance.tag}), signal:AbortSignal.timeout(10000) });
+        const historyData = await historyResponse.json().catch(() => ({}));
+        if (requestId === rosterRequestRef.current && historyResponse.ok && Array.isArray(historyData.runs)) {
+          setSyncHistory({runs:historyData.runs,departedCount:Math.max(0,Number(historyData.departedCount)||0)});
+        } else if (requestId === rosterRequestRef.current) setSyncHistory({runs:[],departedCount:0});
+      } catch {
+        if (requestId === rosterRequestRef.current) setSyncHistory({runs:[],departedCount:0});
+      } finally {
+        if (requestId === rosterRequestRef.current) setLoadingSyncHistory(false);
+      }
       const normalized = data as AllianceResult;
       const members = Array.isArray(normalized.members) ? normalized.members : [];
       if (!normalized.alliance || !normalized.alliance.tag) throw new Error(t("alliance.malformedRoster", "The roster response was incomplete. Please try again."));
@@ -510,16 +522,32 @@ export default function AllianceRegistration() {
             {allianceSyncCapacity?.isRegistered ? <span className="ks-alliance-status-pill is-existing" role="status"><CheckCircle2 size={14}/>{t("alliance.allianceAlreadyRegistered", "Registered")}</span> : (allianceSyncCapacity?.canRegister || (!allianceSyncCapacity && !loadingRoster)) ? <button type="button" className="ks-alliance-primary ks-alliance-register-all-button ks-alliance-register-near-info" onClick={() => void registerEntireAlliance()} disabled={registering || !unregisteredRosterCount}>{registering ? <LoaderCircle size={16} className="ks-alliance-spin"/> : <Users size={16}/>}<span>{registering ? t("alliance.registering", "Registering…") : t("alliance.registerButton", "Register")} <b>{unregisteredRosterCount}</b></span></button> : null}{(registering || allianceSyncCapacity?.isRegistered) && <small className="ks-alliance-server-note">{t("alliance.serverContinues", "Registration continues on the server. You can leave this page.")}</small>}
             <button type="button" className="ks-alliance-refresh" onClick={() => activeAlliance && void loadRoster(activeAlliance, true)} disabled={loadingRoster || registering}>{loadingRoster ? <LoaderCircle size={14} className="ks-alliance-spin"/> : <RotateCcw size={14}/>}<span>{t("alliance.refreshRoster", "Refresh")}</span></button>
           </div>
+          <div className={"ks-alliance-freshness " + (roster.stale ? "is-stale" : "is-fresh")} role="status" aria-live="polite">
+            <span className="ks-alliance-freshness-dot" aria-hidden="true"/>
+            <span><strong>{roster.stale ? t("alliance.rosterStaleTitle", "Roster may be outdated") : t("alliance.rosterFreshTitle", "Roster loaded")}</strong><small>{roster.fetchedAt ? t("alliance.lastFetched", "Last fetched") + " " + new Date(roster.fetchedAt).toLocaleString() : t("alliance.fetchTimeUnknown", "Fetch time unavailable")}{typeof roster.ageSeconds === "number" ? " · " + t("alliance.dataAge", "Data age") + ": " + (roster.ageSeconds < 60 ? Math.max(0,Math.floor(roster.ageSeconds)) + "s" : Math.floor(roster.ageSeconds / 60) + "m") : ""}</small></span>
+          </div>
           <div className="ks-alliance-roster-stats"><span><b>{formatNumber(roster.alliance.power)}</b><small>{t("alliance.power", "Power")}</small></span><span><b>{roster.members.length}</b><small>{t("alliance.members", "Members")}</small></span></div>
         </div>
+        {allianceSyncCapacity && <p className="ks-alliance-capacity-note" role="status">{allianceSyncCapacity.registeredCount < allianceSyncCapacity.limit ? t("alliance.capacityRemaining", "Alliance sync registrations in this kingdom:") + " " + allianceSyncCapacity.registeredCount + "/" + allianceSyncCapacity.limit + " · " + (allianceSyncCapacity.limit-allianceSyncCapacity.registeredCount) + " " + t("alliance.slotsRemaining", "slot(s) remaining") : t("alliance.capacityFullNote", "The kingdom's three alliance-sync slots are full. Individual player registration through Auto Redeem is unaffected.")}</p>}
+        <section className="ks-alliance-history" aria-labelledby="alliance-history-heading">
+          <div className="ks-alliance-history-heading"><div><h3 id="alliance-history-heading">{t("alliance.syncHistoryTitle", "Recent sync history")}</h3><p>{t("alliance.syncHistoryIntro", "A short record of automatic alliance sync runs. This does not change any player's Auto Redeem registration.")}</p></div><button type="button" className="ks-alliance-refresh" onClick={() => activeAlliance && void loadRoster(activeAlliance, true)} disabled={loadingRoster || registering || loadingSyncHistory}>{loadingSyncHistory ? <LoaderCircle size={14} className="ks-alliance-spin" aria-hidden="true"/> : <RotateCcw size={14} aria-hidden="true"/>}<span>{t("alliance.refreshHistory", "Refresh history")}</span></button></div>
+          {syncHistory.departedCount > 0 && <p className="ks-alliance-departed-note">{syncHistory.departedCount} {t("alliance.departedMembersCurrent", "former member(s) are retained in sync history and excluded from the live roster. Their normal Auto Redeem registration is unchanged.")}</p>}
+          {loadingSyncHistory ? <p className="ks-alliance-history-empty" role="status">{t("alliance.historyLoading", "Loading sync history…")}</p> : syncHistory.runs.length ? <ol className="ks-alliance-history-list">
+            {syncHistory.runs.map(run => <li key={run.id} className={"ks-alliance-history-item is-" + String(run.status || "unknown")}>
+              <div className="ks-alliance-history-item-top"><strong>{t("alliance.syncRunStatus", "Sync")}: {t("alliance.runStatus." + run.status, run.status || t("alliance.unknownStatus", "Unknown"))}</strong><time dateTime={run.created_at}>{new Date(run.created_at).toLocaleString()}</time></div>
+              <p>{t("alliance.historyRoster", "Roster")}: {run.roster_count ?? "—"} · {t("alliance.historyAdded", "New registrations")}: {run.added_count ?? 0} · {t("alliance.historySkipped", "Already registered / skipped")}: {run.skipped_count ?? 0} · {t("alliance.historyDeparted", "Departed this run")}: {run.departed_count ?? 0}</p>
+              {run.error_message && <p className="ks-alliance-history-error"><strong>{t("alliance.historyNeedsAttention", "Needs attention")}:</strong> {run.error_message} {t("alliance.historyRetryHint", "Refresh the roster and retry registration only after checking the affected Player IDs.")}</p>}
+            </li>)}
+          </ol> : <p className="ks-alliance-history-empty">{t("alliance.historyEmpty", "No completed sync runs are recorded yet. Registering this alliance will start its sync history.")}</p>}
+        </section>
         {allianceSyncCapacity && !allianceSyncCapacity.isRegistered && allianceSyncCapacity.registeredCount >= allianceSyncCapacity.limit && <div className="ks-alliance-cap-alert" role="status"><CircleAlert size={17} aria-hidden="true"/><span><strong>{t("alliance.kingdomAllianceCapTitle", "Kingdom registration limit reached")}</strong><small>{t("alliance.kingdomAllianceCapReached", "This kingdom already has 3 registered alliances (3/3). No more alliances can be registered here.")}</small></span><b>{allianceSyncCapacity.registeredCount}/{allianceSyncCapacity.limit}</b></div>}
-        {allianceServerProgress?.active && allianceServerProgress.allianceTag.toLocaleLowerCase() === activeAlliance.tag.toLocaleLowerCase() && allianceServerProgress.kingdomId === String(activeAlliance.kingdomId || kingdomId.trim()) && <div className="ks-alliance-server-progress" role="status" aria-live="polite">
+        {allianceServerProgress?.active && allianceServerProgress.allianceTag.toLocaleLowerCase() === activeAlliance.tag.toLocaleLowerCase() && allianceServerProgress.kingdomId === String(activeAlliance.kingdomId || kingdomId.trim()) && <div className="ks-alliance-server-progress" role="status" aria-live="polite" aria-atomic="true">
           <div className="ks-alliance-server-progress-top"><span><LoaderCircle size={13} className="ks-alliance-spin" aria-hidden="true"/><strong>{t("alliance.serverProgressTitle", "Registering alliance")} · [{allianceServerProgress.allianceTag}] {allianceServerProgress.allianceName}</strong></span><b>{allianceServerProgress.processedCount} / {allianceServerProgress.totalCount || "—"}</b></div>
           <progress max={allianceServerProgress.totalCount || 1} value={Math.min(allianceServerProgress.processedCount, allianceServerProgress.totalCount || 0)} aria-label={t("alliance.progressLabel", "Alliance registration progress")}/>
           <small>{allianceServerProgress.currentPlayerId ? t("alliance.serverProgressCurrent", "Processing Player ID") + " " + allianceServerProgress.currentPlayerId : t("alliance.serverProgressChecking", "Checking and registering eligible members on the server…")}</small>
         </div>}
         <label className="ks-alliance-member-filter"><Search size={15} aria-hidden="true"/><input value={memberFilter} onChange={event => setMemberFilter(event.target.value)} placeholder={t("alliance.memberFilterPlaceholder", "Filter by name, Player ID or rank")} aria-label={t("alliance.memberFilterLabel", "Filter alliance members")} disabled={registering}/></label>
-        <div className="ks-alliance-member-list" role="list" aria-label="Alliance members">
+        <div className="ks-alliance-member-list" role="list" aria-label={t("alliance.memberListLabel", "Alliance members")}>
           {visibleMembers.map(member => <article className="ks-alliance-member" key={member.playerId} role="listitem">
             {member.avatarUrl ? <img className="ks-alliance-member-avatar" src={member.avatarUrl} alt="" loading="lazy"/> : <span className="ks-alliance-member-avatar ks-alliance-avatar-fallback"><UserRound size={16}/></span>}
             <span className="ks-alliance-member-copy"><strong>{member.name || t("alliance.unknownPlayer", "Kingshot Player")}</strong><small><span>ID {member.playerId}</span><i>·</i><span>{formatNumber(member.power)} power</span>{member.allianceRank && <><i>·</i><span>{member.allianceRank}</span></>}</small></span>

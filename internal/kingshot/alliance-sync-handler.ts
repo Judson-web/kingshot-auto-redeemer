@@ -115,15 +115,17 @@ async function performSync(config:any,ownerId:string,manual:boolean,leaseToken:s
    // as departed instead of deleting them; global Supabase registrations are untouched and
    // continue through the normal redemption cycle.
    const currentMemberIds=roster.members.map(member=>member.id);
-   await db`update public.alliance_sync_seen_players as seen
+   const departedRows=await db`update public.alliance_sync_seen_players as seen
     set registration_status='departed',last_error_code=null
     where seen.config_id=${config.id}::uuid
       and seen.registration_status<>'departed'
-      and not (seen.player_id = any(${currentMemberIds}::text[]))`;
+      and not (seen.player_id = any(${currentMemberIds}::text[]))
+    returning seen.player_id`;
+   const departedCount=departedRows.length;
    const nextRun=new Date(Date.now()+24*3600000).toISOString();
   const completed=await db`update public.alliance_sync_config set alliance_name=${roster.name},last_attempt_at=now(),last_success_at=now(),next_run_at=${nextRun}::timestamptz,lease_token=null,lease_expires_at=null,consecutive_failures=case when ${failed}>0 then consecutive_failures+1 else 0 end,last_status=case when not enabled then 'paused' when ${failed}>0 then 'partial' else 'success' end,last_error_code=case when ${failed}>0 then 'registration_failed' else null end,last_error_message=${failures.slice(0,5).join('; ').slice(0,500)||null},last_roster_count=${roster.members.length},last_added_count=${added},updated_at=now() where id=${config.id}::uuid and lease_token=${leaseToken}::uuid returning id`;
   if(!completed.length) throw new Error('Sync lease was lost before completion.');
-  await db`update public.alliance_sync_runs set finished_at=now(),status=${failed>0?'partial':'success'},roster_count=${roster.members.length},added_count=${added},skipped_count=${skipped},error_code=${failed>0?'registration_failed':null},error_message=${failures.slice(0,5).join('; ').slice(0,500)||null} where id=${runId}::uuid`;
+  await db`update public.alliance_sync_runs set finished_at=now(),status=${failed>0?'partial':'success'},roster_count=${roster.members.length},added_count=${added},skipped_count=${skipped},departed_count=${departedCount},error_code=${failed>0?'registration_failed':null},error_message=${failures.slice(0,5).join('; ').slice(0,500)||null} where id=${runId}::uuid`;
   return {ok:true,rosterCount:roster.members.length,addedCount:added,skippedCount:skipped,failedCount:failed,nextRunAt:nextRun,manual};
  }catch(e){
   const message=String((e as Error)?.message||"Sync failed.").slice(0,500);
@@ -161,6 +163,18 @@ export default async function handler(req:Req,res:Res){
    const totalCount=Math.max(0,Number(run.roster_count||config.last_roster_count||0));
    const current=await db`select player_id from public.alliance_sync_seen_players where config_id=${config.id}::uuid and last_seen_at>=${run.created_at}::timestamptz and registration_status='pending' order by last_seen_at desc limit 1`;
    return res.status(200).json({active:true,allianceTag:String(config.alliance_tag),allianceName:String(config.alliance_name||config.alliance_tag),kingdomId:String(config.kingdom_id),processedCount:Math.min(processedCount,totalCount||processedCount),totalCount,currentPlayerId:current.length?String(current[0].player_id):"",status:String(run.status)});
+  }
+  if(action==="history"){
+   const kingdom=String(req.body?.kingdomId??getParam(req,"kingdomId")).trim();
+   const tag=String(req.body?.allianceTag??getParam(req,"allianceTag")).trim();
+   if(!validKingdom(kingdom)||!validTag(tag))return fail(res,400,"invalid_alliance","Check the kingdom ID and alliance tag.");
+   // History is read-only and shared for the alliance. Registration does not confer management rights.
+   const configs=await db`select id,alliance_name,alliance_tag,kingdom_id from public.alliance_sync_config where kingdom_id=${kingdom} and lower(alliance_tag)=lower(${tag}) limit 1`;
+   if(!configs.length)return res.status(200).json({runs:[],departedCount:0});
+   const config=configs[0];
+   const runs=await db`select id,status,created_at,finished_at,roster_count,added_count,skipped_count,departed_count,error_code,error_message from public.alliance_sync_runs where config_id=${config.id}::uuid order by created_at desc limit 10`;
+   const departed=await db`select count(*)::int as total from public.alliance_sync_seen_players where config_id=${config.id}::uuid and registration_status='departed'`;
+   return res.status(200).json({runs,departedCount:Number(departed[0]?.total||0)});
   }
   if(action==="capacity"){
    const kingdom=String(req.body?.kingdomId??getParam(req,"kingdomId")).trim();
