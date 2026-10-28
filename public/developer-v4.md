@@ -7,7 +7,7 @@ V4 is the current API for player lookup and manual gift-code redemption. It prov
 
 ## Authentication
 
-Create an API key from the developer account panel at /developer. Send it only over HTTPS using the Bearer scheme:
+Sign in with your shared Discord account and create an API key from the Developer API page at /developer. Send it only over HTTPS using the Bearer scheme:
 
     curl "https://kingshot-autoredeemer.vercel.app/api/v4/players/43180889" \
       -H "Authorization: Bearer $KINGSHOT_API_KEY"
