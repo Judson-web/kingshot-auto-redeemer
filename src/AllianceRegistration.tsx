@@ -155,8 +155,8 @@ export default function AllianceRegistration() {
       setRoster(clean);
       const validIds = new Set(clean.members.map(member => member.playerId));
       if (sameAlliance) {
-        setProcessedIds(current => current.filter(id => validIds.has(id)));
-        setOutcomes(current => current.filter(outcome => validIds.has(outcome.id)));
+        // Keep the session's attempt history even if a member has since left the roster.
+        // Only the current selection must be reconciled against the refreshed member list.
         setSelected(current => current.filter(id => validIds.has(id)));
       } else {
         setProcessedIds([]);
