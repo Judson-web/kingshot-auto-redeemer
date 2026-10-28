@@ -216,3 +216,85 @@
  .ks-auto-app .ks-auto-alliance-feature-icon { width: 36px; height: 36px; }
  .ks-auto-app .ks-auto-alliance-feature > a { grid-column: 2; justify-self: start; min-height: 34px; margin-top: 2px; }
 }
+
+
+/* Interaction and input-flow refinement */
+.ks-alliance-flow { display: flex; align-items: center; gap: 10px; margin-top: 23px; }
+.ks-alliance-flow > span { display: inline-flex; align-items: center; gap: 7px; color: #777975; font-size: 10px; font-weight: 680; white-space: nowrap; }
+.ks-alliance-flow > span b { display: grid; width: 22px; height: 22px; place-items: center; border: 1px solid #3c3d3f; border-radius: 7px; color: #8d8e89; font-size: 10px; }
+.ks-alliance-flow > span.is-current { color: #e6d5a8; }
+.ks-alliance-flow > span.is-current b { border-color: #776744; background: #292317; color: #e4d1a1; }
+.ks-alliance-flow > i { width: 27px; height: 1px; background: #333437; }
+.ks-alliance-field-help { color: #777975; font-size: 10px; line-height: 1.45; }
+.ks-alliance-search-input { padding-right: 7px; }
+.ks-alliance-input-clear { display: grid; flex: 0 0 26px; width: 26px; height: 26px; place-items: center; border: 0; border-radius: 7px; background: transparent; color: #969791; cursor: pointer; }
+.ks-alliance-input-clear:hover:not(:disabled) { background: #292a2c; color: #efeee8; }
+.ks-alliance-input-clear:disabled { opacity: .45; cursor: not-allowed; }
+.ks-alliance-results-head > div { display: flex; min-width: 0; flex-direction: column; gap: 4px; }
+.ks-alliance-results-head > div small { color: #83847f; font-size: 10px; line-height: 1.45; }
+.ks-alliance-data-note { display: flex; align-items: flex-start; gap: 9px; margin: 12px 22px 0; padding: 10px 12px; border: 1px solid #34382f; border-radius: 9px; background: #151914; color: #b8c6a9; font-size: 11px; line-height: 1.55; }
+.ks-alliance-data-note > svg { flex: 0 0 auto; margin-top: 1px; color: #a6b88f; }
+.ks-alliance-data-note > span { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.ks-alliance-data-note small { display: inline-flex; align-items: center; gap: 5px; color: #93968a; font-size: 10px; }
+.ks-alliance-data-note.is-stale { border-color: #5b4930; background: #201a12; color: #e0c89b; }
+.ks-alliance-data-note.is-stale > svg { color: #d8b775; }
+.ks-alliance-roster-stats { align-items: center; gap: 18px; }
+.ks-alliance-roster-stats > span { min-width: 42px; }
+.ks-alliance-roster-stats > span small { white-space: nowrap; }
+.ks-alliance-refresh { display: inline-flex; min-height: 31px; align-items: center; justify-content: center; gap: 6px; border: 1px solid #3b3b3d; border-radius: 8px; padding: 0 9px; background: #202123; color: #d2c18f; font-size: 10px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.ks-alliance-refresh:hover:not(:disabled) { border-color: #766747; background: #29251b; }
+.ks-alliance-refresh:disabled { opacity: .5; cursor: wait; }
+.ks-alliance-selection-bar { position: sticky; top: 8px; z-index: 3; background: #141516; box-shadow: 0 8px 14px rgb(0 0 0 / 12%); }
+.ks-alliance-selection-count { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 7px; }
+.ks-alliance-selection-count > strong { color: var(--al-gold); font-size: 16px; font-variant-numeric: tabular-nums; }
+.ks-alliance-selection-count > strong span { color: #858680; font-size: 11px; font-weight: 550; }
+.ks-alliance-selection-count > span { color: #a0a09c; font-size: 11px; }
+.ks-alliance-selection-count > small { flex-basis: 100%; color: #777975; font-size: 9px; }
+.ks-alliance-selection-actions { gap: 13px; }
+.ks-alliance-link-button { min-height: 30px; }
+.ks-alliance-member-list { max-height: min(52vh, 448px); }
+.ks-alliance-member { min-height: 62px; }
+.ks-alliance-member-copy small span:first-child { color: #aaa9a3; font-variant-numeric: tabular-nums; }
+.ks-alliance-empty-state { display: flex; min-height: 190px; align-items: center; flex-direction: column; justify-content: center; padding: 25px 18px; text-align: center; }
+.ks-alliance-empty-state > span { display: grid; width: 42px; height: 42px; place-items: center; margin-bottom: 12px; border: 1px solid #393a3c; border-radius: 13px; background: #1a1b1d; color: #b9a675; }
+.ks-alliance-empty-state > strong { color: #e6e4dd; font-size: 12px; font-weight: 750; }
+.ks-alliance-empty-state > p { max-width: 400px; margin: 7px 0 13px; color: #92938f; font-size: 11px; line-height: 1.65; }
+.ks-alliance-submit-note { flex-direction: column; gap: 5px; }
+.ks-alliance-submit-note > span { display: flex; flex-direction: column; gap: 4px; }
+.ks-alliance-submit-note small { color: #777975; font-size: 9px; line-height: 1.5; }
+.ks-alliance-register-button { min-width: 180px; }
+.ks-alliance-progress { position: relative; }
+.ks-alliance-progress progress { height: 6px; }
+.ks-alliance-outcomes-head > div > .ks-alliance-step { flex: 0 0 31px; }
+.ks-alliance-outcome { transition: background .14s ease; }
+.ks-alliance-outcome:hover { background: #171819; }
+.ks-alliance-outcome > div > p { overflow-wrap: anywhere; }
+@media (max-width: 720px) {
+  .ks-alliance-flow { gap: 7px; margin-top: 18px; }
+  .ks-alliance-flow > span { gap: 5px; font-size: 9px; }
+  .ks-alliance-flow > span b { width: 20px; height: 20px; }
+  .ks-alliance-flow > i { width: 14px; }
+  .ks-alliance-data-note { margin-right: 15px; margin-left: 15px; }
+  .ks-alliance-roster-stats { display: flex; flex-wrap: wrap; gap: 14px 20px; }
+  .ks-alliance-roster-stats > span { min-width: 38px; }
+  .ks-alliance-refresh { min-height: 30px; }
+  .ks-alliance-selection-bar { top: 4px; gap: 10px; }
+  .ks-alliance-selection-actions { display: flex; flex-wrap: wrap; gap: 7px 13px; }
+  .ks-alliance-member-list { max-height: min(48vh, 430px); }
+  .ks-alliance-submit-note { flex-direction: row; }
+  .ks-alliance-submit-note > span { min-width: 0; }
+  .ks-alliance-register-button { min-width: 0; }
+}
+@media (max-width: 420px) {
+  .ks-alliance-flow { gap: 5px; }
+  .ks-alliance-flow > span { gap: 4px; font-size: 8px; }
+  .ks-alliance-flow > span b { width: 18px; height: 18px; font-size: 9px; }
+  .ks-alliance-flow > i { width: 8px; }
+  .ks-alliance-data-note { align-items: flex-start; }
+  .ks-alliance-data-note > span { display: block; }
+  .ks-alliance-data-note small { display: flex; margin-top: 5px; }
+  .ks-alliance-selection-actions { gap: 5px 10px; }
+  .ks-alliance-selection-actions .ks-alliance-link-button { font-size: 9px; }
+  .ks-alliance-roster-stats { gap: 12px 16px; }
+  .ks-alliance-refresh span { display: inline; }
+}
