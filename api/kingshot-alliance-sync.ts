@@ -143,6 +143,7 @@ export default async function handler(req:Req,res:Res){
   }
   if(action==="delete"){return fail(res,405,"not_supported","Sync configurations are retained for auditability; pause this configuration instead.");}
   if(action==="sync"){
+   if(!config.enabled)return fail(res,409,"sync_paused","Resume this alliance sync before running a manual sync.");
    const lease= randomUUID();
    const claimed=await db`update public.alliance_sync_config set lease_token=${lease}::uuid,lease_expires_at=now()+interval '4 minutes',last_status='running',updated_at=now() where id=${id}::uuid and owner_user_id=${ownerId}::uuid and (lease_expires_at is null or lease_expires_at<now()) returning *`;
    if(!claimed.length)return fail(res,409,"sync_in_progress","A sync is already running for this alliance.");
