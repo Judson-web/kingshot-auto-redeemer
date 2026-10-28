@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, CheckCheck, CheckCircle2, ChevronDown, CircleAlert, Clock3, Info, LoaderCircle, Search, ShieldCheck, Users, UserRound, RotateCcw, X } from "lucide-react";
+import { ArrowRight, Check, CheckCheck, CheckCircle2, ChevronDown, CircleAlert, Clock3, Info, LoaderCircle, Search, ShieldCheck, Users, UserRound, RotateCcw, X } from "lucide-react";
 import { makeFailureOutcome, makeSuccessOutcome, summarizeRegistrationOutcomes } from "./registration-outcomes.js";
 import { useSiteLanguage } from "./shared/site-language.js";
 import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
@@ -199,7 +199,7 @@ export default function AllianceRegistration() {
   };
 
   const selectVisible = () => {
-    const visible = visibleMembers.map(member => member.playerId);
+    const visible = visibleMembers.filter(member => !outcomes.some(item => item.id === member.playerId && item.kind === "existing")).map(member => member.playerId);
     const unselected = visible.filter(id => !selected.includes(id));
     if (selected.length + unselected.length > BATCH_LIMIT) {
       setSelected(current => [...new Set([...current, ...unselected])].slice(0, BATCH_LIMIT));
@@ -294,7 +294,8 @@ export default function AllianceRegistration() {
     }
   };
 
-  const allVisibleSelected = visibleMembers.length > 0 && visibleMembers.every(member => selected.includes(member.playerId));
+  const selectableVisibleMembers = visibleMembers.filter(member => !outcomes.some(item => item.id === member.playerId && item.kind === "existing"));
+  const allVisibleSelected = selectableVisibleMembers.length > 0 && selectableVisibleMembers.every(member => selected.includes(member.playerId));
   if (accountState.status !== "authenticated" || !accountState.account) {
     const checking = accountState.status === "checking" || accountState.status === "cached";
     return <div className="app ks-app ks-alliance-app"><PublicSiteHeader current="alliance-registration" /><main id="alliance-main"><section className="ks-alliance-login-gate" aria-labelledby="alliance-login-title"><span className="ks-alliance-login-icon"><ShieldCheck size={26} aria-hidden="true" /></span><p className="ks-alliance-eyebrow"><span aria-hidden="true" />{t("alliance.eyebrow", "BULK REGISTRATION")}</p><h1 id="alliance-login-title">{checking ? t("alliance.authChecking", "Checking your session…") : t("alliance.loginTitle", "Sign in to continue")}</h1><p>{t("alliance.loginDescription", "Sign in with Discord to search alliance rosters and manage member registration. Your roster tools are available only to authenticated users.")}</p>{!checking && <a className="ks-alliance-primary ks-alliance-login-button" href={"/profile?returnTo=" + encodeURIComponent("/alliance-registration")}><ShieldCheck size={16} />{t("alliance.loginButton", "Continue with Discord")}</a>}<small>{t("alliance.loginPrivacy", "Your existing Auto Registration settings are not changed by this feature.")}</small></section></main></div>;
@@ -305,7 +306,7 @@ export default function AllianceRegistration() {
     <PublicSiteHeader current="alliance-registration" />
     <main id="alliance-main">
       <div className="ks-alliance-page-head">
-        <a className="ks-alliance-back" href="/auto"><ArrowLeft size={15} aria-hidden="true"/>{t("alliance.backAuto", "Back to Auto Redeem")}</a>
+        
         <div className="ks-alliance-eyebrow"><span aria-hidden="true"/>{t("alliance.eyebrow", "BULK REGISTRATION")}</div>
         <h1>{t("alliance.pageTitle", "Alliance Registration")}</h1>
         <p>{t("alliance.pageIntro", "Find your alliance roster, review its members, and register players for automatic gift-code checks in batches.")}</p>
@@ -324,7 +325,7 @@ export default function AllianceRegistration() {
           <div className="ks-alliance-optional-filter"><button type="button" className="ks-alliance-text-toggle" aria-expanded={filterOpen} onClick={() => setFilterOpen(value => !value)}><span>{t("alliance.filterOptional", "Filter by alliance name or tag (optional)")}</span><ChevronDown size={15} aria-hidden="true"/></button>{filterOpen && <label className="ks-alliance-field"><span>{t("alliance.searchLabel", "Alliance name or tag")}</span><div className="ks-alliance-search-input"><Search size={16} aria-hidden="true"/><input value={query} onChange={event => { setQuery(event.target.value); setSearchError(""); }} autoComplete="off" aria-label={t("alliance.searchLabel", "Alliance name or tag")} placeholder={t("alliance.searchPlaceholder", "Search by name or tag")} disabled={discovering || registering}/>{query && <button type="button" className="ks-alliance-input-clear" aria-label={t("alliance.clearSearch", "Clear alliance search")} onClick={() => { setQuery(""); setSearchError(""); }} disabled={discovering || registering}><X size={14}/></button>}</div></label>}</div>
           <button className="ks-alliance-primary" type="submit" disabled={discovering || registering || !kingdomId.trim()}>{discovering ? <LoaderCircle size={16} className="ks-alliance-spin"/> : <Search size={16}/>}<span>{discovering ? t("alliance.searching", "Searching…") : t("alliance.searchButton", "Search alliances")}</span></button>
         </form>
-        <p className="ks-alliance-provider-note">{t("alliance.providerNote", "Alliance rankings are provided by MightPulse and may not include every alliance. Roster data can be up to 60 minutes old; review the member list before registering.")}</p>
+        <p className="ks-alliance-provider-note">{t("alliance.providerNote", "Alliance and roster data may not include every alliance and can be up to 60 minutes old. Review the member list before registering.")}</p>
         {searchError && <p className="ks-alliance-alert" role="status"><CircleAlert size={16}/><span>{searchError}</span></p>}
         {alliances.length > 0 && <div className="ks-alliance-results">
           <div className="ks-alliance-results-head"><div><strong>{t("alliance.resultsHeading", "Matching alliances")}</strong><small>{t("alliance.resultsHint", "Choose an alliance to preview its roster.")}</small></div><span>{filteredAlliances.length} found</span></div>
@@ -369,7 +370,7 @@ export default function AllianceRegistration() {
         <label className="ks-alliance-member-filter"><Search size={15} aria-hidden="true"/><input value={memberFilter} onChange={event => setMemberFilter(event.target.value)} placeholder={t("alliance.memberFilterPlaceholder", "Filter by name, Player ID or rank")} aria-label={t("alliance.memberFilterLabel", "Filter alliance members")} disabled={registering}/></label>
         <div className="ks-alliance-member-list" role="group" aria-label={t("alliance.memberListLabel", "Alliance member selection")}>
           {visibleMembers.map(member => <label className={"ks-alliance-member" + (selected.includes(member.playerId) ? " is-selected" : "")} key={member.playerId}>
-            <input type="checkbox" checked={selected.includes(member.playerId)} onChange={() => toggleMember(member.playerId)} disabled={registering || (!selected.includes(member.playerId) && selected.length >= BATCH_LIMIT)}/>
+            <input type="checkbox" checked={selected.includes(member.playerId)} onChange={() => toggleMember(member.playerId)} disabled={registering || outcomes.some(item => item.id === member.playerId && item.kind === "existing") || (!selected.includes(member.playerId) && selected.length >= BATCH_LIMIT)}/>
             {member.avatarUrl ? <img className="ks-alliance-member-avatar" src={member.avatarUrl} alt="" loading="lazy"/> : <span className="ks-alliance-member-avatar ks-alliance-avatar-fallback"><UserRound size={16}/></span>}
             <span className="ks-alliance-member-copy"><strong>{member.name || t("alliance.unknownPlayer", "Kingshot Player")}</strong><small><span>ID {member.playerId}</span><i>·</i><span>{formatNumber(member.power)} {t("alliance.power", "power")}</span>{member.allianceRank && <><i>·</i><span>{member.allianceRank}</span></>}</small></span>
             {outcomes.some(item => item.id === member.playerId && item.kind === "existing") && <span className="ks-alliance-status-pill is-existing">{t("alliance.alreadyRegistered", "Already registered")}</span>}{selected.includes(member.playerId) && <Check size={16} className="ks-alliance-selected-check" aria-hidden="true"/>}
