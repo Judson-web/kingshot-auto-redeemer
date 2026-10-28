@@ -61,7 +61,7 @@ export default async function handler(req:any,res:any){
      // Retry pending/error rows only. Successfully processed members are intentionally never re-registered.
      if(!isNew&&!["pending","error"].includes(prior)){skipped++;continue;}
      if(alreadyRegisteredIds.has(member.id)){
-      await db\`update public.alliance_sync_seen_players set registration_status=\'already_registered\',registered_at=coalesce(registered_at,now()),last_error_code=null where config_id=\${config.id}::uuid and player_id=\${member.id}\`;
+      await db`update public.alliance_sync_seen_players set registration_status='already_registered',registered_at=coalesce(registered_at,now()),last_error_code=null where config_id=${config.id}::uuid and player_id=${member.id}`;
       skipped++;
       continue;
      }
