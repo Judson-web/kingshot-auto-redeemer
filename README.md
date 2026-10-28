@@ -36,7 +36,7 @@ Kingshot Auto Redeemer helps players discover eligible public gift codes and red
 |---|---|
 | Gift-code discovery | Collects and normalizes eligible codes from configured public sources. |
 | Automatic redemption | Processes registered Player IDs through coordinated server-side workers. |
-| Manual redemption | Lets a player submit a code and receive a clear result. |
+| Manual redemption | Lets a player submit a code and receive a clear result, with guidance if a network timeout leaves the outcome uncertain. |
 | Player profiles | Displays available player information, including supported avatar and Town Center details. |
 | Code and player status | Distinguishes common registration and redemption outcomes so users can understand what happened. |
 | Support | Provides a support workflow for reporting problems and following up. |
@@ -89,6 +89,14 @@ V3 remains available without changing its existing response shape for compatibil
 6. **Notify:** optional web-push notifications can alert subscribed users to supported updates.
 
 Upstream availability, code validity, player eligibility, and provider rate limits can affect results. The service cannot guarantee that every code will work or that every notification will be delivered.
+
+## Registration cancellation and network safety
+
+Bulk alliance registration and automatic-registration batches provide a cooperative **Cancel remaining** control. Cancellation stops the next unstarted player from being submitted and preserves results already received; an in-flight request is allowed to settle because stopping the browser request cannot reliably undo work already accepted by the server. Closing or refreshing a tab is only a best-effort stop signal, not a durable server-side cancellation guarantee.
+
+Manual redemption provides a **Stop waiting** action for a stalled request. If the player lookup is cancelled before a gift code is submitted, the code is not sent by that flow. If the redemption request may already have reached Kingshot, the result is treated as unknown: the UI does not automatically resubmit it. Check the in-game result before trying again. A lost connection or timeout does not prove that the upstream service did nothing. For API integrations, follow the documented idempotency guidance and reuse the same `Idempotency-Key` and request body when retrying an ambiguous request.
+
+These controls improve recovery from slow or unreliable connections, but they cannot guarantee cancellation of an already accepted upstream request. Never interpret a browser-side stop as proof that a server-side action was rolled back.
 
 ## Database and worker architecture
 
