@@ -310,11 +310,15 @@ export default function AllianceRegistration() {
     // A conflict means this alliance already has a single scheduler owner, so never create a duplicate.
     if (activeAlliance && batch.length) {
       try {
-        await fetch("/api/kingshot-alliance-sync", {
+        const syncResponse = await fetch("/api/kingshot-alliance-sync", {
           method: "POST", credentials: "same-origin", cache: "no-store",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ action: "create", kingdomId: activeAlliance.kingdomId || kingdomId.trim(), allianceTag: activeAlliance.tag, allianceName: activeAlliance.name })
         });
+        const syncData = await syncResponse.json().catch(() => ({}));
+        if (!syncResponse.ok && !(syncResponse.status === 409 && ["alliance_already_managed", "alliance_already_registered"].includes(String(syncData.code || "")))) {
+          setRosterError(t("alliance.autoSyncSetupFailed", "Members were processed, but automatic 24-hour sync could not be enabled. Please try registering again later."));
+        }
       } catch { /* Registration succeeds independently; the server scheduler can be retried later. */ }
     }
   };
@@ -360,6 +364,7 @@ export default function AllianceRegistration() {
         <p className="ks-alliance-provider-note">{t("alliance.providerNote", "Alliance and roster data may not include every alliance and can be up to 60 minutes old. Review the member list before registering.")}</p>
         {searchError && <p className="ks-alliance-alert" role="status"><CircleAlert size={16}/><span>{searchError}</span></p>}
         {activeAlliance && loadingRoster && <div className="ks-alliance-loading ks-alliance-loading-inline" role="status"><LoaderCircle size={19} className="ks-alliance-spin"/><span>{t("alliance.loadingRosterFor", "Loading members for")} <strong>[{activeAlliance.tag}] {activeAlliance.name}</strong>…</span></div>}
+        {activeAlliance && !roster && <button type="button" className="ks-alliance-link-button ks-alliance-back-to-list" onClick={() => { rosterRequestRef.current++; setLoadingRoster(false); setActiveAlliance(null); setRosterError(""); }} disabled={registering}><ChevronDown size={14} aria-hidden="true"/>{t("alliance.backToList", "Back to alliance list")}</button>}
         {!activeAlliance && alliances.length > 0 && <div className="ks-alliance-results">
           <div className="ks-alliance-results-head"><div><strong>{t("alliance.resultsHeading", "Matching alliances")}</strong><small>{t("alliance.resultsHint", "Choose an alliance to preview its roster.")}</small></div><span>{filteredAlliances.length} found</span></div>
           {filteredAlliances.length === 0 ? <p className="ks-alliance-empty">{t("alliance.noMatches", "No matches in the returned ranking. You can try the exact alliance tag below.")}</p> : <div className="ks-alliance-cards">
