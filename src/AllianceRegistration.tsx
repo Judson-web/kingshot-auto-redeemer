@@ -382,9 +382,11 @@ export default function AllianceRegistration() {
             allianceTag: String(data.allianceTag),
             allianceName: String(data.allianceName || data.allianceTag)
           });
-        } else {
+        } else if (response.ok || response.status === 401 || response.status === 403) {
+          // A confirmed inactive response clears the indicator. Authentication failures do too.
           setAllianceServerProgress(null);
         }
+        // Keep the last confirmed progress through transient 429/5xx responses.
       } catch {
         // A temporary status-read failure must not affect or cancel server-side registration.
       }
