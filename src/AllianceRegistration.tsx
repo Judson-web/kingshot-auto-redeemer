@@ -111,14 +111,23 @@ export default function AllianceRegistration() {
 
   const loadRoster = async (alliance: AllianceEntry) => {
     const requestId = ++rosterRequestRef.current;
+    const sameAlliance = Boolean(
+      roster &&
+      roster.alliance.kingdomId === (alliance.kingdomId || kingdomId.trim()) &&
+      roster.alliance.tag === alliance.tag
+    );
     setActiveAlliance(alliance);
     setLoadingRoster(true);
     setRosterError("");
-    setRoster(null);
-    setOutcomes([]);
-    setProcessedIds([]);
-    setSelected([]);
-    setMemberFilter("");
+    // Keep the current roster visible during a refresh and never erase completed work
+    // just because the user asks for newer upstream data.
+    if (!sameAlliance) {
+      setRoster(null);
+      setOutcomes([]);
+      setProcessedIds([]);
+      setSelected([]);
+      setMemberFilter("");
+    }
     try {
       const params = new URLSearchParams({
         developer: "alliance-lookup",
@@ -139,7 +148,16 @@ export default function AllianceRegistration() {
       }
       const clean = { ...normalized, members: [...unique.values()] };
       setRoster(clean);
-      setSelected([]);
+      const validIds = new Set(clean.members.map(member => member.playerId));
+      if (sameAlliance) {
+        setProcessedIds(current => current.filter(id => validIds.has(id)));
+        setOutcomes(current => current.filter(outcome => validIds.has(outcome.id)));
+        setSelected(current => current.filter(id => validIds.has(id)));
+      } else {
+        setProcessedIds([]);
+        setOutcomes([]);
+        setSelected([]);
+      }
       setExactTag(alliance.tag);
     } catch (cause) {
       if (requestId === rosterRequestRef.current) setRosterError(cause instanceof Error ? cause.message : t("alliance.lookupFailed", "Could not retrieve this alliance roster."));
