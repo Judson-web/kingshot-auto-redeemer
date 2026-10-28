@@ -14,7 +14,7 @@ export default function AllianceFeatureAnnouncement() {
     <aside className="ks-alliance-feature-banner" aria-label={t("alliance.bannerLabel", "New feature: Alliance Registration")}>
       <span className="ks-alliance-feature-icon" aria-hidden="true"><Sparkles size={17} /></span>
       <div className="ks-alliance-feature-copy">
-        <span className="ks-alliance-feature-kicker">{isKorean ? "연맹 등록" : "ALLIANCE REGISTRATION"}</span>
+        <span className="ks-alliance-feature-kicker">{isKorean ? "연맹 등록" : "ALLIANCE REGISTRATION"} <b className="ks-beta-tag">BETA</b></span>
         <strong className="ks-alliance-feature-title">{isKorean ? "연맹 등록" : "Alliance Registration"}</strong>
         <span className="ks-alliance-feature-message">{message}</span>
       </div>
