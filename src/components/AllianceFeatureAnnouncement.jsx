@@ -1,9 +1,11 @@
-import React from "react";
-import { ArrowRight, Clock3, Sparkles, Users } from "lucide-react";
+import React, { useState } from "react";
+import { ArrowRight, Clock3, Sparkles, Users, X } from "lucide-react";
 import { useSiteLanguage } from "../shared/site-language.js";
 
 export default function AllianceFeatureAnnouncement() {
   const { t, isKorean } = useSiteLanguage();
+  const [dismissed, setDismissed] = useState(false);
+  if (dismissed) return null;
   const message = isKorean
     ? "연맹 명단을 한눈에 확인하고, 새로운 구성원을 더 빠르게 등록하세요."
     : "Your alliance, at a glance. Find your roster and register new members in a few clicks.";
@@ -20,8 +22,9 @@ export default function AllianceFeatureAnnouncement() {
       <a className="ks-alliance-feature-link" href="/alliance-registration">
         <Users size={15} aria-hidden="true" />
         <span>{isKorean ? "사용해 보기" : "Try it"}</span>
-        <ArrowRight size={14} aria-hidden="true" />
+        <ArrowRight className="ks-alliance-feature-arrow" size={14} aria-hidden="true" />
       </a>
+      <button type="button" className="ks-alliance-feature-dismiss" onClick={() => setDismissed(true)} aria-label={isKorean ? "공지 닫기" : "Dismiss announcement"} title={isKorean ? "공지 닫기" : "Dismiss announcement"}><X size={13} aria-hidden="true" /></button>
     </aside>
   );
 }
