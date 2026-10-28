@@ -396,7 +396,7 @@ export default function AllianceRegistration() {
         <p>{accountState.status === "checking" || accountState.status === "cached" || accountState.status === "error"
           ? t("alliance.loginChecking", "Checking your sign-in status. Please wait a moment.")
           : t("alliance.loginIntro", "Sign in with Discord to find your alliance, review its roster, and register members for automatic gift-code checks.")}</p>
-        {accountState.status === "authenticated" || accountState.status === "checking" || accountState.status === "cached" || accountState.status === "error"
+        {accountState.status === "checking" || accountState.status === "cached"
           ? <button type="button" className="ks-alliance-primary ks-alliance-login-button" disabled><LoaderCircle size={16} className="ks-alliance-spin"/>{t("alliance.checkingAccount", "Checking sign-in…")}</button>
           : <a className="ks-alliance-primary ks-alliance-login-button" href={"/profile?returnTo=" + encodeURIComponent("/alliance-registration")}><ShieldCheck size={16}/>{t("alliance.loginButton", "Continue with Discord")}</a>}
         <small>{t("alliance.loginPrivacyNote", "You will return here after signing in. Your Kingshot password is never requested.")}</small>
