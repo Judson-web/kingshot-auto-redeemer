@@ -12,6 +12,7 @@ import {useSiteLanguage,translate,getSiteLanguage} from "./shared/site-language.
 import TownCenterLevel from"./components/TownCenterLevel.tsx";
 import { useServiceStatus } from "./shared/service-status.js";
 import KingshotAvatar from"./components/KingshotAvatar.tsx";
+import AllianceRegistration from "./AllianceRegistration.tsx";
 
 const LegalApp=React.lazy(()=>import("./LegalApp.jsx"));
 const InfoApp=React.lazy(()=>import("./InfoApp.jsx"));
@@ -130,6 +131,16 @@ function AutoRedeemApp(){
  const {t}=useSiteLanguage();
  const [ids,setIds]=useState(""),[busy,setBusy]=useState(false),[outcomes,setOutcomes]=useState([]),[error,setError]=useState(""),[inputNotice,setInputNotice]=useState(""),[progress,setProgress]=useState({done:0,total:0,currentId:""});
  const inputSummary=registrationInputSummary(ids);
+ const addAllianceMembers=(members)=>{
+  const parsed=validateRegistrationIds(ids);
+  const existing=parsed.error?[]:parsed.ids;
+  const incoming=members.map(member=>String(member.playerId||"")).filter(id=>/^\\d{5,20}$/.test(id));
+  const combined=[...new Set([...existing,...incoming])].slice(0,10);
+  setIds(combined.join(", "));
+  setInputNotice(t("alliance.addedNotice","Selected members added. Up to 10 Player IDs can be registered per submission."));
+  setError("");
+  setOutcomes([]);
+ };
  const idInputRef=useRef(null),pendingCaretRef=useRef(null),discardTokenRef=useRef(false);
  useEffect(()=>{
   if(pendingCaretRef.current===null)return;
@@ -199,6 +210,7 @@ function AutoRedeemApp(){
   </div>
   <span className="ks-register-card-limit">{t("auto.limit","UP TO 10")}</span>
  </div>
+ <AllianceRegistration onAddPlayers={addAllianceMembers} disabled={busy} />
  <div className="ks-register-field">
   <div className="ks-register-label-row"><label htmlFor="auto-player-ids">{t("auto.playerIds","Player IDs")}</label><span>{t("auto.digitsEach","5–20 digits each")}</span></div>
   <div className="ks-register-entry"><Gift size={18} aria-hidden="true"/><textarea ref={idInputRef} id="auto-player-ids" rows={1} inputMode="numeric" enterKeyHint="enter" value={ids} onChange={e=>{const value=e.target.value,clean=sanitizeRegistrationInput(value),containsUnsupported=/[^0-9,\s]/.test(value);if(clean!==value)pendingCaretRef.current=sanitizeRegistrationInput(value.slice(0,e.target.selectionStart)).length;else pendingCaretRef.current=null;setIds(clean);setInputNotice(containsUnsupported?t("auto.unsupportedIgnored","Letters and symbols were ignored. Only digits, commas, and spaces are allowed."):"");if(error)setError("")}} onBeforeInput={e=>{const event=e.nativeEvent,field=e.currentTarget;if(event.inputType==="insertLineBreak"||event.inputType==="insertParagraph"){e.preventDefault();insertCleanText(field," ");return}if(!event.data)return;if(/[^0-9, ]/.test(event.data)){e.preventDefault();const value=field.value,start=field.selectionStart??0,end=field.selectionEnd??start,left=Math.max(value.lastIndexOf(",",start-1),value.lastIndexOf(" ",start-1))+1,tail=value.slice(end),nextSeparator=tail.search(/[, ]/),right=nextSeparator<0?value.length:end+nextSeparator,next=value.slice(0,left)+value.slice(right);discardTokenRef.current=true;pendingCaretRef.current=next===value?null:left;setIds(next);setInputNotice(t("auto.unsupported","Letters and symbols are not accepted. Use digits, commas, or spaces."));return}if(discardTokenRef.current){if(event.data===","||event.data===" ")discardTokenRef.current=false;else{e.preventDefault();return}}}} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();insertCleanText(e.currentTarget," ")}}} onPaste={e=>{e.preventDefault();insertCleanText(e.currentTarget,e.clipboardData.getData("text/plain"))}} onDrop={e=>{e.preventDefault();insertCleanText(e.currentTarget,e.dataTransfer.getData("text/plain"))}} placeholder={t("auto.playerIdsPlaceholder","e.g. 43180889, 51234567")} autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck="false" maxLength={256} aria-describedby={error?"auto-register-help auto-register-error":"auto-register-help"} aria-invalid={Boolean(error)}/></div>
