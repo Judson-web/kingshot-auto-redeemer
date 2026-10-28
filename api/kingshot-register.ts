@@ -6,7 +6,7 @@ interface ResponseLike { status(code: number): ResponseLike; json(body: unknown)
 export default async function handler(req: RequestLike, res: ResponseLike): Promise<void> {
  attachDevMetadata(res);
  if (req.method !== "POST") return void res.status(405).json({ error: "Method not allowed" });
- if (!rateLimit(req, res, "register", 60, 60000)) return;
+ if (!rateLimit(req, res, "register", 60, 60000)) return void res.status(429).json({ error: "Too many registration requests. Retry after the indicated delay.", code: "rate_limit_exceeded" });
  const input = normalizeRegistrationInput(req.body || {});
  if (!/^\d{5,20}$/.test(input.playerId)) return void res.status(400).json({ error: "Use the numeric Player ID shown in Kingshot under Profile → Info. It must contain 5–20 digits; your kingdom number is different.", code: "invalid_player_id" });
  if (input.kingdomId && !/^\d{1,10}$/.test(input.kingdomId)) return void res.status(400).json({ error: "Kingdom ID must contain 1–10 digits.", code: "invalid_kingdom_id" });
