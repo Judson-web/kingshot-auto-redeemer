@@ -867,6 +867,7 @@ export default {
   "alliance.loadTag": "태그로 명단 불러오기",
   "alliance.loadingRoster": "연맹 명단을 불러오는 중…",
   "alliance.backToList": "연맹 목록으로 돌아가기",
+  "alliance.autoSyncSetupFailed": "멤버 처리는 완료했지만 24시간 자동 동기화를 설정하지 못했습니다. 나중에 다시 등록해 주세요.",
   "alliance.rosterHeading": "연맹 구성원 확인",
   "alliance.rosterDescription": "등록할 플레이어를 선택하세요. 한 번에 중복되지 않는 플레이어 ID를 최대 100개까지 처리할 수 있습니다.",
   "alliance.selectedThisBatch": "이번 배치에서 선택됨",
