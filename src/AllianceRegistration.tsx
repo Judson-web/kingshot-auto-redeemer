@@ -162,7 +162,6 @@ export default function AllianceRegistration() {
         setOutcomes([]);
         setSelected([]);
       }
-      setExactTag(alliance.tag);
     } catch (cause) {
       if (requestId === rosterRequestRef.current) setRosterError(cause instanceof Error ? cause.message : t("alliance.lookupFailed", "Could not retrieve this alliance roster."));
     } finally {
