@@ -787,7 +787,7 @@ export default {
 "manual.playerIdPlaceholder": "예: 43180889",
   "manual.giftCodePlaceholder": "예: Hangul2026",
   "auto.playerIdsPlaceholder": "예: 43180889, 51234567",
-  "support.ticketPrefix": "문의 티켓 "
+  "support.ticketPrefix": "문의 티켓 ",
   "alliance.title": "연맹 전체에서 플레이어 등록",
   "alliance.description": "연맹을 찾아 등록할 구성원을 플레이어 ID로 선택하세요.",
   "alliance.kingdom": "왕국 ID",
