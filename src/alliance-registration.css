@@ -440,3 +440,8 @@
 .ks-alliance-cancel-button { margin-top: 10px; border-color: rgba(220, 110, 95, .45); color: var(--al-text, #f1e8d4); }
 .ks-alliance-cancel-button:disabled { opacity: .7; cursor: wait; }
 .ks-register-progress .ks-alliance-cancel-button { margin-top: 10px; }
+
+
+/* Keep alliance sync information visible without a large standalone panel. */
+.ks-alliance-sync-note { display: flex; align-items: flex-start; gap: 7px; margin: 9px 0 0; color: #8e8f89; font-size: 10px; line-height: 1.5; }
+.ks-alliance-sync-note svg { flex: 0 0 auto; margin-top: 1px; color: #b9a675; }
