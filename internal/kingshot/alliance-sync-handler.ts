@@ -128,6 +128,15 @@ export default async function handler(req:Req,res:Res){
   const ownerId=await getProfileOwner(req);
   if(!ownerId)return fail(res,401,"authentication_required","Your Discord session could not be verified.");
   const action=String(req.body?.action??getParam(req,"action")??"list");
+  if(action==="capacity"){
+   const kingdom=String(req.body?.kingdomId??getParam(req,"kingdomId")).trim();
+   const tag=String(req.body?.allianceTag??getParam(req,"allianceTag")).trim();
+   if(!validKingdom(kingdom)||!validTag(tag))return fail(res,400,"invalid_alliance","Check the kingdom ID and alliance tag.");
+   const rows=await db`select count(*)::int as total from public.alliance_sync_config where kingdom_id=${kingdom}`;
+   const existing=await db`select id,owner_user_id,enabled,last_status from public.alliance_sync_config where kingdom_id=${kingdom} and lower(alliance_tag)=lower(${tag}) limit 1`;
+   const total=Number(rows[0]?.total||0);
+   return res.status(200).json({kingdomId:kingdom,registeredCount:total,limit:3,isRegistered:existing.length>0,managedByCurrentUser:existing.length>0&&String(existing[0].owner_user_id)===ownerId,enabled:existing.length>0?Boolean(existing[0].enabled):false,status:existing.length?String(existing[0].last_status||"pending"):null,canRegister:existing.length===0&&total<3});
+  }
   if(req.method==="GET"||action==="list"){
    const rows=await db`select id,kingdom_id,alliance_tag,alliance_name,enabled,interval_hours,last_attempt_at,last_success_at,next_run_at,consecutive_failures,last_status,last_error_code,last_error_message,last_roster_count,last_added_count,created_at,updated_at from public.alliance_sync_config where owner_user_id=${ownerId}::uuid order by created_at desc`;
    return res.status(200).json({configs:rows});

@@ -49,6 +49,7 @@ export default function AllianceRegistration() {
   const [activeAlliance, setActiveAlliance] = useState<AllianceEntry | null>(null);
   const [roster, setRoster] = useState<AllianceResult | null>(null);
   const [rosterChanges, setRosterChanges] = useState<{added: AllianceMember[]} | null>(null);
+  const [allianceSyncCapacity, setAllianceSyncCapacity] = useState<{registeredCount:number;limit:number;isRegistered:boolean;managedByCurrentUser:boolean;enabled:boolean;status:string|null;canRegister:boolean}|null>(null);
   const [loadingRoster, setLoadingRoster] = useState(false);
   const [rosterError, setRosterError] = useState("");
   const [memberFilter, setMemberFilter] = useState("");
@@ -128,6 +129,7 @@ export default function AllianceRegistration() {
       roster.alliance.tag === alliance.tag
     );
     setActiveAlliance(alliance);
+    setAllianceSyncCapacity(null);
     if (!forceRefresh && roster && roster.alliance.kingdomId === (alliance.kingdomId || kingdomId.trim()) && roster.alliance.tag === alliance.tag) { setLoadingRoster(false); return; }
     setLoadingRoster(true);
     setRosterError("");
@@ -151,6 +153,12 @@ export default function AllianceRegistration() {
       const data = await response.json().catch(() => ({}));
       if (requestId !== rosterRequestRef.current) return;
       if (!response.ok) throw new Error(data.error || t("alliance.lookupFailed", "Could not retrieve this alliance roster."));
+      // The cap applies only to alliance-sync configurations, never to player registration.
+      try {
+        const capacityResponse = await fetch("/api/kingshot-alliance-sync", { method:"POST", credentials:"same-origin", cache:"no-store", headers:{"content-type":"application/json"}, body:JSON.stringify({action:"capacity",kingdomId:alliance.kingdomId || kingdomId.trim(),allianceTag:alliance.tag}), signal:AbortSignal.timeout(10000) });
+        const capacityData = await capacityResponse.json().catch(() => ({}));
+        if (capacityResponse.ok && Number.isFinite(Number(capacityData.registeredCount)) && capacityData.limit === 3) setAllianceSyncCapacity({registeredCount:Number(capacityData.registeredCount),limit:3,isRegistered:Boolean(capacityData.isRegistered),managedByCurrentUser:Boolean(capacityData.managedByCurrentUser),enabled:Boolean(capacityData.enabled),status:typeof capacityData.status==="string"?capacityData.status:null,canRegister:Boolean(capacityData.canRegister)});
+      } catch { setAllianceSyncCapacity(null); }
       const normalized = data as AllianceResult;
       const members = Array.isArray(normalized.members) ? normalized.members : [];
       if (!normalized.alliance || !normalized.alliance.tag) throw new Error(t("alliance.malformedRoster", "The roster response was incomplete. Please try again."));
@@ -468,7 +476,7 @@ export default function AllianceRegistration() {
           <div className="ks-alliance-submit-note"><ShieldCheck size={16}/><span>{t("alliance.submitNote", "Already-registered players remain visible but cannot be registered twice. Choose Register entire alliance to process every eligible member automatically, or select specific members for a manual batch. Your game password is never requested.")}<small>{t("alliance.batchNote", "Whole-alliance registration runs in batches of up to 100 IDs. Existing registrations are skipped.")}</small></span></div>
           {canRegister ? <>
             <button type="button" className="ks-alliance-primary ks-alliance-register-button" onClick={() => void registerSelected()} disabled={registering || !selected.length}>{registering ? <LoaderCircle size={16} className="ks-alliance-spin"/> : <CheckCircle2 size={16}/>}<span>{registering ? t("alliance.registering", "Registering…") : t("alliance.registerSelectedMembers", "Register selected members")} <b>{selected.length}</b></span></button>
-            <button type="button" className="ks-alliance-secondary ks-alliance-register-all-button" onClick={() => void registerEntireAlliance()} disabled={registering || !unregisteredRosterCount}>{registering ? <LoaderCircle size={16} className="ks-alliance-spin"/> : <Users size={16}/>}<span>{t("alliance.registerEntireAlliance", "Register entire alliance")} <b>{unregisteredRosterCount}</b></span></button>
+            {allianceSyncCapacity?.isRegistered ? <span className="ks-alliance-status-pill is-existing" role="status"><CheckCircle2 size={14}/>{t("alliance.allianceAlreadyRegistered", "Alliance registered")}</span> : allianceSyncCapacity?.canRegister ? <button type="button" className="ks-alliance-secondary ks-alliance-register-all-button" onClick={() => void registerEntireAlliance()} disabled={registering || !unregisteredRosterCount}>{registering ? <LoaderCircle size={16} className="ks-alliance-spin"/> : <Users size={16}/>}<span>{t("alliance.registerEntireAlliance", "Register entire alliance")} <b>{unregisteredRosterCount}</b></span></button> : allianceSyncCapacity ? <span className="ks-alliance-cap-note" role="status">{t("alliance.kingdomAllianceCapReached", "3/3 alliance sync slots used in this kingdom. Individual member registration is still available.")}</span> : <span className="ks-alliance-cap-note" role="status">{t("alliance.checkingAllianceSlots", "Checking alliance sync availability…")}</span>}
           </> : accountState.status === "checking" || accountState.status === "cached" ? <button type="button" className="ks-alliance-primary ks-alliance-register-button" disabled><LoaderCircle size={16} className="ks-alliance-spin"/><span>{t("alliance.checkingAccount", "Checking sign-in…")}</span></button> : <a className="ks-alliance-primary ks-alliance-register-button" href={"/profile?returnTo=" + encodeURIComponent("/alliance-registration")}><ShieldCheck size={16}/><span>{t("alliance.loginButton", "Sign in with Discord to register")}</span></a>}
           {registering && <button type="button" className="ks-alliance-secondary ks-alliance-cancel-button" onClick={() => { cancelRequestedRef.current = true; setCancelRequested(true); }} disabled={cancelRequested}>{cancelRequested ? t("alliance.cancelPending", "Stopping after this player…") : t("alliance.cancelRegistration", "Cancel remaining registrations")}</button>}
         </div>

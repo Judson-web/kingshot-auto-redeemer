@@ -73,6 +73,9 @@ test("alliance flag images reveal a fallback icon if the upstream asset fails", 
 
 test("registration results use compact scrollable cards and explicitly mark existing registrations", () => {
   assert.match(component, /alliance\.alreadyRegistered/);
+  assert.match(component, /allianceSyncCapacity\?\.canRegister/);
+  assert.match(component, /allianceAlreadyRegistered/);
+  assert.match(component, /kingdomAllianceCapReached/);
   assert.match(component, /className="ks-alliance-outcome-list" role="list"/);
   assert.match(styles, /\.ks-alliance-outcome-list \{ max-height: 360px; overflow-y: auto/);
 });
