@@ -3,7 +3,7 @@ import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
 import {useSiteLanguage} from "./shared/site-language.js";
 import "./legal-redesign.css";
 const BRAND_ICON="/favicon.svg";
-const LAST_UPDATED="October 27, 2026";
+const LAST_UPDATED="October 28, 2026";
 const services={"kingshot-manual":{label:"Manual Redeemer",summaryKey:"legal.manualSummary",summary:"Submit a gift code for an individual player."},"kingshot-auto":{label:"Auto Redeem",summaryKey:"legal.autoSummary",summary:"Register a player for scheduled gift-code processing."}};
 export default function LegalApp({type}){
  const key=new URLSearchParams(location.search).get("service"),service=services[key]||services["kingshot-manual"],privacy=type==="privacy",serviceKey=key||"kingshot-manual";
