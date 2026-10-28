@@ -79,6 +79,7 @@ export default function AllianceRegistration() {
     rosterRequestRef.current++;
     setSearchError("");
     setRosterError("");
+    setLoadingRoster(false);
     setRoster(null);
     setActiveAlliance(null);
     setAlliances([]);
@@ -146,7 +147,11 @@ export default function AllianceRegistration() {
         const id = String(member.playerId || "").trim();
         if (/^\d{5,20}$/.test(id) && !unique.has(id)) unique.set(id, { ...member, playerId: id });
       }
-      const clean = { ...normalized, members: [...unique.values()] };
+      const clean = {
+        ...normalized,
+        stale: Boolean(normalized.stale || (typeof normalized.ageSeconds === "number" && normalized.ageSeconds > 3600)),
+        members: [...unique.values()]
+      };
       setRoster(clean);
       const validIds = new Set(clean.members.map(member => member.playerId));
       if (sameAlliance) {
