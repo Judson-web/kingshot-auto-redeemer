@@ -32,7 +32,7 @@ export default function AllianceRegistration({ onAddPlayers, disabled = false }:
   event.preventDefault();
   setLoading(true); setError(""); setResult(null); setSelected([]);
   try {
-   const response = await fetch("/api/kingshot-alliance?kingdomId=" + encodeURIComponent(kingdomId.trim()) + "&tag=" + encodeURIComponent(tag.trim()), { cache: "no-store", signal: AbortSignal.timeout(25_000) });
+   const response = await fetch("/api/kingshot-player?developer=alliance-lookup&kingdomId=" + encodeURIComponent(kingdomId.trim()) + "&tag=" + encodeURIComponent(tag.trim()), { cache: "no-store", signal: AbortSignal.timeout(25_000) });
    const data = await response.json().catch(() => ({}));
    if (!response.ok) throw new Error(data.error || t("alliance.lookupFailed", "Could not find that alliance."));
    setResult(data);
