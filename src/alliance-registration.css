@@ -462,3 +462,28 @@
 
 /* Unregistered roster members remain visible without manual-selection controls. */
 .ks-alliance-status-pill.is-unregistered{border-color:#3b3c3e;background:#1a1b1d;color:#a5a6a1}
+
+
+/* Keep the server-side continuation note legible beside alliance registration status. */
+.ks-alliance-server-note{flex-basis:100%;display:block;color:var(--muted,#a9a9a6);font-size:12px;line-height:1.5;margin:4px 0 0;text-align:right}
+@media(max-width:560px){.ks-alliance-server-note{text-align:left}}
+
+
+/* Final responsive polish: keep the primary search action fully inside its card. */
+@media(max-width:620px){
+  .ks-alliance-discover-form{padding-bottom:20px!important}
+  .ks-alliance-discovery{overflow:visible!important}
+}
+.ks-alliance-cap-alert{display:flex;align-items:flex-start;gap:11px;margin:12px 22px 16px;padding:13px 14px;border:1px solid rgba(218,133,103,.34);border-radius:12px;background:linear-gradient(120deg,rgba(110,43,34,.18),rgba(31,25,22,.72));color:#e8b4a6;animation:ks-alliance-enter .24s ease-out both}
+.ks-alliance-cap-alert>svg{flex:0 0 auto;margin-top:2px}
+.ks-alliance-cap-alert>span{display:flex;min-width:0;flex:1;flex-direction:column;gap:4px}
+.ks-alliance-cap-alert strong{font-size:12px;line-height:1.45}
+.ks-alliance-cap-alert small{color:#c3a8a0;font-size:11px;line-height:1.55}
+.ks-alliance-cap-alert>b{flex:0 0 auto;border:1px solid rgba(218,133,103,.28);border-radius:8px;padding:4px 7px;color:#f0c5b8;font-size:11px;font-variant-numeric:tabular-nums}
+@keyframes ks-alliance-enter{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+.ks-alliance-results,.ks-alliance-roster{animation:ks-alliance-enter .24s ease-out both}
+.ks-alliance-card:active:not(:disabled){transform:scale(.995)}
+.ks-alliance-refresh,.ks-alliance-link-button{transition:color .16s ease,background .16s ease,transform .16s ease}
+.ks-alliance-refresh:active:not(:disabled){transform:translateY(1px)}
+@media(max-width:620px){.ks-alliance-cap-alert{margin:12px 12px 14px}.ks-alliance-cap-alert small{font-size:10px}}
+@media(prefers-reduced-motion:reduce){.ks-alliance-results,.ks-alliance-roster,.ks-alliance-alert,.ks-alliance-cap-alert{animation:none}}
