@@ -198,6 +198,6 @@ test("kingdom alliance cap check and insert are serialized in one transaction", 
   assert.match(handler, /from counts where total < 3/);
   assert.match(handler, /select count\(\*\)::int as total from public\.alliance_sync_config where kingdom_id=\$\{kingdom\}/);
   assert.match(handler, /Number\(registrationRow\?\.total\|\|0\)>=3/);
-  assert.match(handler, /insert into public\.alliance_sync_config[\s\S]*?values[\s\S]*?returning id,kingdom_id/);
+  assert.match(handler, /insert into public\.alliance_sync_config[\s\S]*?select[\s\S]*?from counts where total < 3[\s\S]*?returning id,kingdom_id/);
   assert.match(handler, /!registrationRow\?\.id/);
 });
