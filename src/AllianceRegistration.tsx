@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronDown, CircleAlert, LoaderCircle, Search, ShieldCheck, Users, UserRound, RotateCcw } from "lucide-react";
+import React, { useMemo, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, Check, CheckCheck, CheckCircle2, ChevronDown, CircleAlert, Clock3, Info, LoaderCircle, Search, ShieldCheck, Users, UserRound, RotateCcw, X } from "lucide-react";
 import { makeFailureOutcome, makeSuccessOutcome, summarizeRegistrationOutcomes } from "./registration-outcomes.js";
 import { useSiteLanguage } from "./shared/site-language.js";
 import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
@@ -54,6 +54,8 @@ export default function AllianceRegistration() {
   const [processedIds, setProcessedIds] = useState<string[]>([]);
   const [registering, setRegistering] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0, currentId: "", note: "" });
+  const searchRequestRef = useRef(0);
+  const rosterRequestRef = useRef(0);
 
   const filteredAlliances = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
@@ -68,11 +70,16 @@ export default function AllianceRegistration() {
   }, [roster, memberFilter]);
   const summary = useMemo(() => summarizeRegistrationOutcomes(outcomes), [outcomes]);
   const remainingCount = (roster?.members || []).filter(member => !processedIds.includes(member.playerId)).length;
+  const completedCount = processedIds.length;
+  const selectedVisibleCount = visibleMembers.filter(member => selected.includes(member.playerId)).length;
 
   const discover = async (event: React.FormEvent) => {
     event.preventDefault();
+    const requestId = ++searchRequestRef.current;
+    rosterRequestRef.current++;
     setSearchError("");
     setRosterError("");
+    setLoadingRoster(false);
     setRoster(null);
     setActiveAlliance(null);
     setAlliances([]);
@@ -85,9 +92,10 @@ export default function AllianceRegistration() {
     }
     setDiscovering(true);
     try {
-      const params = new URLSearchParams({ developer: "alliance-lookup", mode: "search", kingdomId: kingdomId.trim() });
+      const params = new URLSearchParams({ developer: "alliance-lookup", mode: "search", kingdomId: kingdomId.trim(), ...(query.trim() ? { q: query.trim() } : {}) });
       const response = await fetch("/api/kingshot-player?" + params.toString(), { cache: "no-store", signal: AbortSignal.timeout(30_000) });
       const data = await response.json().catch(() => ({}));
+      if (requestId !== searchRequestRef.current) return;
       if (!response.ok) throw new Error(data.error || t("alliance.searchFailed", "Could not load alliances for this kingdom."));
       const list = Array.isArray(data.alliances) ? data.alliances as AllianceEntry[] : [];
       setAlliances(list);
@@ -96,21 +104,31 @@ export default function AllianceRegistration() {
         setSearchError(t("alliance.noMatches", "No matches in the returned ranking. You can try the exact alliance tag below."));
       }
     } catch (cause) {
-      setSearchError(cause instanceof Error ? cause.message : t("alliance.searchFailed", "Could not load alliances for this kingdom."));
+      if (requestId === searchRequestRef.current) setSearchError(cause instanceof Error ? cause.message : t("alliance.searchFailed", "Could not load alliances for this kingdom."));
     } finally {
-      setDiscovering(false);
+      if (requestId === searchRequestRef.current) setDiscovering(false);
     }
   };
 
   const loadRoster = async (alliance: AllianceEntry) => {
+    const requestId = ++rosterRequestRef.current;
+    const sameAlliance = Boolean(
+      roster &&
+      roster.alliance.kingdomId === (alliance.kingdomId || kingdomId.trim()) &&
+      roster.alliance.tag === alliance.tag
+    );
     setActiveAlliance(alliance);
     setLoadingRoster(true);
     setRosterError("");
-    setRoster(null);
-    setOutcomes([]);
-    setProcessedIds([]);
-    setSelected([]);
-    setMemberFilter("");
+    // Keep the current roster visible during a refresh and never erase completed work
+    // just because the user asks for newer upstream data.
+    if (!sameAlliance) {
+      setRoster(null);
+      setOutcomes([]);
+      setProcessedIds([]);
+      setSelected([]);
+      setMemberFilter("");
+    }
     try {
       const params = new URLSearchParams({
         developer: "alliance-lookup",
@@ -119,6 +137,7 @@ export default function AllianceRegistration() {
       });
       const response = await fetch("/api/kingshot-player?" + params.toString(), { cache: "no-store", signal: AbortSignal.timeout(30_000) });
       const data = await response.json().catch(() => ({}));
+      if (requestId !== rosterRequestRef.current) return;
       if (!response.ok) throw new Error(data.error || t("alliance.lookupFailed", "Could not retrieve this alliance roster."));
       const normalized = data as AllianceResult;
       const members = Array.isArray(normalized.members) ? normalized.members : [];
@@ -128,14 +147,27 @@ export default function AllianceRegistration() {
         const id = String(member.playerId || "").trim();
         if (/^\d{5,20}$/.test(id) && !unique.has(id)) unique.set(id, { ...member, playerId: id });
       }
-      const clean = { ...normalized, members: [...unique.values()] };
+      const clean = {
+        ...normalized,
+        stale: Boolean(normalized.stale || (typeof normalized.ageSeconds === "number" && normalized.ageSeconds > 3600)),
+        members: [...unique.values()]
+      };
       setRoster(clean);
-      setSelected(clean.members.slice(0, BATCH_LIMIT).map(member => member.playerId));
+      const validIds = new Set(clean.members.map(member => member.playerId));
+      if (sameAlliance) {
+        // Keep the session's attempt history even if a member has since left the roster.
+        // Only the current selection must be reconciled against the refreshed member list.
+        setSelected(current => current.filter(id => validIds.has(id)));
+      } else {
+        setProcessedIds([]);
+        setOutcomes([]);
+        setSelected([]);
+      }
       setExactTag(alliance.tag);
     } catch (cause) {
-      setRosterError(cause instanceof Error ? cause.message : t("alliance.lookupFailed", "Could not retrieve this alliance roster."));
+      if (requestId === rosterRequestRef.current) setRosterError(cause instanceof Error ? cause.message : t("alliance.lookupFailed", "Could not retrieve this alliance roster."));
     } finally {
-      setLoadingRoster(false);
+      if (requestId === rosterRequestRef.current) setLoadingRoster(false);
     }
   };
 
@@ -178,7 +210,7 @@ export default function AllianceRegistration() {
 
   const selectNextBatch = () => {
     if (!roster) return;
-    const next = roster.members.filter(member => !processedIds.includes(member.playerId) && !selected.includes(member.playerId))
+    const next = roster.members.filter(member => !processedIds.includes(member.playerId))
       .slice(0, BATCH_LIMIT).map(member => member.playerId);
     setSelected(next);
     setRosterError(next.length ? "" : t("alliance.noUnprocessed", "No unprocessed members remain. Select individual members to retry them."));
@@ -262,6 +294,9 @@ export default function AllianceRegistration() {
         <div className="ks-alliance-eyebrow"><span aria-hidden="true"/>{t("alliance.eyebrow", "BULK REGISTRATION")}</div>
         <h1>{t("alliance.pageTitle", "Alliance Registration")}</h1>
         <p>{t("alliance.pageIntro", "Find your alliance roster, review its members, and register players for automatic gift-code checks in batches.")}</p>
+        <div className="ks-alliance-flow" aria-label={t("alliance.flowLabel", "Registration steps")}>
+          <span className="is-current"><b>1</b>{t("alliance.flowFind", "Find alliance")}</span><i aria-hidden="true"/><span className={roster ? "is-current" : ""}><b>2</b>{t("alliance.flowReview", "Review members")}</span><i aria-hidden="true"/><span className={outcomes.length ? "is-current" : ""}><b>3</b>{t("alliance.flowRegister", "Register")}</span>
+        </div>
       </div>
 
       <section className="ks-alliance-panel ks-alliance-discovery" aria-labelledby="alliance-find-heading">
@@ -270,14 +305,14 @@ export default function AllianceRegistration() {
           <div><h2 id="alliance-find-heading">{t("alliance.findHeading", "Find your alliance")}</h2><p>{t("alliance.findDescription", "Search the alliance rankings for your kingdom, then choose the matching alliance.")}</p></div>
         </div>
         <form className="ks-alliance-discover-form" onSubmit={discover}>
-          <label className="ks-alliance-field"><span>{t("alliance.kingdom", "Kingdom ID")}</span><input value={kingdomId} onChange={event => { setKingdomId(event.target.value.replace(/\D/g, "").slice(0, 10)); setAlliances([]); setActiveAlliance(null); setRoster(null); setSearchError(""); }} inputMode="numeric" pattern="[0-9]*" autoComplete="off" required placeholder={t("alliance.kingdomPlaceholder", "e.g. 1125")} disabled={discovering || registering}/></label>
-          <label className="ks-alliance-field"><span>{t("alliance.searchLabel", "Alliance name or tag")} <small>{t("alliance.optional", "optional")}</small></span><div className="ks-alliance-search-input"><Search size={16} aria-hidden="true"/><input value={query} onChange={event => { setQuery(event.target.value); setSearchError(""); }} autoComplete="off" placeholder={t("alliance.searchPlaceholder", "Search by name or tag")} disabled={discovering || registering}/></div></label>
+          <label className="ks-alliance-field"><span>{t("alliance.kingdom", "Kingdom ID")}</span><input value={kingdomId} onChange={event => { setKingdomId(event.target.value.replace(/\D/g, "").slice(0, 10)); searchRequestRef.current++; rosterRequestRef.current++; setDiscovering(false); setLoadingRoster(false); setAlliances([]); setActiveAlliance(null); setRoster(null); setSelected([]); setOutcomes([]); setProcessedIds([]); setSearchError(""); setRosterError(""); }} inputMode="numeric" pattern="[0-9]*" maxLength={10} autoComplete="off" required aria-describedby="alliance-kingdom-help" placeholder={t("alliance.kingdomPlaceholder", "e.g. 1125")} disabled={discovering || registering}/><small className="ks-alliance-field-help" id="alliance-kingdom-help">{t("alliance.kingdomHelp", "Digits only. Use the kingdom where the alliance currently plays.")}</small></label>
+          <label className="ks-alliance-field"><span>{t("alliance.searchLabel", "Alliance name or tag")} <small>{t("alliance.optional", "optional")}</small></span><div className="ks-alliance-search-input"><Search size={16} aria-hidden="true"/><input value={query} onChange={event => { setQuery(event.target.value); setSearchError(""); }} autoComplete="off" aria-label={t("alliance.searchLabel", "Alliance name or tag")} placeholder={t("alliance.searchPlaceholder", "Search by name or tag")} disabled={discovering || registering}/>{query && <button type="button" className="ks-alliance-input-clear" aria-label={t("alliance.clearSearch", "Clear alliance search")} onClick={() => { setQuery(""); setSearchError(""); }} disabled={discovering || registering}><X size={14}/></button>}</div></label>
           <button className="ks-alliance-primary" type="submit" disabled={discovering || registering || !kingdomId.trim()}>{discovering ? <LoaderCircle size={16} className="ks-alliance-spin"/> : <Search size={16}/>}<span>{discovering ? t("alliance.searching", "Searching…") : t("alliance.searchButton", "Search alliances")}</span></button>
         </form>
         <p className="ks-alliance-provider-note">{t("alliance.providerNote", "Alliance rankings are provided by MightPulse and may not include every alliance. Roster data can be up to 60 minutes old; review the member list before registering.")}</p>
         {searchError && <p className="ks-alliance-alert" role="status"><CircleAlert size={16}/><span>{searchError}</span></p>}
         {alliances.length > 0 && <div className="ks-alliance-results">
-          <div className="ks-alliance-results-head"><strong>{t("alliance.resultsHeading", "Matching alliances")}</strong><span>{filteredAlliances.length} / {alliances.length}</span></div>
+          <div className="ks-alliance-results-head"><div><strong>{t("alliance.resultsHeading", "Matching alliances")}</strong><small>{t("alliance.resultsHint", "Choose an alliance to preview its roster.")}</small></div><span>{filteredAlliances.length} / {alliances.length}</span></div>
           {filteredAlliances.length === 0 ? <p className="ks-alliance-empty">{t("alliance.noMatches", "No matches in the returned ranking. You can try the exact alliance tag below.")}</p> : <div className="ks-alliance-cards">
             {filteredAlliances.map(item => <button type="button" key={item.kingdomId + ":" + item.tag} className={"ks-alliance-card" + (activeAlliance?.tag === item.tag && activeAlliance?.kingdomId === item.kingdomId ? " is-active" : "")} onClick={() => { void loadRoster(item); }} disabled={loadingRoster || registering}>
               <span className="ks-alliance-flag">{item.flagUrl ? <img src={item.flagUrl} alt="" loading="lazy"/> : <Users size={18}/>}</span>
@@ -305,13 +340,15 @@ export default function AllianceRegistration() {
         </div>
         <div className="ks-alliance-roster-summary">
           <div className="ks-alliance-roster-identity"><span className="ks-alliance-tag">[{roster.alliance.tag}]</span><div><strong>{roster.alliance.name}</strong><small>{t("alliance.kingdomLabel", "Kingdom")} {roster.alliance.kingdomId} · {roster.members.length} {t("alliance.members", "members")}</small></div></div>
-          <div className="ks-alliance-roster-stats"><span><b>{formatNumber(roster.alliance.power)}</b><small>{t("alliance.power", "Power")}</small></span><span><b>{roster.members.length}</b><small>{t("alliance.rosterMembers", "Valid IDs")}</small></span></div>
+          <div className="ks-alliance-roster-stats"><span><b>{formatNumber(roster.alliance.power)}</b><small>{t("alliance.power", "Power")}</small></span><span><b>{roster.members.length}</b><small>{t("alliance.rosterMembers", "Valid IDs")}</small></span><span><b>{completedCount}</b><small>{t("alliance.attempted", "attempted")}</small></span><button type="button" className="ks-alliance-refresh" onClick={() => activeAlliance && void loadRoster(activeAlliance)} disabled={loadingRoster || registering}>{loadingRoster ? <LoaderCircle size={14} className="ks-alliance-spin"/> : <RotateCcw size={14}/>}<span>{t("alliance.refreshRoster", "Refresh roster")}</span></button></div>
         </div>
+        <div className={"ks-alliance-data-note" + (roster.stale ? " is-stale" : "")} role="status"><Info size={15}/><span>{roster.stale ? t("alliance.staleRoster", "This roster may be outdated. Review names and IDs carefully before registering.") : t("alliance.freshRoster", "Roster loaded. Review the members below before registering.")}{typeof roster.ageSeconds === "number" && <small><Clock3 size={12}/>{t("alliance.dataAge", "Data age")}: {roster.ageSeconds < 60 ? Math.max(0, Math.round(roster.ageSeconds)) + "s" : Math.round(roster.ageSeconds / 60) + "m"}</small>}</span></div>
         <div className="ks-alliance-selection-bar">
-          <div><strong>{selected.length} / {BATCH_LIMIT}</strong><span>{t("alliance.selectedThisBatch", "selected for this batch")}</span></div>
+          <div className="ks-alliance-selection-count"><strong>{selected.length}<span> / {BATCH_LIMIT}</span></strong><span>{t("alliance.selectedThisBatch", "selected for this batch")}</span><small>{selectedVisibleCount} {t("alliance.selectedVisible", "of visible members selected")}</small></div>
           <div className="ks-alliance-selection-actions">
-            <button type="button" className="ks-alliance-link-button" onClick={() => allVisibleSelected ? setSelected(current => current.filter(id => !visibleMembers.some(member => member.playerId === id))) : selectVisible()} disabled={registering || !visibleMembers.length}>{allVisibleSelected ? t("alliance.clearVisible", "Clear visible") : t("alliance.selectVisible", "Select visible")}</button>
-            <button type="button" className="ks-alliance-link-button" onClick={selectNextBatch} disabled={registering || remainingCount === 0 || (selected.length > 0 && !selected.every(id => processedIds.includes(id)))}>{t("alliance.selectNext", "Select next batch")} <ArrowRight size={13}/></button>
+            <button type="button" className="ks-alliance-link-button" onClick={() => allVisibleSelected ? setSelected(current => current.filter(id => !visibleMembers.some(member => member.playerId === id))) : selectVisible()} disabled={registering || !visibleMembers.length}>{allVisibleSelected ? t("alliance.clearVisible", "Clear visible") : t("alliance.selectVisible", "Select visible")} <CheckCheck size={13}/></button>
+            <button type="button" className="ks-alliance-link-button" onClick={() => setSelected([])} disabled={registering || !selected.length}>{t("alliance.clearSelection", "Clear selection")} <X size={13}/></button>
+            <button type="button" className="ks-alliance-link-button" onClick={selectNextBatch} disabled={registering || remainingCount === 0}>{t("alliance.selectNext", "Select next batch")} <ArrowRight size={13}/></button>
           </div>
         </div>
         <label className="ks-alliance-member-filter"><Search size={15} aria-hidden="true"/><input value={memberFilter} onChange={event => setMemberFilter(event.target.value)} placeholder={t("alliance.memberFilterPlaceholder", "Filter by name, Player ID or rank")} aria-label={t("alliance.memberFilterLabel", "Filter alliance members")} disabled={registering}/></label>
@@ -322,10 +359,10 @@ export default function AllianceRegistration() {
             <span className="ks-alliance-member-copy"><strong>{member.name || t("alliance.unknownPlayer", "Kingshot Player")}</strong><small><span>ID {member.playerId}</span><i>·</i><span>{formatNumber(member.power)} {t("alliance.power", "power")}</span>{member.allianceRank && <><i>·</i><span>{member.allianceRank}</span></>}</small></span>
             {selected.includes(member.playerId) && <Check size={16} className="ks-alliance-selected-check" aria-hidden="true"/>}
           </label>)}
-          {!visibleMembers.length && <p className="ks-alliance-empty">{t("alliance.noMembersMatch", "No members match this filter.")}</p>}
+          {!visibleMembers.length && <div className="ks-alliance-empty-state"><span><Search size={19}/></span><strong>{roster.members.length ? t("alliance.noMembersMatch", "No members match this filter.") : t("alliance.emptyRosterTitle", "No valid player IDs found")}</strong><p>{roster.members.length ? t("alliance.clearFilterHint", "Try a shorter name or clear the filter to see more members.") : t("alliance.emptyRosterBody", "This provider response did not include registerable player IDs. Try refreshing the roster or use the exact-tag lookup again later.")}</p>{memberFilter && <button type="button" className="ks-alliance-secondary" onClick={() => setMemberFilter("")}>{t("alliance.clearFilter", "Clear filter")}</button>}</div>}
         </div>
         <div className="ks-alliance-submit-row">
-          <div className="ks-alliance-submit-note"><ShieldCheck size={16}/><span>{t("alliance.submitNote", "Player IDs are registered individually through the existing secure workflow. Your game password is never requested.")}</span></div>
+          <div className="ks-alliance-submit-note"><ShieldCheck size={16}/><span>{t("alliance.submitNote", "Player IDs are registered individually through the existing secure workflow. Your game password is never requested.")}<small>{t("alliance.batchNote", "Only selected members are processed. You can review results before choosing another batch.")}</small></span></div>
           <button type="button" className="ks-alliance-primary ks-alliance-register-button" onClick={() => void registerSelected()} disabled={registering || !selected.length}>{registering ? <LoaderCircle size={16} className="ks-alliance-spin"/> : <CheckCircle2 size={16}/>}<span>{registering ? t("alliance.registering", "Registering…") : t("alliance.registerBatch", "Register selected")} <b>{selected.length}</b></span></button>
         </div>
         {registering && <div className="ks-alliance-progress" role="status" aria-live="polite" aria-atomic="true"><div className="ks-alliance-progress-top"><strong>{t("alliance.registeringBatch", "Registering batch")}</strong><span>{progress.done} / {progress.total}</span></div><progress max={progress.total || 1} value={progress.done} aria-label={t("alliance.progressLabel", "Alliance registration progress")}/><small>{progress.currentId ? t("alliance.processingId", "Processing Player ID") + " " + progress.currentId : t("alliance.finalizing", "Finishing this batch…")}</small>{progress.note && <small className="ks-alliance-progress-note">{progress.note}</small>}</div>}

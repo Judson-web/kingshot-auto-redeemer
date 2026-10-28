@@ -866,6 +866,25 @@ export default {
   "alliance.disabledResults": "비활성",
   "alliance.failedResults": "확인 필요",
   "alliance.retryAttention": "문제 항목 선택 후 재시도",
-  "alliance.unknownPlayer": "Kingshot 플레이어"
+  "alliance.unknownPlayer": "Kingshot 플레이어",
+  "alliance.flowLabel": "등록 단계",
+  "alliance.flowFind": "연맹 찾기",
+  "alliance.flowReview": "구성원 확인",
+  "alliance.flowRegister": "등록",
+  "alliance.kingdomHelp": "숫자만 입력하세요. 연맹이 현재 활동 중인 왕국을 사용하세요.",
+  "alliance.clearSearch": "연맹 검색어 지우기",
+  "alliance.resultsHint": "연맹을 선택하면 구성원 명단을 미리 볼 수 있습니다.",
+  "alliance.staleRoster": "명단이 최신 정보가 아닐 수 있습니다. 등록하기 전에 이름과 ID를 확인하세요.",
+  "alliance.freshRoster": "명단을 불러왔습니다. 등록 전에 아래 구성원을 확인하세요.",
+  "alliance.dataAge": "데이터 경과 시간",
+  "alliance.selectedVisible": "현재 표시된 구성원 중 선택됨",
+  "alliance.clearSelection": "선택 해제",
+  "alliance.clearFilter": "필터 지우기",
+  "alliance.clearFilterHint": "검색어를 짧게 입력하거나 필터를 지워 더 많은 구성원을 확인하세요.",
+  "alliance.emptyRosterTitle": "유효한 플레이어 ID가 없습니다",
+  "alliance.emptyRosterBody": "가져온 데이터에 등록 가능한 플레이어 ID가 없습니다. 명단을 새로고침하거나 나중에 정확한 태그로 다시 조회하세요.",
+  "alliance.batchNote": "선택한 구성원만 처리됩니다. 다음 배치를 선택하기 전에 결과를 확인할 수 있습니다.",
+  "alliance.attempted": "처리 시도",
+  "alliance.refreshRoster": "명단 새로고침"
 
 };
