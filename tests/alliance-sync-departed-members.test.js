@@ -36,3 +36,12 @@ test("departures are not inferred from an empty or incomplete roster", () => {
   assert.match(handler, /if\(!raw\|\|raw\.length===0\)/);
   assert.match(handler, /Roster validation failed; no members were registered/);
 });
+test("invalid or non-finite provider member counts fail closed in scheduled and manual sync", async () => {
+  const workerSource = await readFile(new URL("../internal/kingshot/alliance-sync-worker.ts", import.meta.url), "utf8");
+  const handlerSource = await readFile(new URL("../internal/kingshot/alliance-sync-handler.ts", import.meta.url), "utf8");
+  for (const source of [workerSource, handlerSource]) {
+    assert.match(source, /Number\.isFinite\(count\)/);
+    assert.match(source, /count<1/);
+    assert.match(source, /rawCount==null\?/);
+  }
+});
