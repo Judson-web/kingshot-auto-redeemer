@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/api/kingshot-alliance-sync",
+      "destination": "/api/kingshot-player?developer=alliance-sync"
+    },
+    {
+      "source": "/api/kingshot-alliance-sync-worker",
+      "destination": "/api/kingshot-player?developer=alliance-sync-worker"
+    },
+    {
       "source": "/api/v4/players/:playerId",
       "destination": "/api/kingshot-player?developer=v4-player&id=:playerId"
     },
@@ -183,10 +191,7 @@
     "api/custom-message.js": {
       "maxDuration": 300
     },
-    "api/kingshot-alliance-sync.ts": {
-      "maxDuration": 300
-    },
-    "api/kingshot-alliance-sync-worker.ts": {
+    "api/kingshot-player.ts": {
       "maxDuration": 300
     }
   },
