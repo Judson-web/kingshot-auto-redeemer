@@ -70,10 +70,11 @@ async function performSync(config:any,ownerId:string,manual:boolean){
    const inserted=await db`insert into public.alliance_sync_seen_players (config_id,player_id,first_seen_at,last_seen_at,registration_status)
    values (${config.id}::uuid,${member.id},now(),now(),'pending')
    on conflict (config_id,player_id) do update set last_seen_at=now()
-   returning (xmax = 0) as is_new`;
+   returning registration_status,(xmax = 0) as is_new`;
    const isNew=Boolean(inserted[0]?.is_new);
-   // Only unseen IDs are newly registered automatically. Existing tracked IDs are never touched or removed.
-   if(!isNew){skipped++;continue}
+   const prior=String(inserted[0]?.registration_status||"pending");
+   // Retry failed/pending discoveries, but never reprocess a successfully tracked member.
+   if(!isNew&&!["pending","error"].includes(prior)){skipped++;continue}
    try{
     // Keep the established RPC for the actual player insert, including its idempotency and policy checks.
     const input=normalizeRegistrationInput({playerId:member.id,kingdomId:String(config.kingdom_id),playerName:member.name,avatarUrl:member.avatarUrl});
