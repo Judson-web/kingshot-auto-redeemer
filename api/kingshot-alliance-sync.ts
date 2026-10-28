@@ -2,6 +2,7 @@ import { rateLimit } from "../lib/request-rate-limit.js";
 import { isAuthenticatedProfileRequest } from "../lib/developer-auth.js";
 import { sql } from "@neondatabase/serverless";
 import { randomUUID } from "node:crypto";
+import { normalizeRegistrationInput, registerPlayer } from "../internal/kingshot/register.js";
 
 interface Req { method?: string; url?: string; headers: Record<string,string|string[]|undefined>; body?: Record<string,unknown>; query?: Record<string,unknown>; }
 interface Res { status(n:number):Res; json(v:unknown):Res; setHeader(k:string,v:string|string[]):void; }
@@ -58,15 +59,6 @@ async function readAlliance(kingdomId:string,tag:string){
  if(canonicalTag.toLocaleLowerCase()!==tag.toLocaleLowerCase())throw Object.assign(new Error("Alliance tag does not match the requested alliance."),{code:"alliance_mismatch"});
  return {name:String(a.name??a.alliance_name??tag).trim().slice(0,80),tag:canonicalTag,members:unique,rawCount:raw.length};
 }
-async function registerNewPlayer(playerId:string,kingdomId:string,name:string,avatarUrl:string){
- const root=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
- const key=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
- if(!key)throw new Error("Registration service is not configured.");
- const response=await fetch(root+"/rest/v1/rpc/register_kingshot_player_v2",{method:"POST",headers:{apikey:key,authorization:"Bearer "+key,"content-type":"application/json"},body:JSON.stringify({p_player_id:playerId,p_kingdom_id:kingdomId,p_player_name:name||null,p_avatar_url:avatarUrl||null}),signal:AbortSignal.timeout(10000)});
- const d:any=await response.json().catch(()=>null);
- if(!response.ok)throw new Error(d?.message||d?.hint||"Registration RPC rejected player.");
- return Array.isArray(d)?d[0]:d;
-}
 async function performSync(config:any,ownerId:string,manual:boolean){
  const db=database();
  const runId=randomUUID();
@@ -84,7 +76,8 @@ async function performSync(config:any,ownerId:string,manual:boolean){
    if(!isNew){skipped++;continue}
    try{
     // Keep the established RPC for the actual player insert, including its idempotency and policy checks.
-    const result=await registerNewPlayer(member.id,String(config.kingdom_id),member.name,member.avatarUrl);
+    const input=normalizeRegistrationInput({playerId:member.id,kingdomId:String(config.kingdom_id),playerName:member.name,avatarUrl:member.avatarUrl});
+    const result=await registerPlayer(input);
     if(result?.stale===true)throw new Error("Player data is stale.");
     const already=Boolean(result?.already_registered);
     await db`update public.alliance_sync_seen_players set registration_status=${already?"already_registered":"registered"},registered_at=now(),last_error_code=null where config_id=${config.id}::uuid and player_id=${member.id}`;
