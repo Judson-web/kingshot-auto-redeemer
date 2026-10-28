@@ -54,6 +54,7 @@ test("country detection only supplies a default and never overrides a saved lang
   assert.match(source, /data\?\.countryCode\|\|data\?\.country_code\|\|""\)\.trim\(\)\.toUpperCase\(\)==="KR"\?"ko":"en"/);
   assert.match(source, /fetch\("\/api\/ops-tools\/visitor"/);
   const detector = source.slice(source.indexOf("function detectDefaultLanguage()"), source.indexOf("export function translate"));
-  assert.match(detector, /localStorage\.setItem\(KEY,detected\)/);\n  assert.match(detector, /navigator\.languages\?\.join/);
+  assert.match(detector, /localStorage\.setItem\(KEY,detected\)/);
+  assert.match(detector, /navigator\.languages\?\.join/);
   assert.match(source, /export function setSiteLanguage\(language\).*localStorage\.setItem\(KEY,next\)/);
 });
