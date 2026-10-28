@@ -12,6 +12,7 @@ export default function AllianceFeatureAnnouncement() {
       <span className="ks-alliance-feature-icon" aria-hidden="true"><Sparkles size={17} /></span>
       <div className="ks-alliance-feature-copy">
         <span className="ks-alliance-feature-kicker">{isKorean ? "새로운 기능" : "NEW FEATURE"} <b className="ks-beta-tag">BETA</b></span>
+        <strong className="ks-alliance-feature-title">{isKorean ? "연맹 등록" : "Alliance Registration"}</strong>
         <span className="ks-alliance-feature-message">{message}</span>
       </div>
       <span className="ks-alliance-feature-divider" aria-hidden="true" />
