@@ -389,6 +389,18 @@ export default function AllianceRegistration() {
     <a className="skip-link" href="#alliance-main">{t("common.skip", "Skip to main content")}</a>
     <PublicSiteHeader current="alliance-registration" />
     <main id="alliance-main">
+      {accountState.status !== "authenticated" || !accountState.account ? <section className="ks-alliance-login-gate" aria-labelledby="alliance-login-heading">
+        <span className="ks-alliance-login-icon" aria-hidden="true"><ShieldCheck size={24}/></span>
+        <div className="ks-alliance-eyebrow"><span aria-hidden="true"/>{t("alliance.eyebrow", "BULK REGISTRATION")} <span className="ks-beta-tag">BETA</span></div>
+        <h1 id="alliance-login-heading">{t("alliance.loginTitle", "Alliance Registration")}</h1>
+        <p>{accountState.status === "checking" || accountState.status === "cached" || accountState.status === "error"
+          ? t("alliance.loginChecking", "Checking your sign-in status. Please wait a moment.")
+          : t("alliance.loginIntro", "Sign in with Discord to find your alliance, review its roster, and register members for automatic gift-code checks.")}</p>
+        {accountState.status === "authenticated" || accountState.status === "checking" || accountState.status === "cached" || accountState.status === "error"
+          ? <button type="button" className="ks-alliance-primary ks-alliance-login-button" disabled><LoaderCircle size={16} className="ks-alliance-spin"/>{t("alliance.checkingAccount", "Checking sign-in…")}</button>
+          : <a className="ks-alliance-primary ks-alliance-login-button" href={"/profile?returnTo=" + encodeURIComponent("/alliance-registration")}><ShieldCheck size={16}/>{t("alliance.loginButton", "Continue with Discord")}</a>}
+        <small>{t("alliance.loginPrivacyNote", "You will return here after signing in. Your Kingshot password is never requested.")}</small>
+      </section> : <>
       <div className="ks-alliance-page-head">
         <div className="ks-alliance-eyebrow"><span aria-hidden="true"/>{t("alliance.eyebrow", "BULK REGISTRATION")}</div>
         <h1>{t("alliance.pageTitle", "Alliance Registration")} <span className="ks-beta-tag ks-beta-tag-page">BETA</span></h1>
@@ -410,7 +422,8 @@ export default function AllianceRegistration() {
         </form>
         <p className="ks-alliance-provider-note">{t("alliance.providerNote", "Alliance and roster data may not include every alliance and can be up to 60 minutes old. Review the member list before registering.")}</p>
         {searchError && <p className="ks-alliance-alert" role="status"><CircleAlert size={16}/><span>{searchError}</span></p>}
-        {alliances.length > 0 && <div className="ks-alliance-results">
+        {activeAlliance && loadingRoster && <div className="ks-alliance-loading ks-alliance-loading-inline" role="status"><LoaderCircle size={19} className="ks-alliance-spin"/><span>{t("alliance.loadingRosterFor", "Loading members for")} <strong>[{activeAlliance.tag}] {activeAlliance.name}</strong>…</span></div>}
+        {!activeAlliance && alliances.length > 0 && <div className="ks-alliance-results">
           <div className="ks-alliance-results-head"><div><strong>{t("alliance.resultsHeading", "Matching alliances")}</strong><small>{t("alliance.resultsHint", "Choose an alliance to preview its roster.")}</small></div><span>{filteredAlliances.length} found</span></div>
           {filteredAlliances.length === 0 ? <p className="ks-alliance-empty">{t("alliance.noMatches", "No matches in the returned ranking. You can try the exact alliance tag below.")}</p> : <div className="ks-alliance-cards">
             {filteredAlliances.map(item => <button type="button" key={item.kingdomId + ":" + item.tag} className={"ks-alliance-card" + (activeAlliance?.tag === item.tag && activeAlliance?.kingdomId === item.kingdomId ? " is-active" : "")} onClick={() => { void loadRoster(item); }} disabled={loadingRoster || registering}>
@@ -423,7 +436,6 @@ export default function AllianceRegistration() {
 
       </section>
 
-      {loadingRoster && <div className="ks-alliance-loading" role="status"><LoaderCircle size={19} className="ks-alliance-spin"/><span>{t("alliance.loadingRoster", "Loading the alliance roster…")}</span></div>}
       {rosterError && <p className="ks-alliance-alert" role="alert"><CircleAlert size={16}/><span>{rosterError}</span></p>}
 
       {roster && <section className="ks-alliance-panel ks-alliance-roster" aria-labelledby="alliance-roster-heading">
@@ -470,6 +482,7 @@ export default function AllianceRegistration() {
           <div className="ks-alliance-outcome-list" role="list" aria-label={t("alliance.outcomesHeading", "Registration results")}>{outcomes.map(item => <article className={"ks-alliance-outcome is-" + item.kind} key={item.id} role="listitem"><span className="ks-alliance-outcome-mark">{["registered", "existing", "reactivated"].includes(item.kind) ? <CheckCircle2 size={15}/> : <CircleAlert size={15}/>}</span><div><strong>{item.name || t("alliance.unknownPlayer", "Kingshot Player")}</strong><small>ID {item.id} · {item.label}</small>{item.kind === "existing" && <span className="ks-alliance-status-pill is-existing">{t("alliance.alreadyRegistered", "Already registered")}</span>}{["registered", "reactivated"].includes(item.kind) && <span className="ks-alliance-status-pill">{t("alliance.registeredThisSession", "Registered in this batch")}</span>}<p>{item.summary}</p></div></article>)}</div>
         </div>}
       </section>}
+      </>}
     </main>
 
     {activeAlliance && canRegister && <section className="ks-alliance-panel ks-alliance-sync-panel" aria-labelledby="ks-alliance-sync-title">
