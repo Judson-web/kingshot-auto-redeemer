@@ -201,3 +201,18 @@
 @media (prefers-reduced-motion: reduce) {
   .ks-alliance-app *, .ks-alliance-app *::before, .ks-alliance-app *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+/* Compact feature entry point on the existing Auto Redeem page. */
+.ks-auto-app .ks-auto-alliance-feature { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 12px; width: min(680px, 100%); margin: 18px auto 20px; padding: 14px 15px; border: 1px solid #38342c; border-radius: 13px; background: #121210; color: #efede6; text-align: left; }
+.ks-auto-app .ks-auto-alliance-feature-icon { display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid #514632; border-radius: 11px; background: #221e16; color: #d4bd88; }
+.ks-auto-app .ks-auto-alliance-feature-copy { min-width: 0; }
+.ks-auto-app .ks-auto-alliance-feature-copy strong { display: block; color: #f0eee7; font-size: 12px; font-weight: 780; letter-spacing: -.01em; }
+.ks-auto-app .ks-auto-alliance-feature-copy p { margin: 4px 0 5px; color: #a8a7a0; font-size: 11px; line-height: 1.55; }
+.ks-auto-app .ks-auto-alliance-feature-copy small { color: #d0bc88; font-size: 9px; font-weight: 720; letter-spacing: .02em; }
+.ks-auto-app .ks-auto-alliance-feature > a { display: inline-flex; min-height: 36px; align-items: center; justify-content: center; gap: 7px; border: 1px solid #504632; border-radius: 9px; padding: 0 11px; background: #222016; color: #e4d2a4; text-decoration: none; font-size: 10px; font-weight: 780; white-space: nowrap; transition: background .16s ease, border-color .16s ease; }
+.ks-auto-app .ks-auto-alliance-feature > a:hover { border-color: #8e7a53; background: #2b271a; }
+@media (max-width: 560px) {
+ .ks-auto-app .ks-auto-alliance-feature { grid-template-columns: 36px minmax(0, 1fr); gap: 10px; padding: 12px; }
+ .ks-auto-app .ks-auto-alliance-feature-icon { width: 36px; height: 36px; }
+ .ks-auto-app .ks-auto-alliance-feature > a { grid-column: 2; justify-self: start; min-height: 34px; margin-top: 2px; }
+}
