@@ -25,6 +25,7 @@ const sections=[
  {icon:RefreshCw,titleKey:"info.cardDiscovery",title:"Code discovery",textKey:"info.cardDiscoveryText",text:"The service checks public sources and filters codes known to be expired."},
  {icon:ShieldCheck,titleKey:"info.cardSecure",title:"Secure processing",textKey:"info.cardSecureText",text:"Redemptions are submitted from the server. Signing keys and privileged credentials stay private."},
  {icon:LockKeyhole,titleKey:"info.cardPassword",title:"No game password",textKey:"info.cardPasswordText",text:"Registration never asks for your Kingshot password or account credentials."},
+ {icon:Users,titleKey:"info.cardAlliance",title:"Alliance member registration",textKey:"info.cardAllianceText",text:"Find an alliance and its roster is fetched automatically. Register the whole alliance in batches or manually choose individual members. Existing registrations are skipped; optional scheduled sync adds new eligible members every 24 hours."},
 ];
 
 function InfoApp(){
