@@ -27,7 +27,7 @@ function syncDocumentMetadata(language){
   "/":["meta.autoTitle","meta.autoDescription"],"/auto":["meta.autoTitle","meta.autoDescription"],
   "/manual":["meta.manualTitle","meta.manualDescription"],"/redeem":["meta.manualTitle","meta.manualDescription"],
   "/info":["meta.infoTitle","meta.infoDescription"],"/developer":["meta.developerTitle","meta.developerDescription"],
-  "/profile":["meta.profileTitle","meta.profileDescription"],"/privacy":["meta.privacyTitle","meta.privacyDescription"],
+  "/profile":["meta.profileTitle","meta.profileDescription"],"/alliance-registration":["alliance.pageTitle","alliance.pageIntro"],"/privacy":["meta.privacyTitle","meta.privacyDescription"],
   "/terms":["meta.termsTitle","meta.termsDescription"]
  };
  const keys=routes[path];if(!keys)return;
