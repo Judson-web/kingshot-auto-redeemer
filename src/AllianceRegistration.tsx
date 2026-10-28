@@ -48,7 +48,7 @@ export default function AllianceRegistration() {
   const [searchError, setSearchError] = useState("");
   const [activeAlliance, setActiveAlliance] = useState<AllianceEntry | null>(null);
   const [roster, setRoster] = useState<AllianceResult | null>(null);
-  const [rosterChanges, setRosterChanges] = useState<{added: AllianceMember[]; changed: AllianceMember[]} | null>(null);
+  const [rosterChanges, setRosterChanges] = useState<{added: AllianceMember[]} | null>(null);
   const [loadingRoster, setLoadingRoster] = useState(false);
   const [rosterError, setRosterError] = useState("");
   const [memberFilter, setMemberFilter] = useState("");
@@ -160,11 +160,9 @@ export default function AllianceRegistration() {
         const previousById = new Map(roster.members.map(member => [member.playerId, member]));
         const currentById = new Map(clean.members.map(member => [member.playerId, member]));
         const added = clean.members.filter(member => !previousById.has(member.playerId));
-        const changed = clean.members.filter(member => {
-          const old = previousById.get(member.playerId);
-          return old && (old.name !== member.name || old.power !== member.power || old.townCenterLevel !== member.townCenterLevel || old.allianceRank !== member.allianceRank);
-        });
-        setRosterChanges({ added, changed });
+        // Additions-only refresh: a member missing from the latest upstream roster
+        // is not a removal request and must never affect their existing registration.
+        setRosterChanges({ added });
       } else setRosterChanges(null);
       setRoster(clean);
       const validIds = new Set(clean.members.map(member => member.playerId));
@@ -352,10 +350,10 @@ export default function AllianceRegistration() {
         </div>
         <div className={"ks-alliance-data-note" + (roster.stale ? " is-stale" : "")} role="status"><Info size={15}/><span>{roster.stale ? t("alliance.staleRoster", "This roster may be outdated. Review names and IDs carefully before registering.") : t("alliance.freshRoster", "Roster loaded. Review the members below before registering.")}{typeof roster.ageSeconds === "number" && <small><Clock3 size={12}/>{t("alliance.dataAge", "Data age")}: {roster.ageSeconds < 60 ? Math.max(0, Math.round(roster.ageSeconds)) + "s" : Math.round(roster.ageSeconds / 60) + "m"}</small>}</span></div>
         {rosterChanges && <section className="ks-alliance-roster-diff" aria-label={t("alliance.rosterChangesTitle", "Refresh summary")}>
-          <div className="ks-alliance-roster-diff-head"><strong>{t("alliance.rosterChangesTitle", "Refresh summary")}</strong><span>{t("alliance.diffReviewOnly", "New members are highlighted. Existing registration history is preserved.")}</span></div>
-          <div className="ks-alliance-roster-diff-stats"><span className="is-added"><b>{rosterChanges.added.length}</b><small>{t("alliance.newMembers", "New members")}</small></span><span><b>{rosterChanges.changed.length}</b><small>{t("alliance.updatedMembers", "Updated profiles")}</small></span></div>
+          <div className="ks-alliance-roster-diff-head"><strong>{t("alliance.rosterChangesTitle", "New members found")}</strong><span>{t("alliance.diffReviewOnly", "Only newly appearing members are listed. Existing registrations are left unchanged.")}</span></div>
+          <div className="ks-alliance-roster-diff-stats"><span className="is-added"><b>{rosterChanges.added.length}</b><small>{t("alliance.newMembers", "New members")}</small></span></div>
           {rosterChanges.added.length > 0 && <div className="ks-alliance-diff-list"><strong>{t("alliance.newMembersHeading", "Newly found members")}</strong>{rosterChanges.added.slice(0, 12).map(member => <span key={member.playerId}>{member.name} <small>({member.playerId})</small></span>)}{rosterChanges.added.length > 12 && <small>{t("alliance.moreMembers", "and")} {rosterChanges.added.length - 12} {t("alliance.more", "more")}</small>}<button type="button" className="ks-alliance-secondary" onClick={selectNewMembers} disabled={registering}>{t("alliance.selectNewMembers", "Select new members")}</button></div>}
-          {rosterChanges.added.length === 0 && rosterChanges.changed.length === 0 && <p>{t("alliance.noRosterChanges", "No new members or profile updates were found. The roster is up to date with the latest response.")}</p>}
+          {rosterChanges.added.length === 0 && <p>{t("alliance.noRosterChanges", "No new members were found since the previous refresh. Existing registrations remain unchanged.")}</p>}
         </section>}
         <div className="ks-alliance-selection-bar">
           <div className="ks-alliance-selection-count"><strong>{selected.length}<span> / {BATCH_LIMIT}</span></strong><span>{t("alliance.selectedThisBatch", "selected for this batch")}</span><small>{selectedVisibleCount} {t("alliance.selectedVisible", "of visible members selected")}</small></div>

@@ -4,7 +4,7 @@ import { useSiteLanguage } from "../shared/site-language.js";
 
 export default function AllianceFeatureAnnouncement() {
   const { t, isKorean } = useSiteLanguage();
-  const message = isKorean ? "연맹 명단을 확인하고 신규 구성원을 최대 100명씩 등록하세요." : "Refresh your alliance roster and register newly found members in batches of up to 100.";
+  const message = isKorean ? "연맹 명단을 새로고침하고 신규 구성원을 최대 100명씩 등록하세요." : "Refresh your alliance roster to find and register new members, up to 100 at a time.";
   return <section className="ks-alliance-feature-banner" aria-label={t("alliance.bannerLabel", "New feature: Alliance Registration")}>
     <span className="ks-alliance-feature-icon" aria-hidden="true"><Users size={17}/></span>
     <div className="ks-alliance-feature-marquee" aria-label={message}>
@@ -13,7 +13,7 @@ export default function AllianceFeatureAnnouncement() {
         <span aria-hidden="true">{message}</span>
       </div>
     </div>
-    <a className="ks-alliance-feature-link" href="/alliance-registration">{t("alliance.bannerCta", "Alliance Registration")}<ArrowRight size={14} aria-hidden="true"/></a>
+    <a className="ks-alliance-feature-link" href="/alliance-registration">{isKorean ? "연맹 등록" : t("alliance.bannerCta", "Alliance Registration")}<ArrowRight size={14} aria-hidden="true"/></a>
     <style>{`
       .ks-alliance-feature-banner{display:flex;align-items:center;gap:12px;width:min(1040px,calc(100% - 40px));min-height:48px;margin:12px auto 0;padding:0 12px;border:1px solid #393326;border-radius:12px;background:linear-gradient(100deg,#1b1913,#131411 72%);color:#e7d6aa;box-sizing:border-box}
       .ks-alliance-feature-icon{display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;border:1px solid #49402e;border-radius:9px;background:#252117;color:#d4bd88}
