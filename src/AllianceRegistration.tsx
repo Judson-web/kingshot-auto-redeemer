@@ -249,7 +249,8 @@ export default function AllianceRegistration() {
           for (let attempt = 0; attempt < 3; attempt++) {
             response = await fetch("/api/kingshot-register", {
               method: "POST",
-              headers: { "content-type": "application/json" },
+              headers: { "content-type": "application/json", "x-alliance-registration": "1" },
+              credentials: "same-origin",
               body: JSON.stringify({
                 playerId: id,
                 kingdomId: String(member.kingdomId || roster.alliance.kingdomId || kingdomId.trim()),
