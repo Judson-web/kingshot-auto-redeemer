@@ -437,7 +437,7 @@ export default async function handler(req: RequestLike, res: ResponseLike): Prom
  res.setHeader("X-Request-Id", requestId);
  const requestUrl = new URL(req.url || "/", "http://localhost");
  const developerPath = String(req.query?.developerPath || requestUrl.searchParams.get("developerPath") || req.query?.developer || requestUrl.searchParams.get("developer") || "").replace(/^\/+|\/+$/g, "");
- if (developerPath === "alliance-sync") return allianceSyncHandler(req as any, res as any);
+ if (developerPath === "alliance-sync") { await allianceSyncHandler(req as any, res as any); return; }
  if (developerPath === "alliance-sync-worker") return allianceSyncWorker(req as any, res as any);
  if (developerPath === "alliance-lookup") return handleAllianceLookup(req, res);
  if (developerPath === "account-auth") return developerAuth(req, res);
