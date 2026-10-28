@@ -17,8 +17,9 @@ async function loadRoster(kingdom:string,tag:string){
  const byId = new Map<string, {id:string;kid:string;name:string;avatarUrl:string}>();
  for (const member of members) if (!byId.has(member.id)) byId.set(member.id, member);
  const unique=[...byId.values()];
- const count=Number(a.member_count??a.memberCount??a.count??rows.length);
- if(!unique.length||unique.length<Math.min(count,5)||(count>0&&unique.length/count<.65))throw new Error("Incomplete roster rejected.");
+ const rawCount=a.member_count??a.memberCount??a.count;
+ const count=rawCount==null?rows.length:Number(rawCount);
+ if(!Number.isFinite(count)||count<1||!unique.length||unique.length<Math.min(count,5)||(count>0&&unique.length/count<.65))throw new Error("Incomplete roster rejected.");
  if(String(a.abbr??a.tag??tag).toLowerCase()!==tag.toLowerCase())throw new Error("Alliance mismatch.");
  return {name:String(a.name??a.alliance_name??tag).slice(0,80),members:unique};
 }
