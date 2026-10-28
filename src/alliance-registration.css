@@ -317,3 +317,19 @@
   .ks-alliance-optional-filter { margin-right: 15px; margin-left: 15px; }
   .ks-alliance-cards { grid-template-columns: 1fr; }
 }
+
+
+/* Refined discovery and result surfaces: no nested alliance-list scrolling. */
+.ks-alliance-results { overflow: visible; }
+.ks-alliance-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 12px; background: transparent; }
+.ks-alliance-card { border: 1px solid #2d2e30; border-radius: 11px; background: #141517; }
+.ks-alliance-card:hover:not(:disabled), .ks-alliance-card.is-active { border-color: #65583c; background: #191a1b; }
+.ks-alliance-flag { position: relative; flex: 0 0 42px; width: 42px; height: 42px; }
+.ks-alliance-flag > svg { position: absolute; inset: 0; width: 100%; height: 100%; padding: 11px; }
+.ks-alliance-flag img { position: absolute; inset: 0; z-index: 1; display: block; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; background: #1b1c1e; }
+.ks-alliance-outcome-list { max-height: 360px; overflow-y: auto; overscroll-behavior: contain; scrollbar-color: #4c4c4f #161719; scrollbar-width: thin; }
+.ks-alliance-outcome { min-height: 62px; }
+.ks-alliance-status-pill { display: inline-flex; width: fit-content; align-items: center; margin-top: 5px; border: 1px solid #36513b; border-radius: 999px; padding: 2px 7px; background: #18231b; color: #a9d2af; font-size: 9px; font-weight: 750; line-height: 1.4; }
+.ks-alliance-status-pill.is-existing { border-color: #5a4b2e; background: #282216; color: #e1c98d; }
+.ks-alliance-member > .ks-alliance-status-pill { flex: 0 0 auto; margin: 0 0 0 auto; }
+@media (max-width: 720px) { .ks-alliance-cards { grid-template-columns: 1fr; padding: 9px; } .ks-alliance-member > .ks-alliance-status-pill { max-width: 105px; white-space: normal; text-align: center; } }
