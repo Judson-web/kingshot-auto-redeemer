@@ -80,7 +80,7 @@ async function performSync(config:any,ownerId:string,manual:boolean){
     const input=normalizeRegistrationInput({playerId:member.id,kingdomId:String(config.kingdom_id),playerName:member.name,avatarUrl:member.avatarUrl});
     const result=await registerPlayer(input);
     if(result?.stale===true)throw new Error("Player data is stale.");
-    const already=Boolean(result?.already_registered);
+    const already=Boolean(result?.alreadyRegistered);
     await db`update public.alliance_sync_seen_players set registration_status=${already?"already_registered":"registered"},registered_at=now(),last_error_code=null where config_id=${config.id}::uuid and player_id=${member.id}`;
     added++;
    }catch(e){
@@ -103,7 +103,7 @@ async function performSync(config:any,ownerId:string,manual:boolean){
 }
 export default async function handler(req:Req,res:Res){
  res.setHeader("Cache-Control","private, no-store");
- if(req.method!=="GET"&&req.method!=="POST"&&req.method!=="PATCH"){res.setHeader("Allow","GET, POST, PATCH");return fail(res,405,"method_not_allowed","Method not allowed.");}
+ if(req.method!=="GET"&&req.method!=="POST"){res.setHeader("Allow","GET, POST");return fail(res,405,"method_not_allowed","Method not allowed.");}
  if(!DB_URL)return fail(res,503,"sync_unavailable","Alliance sync service is not configured.");
  if(!await isAuthenticatedProfileRequest(req))return fail(res,401,"authentication_required","Sign in with Discord to manage alliance sync.");
  if(!rateLimit(req,res,"alliance-sync",30,60000))return;
@@ -121,8 +121,15 @@ export default async function handler(req:Req,res:Res){
    const interval=Number(req.body?.intervalHours??24);
    if(!validKingdom(kingdom)||!validTag(tag))return fail(res,400,"invalid_alliance","Check the kingdom ID and alliance tag.");
    if(![24,48,72,168].includes(interval))return fail(res,400,"invalid_interval","Sync interval must be 24, 48, 72, or 168 hours.");
+   // A single alliance can have only one scheduler/owner. Preflight gives a friendly
+   // response; the database unique index is the final race-safe guard.
+   const existing=await db`select owner_user_id,id from public.alliance_sync_config where kingdom_id=${kingdom} and lower(alliance_tag)=lower(${tag}) limit 1`;
+   if(existing.length){
+    if(String(existing[0].owner_user_id)!==ownerId)return fail(res,409,"alliance_already_managed","This alliance already has an automatic sync owner. Ask that owner to manage it; a second worker will not be created.");
+    return fail(res,409,"alliance_already_registered","This alliance is already registered for automatic sync. Existing settings cannot be edited; pause or resume the current registration instead.");
+   }
    const verified=await readAlliance(kingdom,tag);
-   const result=await db`insert into public.alliance_sync_config (owner_user_id,kingdom_id,alliance_tag,alliance_name,interval_hours,enabled,next_run_at,last_status,last_roster_count) values (${ownerId}::uuid,${kingdom},${verified.tag},${verified.name},${interval},true,now(),'pending',${verified.members.length}) on conflict (owner_user_id,kingdom_id,alliance_tag) do update set alliance_name=excluded.alliance_name,interval_hours=excluded.interval_hours,enabled=true,next_run_at=now(),last_status='pending',updated_at=now() returning id,kingdom_id,alliance_tag,alliance_name,enabled,interval_hours,next_run_at,last_status`;
+   const result=await db`insert into public.alliance_sync_config (owner_user_id,kingdom_id,alliance_tag,alliance_name,interval_hours,enabled,next_run_at,last_status,last_roster_count) values (${ownerId}::uuid,${kingdom},${verified.tag},${verified.name},${interval},true,now(),'pending',${verified.members.length}) returning id,kingdom_id,alliance_tag,alliance_name,enabled,interval_hours,next_run_at,last_status`;
    return res.status(201).json({config:result[0],validatedRosterCount:verified.members.length});
   }
   const id=String(req.body?.id??"");
@@ -145,6 +152,6 @@ export default async function handler(req:Req,res:Res){
   return fail(res,400,"unknown_action","Unsupported alliance sync action.");
  }catch(e){
   const error=e as Error&{status?:number;code?:string};
-  return fail(res,error.status===429?429:error.status===404?404:502,error.code||"sync_failed",String(error.message||"Alliance sync failed.").slice(0,300));
+  return fail(res,error.status===429?429:error.status===404?404:error.code==="23505"?409:502,error.code==="23505"?"alliance_already_managed":error.code||"sync_failed",error.code==="23505"?"This alliance already has an automatic sync owner.":"Alliance sync failed: "+String(error.message||"Please retry.").slice(0,250));
  }
 }
