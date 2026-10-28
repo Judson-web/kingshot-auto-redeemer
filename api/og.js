@@ -90,7 +90,7 @@ function makePng(route="auto"){
  const text=(str,x,y,s,c)=>{let cx=x;for(const ch of str){if(ch===" "){cx+=s*4;continue}const g=glyphs[ch]||glyphs["0"];for(let yy=0;yy<7;yy++)for(let xx=0;xx<5;xx++)if(g[yy][xx]==="1")rect(cx+xx*s,y+yy*s,s,s,c);cx+=s*6}};
  const cards={
  home:["KINGSHOT","REDEEMER","GIFT CODES MADE SIMPLE"],
- "alliance-registration":["ALLIANCE","REGISTRATION","FIND YOUR ROSTER. ADD MEMBERS."],
+ "alliance-registration":["ALLIANCE","REGISTRATION","FIND. REVIEW. REGISTER."],
  auto:["KINGSHOT","AUTO REDEEMER","AUTOMATIC GIFT CODE CHECKS"],
  redeem:["KINGSHOT","MANUAL REDEEMER","REDEEM A CODE FOR YOUR PLAYER"],
  info:["HOW IT","WORKS","AUTOMATION EXPLAINED"],

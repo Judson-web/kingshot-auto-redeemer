@@ -24,7 +24,7 @@ test("alliance lookup ignores stale responses after a newer search or roster req
 
 test("refreshing the same alliance preserves attempt history and only reconciles current selection", () => {
   assert.match(component, /const sameAlliance = Boolean/);
-  assert.match(component, /if \(sameAlliance\) \{[\s\S]*?setSelected\(current => current\.filter\(id => validIds\.has\(id\)\)\)/);
+  assert.match(component, /if \(sameAlliance\) \{[\s\S]*?setSelected\(current => current\.filter\(id => validIds\.has\(id\) && !registered\.has\(id\)\)\)/);
   assert.match(component, /if \(!sameAlliance\) \{/);
 });
 
@@ -75,7 +75,8 @@ test("registration results use compact scrollable cards and explicitly mark exis
   assert.match(component, /alliance\.alreadyRegistered/);
   assert.match(component, /allianceSyncCapacity\?\.canRegister/);
   assert.match(component, /allianceAlreadyRegistered/);
-  assert.match(component, /kingdomAllianceCapReached/);
+  assert.match(component, /capacityData\.canRegister/,
+    "the whole-alliance register action must respect the server-enforced three-per-kingdom capacity");
   assert.match(component, /className="ks-alliance-outcome-list" role="list"/);
   assert.match(styles, /\.ks-alliance-outcome-list \{ max-height: 360px; overflow-y: auto/);
 });
@@ -83,7 +84,7 @@ test("registration results use compact scrollable cards and explicitly mark exis
 
 test("alliance roster returns to the cached search results until the page is refreshed", () => {
   assert.match(component, /alliance\.backToList/);
-  assert.match(component, /onClick=\{\(\) => \{ if \(!registering\) setActiveAlliance\(null\); \}\}/);
+  assert.match(component, /onClick=\{\(\) => \{ rosterRequestRef\.current\+\+; setLoadingRoster\(false\); setActiveAlliance\(null\); updateAllianceLocation\(\); setRosterError\(""\); \}\}/);
   assert.match(component, /if \(!forceRefresh && roster && roster\.alliance\.kingdomId/);
   assert.match(component, /loadRoster\(activeAlliance, true\)/);
 });
@@ -94,7 +95,9 @@ test("registered roster members show status without a selection checkbox", () =>
 
 test("automatic alliance sync is informational and scheduled after first registration", () => {
   assert.match(component, /action: "create", kingdomId: activeAlliance\.kingdomId/);
-  assert.match(component, /interval_hours|Every 24 hours|alliance\.syncEvery24/);
+  assert.match(component, /alliance\.autoSyncSetupFailed/);
+  assert.match(component, /24-hour alliance schedule|24-hour sync/,
+    "the first registration configures the fixed 24-hour schedule and reports setup failures");
   assert.doesNotMatch(component, /alliance\.enableAutoSync/);
   assert.doesNotMatch(component, /updateAutoSync\("sync"\)|alliance\.pauseSync/);
 });

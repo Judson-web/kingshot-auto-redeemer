@@ -68,6 +68,7 @@ async function performSync(config:any,ownerId:string,manual:boolean,leaseToken:s
  try{
   await db`insert into public.alliance_sync_runs (id,config_id,status) values (${runId}::uuid,${config.id}::uuid,'running')`;
   const roster=await readAlliance(String(config.kingdom_id),String(config.alliance_tag));
+  await db`update public.alliance_sync_runs set roster_count=${roster.members.length} where id=${runId}::uuid`;
   // Reconcile first, in read-only batches. If Supabase is unavailable, fail closed before any player writes.
   const alreadyRegisteredIds=await getRegisteredPlayerIds(roster.members.map(member=>member.id));
   let added=0,skipped=0,failed=0;
@@ -128,6 +129,24 @@ export default async function handler(req:Req,res:Res){
   const ownerId=await getProfileOwner(req);
   if(!ownerId)return fail(res,401,"authentication_required","Your Discord session could not be verified.");
   const action=String(req.body?.action??getParam(req,"action")??"list");
+  if(action==="progress"){
+   const kingdom=String(req.body?.kingdomId??getParam(req,"kingdomId")).trim();
+   const tag=String(req.body?.allianceTag??getParam(req,"allianceTag")).trim();
+   if(!validKingdom(kingdom)||!validTag(tag))return fail(res,400,"invalid_alliance","Check the kingdom ID and alliance tag.");
+   const configs=await db`select id,alliance_name,alliance_tag,kingdom_id,enabled,last_status,lease_expires_at,last_roster_count from public.alliance_sync_config where owner_user_id=${ownerId}::uuid and kingdom_id=${kingdom} and lower(alliance_tag)=lower(${tag}) limit 1`;
+   if(!configs.length)return res.status(200).json({active:false});
+   const config=configs[0];
+   const runs=await db`select id,status,created_at,finished_at,roster_count,added_count,skipped_count,error_code from public.alliance_sync_runs where config_id=${config.id}::uuid order by created_at desc limit 1`;
+   if(!runs.length)return res.status(200).json({active:false});
+   const run=runs[0];
+   const active=String(run.status)==="running"&&Boolean(config.enabled)&&Boolean(config.lease_expires_at)&&new Date(String(config.lease_expires_at)).getTime()>Date.now();
+   if(!active)return res.status(200).json({active:false});
+   const counts=await db`select count(*)::int as processed_count from public.alliance_sync_seen_players where config_id=${config.id}::uuid and last_seen_at>=${run.created_at}::timestamptz`;
+   const processedCount=Math.max(0,Number(counts[0]?.processed_count||0));
+   const totalCount=Math.max(0,Number(run.roster_count||config.last_roster_count||0));
+   const current=await db`select player_id from public.alliance_sync_seen_players where config_id=${config.id}::uuid and last_seen_at>=${run.created_at}::timestamptz and registration_status='pending' order by last_seen_at desc limit 1`;
+   return res.status(200).json({active:true,allianceTag:String(config.alliance_tag),allianceName:String(config.alliance_name||config.alliance_tag),kingdomId:String(config.kingdom_id),processedCount:Math.min(processedCount,totalCount||processedCount),totalCount,currentPlayerId:current.length?String(current[0].player_id):"",status:String(run.status)});
+  }
   if(action==="capacity"){
    const kingdom=String(req.body?.kingdomId??getParam(req,"kingdomId")).trim();
    const tag=String(req.body?.allianceTag??getParam(req,"allianceTag")).trim();

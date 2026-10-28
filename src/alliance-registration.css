@@ -445,3 +445,17 @@
 /* Keep alliance sync information visible without a large standalone panel. */
 .ks-alliance-sync-note { display: flex; align-items: flex-start; gap: 7px; margin: 9px 0 0; color: #8e8f89; font-size: 10px; line-height: 1.5; }
 .ks-alliance-sync-note svg { flex: 0 0 auto; margin-top: 1px; color: #b9a675; }
+
+
+/* Keep the main alliance action beside its identity, not below the entire roster. */
+.ks-alliance-roster-summary{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px 18px}
+.ks-alliance-roster-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.ks-alliance-register-near-info{min-height:38px;min-width:0;padding:0 13px;white-space:nowrap}
+.ks-alliance-roster-summary .ks-alliance-roster-stats{grid-column:1/-1;padding-top:12px;border-top:1px solid rgba(255,255,255,.07)}
+@media(max-width:620px){.ks-alliance-roster-summary{grid-template-columns:minmax(0,1fr);gap:12px}.ks-alliance-roster-actions{justify-content:flex-start}.ks-alliance-register-near-info{min-height:36px}.ks-alliance-roster-summary .ks-alliance-roster-stats{grid-column:auto}}
+
+
+/* Small durable server-side alliance registration indicator. */
+.ks-alliance-server-progress{margin:0 22px 14px;padding:10px 13px;border:1px solid rgba(212,189,136,.24);border-radius:10px;background:rgba(212,189,136,.045)}
+.ks-alliance-server-progress-top,.ks-alliance-server-progress-top>span{display:flex;align-items:center;gap:8px;min-width:0}.ks-alliance-server-progress-top{justify-content:space-between;gap:12px}.ks-alliance-server-progress-top>span{color:#d7c28f;min-width:0}.ks-alliance-server-progress-top strong{font-size:11px;line-height:1.5;overflow-wrap:anywhere}.ks-alliance-server-progress-top>b{flex:0 0 auto;color:#e9e3d5;font-size:10px;font-variant-numeric:tabular-nums}.ks-alliance-server-progress progress{display:block;width:100%;height:5px;margin:8px 0 5px;accent-color:#d4bd88}.ks-alliance-server-progress>small{display:block;color:#92938f;font-size:10px;line-height:1.5;overflow-wrap:anywhere}
+@media(max-width:560px){.ks-alliance-server-progress{margin-left:12px;margin-right:12px}.ks-alliance-server-progress-top{align-items:flex-start}.ks-alliance-server-progress-top strong{font-size:10px}}

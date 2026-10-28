@@ -110,8 +110,10 @@ test("profile dashboard access stays restricted while the signed-in header chip 
     "the restricted profile gate must direct users to the API-key panel");
   assert.match(drawer, /id:"profile"/, "profile stays available in the navigation drawer");
   assert.match(drawer, /nav\.profileDescription/, "profile navigation copy uses the shared translation dictionary");
-  assert.match(legal, /at least one active developer API key/);
-  assert.match(legal, /A successful Discord sign-in by itself verifies an identity but does not grant developer permissions/);
+  assert.match(legal, /Developer access to the profile dashboard and developer API requires at least one active API key/,
+    "legal copy must describe the current developer access requirement");
+  assert.match(legal, /A Discord sign-in alone does not grant developer permissions/,
+    "legal copy must distinguish authentication from developer authorization");
 });
 
 test("language selector supports English and Korean with a persistent selection", async () => {
