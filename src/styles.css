@@ -3176,3 +3176,11 @@ body:has(.support-float-panel.support-chat-panel) .ks-install-prompt{display:non
 .ks-app .ks-alliance-feature-schedule{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:5px!important;flex:0 0 auto!important;min-height:30px!important;padding:0 9px!important;border:1px solid rgba(226,195,133,.28)!important;border-radius:999px!important;background:rgba(226,195,133,.08)!important;color:#e8c985!important;font-size:10px!important;font-weight:850!important;letter-spacing:.04em!important;white-space:nowrap!important}
 @media(max-width:620px){.ks-app .ks-alliance-feature-schedule{min-height:26px;padding:0 7px;font-size:9px}.ks-app .ks-alliance-feature-schedule svg{display:none}}
 @media(max-width:390px){.ks-app .ks-alliance-feature-schedule{display:none!important}}
+
+
+/* Safe-stop controls used by bulk registration and manual redemption. */
+.ks-alliance-cancel-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 9px 13px; border: 1px solid rgba(205, 158, 99, .45); border-radius: 10px; background: rgba(205, 158, 99, .08); color: var(--text-primary, #f3ead8); font: inherit; font-size: 13px; cursor: pointer; }
+.ks-alliance-cancel-button:hover:not(:disabled) { background: rgba(205, 158, 99, .15); }
+.ks-alliance-cancel-button:focus-visible { outline: 2px solid var(--accent, #d8bd7c); outline-offset: 3px; }
+.ks-alliance-cancel-button:disabled { opacity: .7; cursor: wait; }
+.ks-register-progress .ks-alliance-cancel-button { margin-top: 10px; }
