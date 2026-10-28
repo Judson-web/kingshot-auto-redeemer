@@ -62,7 +62,7 @@ export default function AllianceRegistration() {
   const cancelRequestedRef = useRef(false);
   const registrationBusyRef = useRef(false);
   const [progress, setProgress] = useState({ done: 0, total: 0, currentId: "", note: "" });
-  const [allianceServerProgress, setAllianceServerProgress] = useState<{active:boolean;processedCount:number;totalCount:number;currentPlayerId:string;allianceTag:string;allianceName:string}|null>(null);
+  const [allianceServerProgress, setAllianceServerProgress] = useState<{active:boolean;processedCount:number;totalCount:number;currentPlayerId:string;allianceTag:string;allianceName:string;kingdomId:string}|null>(null);
   const searchRequestRef = useRef(0);
   const rosterRequestRef = useRef(0);
   const restoredAllianceRef = useRef(false);
@@ -222,11 +222,11 @@ export default function AllianceRegistration() {
 
   useEffect(() => {
     if (restoredAllianceRef.current || accountState.status !== "authenticated" || !accountState.account) return;
+    restoredAllianceRef.current = true;
     const params = new URLSearchParams(window.location.search);
     const savedKingdom = String(params.get("kingdomId") || "").trim();
     const savedTag = String(params.get("allianceTag") || "").trim();
     if (!/^\d{1,10}$/.test(savedKingdom) || !/^[A-Za-z0-9_-]{1,20}$/.test(savedTag)) return;
-    restoredAllianceRef.current = true;
     setKingdomId(savedKingdom);
     void loadRoster({ kingdomId: savedKingdom, tag: savedTag, name: savedTag, power: null, memberCount: null, leaderName: "", flagUrl: "", rank: null });
   }, [accountState.status, accountState.account]);
@@ -400,7 +400,8 @@ export default function AllianceRegistration() {
             totalCount: Math.max(0, Number(data.totalCount) || 0),
             currentPlayerId: /^\d{5,20}$/.test(String(data.currentPlayerId || "")) ? String(data.currentPlayerId) : "",
             allianceTag: String(data.allianceTag),
-            allianceName: String(data.allianceName || data.allianceTag)
+            allianceName: String(data.allianceName || data.allianceTag),
+            kingdomId: String(data.kingdomId)
           });
         } else if (response.ok || response.status === 401 || response.status === 403) {
           // A confirmed inactive response clears the indicator. Authentication failures do too.
@@ -514,7 +515,7 @@ export default function AllianceRegistration() {
           </div>
           <div className="ks-alliance-roster-stats"><span><b>{formatNumber(roster.alliance.power)}</b><small>{t("alliance.power", "Power")}</small></span><span><b>{roster.members.length}</b><small>{t("alliance.rosterMembers", "Valid IDs")}</small></span><span><b>{completedCount}</b><small>{t("alliance.attempted", "attempted")}</small></span></div>
         </div>
-        {allianceServerProgress?.active && allianceServerProgress.allianceTag.toLocaleLowerCase() === activeAlliance.tag.toLocaleLowerCase() && <div className="ks-alliance-server-progress" role="status" aria-live="polite">
+        {allianceServerProgress?.active && allianceServerProgress.allianceTag.toLocaleLowerCase() === activeAlliance.tag.toLocaleLowerCase() && allianceServerProgress.kingdomId === String(activeAlliance.kingdomId || kingdomId.trim()) && <div className="ks-alliance-server-progress" role="status" aria-live="polite">
           <div className="ks-alliance-server-progress-top"><span><LoaderCircle size={13} className="ks-alliance-spin" aria-hidden="true"/><strong>{t("alliance.serverProgressTitle", "Registering alliance")} · [{allianceServerProgress.allianceTag}] {allianceServerProgress.allianceName}</strong></span><b>{allianceServerProgress.processedCount} / {allianceServerProgress.totalCount || "—"}</b></div>
           <progress max={allianceServerProgress.totalCount || 1} value={Math.min(allianceServerProgress.processedCount, allianceServerProgress.totalCount || 0)} aria-label={t("alliance.progressLabel", "Alliance registration progress")}/>
           <small>{allianceServerProgress.currentPlayerId ? t("alliance.serverProgressCurrent", "Processing Player ID") + " " + allianceServerProgress.currentPlayerId : t("alliance.serverProgressChecking", "Checking and registering eligible members on the server…")}</small>
