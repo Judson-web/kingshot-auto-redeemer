@@ -70,7 +70,7 @@ export default {
   "info.safeStopRegistration":"Bulk registration",
   "info.safeStopRegistrationText":"Cancel stops the next unstarted player. The current request may finish, and results already received are kept. Closing the page is only a best-effort stop, not a guaranteed server cancellation.",
   "info.safeStopManual":"Manual redemption",
-  "info.safeStopManualText":"If the connection fails after submission, the result may be unknown. The service will not automatically submit the same redemption again. Check Kingshot in-game before retrying."
+  "info.safeStopManualText":"If the connection fails after submission, the result may be unknown. The service will not automatically submit the same redemption again. Check Kingshot in-game before retrying.",
   "info.ready":"READY TO START?",
   "info.choose":"Choose how you want to redeem.",
   "info.chooseText":"Register a player for automatic checks, or submit a specific gift code yourself.",
