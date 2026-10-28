@@ -201,7 +201,7 @@ function AutoRedeemApp(){
     setOutcomes([...collected]);
     setProgress({done:collected.length,total:raw.length,currentId:collected.length<raw.length?raw[collected.length]:""});
    }
-   if(cancelRequestedRef.current)setError(t("auto.cancelled","Stopped after the current ID. IDs that had not started were not submitted."));
+   if(cancelRequestedRef.current && collected.length < raw.length)setError(t("auto.cancelled","Stopped after the current ID. IDs that had not started were not submitted."));
   }catch(failure){setError(t("auto.registrationFailed","Registration could not be completed. Please try again."))}
   finally{registrationBusyRef.current=false;setBusy(false);setCancelRequested(false);setProgress(current=>({...current,currentId:""}))}
  };
