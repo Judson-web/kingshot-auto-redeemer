@@ -885,6 +885,8 @@ export default {
   "alliance.emptyRosterBody": "가져온 데이터에 등록 가능한 플레이어 ID가 없습니다. 명단을 새로고침하거나 나중에 정확한 태그로 다시 조회하세요.",
   "alliance.batchNote": "선택한 구성원만 처리됩니다. 다음 배치를 선택하기 전에 결과를 확인할 수 있습니다.",
   "alliance.attempted": "처리 시도",
-  "alliance.refreshRoster": "명단 새로고침"
+  "alliance.refreshRoster": "명단 새로고침",
+  "alliance.alreadyRegistered": "이미 등록됨",
+  "alliance.registeredThisSession": "이번 배치에서 등록됨"
 
 };
