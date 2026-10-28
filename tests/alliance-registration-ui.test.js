@@ -76,3 +76,27 @@ test("registration results use compact scrollable cards and explicitly mark exis
   assert.match(component, /className="ks-alliance-outcome-list" role="list"/);
   assert.match(styles, /\.ks-alliance-outcome-list \{ max-height: 360px; overflow-y: auto/);
 });
+
+
+test("alliance roster returns to the cached search results until the page is refreshed", () => {
+  assert.match(component, /alliance\.backToList/);
+  assert.match(component, /onClick=\{\(\) => \{ if \(!registering\) setActiveAlliance\(null\); \}\}/);
+  assert.match(component, /if \(!forceRefresh && roster && roster\.alliance\.kingdomId/);
+  assert.match(component, /loadRoster\(activeAlliance, true\)/);
+});
+
+test("registered roster members show status without a selection checkbox", () => {
+  assert.match(component, /!registeredIds\.includes\(member\.playerId\) && !outcomes\.some\(item => item\.id === member\.playerId && item\.kind === "existing"\) && <input type="checkbox"/);
+});
+
+test("automatic alliance sync is informational and scheduled after first registration", () => {
+  assert.match(component, /action: "create", kingdomId: activeAlliance\.kingdomId/);
+  assert.match(component, /interval_hours|Every 24 hours|alliance\.syncEvery24/);
+  assert.doesNotMatch(component, /alliance\.enableAutoSync/);
+  assert.doesNotMatch(component, /updateAutoSync\("sync"\)|alliance\.pauseSync/);
+});
+
+test("alliance flag is visible in the roster identity and retains a fallback icon", () => {
+  assert.match(component, /ks-alliance-roster-flag/);
+  assert.match(component, /ks-alliance-roster-flag"><Users size=\{18\}/);
+});
