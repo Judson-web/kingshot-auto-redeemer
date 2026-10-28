@@ -260,10 +260,7 @@ function findAllianceRows(value: unknown, depth = 0): Record<string, any>[] {
 }
 
 async function handleAllianceLookup(req: RequestLike, res: ResponseLike): Promise<void> {
- if (!(await isAuthenticatedProfileRequest(req))) {
-  res.status(401).json({ error: "Sign in with Discord to use alliance registration tools.", code: "authentication_required" });
-  return;
- }
+ // Alliance discovery and public roster lookup are read-only and do not require sign-in.
  if (req.method && req.method.toUpperCase() !== "GET") {
   res.setHeader("Allow", "GET");
   res.status(405).json({ error: "Method not allowed." });
@@ -280,6 +277,10 @@ async function handleAllianceLookup(req: RequestLike, res: ResponseLike): Promis
  const tag = param("tag").slice(0, 20);
  const mode = param("mode");
  if (mode === "registration-status") {
+  if (!(await isAuthenticatedProfileRequest(req))) {
+   res.status(401).json({ error: "Sign in with Discord to check registration status.", code: "authentication_required" });
+   return;
+  }
   const rawIds = param("ids").split(",").map(value => value.trim()).filter(Boolean);
   const ids = [...new Set(rawIds)].filter(id => /^\d{5,20}$/.test(id)).slice(0, 200);
   if (!ids.length || ids.length !== [...new Set(rawIds)].length) {
