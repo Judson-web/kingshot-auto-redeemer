@@ -867,5 +867,24 @@ export default {
   "alliance.failedResults": "need attention",
   "alliance.retryAttention": "Select issues to retry",
   "alliance.unknownPlayer": "Kingshot Player"
+  "alliance.flowLabel": "Registration steps",
+  "alliance.flowFind": "Find alliance",
+  "alliance.flowReview": "Review members",
+  "alliance.flowRegister": "Register",
+  "alliance.kingdomHelp": "Digits only. Use the kingdom where the alliance currently plays.",
+  "alliance.clearSearch": "Clear alliance search",
+  "alliance.resultsHint": "Choose an alliance to preview its roster.",
+  "alliance.staleRoster": "This roster may be outdated. Review names and IDs carefully before registering.",
+  "alliance.freshRoster": "Roster loaded. Review the members below before registering.",
+  "alliance.dataAge": "Data age",
+  "alliance.selectedVisible": "of visible members selected",
+  "alliance.clearSelection": "Clear selection",
+  "alliance.clearFilter": "Clear filter",
+  "alliance.clearFilterHint": "Try a shorter name or clear the filter to see more members.",
+  "alliance.emptyRosterTitle": "No valid player IDs found",
+  "alliance.emptyRosterBody": "This provider response did not include registerable player IDs. Try refreshing the roster or use the exact-tag lookup again later.",
+  "alliance.batchNote": "Only selected members are processed. You can review results before choosing another batch.",
+  "alliance.attempted": "attempted",
+  "alliance.refreshRoster": "Refresh roster"
 
 };
