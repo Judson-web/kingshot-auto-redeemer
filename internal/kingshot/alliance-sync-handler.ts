@@ -53,10 +53,11 @@ async function readAlliance(kingdomId:string,tag:string){
  const byId = new Map<string, {id:string;name:string;avatarUrl:string;kingdomId:string}>();
  for (const member of members) if (!byId.has(member.id)) byId.set(member.id, member);
  const unique=[...byId.values()];
- const count=Number(a.member_count??a.memberCount??a.count??raw.length);
- // Fail closed on suspiciously incomplete responses. The source count can include malformed rows,
- // so even a handful of invalid rows are tolerated, but a large discrepancy is not.
- if(!unique.length||unique.length<Math.min(count,5)|| (count>0&&unique.length/count<0.65))
+ const rawCount=a.member_count??a.memberCount??a.count;
+ const count=rawCount==null?raw.length:Number(rawCount);
+ // Fail closed on invalid counts and suspiciously incomplete responses. The source count can
+ // include malformed rows, so a handful of invalid rows are tolerated, but large discrepancies are not.
+ if(!Number.isFinite(count)||count<1||!unique.length||unique.length<Math.min(count,5)|| (count>0&&unique.length/count<0.65))
   throw Object.assign(new Error("Roster validation failed; no members were registered."),{code:"incomplete_roster"});
  const canonicalTag=String(a.abbr??a.tag??tag).trim();
  if(canonicalTag.toLocaleLowerCase()!==tag.toLocaleLowerCase())throw Object.assign(new Error("Alliance tag does not match the requested alliance."),{code:"alliance_mismatch"});
@@ -78,8 +79,13 @@ async function performSync(config:any,ownerId:string,manual:boolean,leaseToken:s
    if(!heartbeat.length) throw new Error("Sync lease lost or configuration paused.");
    const inserted=await db`insert into public.alliance_sync_seen_players (config_id,player_id,first_seen_at,last_seen_at,registration_status)
    values (${config.id}::uuid,${member.id},now(),now(),'pending')
-   on conflict (config_id,player_id) do update set last_seen_at=now()
-   returning registration_status,(xmax = 0) as is_new`;
+   on conflict (config_id,player_id) do update
+    set last_seen_at=now(),
+        registration_status=case
+         when alliance_sync_seen_players.registration_status='departed' then 'pending'
+         else alliance_sync_seen_players.registration_status
+        end
+    returning registration_status,(xmax = 0) as is_new`;
    const isNew=Boolean(inserted[0]?.is_new);
    const prior=String(inserted[0]?.registration_status||"pending");
    // Retry failed/pending discoveries, but never reprocess a successfully tracked member.
@@ -105,7 +111,16 @@ async function performSync(config:any,ownerId:string,manual:boolean,leaseToken:s
     continue;
    }
   }
-  const nextRun=new Date(Date.now()+24*3600000).toISOString();
+  // A fresh, validated roster is authoritative for membership. Preserve historical rows
+   // as departed instead of deleting them; global Supabase registrations are untouched and
+   // continue through the normal redemption cycle.
+   const currentMemberIds=roster.members.map(member=>member.id);
+   await db`update public.alliance_sync_seen_players as seen
+    set registration_status='departed',last_error_code=null
+    where seen.config_id=${config.id}::uuid
+      and seen.registration_status<>'departed'
+      and not (seen.player_id = any(${currentMemberIds}::text[]))`;
+   const nextRun=new Date(Date.now()+24*3600000).toISOString();
   const completed=await db`update public.alliance_sync_config set alliance_name=${roster.name},last_attempt_at=now(),last_success_at=now(),next_run_at=${nextRun}::timestamptz,lease_token=null,lease_expires_at=null,consecutive_failures=case when ${failed}>0 then consecutive_failures+1 else 0 end,last_status=case when not enabled then 'paused' when ${failed}>0 then 'partial' else 'success' end,last_error_code=case when ${failed}>0 then 'registration_failed' else null end,last_error_message=${failures.slice(0,5).join('; ').slice(0,500)||null},last_roster_count=${roster.members.length},last_added_count=${added},updated_at=now() where id=${config.id}::uuid and lease_token=${leaseToken}::uuid returning id`;
   if(!completed.length) throw new Error('Sync lease was lost before completion.');
   await db`update public.alliance_sync_runs set finished_at=now(),status=${failed>0?'partial':'success'},roster_count=${roster.members.length},added_count=${added},skipped_count=${skipped},error_code=${failed>0?'registration_failed':null},error_message=${failures.slice(0,5).join('; ').slice(0,500)||null} where id=${runId}::uuid`;
@@ -180,18 +195,25 @@ export default async function handler(req:Req,res:Res){
     return res.status(200).json({config:claimed[0],initialSync:sync,alreadyRegisteredAlliance:true});
    }
    const verified=await readAlliance(kingdom,tag);
-   // Serialize the capacity check and insert in one real database transaction. The
-   // transaction-scoped advisory lock is keyed by kingdom, so concurrent requests
-   // for different alliances cannot both claim the final slot.
-   const registration=await db.begin(async tx=>{
-    await tx`select pg_advisory_xact_lock(hashtextextended(${kingdom},0))`;
-    const counts=await tx`select count(*)::int as total from public.alliance_sync_config where kingdom_id=${kingdom}`;
-    if(Number(counts[0]?.total||0)>=3)return {limited:true,config:null};
-    const inserted=await tx`insert into public.alliance_sync_config (owner_user_id,kingdom_id,alliance_tag,alliance_name,interval_hours,enabled,next_run_at,last_status,last_roster_count) values (${ownerId}::uuid,${kingdom},${verified.tag},${verified.name},${interval},true,now(),'pending',${verified.members.length}) returning id,kingdom_id,alliance_tag,alliance_name,enabled,interval_hours,next_run_at,last_status`;
-    return {limited:false,config:inserted[0]||null};
-   });
-   if(registration.limited||!registration.config)return fail(res,409,"kingdom_alliance_limit","This kingdom already has three registered alliances. Existing registrations cannot be removed; contact Support if you need help.");
-   const result=[registration.config];
+   // Keep lock, count, and conditional insert in one SQL statement. Neon HTTP queries do
+   // not support an interactive db.begin callback, so the materialized lock CTE serializes
+   // competing registrations before the count is read.
+   const registration=await db`with kingdom_lock as materialized (
+     select pg_advisory_xact_lock(hashtextextended(${kingdom},0)) as locked
+    ), counts as materialized (
+     select count(*)::int as total from public.alliance_sync_config c cross join kingdom_lock where c.kingdom_id=${kingdom}
+    ), inserted as (
+     insert into public.alliance_sync_config (owner_user_id,kingdom_id,alliance_tag,alliance_name,interval_hours,enabled,next_run_at,last_status,last_roster_count)
+     select ${ownerId}::uuid,${kingdom},${verified.tag},${verified.name},${interval},true,now(),'pending',${verified.members.length}
+     from counts where total < 3
+     returning id,kingdom_id,alliance_tag,alliance_name,enabled,interval_hours,next_run_at,last_status,last_roster_count
+    )
+    select counts.total,inserted.id,inserted.kingdom_id,inserted.alliance_tag,inserted.alliance_name,inserted.enabled,inserted.interval_hours,inserted.next_run_at,inserted.last_status,inserted.last_roster_count
+    from counts left join inserted on true`;
+   const registrationRow=registration[0];
+   if(Number(registrationRow?.total||0)>=3||!registrationRow?.id)return fail(res,409,"kingdom_alliance_limit","This kingdom already has three registered alliances. Existing registrations cannot be removed; contact Support if you need help.");
+   const {total:_total,...registeredConfig}=registrationRow;
+   const result=[registeredConfig];
    if(action==="register-alliance"){
     const lease=randomUUID();
     const claimed=await db`update public.alliance_sync_config set lease_token=${lease}::uuid,lease_expires_at=now()+interval '4 minutes',last_status='running',updated_at=now() where id=${result[0].id}::uuid and enabled=true returning *`;

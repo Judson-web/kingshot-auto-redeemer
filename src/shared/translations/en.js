@@ -968,7 +968,7 @@ export default {
   "alliance.syncMembersChecked": "members checked",
   "alliance.syncRegistered": "registered or confirmed",
   "alliance.syncUnchanged": "already tracked",
-  "alliance.syncSafetyNote": "A provider outage or incomplete roster will not advance the schedule. Departed members are never deregistered. Automatic runs happen server-side, without an open browser tab.",
+  "alliance.syncSafetyNote": "A provider outage or incomplete roster never marks departures. A complete, fresh roster marks missing members as departed in alliance history; their player registrations stay intact and continue through normal auto redemption. Automatic runs happen server-side, without an open browser tab.",
   "alliance.autoSyncEnabledMessage": "Auto sync is enabled. New members will be checked on the next scheduled run.",
   "alliance.syncCompletedMessage": "Sync completed successfully.",
   "alliance.syncPausedMessage": "Auto sync is paused.",

@@ -8,7 +8,6 @@ const english = await readFile(new URL("../src/shared/translations/en.js", impor
 const korean = await readFile(new URL("../src/shared/translations/ko.js", import.meta.url), "utf8");
 const api = await readFile(new URL("../api/kingshot-player.ts", import.meta.url), "utf8");
 const metadata = await readFile(new URL("../alliance-registration.html", import.meta.url), "utf8");
-const metadata = await readFile(new URL("../alliance-registration.html", import.meta.url), "utf8");
 
 test("alliance registration uses one server-side whole-alliance action", () => {
   assert.match(component, /const registerEntireAlliance = async/);
@@ -151,7 +150,7 @@ test("alliance loading copy and social preview describe the current registration
   assert.match(english, /"alliance\.loadingAllianceInfo": "Loading"/);
   assert.match(korean, /"alliance\.loadingAllianceInfo": "불러오는 중"/);
   assert.match(metadata, /og:title" content="Alliance Registration"/);
-  assert.match(metadata, /route=alliance-registration&v=4/);
+  assert.match(metadata, /route=alliance-registration&v=5/);
   assert.doesNotMatch(metadata, /select individuals|select individual members/);
 });
 
@@ -194,10 +193,11 @@ test("refreshes roster when server-side alliance processing finishes", () => {
 
 test("kingdom alliance cap check and insert are serialized in one transaction", async () => {
   const handler = await readFile(new URL("../internal/kingshot/alliance-sync-handler.ts", import.meta.url), "utf8");
-  assert.match(handler, /db\.begin\(async tx=>\{/);
+  assert.match(handler, /with kingdom_lock as materialized/);
   assert.match(handler, /pg_advisory_xact_lock\(hashtextextended\(\$\{kingdom\},0\)\)/);
+  assert.match(handler, /from counts where total < 3/);
   assert.match(handler, /select count\(\*\)::int as total from public\.alliance_sync_config where kingdom_id=\$\{kingdom\}/);
-  assert.match(handler, /if\(Number\(counts\[0\]\?\.total\|\|0\)>=3\)return \{limited:true,config:null\}/);
-  assert.match(handler, /insert into public\.alliance_sync_config[\s\S]*?values[\s\S]*?returning id,kingdom_id/);
-  assert.match(handler, /registration\.limited\|\|!registration\.config/);
+  assert.match(handler, /Number\(registrationRow\?\.total\|\|0\)>=3/);
+  assert.match(handler, /insert into public\.alliance_sync_config[\s\S]*?select[\s\S]*?from counts where total < 3[\s\S]*?returning id,kingdom_id/);
+  assert.match(handler, /!registrationRow\?\.id/);
 });
