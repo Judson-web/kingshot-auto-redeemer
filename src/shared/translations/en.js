@@ -885,6 +885,8 @@ export default {
   "alliance.emptyRosterBody": "This provider response did not include registerable player IDs. Try refreshing the roster or use the exact-tag lookup again later.",
   "alliance.batchNote": "Only selected members are processed. You can review results before choosing another batch.",
   "alliance.attempted": "attempted",
-  "alliance.refreshRoster": "Refresh roster"
+  "alliance.refreshRoster": "Refresh roster",
+  "alliance.alreadyRegistered": "Already registered",
+  "alliance.registeredThisSession": "Registered in this batch"
 
 };
