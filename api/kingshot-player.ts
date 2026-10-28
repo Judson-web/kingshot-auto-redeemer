@@ -235,11 +235,81 @@ async function handleMightPulseFrameRequest(req: RequestLike, res: ResponseLike,
  sendError(res, 400, "invalid_frame_request", "Invalid frame request.", requestId);
 }
 
+
+async function handleAllianceLookup(req: RequestLike, res: ResponseLike): Promise<void> {
+ if (req.method && req.method.toUpperCase() !== "GET") {
+  res.setHeader("Allow", "GET");
+  res.status(405).json({ error: "Method not allowed." });
+  return;
+ }
+ if (!rateLimit(req, res, "alliance-lookup", 20, 60_000)) return;
+ const url = new URL(req.url || "/", "http://localhost");
+ const kingdomId = String(req.query?.kingdomId ?? url.searchParams.get("kingdomId") ?? "").trim().slice(0, 10);
+ const tag = String(req.query?.tag ?? url.searchParams.get("tag") ?? "").trim().slice(0, 20);
+ if (!/^\\d{1,10}$/.test(kingdomId)) {
+  res.status(400).json({ error: "Enter a numeric kingdom ID.", code: "invalid_kingdom_id" });
+  return;
+ }
+ if (!/^[A-Za-z0-9_-]{1,20}$/.test(tag)) {
+  res.status(400).json({ error: "Enter the alliance tag/abbreviation shown in Kingshot.", code: "invalid_alliance_tag" });
+  return;
+ }
+ const upstreamUrl = "https://api.mightpulse.com/v1/alliances/" + encodeURIComponent(kingdomId) + "/" + encodeURIComponent(tag) + "?include=info,roster";
+ try {
+  const upstream = await fetchMightPulse(upstreamUrl, { headers: { Accept: "application/json" } }, { timeoutMs: 20_000 });
+  const body = await upstream.json().catch(() => ({})) as Record<string, any>;
+  if (!upstream.ok) {
+   if (upstream.status === 404) {
+    res.status(404).json({ error: "No alliance was found for that kingdom and tag. Check both values and try again.", code: "alliance_not_found" });
+    return;
+   }
+   if (upstream.status === 429) {
+    res.status(429).json({ error: "The game data provider is busy. Please wait a moment and try again.", code: "provider_rate_limited" });
+    return;
+   }
+   res.status(502).json({ error: "Alliance data is temporarily unavailable. Please try again shortly.", code: "provider_unavailable" });
+   return;
+  }
+  const source = body.data && typeof body.data === "object" ? body.data : body;
+  const alliance = source.alliance ?? source;
+  const rawMembers = Array.isArray(source.members) ? source.members : Array.isArray(source.roster) ? source.roster : Array.isArray(alliance.members) ? alliance.members : [];
+  const members = rawMembers.flatMap((member: Record<string, any>) => {
+   const playerId = String(member.governor_id ?? member.fid ?? "").trim();
+   if (!/^\\d{5,20}$/.test(playerId)) return [];
+   return [{
+    playerId,
+    name: String(member.nick_name ?? member.name ?? member.nickname ?? "Kingshot Player").trim().slice(0, 80) || "Kingshot Player",
+    power: Number.isFinite(Number(member.power)) ? Number(member.power) : null,
+    townCenterLevel: Number.isFinite(Number(member.town_center_level)) ? Number(member.town_center_level) : null,
+    avatarUrl: typeof member.avatar_url === "string" && /^https:\/\//i.test(member.avatar_url) ? member.avatar_url : "",
+    allianceRank: String(member.alliance_rank_label ?? member.alliance_rank ?? "").trim().slice(0, 30),
+    kingdomId: String(member.kid ?? kingdomId)
+   }];
+  });
+  res.status(200).json({
+   alliance: {
+    name: String(alliance.name ?? alliance.alliance_name ?? tag).trim().slice(0, 80) || tag,
+    tag: String(alliance.abbr ?? alliance.tag ?? tag).trim().slice(0, 20) || tag,
+    kingdomId,
+    power: Number.isFinite(Number(alliance.power)) ? Number(alliance.power) : null,
+    count: Number.isFinite(Number(alliance.count)) ? Number(alliance.count) : members.length,
+    leaderName: String(alliance.leader_name ?? "").trim().slice(0, 80)
+   },
+   members,
+   stale: Boolean(body.meta?.stale),
+   fetchedAt: body.meta?.fetchedAt ?? null
+  });
+ } catch {
+  res.status(502).json({ error: "Could not reach the alliance data provider. Please try again shortly.", code: "provider_unavailable" });
+ }
+}
+
 export default async function handler(req: RequestLike, res: ResponseLike): Promise<void> {
  const requestId = globalThis.crypto?.randomUUID?.() || `req-${Date.now().toString(36)}`;
  res.setHeader("X-Request-Id", requestId);
  const requestUrl = new URL(req.url || "/", "http://localhost");
  const developerPath = String(req.query?.developerPath || requestUrl.searchParams.get("developerPath") || req.query?.developer || requestUrl.searchParams.get("developer") || "").replace(/^\/+|\/+$/g, "");
+ if (developerPath === "alliance-lookup") return handleAllianceLookup(req, res);
  if (developerPath === "account-auth") return developerAuth(req, res);
  if (developerPath === "account-keys") return developerAccount(req, res);
  if (developerPath.startsWith("v3-")) return developerApiV3(req, res, developerPath.slice(3));
