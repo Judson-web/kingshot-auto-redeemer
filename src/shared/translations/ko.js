@@ -804,6 +804,8 @@ export default {
   "alliance.title": "연맹 구성원 등록",
   "alliance.registerSelectedMembers": "선택한 구성원 등록",
   "alliance.registerEntireAlliance": "연맹 전체 등록",
+  "alliance.registeringProgress": "서버에서 등록 가능한 구성원을 처리합니다. 이미 등록된 플레이어는 건너뜁니다.",
+  "alliance.allianceRegistrationFailed": "연맹을 등록하지 못했습니다.",
   "alliance.description": "연맹을 찾아 등록할 구성원을 플레이어 ID로 선택하세요.",
   "alliance.kingdom": "왕국 ID",
   "alliance.tag": "연맹 태그",
