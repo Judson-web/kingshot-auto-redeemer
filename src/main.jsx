@@ -131,16 +131,6 @@ function AutoRedeemApp(){
  const {t}=useSiteLanguage();
  const [ids,setIds]=useState(""),[busy,setBusy]=useState(false),[outcomes,setOutcomes]=useState([]),[error,setError]=useState(""),[inputNotice,setInputNotice]=useState(""),[progress,setProgress]=useState({done:0,total:0,currentId:""});
  const inputSummary=registrationInputSummary(ids);
- const addAllianceMembers=(members)=>{
-  const parsed=validateRegistrationIds(ids);
-  const existing=parsed.error?[]:parsed.ids;
-  const incoming=members.map(member=>String(member.playerId||"")).filter(id=>/^\\d{5,20}$/.test(id));
-  const combined=[...new Set([...existing,...incoming])].slice(0,10);
-  setIds(combined.join(", "));
-  setInputNotice(t("alliance.addedNotice","Selected members added. Up to 10 Player IDs can be registered per submission."));
-  setError("");
-  setOutcomes([]);
- };
  const idInputRef=useRef(null),pendingCaretRef=useRef(null),discardTokenRef=useRef(false);
  useEffect(()=>{
   if(pendingCaretRef.current===null)return;
@@ -201,7 +191,17 @@ function AutoRedeemApp(){
   }catch(failure){setError(t("auto.registrationFailed","Registration could not be completed. Please try again."))}
   finally{setBusy(false);setProgress(current=>({...current,currentId:""}))}
  };
- return <div className="app ks-app ks-auto-app"><a className="skip-link" href="#auto-main-content">{t("common.skip","Skip to main content")}</a><PublicSiteHeader current="auto" /><main id="auto-main-content"><section className="ks-auto-hero"><div className="eyebrow"><span/>{t("auto.eyebrow","KINGSHOT AUTO REDEEM")}</div><h1>{t("auto.title","Automatic redemption")}</h1><p className="hero-copy">{t("auto.hero","Eligible gift codes are checked automatically for registered players.")}</p><form className="ks-register-box ks-register-card" onSubmit={register} aria-describedby={error?"auto-register-help auto-register-error":"auto-register-help"} aria-busy={busy}>
+ return <div className="app ks-app ks-auto-app"><a className="skip-link" href="#auto-main-content">{t("common.skip","Skip to main content")}</a><PublicSiteHeader current="auto" /><main id="auto-main-content"><section className="ks-auto-hero"><div className="eyebrow"><span/>{t("auto.eyebrow","KINGSHOT AUTO REDEEM")}</div><h1>{t("auto.title","Automatic redemption")}</h1><p className="hero-copy">{t("auto.hero","Eligible gift codes are checked automatically for registered players.")}</p>
+ <div className="ks-auto-alliance-feature">
+  <span className="ks-auto-alliance-feature-icon"><Users size={19} aria-hidden="true"/></span>
+  <div className="ks-auto-alliance-feature-copy">
+   <strong>{t("auto.allianceFeatureTitle","Register an entire alliance")}</strong>
+   <p>{t("auto.allianceFeatureBody","Search a kingdom’s alliance roster and register selected members in dedicated batches of up to 100 IDs.")}</p>
+   <small>{t("auto.allianceFeatureLimit","Separate page · 100 IDs per batch")}</small>
+  </div>
+  <a href="/alliance-registration">{t("auto.allianceFeatureButton","Open Alliance Registration")} <ArrowRight size={15} aria-hidden="true"/></a>
+ </div>
+<form className="ks-register-box ks-register-card" onSubmit={register} aria-describedby={error?"auto-register-help auto-register-error":"auto-register-help"} aria-busy={busy}>
  <div className="ks-register-card-intro">
   <div className="ks-register-card-intro-icon"><Gift size={20} aria-hidden="true"/></div>
   <div className="ks-register-card-intro-copy">
@@ -210,7 +210,6 @@ function AutoRedeemApp(){
   </div>
   <span className="ks-register-card-limit">{t("auto.limit","UP TO 10")}</span>
  </div>
- <AllianceRegistration onAddPlayers={addAllianceMembers} disabled={busy} />
  <div className="ks-register-field">
   <div className="ks-register-label-row"><label htmlFor="auto-player-ids">{t("auto.playerIds","Player IDs")}</label><span>{t("auto.digitsEach","5–20 digits each")}</span></div>
   <div className="ks-register-entry"><Gift size={18} aria-hidden="true"/><textarea ref={idInputRef} id="auto-player-ids" rows={1} inputMode="numeric" enterKeyHint="enter" value={ids} onChange={e=>{const value=e.target.value,clean=sanitizeRegistrationInput(value),containsUnsupported=/[^0-9,\s]/.test(value);if(clean!==value)pendingCaretRef.current=sanitizeRegistrationInput(value.slice(0,e.target.selectionStart)).length;else pendingCaretRef.current=null;setIds(clean);setInputNotice(containsUnsupported?t("auto.unsupportedIgnored","Letters and symbols were ignored. Only digits, commas, and spaces are allowed."):"");if(error)setError("")}} onBeforeInput={e=>{const event=e.nativeEvent,field=e.currentTarget;if(event.inputType==="insertLineBreak"||event.inputType==="insertParagraph"){e.preventDefault();insertCleanText(field," ");return}if(!event.data)return;if(/[^0-9, ]/.test(event.data)){e.preventDefault();const value=field.value,start=field.selectionStart??0,end=field.selectionEnd??start,left=Math.max(value.lastIndexOf(",",start-1),value.lastIndexOf(" ",start-1))+1,tail=value.slice(end),nextSeparator=tail.search(/[, ]/),right=nextSeparator<0?value.length:end+nextSeparator,next=value.slice(0,left)+value.slice(right);discardTokenRef.current=true;pendingCaretRef.current=next===value?null:left;setIds(next);setInputNotice(t("auto.unsupported","Letters and symbols are not accepted. Use digits, commas, or spaces."));return}if(discardTokenRef.current){if(event.data===","||event.data===" ")discardTokenRef.current=false;else{e.preventDefault();return}}}} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();insertCleanText(e.currentTarget," ")}}} onPaste={e=>{e.preventDefault();insertCleanText(e.currentTarget,e.clipboardData.getData("text/plain"))}} onDrop={e=>{e.preventDefault();insertCleanText(e.currentTarget,e.dataTransfer.getData("text/plain"))}} placeholder={t("auto.playerIdsPlaceholder","e.g. 43180889, 51234567")} autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck="false" maxLength={256} aria-describedby={error?"auto-register-help auto-register-error":"auto-register-help"} aria-invalid={Boolean(error)}/></div>
@@ -303,7 +302,7 @@ function InstallAppPrompt(){const {t}=useSiteLanguage();const [installEvent,setI
 function AnnouncementCard({item}){const {t}=useSiteLanguage();if(!item)return null;const C=announcementIcon(item.type||"info");return <aside className={"site-announcement site-announcement-"+(item.type||"info")}><div className="site-announcement-icon"><C size={17}/></div><div className="site-announcement-content"><b>{item.title||t("announcement.title","Announcement title")}</b><p>{item.message||t("announcement.message","Your announcement message will appear here.")}</p>{item.link_url&&<a href={item.link_url} target="_blank" rel="noopener noreferrer">{item.link_label||t("announcement.learnMore","Learn more")} <ExternalLink size={11}/></a>}</div></aside>}
 function PublicAnnouncements({children}){const[state,setState]=useState(null);useEffect(()=>{fetch("/api/kingshot-admin-data?public=announcements").then(r=>r.ok?r.json():null).then(d=>setState(d?.announcements||[])).catch(()=>setState([]))},[]);return <>{state?.[0]&&<div style={{maxWidth:"1180px",margin:"0 auto",padding:"14px 20px 0"}}><AnnouncementCard item={state[0]}/></div>}{children}</>}
 
-const publicPage=location.pathname==="/auto"||location.pathname==="/" ? <AutoRedeemApp/>:location.pathname==="/manual"||location.pathname==="/redeem" ? <KingshotApp/>:location.pathname==="/info"?<InfoApp/>:location.pathname==="/message"?<CustomMessageApp/>:location.pathname==="/push"?<PushConsoleApp/>:location.pathname==="/developer"?<DeveloperApp/>:location.pathname==="/profile"?<ProfileApp/>:location.pathname==="/dev"?<PrivateDevApp/>:location.pathname==="/devsupport"?<DevSupportApp/>:location.pathname==="/admin/players"?<AdminPlayersApp/>:location.pathname==="/admin/maintenance"?<MaintenanceAdminApp/>:location.pathname==="/gift-codes"?<GiftCodesApp/>:location.pathname==="/terms"?<LegalApp type="terms"/>:location.pathname==="/privacy"?<LegalApp type="privacy"/>:<AutoRedeemApp/>; function registerAppServiceWorker(){
+const publicPage=location.pathname==="/auto"||location.pathname==="/" ? <AutoRedeemApp/>:location.pathname==="/manual"||location.pathname==="/redeem" ? <KingshotApp/>:location.pathname==="/info"?<InfoApp/>:location.pathname==="/message"?<CustomMessageApp/>:location.pathname==="/push"?<PushConsoleApp/>:location.pathname==="/developer"?<DeveloperApp/>:location.pathname==="/alliance-registration"?<AllianceRegistration/>:location.pathname==="/profile"?<ProfileApp/>:location.pathname==="/dev"?<PrivateDevApp/>:location.pathname==="/devsupport"?<DevSupportApp/>:location.pathname==="/admin/players"?<AdminPlayersApp/>:location.pathname==="/admin/maintenance"?<MaintenanceAdminApp/>:location.pathname==="/gift-codes"?<GiftCodesApp/>:location.pathname==="/terms"?<LegalApp type="terms"/>:location.pathname==="/privacy"?<LegalApp type="privacy"/>:<AutoRedeemApp/>; function registerAppServiceWorker(){
  if(!("serviceWorker" in navigator))return;
  const showUpdate=()=>{
   if(document.getElementById("ks-update-toast"))return;
