@@ -94,7 +94,9 @@ test("registered roster members show status without a selection checkbox", () =>
 
 test("automatic alliance sync is informational and scheduled after first registration", () => {
   assert.match(component, /action: "create", kingdomId: activeAlliance\.kingdomId/);
-  assert.match(component, /interval_hours|Every 24 hours|alliance\.syncEvery24/);
+  assert.match(component, /alliance\.autoSyncSetupFailed/);
+  assert.match(component, /24-hour alliance schedule|24-hour sync/,
+    "the first registration configures the fixed 24-hour schedule and reports setup failures");
   assert.doesNotMatch(component, /alliance\.enableAutoSync/);
   assert.doesNotMatch(component, /updateAutoSync\("sync"\)|alliance\.pauseSync/);
 });
