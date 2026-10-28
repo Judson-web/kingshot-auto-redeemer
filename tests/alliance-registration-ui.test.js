@@ -100,3 +100,34 @@ test("alliance flag is visible in the roster identity and retains a fallback ico
   assert.match(component, /ks-alliance-roster-flag/);
   assert.match(component, /ks-alliance-roster-flag"><Users size=\{18\}/);
 });
+
+
+test("alliance batch cancellation stops before submitting the next player", () => {
+  assert.match(component, /cancelRequestedRef\.current = true/);
+  assert.match(component, /if \(cancelRequestedRef\.current\) break/);
+  assert.match(component, /alliance\.cancelRegistration/);
+  assert.match(component, /window\.addEventListener\("pagehide", handlePageHide\)/);
+});
+
+test("automatic registration cancellation preserves completed outcomes and skips unstarted IDs", async () => {
+  const main = await readFile(new URL("../src/main.jsx", import.meta.url), "utf8");
+  assert.match(main, /if\(cancelRequestedRef\.current\)break/);
+  assert.match(main, /auto\.cancelRegistration/);
+  assert.match(main, /auto\.cancelled/);
+  assert.match(main, /window\.addEventListener\("pagehide",handlePageHide\)/);
+});
+
+test("manual redeem cancellation never automatically retries an uncertain redemption", async () => {
+  const main = await readFile(new URL("../src/main.jsx", import.meta.url), "utf8");
+  assert.match(main, /manualControllerRef\.current\?\.abort\(\)/);
+  assert.match(main, /manual\.cancelledUnknown/);
+  assert.match(main, /manualAbortReasonRef\.current==="user"/);
+  assert.match(main, /if\(manualAbortReasonRef\.current==="user"\)throw/);
+});
+
+test("cancellation guidance is available in English and Korean", () => {
+  for (const key of ["auto.cancelRegistration", "auto.cancelPending", "auto.cancelled", "manual.stopWaiting", "manual.cancelledUnknown", "alliance.cancelRegistration", "alliance.cancelled"]) {
+    assert.ok(english.includes('"' + key + '"'), "missing English translation: " + key);
+    assert.ok(korean.includes('"' + key + '"'), "missing Korean translation: " + key);
+  }
+});
