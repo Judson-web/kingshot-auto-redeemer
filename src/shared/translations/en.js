@@ -870,6 +870,8 @@ export default {
   "alliance.findDescription": "Enter your kingdom ID, find your alliance, and open its latest available member list.",
   "alliance.kingdomPlaceholder": "e.g. 1125",
   "alliance.searchLabel": "Alliance name or tag",
+  "alliance.filterOptional": "Filter alliances (optional)",
+  "alliance.syncCompactNote": "Daily sync adds new unregistered members only. Existing registrations are never removed.",
   "alliance.optional": "optional",
   "alliance.searchPlaceholder": "Search by name or tag",
   "alliance.searching": "Searching…",
