@@ -435,3 +435,8 @@
 .ks-alliance-feature-kicker .ks-beta-tag{margin-left:6px}
 .ks-nav-drawer-copy .ks-beta-tag{margin-left:6px;transform:translateY(-1px)}
 .ks-beta-tag-page{margin-left:8px;transform:translateY(-4px)}
+
+
+.ks-alliance-cancel-button { margin-top: 10px; border-color: rgba(220, 110, 95, .45); color: var(--al-text, #f1e8d4); }
+.ks-alliance-cancel-button:disabled { opacity: .7; cursor: wait; }
+.ks-register-progress .ks-alliance-cancel-button { margin-top: 10px; }
