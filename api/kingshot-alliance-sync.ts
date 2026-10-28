@@ -49,7 +49,9 @@ async function readAlliance(kingdomId:string,tag:string){
   if(!/^\d{5,20}$/.test(id)||kid!==kingdomId)return [];
   return [{id,name:String(m?.nick_name??m?.name??m?.nickname??"").trim().slice(0,80),avatarUrl:String(m?.avatar_url??m?.avatarUrl??"").trim(),kingdomId:kid}];
  });
- const unique=[...new Map(members.map(m=>[m.id,m])).values()];
+ const byId = new Map<string, {id:string;name:string;avatarUrl:string;kingdomId:string}>();
+ for (const member of members) if (!byId.has(member.id)) byId.set(member.id, member);
+ const unique=[...byId.values()];
  const count=Number(a.member_count??a.memberCount??a.count??raw.length);
  // Fail closed on suspiciously incomplete responses. The source count can include malformed rows,
  // so even a handful of invalid rows are tolerated, but a large discrepancy is not.
@@ -62,11 +64,13 @@ async function readAlliance(kingdomId:string,tag:string){
 async function performSync(config:any,ownerId:string,manual:boolean){
  const db=database();
  const runId=randomUUID();
- await db`insert into public.alliance_sync_runs (id,config_id,status) values (${runId}::uuid,${config.id}::uuid,'running')`;
  try{
+  await db`insert into public.alliance_sync_runs (id,config_id,status) values (${runId}::uuid,${config.id}::uuid,'running')`;
   const roster=await readAlliance(String(config.kingdom_id),String(config.alliance_tag));
   let added=0,skipped=0;
   for(const member of roster.members){
+   const heartbeat=await db`update public.alliance_sync_config set lease_expires_at=now()+interval '4 minutes' where id=${config.id}::uuid and lease_token=${leaseToken}::uuid and enabled=true returning id`;
+   if(!heartbeat.length) throw new Error("Sync lease lost or configuration paused.");
    const inserted=await db`insert into public.alliance_sync_seen_players (config_id,player_id,first_seen_at,last_seen_at,registration_status)
    values (${config.id}::uuid,${member.id},now(),now(),'pending')
    on conflict (config_id,player_id) do update set last_seen_at=now()
