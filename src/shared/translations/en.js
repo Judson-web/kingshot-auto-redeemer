@@ -867,6 +867,7 @@ export default {
   "alliance.loadTag": "Load roster by tag",
   "alliance.loadingRoster": "Loading the alliance roster…",
   "alliance.backToList": "Back to alliance list",
+  "alliance.autoSyncSetupFailed": "Members were processed, but automatic 24-hour sync could not be enabled. Please try registering again later.",
   "alliance.rosterHeading": "Review alliance members",
   "alliance.rosterDescription": "Choose the players to register. Each batch supports up to 100 unique Player IDs.",
   "alliance.selectedThisBatch": "selected for this batch",
