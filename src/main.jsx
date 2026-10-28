@@ -192,15 +192,6 @@ function AutoRedeemApp(){
   finally{setBusy(false);setProgress(current=>({...current,currentId:""}))}
  };
  return <div className="app ks-app ks-auto-app"><a className="skip-link" href="#auto-main-content">{t("common.skip","Skip to main content")}</a><PublicSiteHeader current="auto" /><main id="auto-main-content"><section className="ks-auto-hero"><div className="eyebrow"><span/>{t("auto.eyebrow","KINGSHOT AUTO REDEEM")}</div><h1>{t("auto.title","Automatic redemption")}</h1><p className="hero-copy">{t("auto.hero","Eligible gift codes are checked automatically for registered players.")}</p>
- <div className="ks-auto-alliance-feature">
-  <span className="ks-auto-alliance-feature-icon"><Users size={19} aria-hidden="true"/></span>
-  <div className="ks-auto-alliance-feature-copy">
-   <strong>{t("auto.allianceFeatureTitle","Register an entire alliance")}</strong>
-   <p>{t("auto.allianceFeatureBody","Search a kingdom’s alliance roster and register selected members in dedicated batches of up to 100 IDs.")}</p>
-   <small>{t("auto.allianceFeatureLimit","Separate page · 100 IDs per batch")}</small>
-  </div>
-  <a href="/alliance-registration">{t("auto.allianceFeatureButton","Open Alliance Registration")} <ArrowRight size={15} aria-hidden="true"/></a>
- </div>
 <form className="ks-register-box ks-register-card" onSubmit={register} aria-describedby={error?"auto-register-help auto-register-error":"auto-register-help"} aria-busy={busy}>
  <div className="ks-register-card-intro">
   <div className="ks-register-card-intro-icon"><Gift size={20} aria-hidden="true"/></div>
@@ -223,7 +214,17 @@ function AutoRedeemApp(){
 {busy&&<div className="ks-register-progress" role="status" aria-live="polite" aria-atomic="true"><div className="ks-register-progress-top"><b>{t("auto.registering","Registering players")}</b><span>{progress.done} {t("auto.progressOf","of")} {progress.total} {t("auto.progressComplete","complete")}</span></div><progress max={progress.total||1} value={progress.done} aria-label={t("auto.progressLabel","Player registration progress")}/><small>{progress.currentId?t("auto.checkingId","Checking Player ID")+" "+progress.currentId+"…":t("auto.preparing","Preparing the next result…")}</small><p>{t("auto.progressHelp","Results appear as each ID finishes. Each registration is handled separately.")}</p></div>}
 {error&&<div className="ks-error" role="alert" aria-live="assertive" id="auto-register-error"><b>{t("auto.errorTitle","Registration needs attention.")}</b><span>{error}</span></div>}
 <RegistrationOutcomePanel outcomes={outcomes}/>
- </section><section className="ks-auto-how" id="how"><div className="section-title"><span>01</span><h2>{t("auto.how","How it works")}</h2></div><div className="feature-grid"><article><UserRound/><b>{t("auto.step1","Register once")}</b><p>{t("auto.step1Text","Each ID is enrolled separately.")}</p></article><article><RefreshCw/><b>{t("auto.step2","Automatic checks")}</b><p>{t("auto.step2Text","Eligible codes, including older valid codes, are checked.")}</p></article><article><CheckCircle/><b>{t("auto.step3","Individual results")}</b><p>{t("auto.step3Text","One result per ID. An issue with one player does not stop the others.")}</p></article></div></section></main><footer><KsLogo/><span>{t("auto.footer","Automatic redemption is a community service. Not affiliated with Century Games.")}</span><span><a href="/info">{t("info.title","How it works")}</a> · <a href="/terms?service=kingshot-auto">{t("legal.termsTab","Terms")}</a> · <a href="/privacy?service=kingshot-auto">{t("legal.privacyTab","Privacy")}</a></span></footer></div>
+ </section><section className="ks-auto-how" id="how"><div className="section-title"><span>01</span><h2>{t("auto.how","How it works")}</h2></div><div className="feature-grid"><article><UserRound/><b>{t("auto.step1","Register once")}</b><p>{t("auto.step1Text","Each ID is enrolled separately.")}</p></article><article><RefreshCw/><b>{t("auto.step2","Automatic checks")}</b><p>{t("auto.step2Text","Eligible codes, including older valid codes, are checked.")}</p></article><article><CheckCircle/><b>{t("auto.step3","Individual results")}</b><p>{t("auto.step3Text","One result per ID. An issue with one player does not stop the others.")}</p></article></div></section>
+ <div className="ks-auto-alliance-feature">
+  <span className="ks-auto-alliance-feature-icon"><Users size={19} aria-hidden="true"/></span>
+  <div className="ks-auto-alliance-feature-copy">
+   <strong>{t("auto.allianceFeatureTitle","Register an entire alliance")}</strong>
+   <p>{t("auto.allianceFeatureBody","Search a kingdom’s alliance roster and register selected members in dedicated batches of up to 100 IDs.")}</p>
+   <small>{t("auto.allianceFeatureLimit","Separate page · 100 IDs per batch")}</small>
+  </div>
+  <a href="/alliance-registration">{t("auto.allianceFeatureButton","Open Alliance Registration")} <ArrowRight size={15} aria-hidden="true"/></a>
+ </div>
+</main><footer><KsLogo/><span>{t("auto.footer","Automatic redemption is a community service. Not affiliated with Century Games.")}</span><span><a href="/info">{t("info.title","How it works")}</a> · <a href="/terms?service=kingshot-auto">{t("legal.termsTab","Terms")}</a> · <a href="/privacy?service=kingshot-auto">{t("legal.privacyTab","Privacy")}</a></span></footer></div>
 }
 function RegistrationOutcomePanel({outcomes}){
  const {t}=useSiteLanguage();
