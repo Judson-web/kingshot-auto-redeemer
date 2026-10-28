@@ -92,7 +92,7 @@ export default async function handler(req:any,res:any){
       set registration_status='departed',last_error_code=null
       where seen.config_id=${config.id}::uuid
         and seen.registration_status<>'departed'
-        and not (seen.player_id = any(${currentMemberIds}::text[]))`);
+        and not (seen.player_id = any(${currentMemberIds}::text[]))`;
     const nextRun=new Date(Date.now()+24*3600000).toISOString();
     await db`update public.alliance_sync_config set alliance_name=${roster.name},last_success_at=now(),next_run_at=${nextRun}::timestamptz,lease_token=null,lease_expires_at=null,consecutive_failures=0,last_status='success',last_error_code=null,last_error_message=null,last_roster_count=${roster.members.length},last_added_count=${registered},updated_at=now() where id=${config.id}::uuid`;
     await db`update public.alliance_sync_runs set finished_at=now(),status='success',roster_count=${roster.members.length},added_count=${registered},skipped_count=${skipped} where id=${runId}::uuid`;
