@@ -108,7 +108,7 @@ export default async function handler(req,res){
   if(action==="LOGOUT")return res.status(200).json({ok:true,redirect:"/profile"});
   if(action==="CHECK"){const valid=await validSession(req);return res.status(valid?200:401).json({ok:valid})}
   if(action==="PUSH_STATUS"){
-   if(!(await validSession(req)))return res.status(401).json({error:"Unauthorized. Open the existing developer account section and verify your Discord session."});
+   if(!(await validSession(req)))return res.status(401).json({error:"Unauthorized. Open your account profile and verify your Discord session."});
    const {pushIsConfigured}=await import("../internal/push-notifications.js");
    if(!pushIsConfigured())return res.status(503).json({error:"Push notifications are not configured."});
    const base=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
