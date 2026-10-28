@@ -180,8 +180,18 @@ export default async function handler(req:Req,res:Res){
     return res.status(200).json({config:claimed[0],initialSync:sync,alreadyRegisteredAlliance:true});
    }
    const verified=await readAlliance(kingdom,tag);
-   const result=await db`with kingdom_lock as materialized (select pg_advisory_xact_lock(hashtext(${kingdom}))), kingdom_count as materialized (select count(*)::int as total from public.alliance_sync_config, kingdom_lock where kingdom_id=${kingdom}) insert into public.alliance_sync_config (owner_user_id,kingdom_id,alliance_tag,alliance_name,interval_hours,enabled,next_run_at,last_status,last_roster_count) select ${ownerId}::uuid,${kingdom},${verified.tag},${verified.name},${interval},true,now(),'pending',${verified.members.length} from kingdom_count where total < 3 returning id,kingdom_id,alliance_tag,alliance_name,enabled,interval_hours,next_run_at,last_status`;
-   if(!result.length)return fail(res,409,"kingdom_alliance_limit","This kingdom already has three registered alliances. Existing registrations cannot be removed; contact Support if you need help.");
+   // Serialize the capacity check and insert in one real database transaction. The
+   // transaction-scoped advisory lock is keyed by kingdom, so concurrent requests
+   // for different alliances cannot both claim the final slot.
+   const registration=await db.begin(async tx=>{
+    await tx`select pg_advisory_xact_lock(hashtextextended(${kingdom},0))`;
+    const counts=await tx`select count(*)::int as total from public.alliance_sync_config where kingdom_id=${kingdom}`;
+    if(Number(counts[0]?.total||0)>=3)return {limited:true,config:null};
+    const inserted=await tx`insert into public.alliance_sync_config (owner_user_id,kingdom_id,alliance_tag,alliance_name,interval_hours,enabled,next_run_at,last_status,last_roster_count) values (${ownerId}::uuid,${kingdom},${verified.tag},${verified.name},${interval},true,now(),'pending',${verified.members.length}) returning id,kingdom_id,alliance_tag,alliance_name,enabled,interval_hours,next_run_at,last_status`;
+    return {limited:false,config:inserted[0]||null};
+   });
+   if(registration.limited||!registration.config)return fail(res,409,"kingdom_alliance_limit","This kingdom already has three registered alliances. Existing registrations cannot be removed; contact Support if you need help.");
+   const result=[registration.config];
    if(action==="register-alliance"){
     const lease=randomUUID();
     const claimed=await db`update public.alliance_sync_config set lease_token=${lease}::uuid,lease_expires_at=now()+interval '4 minutes',last_status='running',updated_at=now() where id=${result[0].id}::uuid and enabled=true returning *`;

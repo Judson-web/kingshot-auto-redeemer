@@ -190,3 +190,14 @@ test("refreshes roster when server-side alliance processing finishes", () => {
   assert.match(component, /const completed = Boolean\(allianceServerProgress\?\.active\)/);
   assert.match(component, /if \(completed && !cancelled\) void loadRoster\(activeAlliance, true\)/);
 });
+
+
+test("kingdom alliance cap check and insert are serialized in one transaction", async () => {
+  const handler = await readFile(new URL("../internal/kingshot/alliance-sync-handler.ts", import.meta.url), "utf8");
+  assert.match(handler, /db\.begin\(async tx=>\{/);
+  assert.match(handler, /pg_advisory_xact_lock\(hashtextextended\(\$\{kingdom\},0\)\)/);
+  assert.match(handler, /select count\(\*\)::int as total from public\.alliance_sync_config where kingdom_id=\$\{kingdom\}/);
+  assert.match(handler, /if\(Number\(counts\[0\]\?\.total\|\|0\)>=3\)return \{limited:true,config:null\}/);
+  assert.match(handler, /insert into public\.alliance_sync_config[\s\S]*?values[\s\S]*?returning id,kingdom_id/);
+  assert.match(handler, /registration\.limited\|\|!registration\.config/);
+});
