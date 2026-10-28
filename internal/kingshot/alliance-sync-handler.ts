@@ -53,10 +53,11 @@ async function readAlliance(kingdomId:string,tag:string){
  const byId = new Map<string, {id:string;name:string;avatarUrl:string;kingdomId:string}>();
  for (const member of members) if (!byId.has(member.id)) byId.set(member.id, member);
  const unique=[...byId.values()];
- const count=Number(a.member_count??a.memberCount??a.count??raw.length);
- // Fail closed on suspiciously incomplete responses. The source count can include malformed rows,
- // so even a handful of invalid rows are tolerated, but a large discrepancy is not.
- if(!unique.length||unique.length<Math.min(count,5)|| (count>0&&unique.length/count<0.65))
+ const rawCount=a.member_count??a.memberCount??a.count;
+ const count=rawCount==null?raw.length:Number(rawCount);
+ // Fail closed on invalid counts and suspiciously incomplete responses. The source count can
+ // include malformed rows, so a handful of invalid rows are tolerated, but large discrepancies are not.
+ if(!Number.isFinite(count)||count<1||!unique.length||unique.length<Math.min(count,5)|| (count>0&&unique.length/count<0.65))
   throw Object.assign(new Error("Roster validation failed; no members were registered."),{code:"incomplete_roster"});
  const canonicalTag=String(a.abbr??a.tag??tag).trim();
  if(canonicalTag.toLocaleLowerCase()!==tag.toLocaleLowerCase())throw Object.assign(new Error("Alliance tag does not match the requested alliance."),{code:"alliance_mismatch"});
