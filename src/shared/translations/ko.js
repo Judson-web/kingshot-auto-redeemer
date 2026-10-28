@@ -866,7 +866,7 @@ export default {
   "alliance.disabledResults": "비활성",
   "alliance.failedResults": "확인 필요",
   "alliance.retryAttention": "문제 항목 선택 후 재시도",
-  "alliance.unknownPlayer": "Kingshot 플레이어"
+  "alliance.unknownPlayer": "Kingshot 플레이어",
   "alliance.flowLabel": "등록 단계",
   "alliance.flowFind": "연맹 찾기",
   "alliance.flowReview": "구성원 확인",
