@@ -216,15 +216,6 @@ function AutoRedeemApp(){
 {error&&<div className="ks-error" role="alert" aria-live="assertive" id="auto-register-error"><b>{t("auto.errorTitle","Registration needs attention.")}</b><span>{error}</span></div>}
 <RegistrationOutcomePanel outcomes={outcomes}/>
  </section><section className="ks-auto-how" id="how"><div className="section-title"><span>01</span><h2>{t("auto.how","How it works")}</h2></div><div className="feature-grid"><article><UserRound/><b>{t("auto.step1","Register once")}</b><p>{t("auto.step1Text","Each ID is enrolled separately.")}</p></article><article><RefreshCw/><b>{t("auto.step2","Automatic checks")}</b><p>{t("auto.step2Text","Eligible codes, including older valid codes, are checked.")}</p></article><article><CheckCircle/><b>{t("auto.step3","Individual results")}</b><p>{t("auto.step3Text","One result per ID. An issue with one player does not stop the others.")}</p></article></div></section>
- <div className="ks-auto-alliance-feature">
-  <span className="ks-auto-alliance-feature-icon"><Users size={19} aria-hidden="true"/></span>
-  <div className="ks-auto-alliance-feature-copy">
-   <strong>{t("auto.allianceFeatureTitle","Register an entire alliance")}</strong>
-   <p>{t("auto.allianceFeatureBody","Search a kingdom’s alliance roster and register selected members in dedicated batches of up to 100 IDs.")}</p>
-   <small>{t("auto.allianceFeatureLimit","Separate page · 100 IDs per batch")}</small>
-  </div>
-  <a href="/alliance-registration">{t("auto.allianceFeatureButton","Open Alliance Registration")} <ArrowRight size={15} aria-hidden="true"/></a>
- </div>
 </main><footer><KsLogo/><span>{t("auto.footer","Automatic redemption is a community service. Not affiliated with Century Games.")}</span><span><a href="/info">{t("info.title","How it works")}</a> · <a href="/terms?service=kingshot-auto">{t("legal.termsTab","Terms")}</a> · <a href="/privacy?service=kingshot-auto">{t("legal.privacyTab","Privacy")}</a></span></footer></div>
 }
 function RegistrationOutcomePanel({outcomes}){

@@ -277,6 +277,37 @@ async function handleAllianceLookup(req: RequestLike, res: ResponseLike): Promis
  const kingdomId = param("kingdomId").slice(0, 10);
  const tag = param("tag").slice(0, 20);
  const mode = param("mode");
+ if (mode === "registration-status") {
+  const rawIds = param("ids").split(",").map(value => value.trim()).filter(Boolean);
+  const ids = [...new Set(rawIds)].filter(id => /^\d{5,20}$/.test(id)).slice(0, 200);
+  if (!ids.length || ids.length !== [...new Set(rawIds)].length) {
+   res.status(400).json({ error: "Provide up to 200 valid Player IDs.", code: "invalid_player_ids" });
+   return;
+  }
+  const supabaseUrl = String(process.env.SUPABASE_URL || "https://wocxvtptqapietlteshr.supabase.co").replace(/\/$/, "");
+  const serviceKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || "").trim();
+  if (!serviceKey) {
+   res.status(503).json({ error: "Registration status is temporarily unavailable. No members were made selectable.", code: "registration_status_unavailable" });
+   return;
+  }
+  const query = new URLSearchParams({ select: "player_id", player_id: "in.(" + ids.join(",") + ")" });
+  const statusResponse = await fetch(supabaseUrl + "/rest/v1/kingshot_autoredeem?" + query.toString(), {
+   method: "GET",
+   headers: { apikey: serviceKey, authorization: "Bearer " + serviceKey, Accept: "application/json" },
+   signal: AbortSignal.timeout(10_000)
+  });
+  if (!statusResponse.ok) {
+   res.status(503).json({ error: "Could not verify existing registrations. Please refresh and try again.", code: "registration_status_unavailable" });
+   return;
+  }
+  const rows = await statusResponse.json().catch(() => null);
+  if (!Array.isArray(rows)) {
+   res.status(503).json({ error: "Could not verify existing registrations. Please refresh and try again.", code: "registration_status_unavailable" });
+   return;
+  }
+  res.status(200).json({ registeredIds: [...new Set(rows.map((row: Record<string, unknown>) => String(row.player_id || "")).filter(id => ids.includes(id))] });
+  return;
+ }
  if (!/^\d{1,10}$/.test(kingdomId)) {
   res.status(400).json({ error: "Enter a numeric kingdom ID.", code: "invalid_kingdom_id" });
   return;
