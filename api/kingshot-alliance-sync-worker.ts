@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { normalizeRegistrationInput, registerPlayer } from "../internal/kingshot/register.js";
 
 const DB_URL=process.env.ALLIANCE_SYNC_DATABASE_URL||"";
-const JOB_SECRET=process.env.ALLIANCE_SYNC_CRON_SECRET||"";
+const JOB_SECRET=process.env.ALLIANCE_SYNC_CRON_SECRET||process.env.CRON_SECRET||"";
 const MP_BASE="https://api.mightpulse.com/v1";
 async function loadRoster(kingdom:string,tag:string){
  const r=await fetch(MP_BASE+"/alliances/"+encodeURIComponent(kingdom)+"/"+encodeURIComponent(tag)+"?include=info,roster",{headers:{Accept:"application/json"},signal:AbortSignal.timeout(20000)});
