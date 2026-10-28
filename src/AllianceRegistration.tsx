@@ -39,6 +39,8 @@ export default function AllianceRegistration() {
   const { t } = useSiteLanguage();
   const [kingdomId, setKingdomId] = useState("");
   const [query, setQuery] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [showAllAlliances, setShowAllAlliances] = useState(false);
   const [alliances, setAlliances] = useState<AllianceEntry[]>([]);
   const [discovering, setDiscovering] = useState(false);
   const [searchError, setSearchError] = useState("");
@@ -99,6 +101,7 @@ export default function AllianceRegistration() {
       if (!response.ok) throw new Error(data.error || t("alliance.searchFailed", "Could not load alliances for this kingdom."));
       const list = Array.isArray(data.alliances) ? data.alliances as AllianceEntry[] : [];
       setAlliances(list);
+      setShowAllAlliances(false);
       if (!list.length) setSearchError(t("alliance.noneFound", "No alliance list was returned for this kingdom. Try the exact-tag option below."));
       else if (query.trim() && !list.some(item => (item.name + " " + item.tag).toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))) {
         setSearchError(t("alliance.noMatches", "No matches in the returned ranking. You can try the exact alliance tag below."));
@@ -306,20 +309,21 @@ export default function AllianceRegistration() {
         </div>
         <form className="ks-alliance-discover-form" onSubmit={discover}>
           <label className="ks-alliance-field"><span>{t("alliance.kingdom", "Kingdom ID")}</span><input value={kingdomId} onChange={event => { setKingdomId(event.target.value.replace(/\D/g, "").slice(0, 10)); searchRequestRef.current++; rosterRequestRef.current++; setDiscovering(false); setLoadingRoster(false); setAlliances([]); setActiveAlliance(null); setRoster(null); setSelected([]); setOutcomes([]); setProcessedIds([]); setSearchError(""); setRosterError(""); }} inputMode="numeric" pattern="[0-9]*" maxLength={10} autoComplete="off" required aria-describedby="alliance-kingdom-help" placeholder={t("alliance.kingdomPlaceholder", "e.g. 1125")} disabled={discovering || registering}/><small className="ks-alliance-field-help" id="alliance-kingdom-help">{t("alliance.kingdomHelp", "Digits only. Use the kingdom where the alliance currently plays.")}</small></label>
-          <label className="ks-alliance-field"><span>{t("alliance.searchLabel", "Alliance name or tag")} <small>{t("alliance.optional", "optional")}</small></span><div className="ks-alliance-search-input"><Search size={16} aria-hidden="true"/><input value={query} onChange={event => { setQuery(event.target.value); setSearchError(""); }} autoComplete="off" aria-label={t("alliance.searchLabel", "Alliance name or tag")} placeholder={t("alliance.searchPlaceholder", "Search by name or tag")} disabled={discovering || registering}/>{query && <button type="button" className="ks-alliance-input-clear" aria-label={t("alliance.clearSearch", "Clear alliance search")} onClick={() => { setQuery(""); setSearchError(""); }} disabled={discovering || registering}><X size={14}/></button>}</div></label>
+          <div className="ks-alliance-optional-filter"><button type="button" className="ks-alliance-text-toggle" aria-expanded={filterOpen} onClick={() => setFilterOpen(value => !value)}><span>{t("alliance.filterOptional", "Filter by alliance name or tag (optional)")}</span><ChevronDown size={15} aria-hidden="true"/></button>{filterOpen && <label className="ks-alliance-field"><span>{t("alliance.searchLabel", "Alliance name or tag")}</span><div className="ks-alliance-search-input"><Search size={16} aria-hidden="true"/><input value={query} onChange={event => { setQuery(event.target.value); setSearchError(""); }} autoComplete="off" aria-label={t("alliance.searchLabel", "Alliance name or tag")} placeholder={t("alliance.searchPlaceholder", "Search by name or tag")} disabled={discovering || registering}/>{query && <button type="button" className="ks-alliance-input-clear" aria-label={t("alliance.clearSearch", "Clear alliance search")} onClick={() => { setQuery(""); setSearchError(""); }} disabled={discovering || registering}><X size={14}/></button>}</div></label>}</div>
           <button className="ks-alliance-primary" type="submit" disabled={discovering || registering || !kingdomId.trim()}>{discovering ? <LoaderCircle size={16} className="ks-alliance-spin"/> : <Search size={16}/>}<span>{discovering ? t("alliance.searching", "Searching…") : t("alliance.searchButton", "Search alliances")}</span></button>
         </form>
         <p className="ks-alliance-provider-note">{t("alliance.providerNote", "Alliance rankings are provided by MightPulse and may not include every alliance. Roster data can be up to 60 minutes old; review the member list before registering.")}</p>
         {searchError && <p className="ks-alliance-alert" role="status"><CircleAlert size={16}/><span>{searchError}</span></p>}
         {alliances.length > 0 && <div className="ks-alliance-results">
-          <div className="ks-alliance-results-head"><div><strong>{t("alliance.resultsHeading", "Matching alliances")}</strong><small>{t("alliance.resultsHint", "Choose an alliance to preview its roster.")}</small></div><span>{filteredAlliances.length} / {alliances.length}</span></div>
+          <div className="ks-alliance-results-head"><div><strong>{t("alliance.resultsHeading", "Matching alliances")}</strong><small>{t("alliance.resultsHint", "Choose an alliance to preview its roster.")}</small></div><span>{filteredAlliances.length} found</span></div>
           {filteredAlliances.length === 0 ? <p className="ks-alliance-empty">{t("alliance.noMatches", "No matches in the returned ranking. You can try the exact alliance tag below.")}</p> : <div className="ks-alliance-cards">
-            {filteredAlliances.map(item => <button type="button" key={item.kingdomId + ":" + item.tag} className={"ks-alliance-card" + (activeAlliance?.tag === item.tag && activeAlliance?.kingdomId === item.kingdomId ? " is-active" : "")} onClick={() => { void loadRoster(item); }} disabled={loadingRoster || registering}>
+            {(showAllAlliances || query.trim() ? filteredAlliances : filteredAlliances.slice(0, 6)).map(item => <button type="button" key={item.kingdomId + ":" + item.tag} className={"ks-alliance-card" + (activeAlliance?.tag === item.tag && activeAlliance?.kingdomId === item.kingdomId ? " is-active" : "")} onClick={() => { void loadRoster(item); }} disabled={loadingRoster || registering}>
               <span className="ks-alliance-flag">{item.flagUrl ? <img src={item.flagUrl} alt="" loading="lazy"/> : <Users size={18}/>}</span>
-              <span className="ks-alliance-card-copy"><strong>{item.name || item.tag}</strong><small><b>[{item.tag}]</b> · {t("alliance.kingdomLabel", "Kingdom")} {item.kingdomId}</small><small>{t("alliance.rankLabel", "Power rank")} {item.rank ?? "—"} · {item.memberCount ?? "—"} {t("alliance.members", "members")}</small></span>
+              <span className="ks-alliance-card-copy"><strong>[{item.tag}] {item.name || item.tag}</strong><small>{t("alliance.kingdomLabel", "Kingdom")} {item.kingdomId}</small><small>{t("alliance.rankLabel", "Power rank")} {item.rank ?? "—"} · {item.memberCount ?? "—"} {t("alliance.members", "members")}</small></span>
               <ArrowRight size={17} aria-hidden="true"/>
             </button>)}
           </div>}
+          {!query.trim() && filteredAlliances.length > 6 && <button type="button" className="ks-alliance-show-more" onClick={() => setShowAllAlliances(value => !value)}>{showAllAlliances ? t("alliance.showFewer", "Show fewer alliances") : t("alliance.showAll", "Show all") + " (" + filteredAlliances.length + ")"}</button>}
         </div>}
         <div className="ks-alliance-exact">
           <button type="button" className="ks-alliance-text-toggle" aria-expanded={tagFallbackOpen} onClick={() => setTagFallbackOpen(value => !value)}><span>{t("alliance.exactTagToggle", "Know the exact alliance tag?")}</span><ChevronDown size={15} aria-hidden="true"/></button>
@@ -339,7 +343,7 @@ export default function AllianceRegistration() {
           <div><h2 id="alliance-roster-heading">{t("alliance.rosterHeading", "Review the roster")}</h2><p>{t("alliance.rosterDescription", "Choose the members to register. Selection is capped at 100 IDs per batch.")}</p></div>
         </div>
         <div className="ks-alliance-roster-summary">
-          <div className="ks-alliance-roster-identity"><span className="ks-alliance-tag">[{roster.alliance.tag}]</span><div><strong>{roster.alliance.name}</strong><small>{t("alliance.kingdomLabel", "Kingdom")} {roster.alliance.kingdomId} · {roster.members.length} {t("alliance.members", "members")}</small></div></div>
+          <div className="ks-alliance-roster-identity"><span className="ks-alliance-tag">[{roster.alliance.tag}]</span><div><strong>[{roster.alliance.tag}] {roster.alliance.name}</strong><small>{t("alliance.kingdomLabel", "Kingdom")} {roster.alliance.kingdomId} · {roster.members.length} {t("alliance.members", "members")}</small></div></div>
           <div className="ks-alliance-roster-stats"><span><b>{formatNumber(roster.alliance.power)}</b><small>{t("alliance.power", "Power")}</small></span><span><b>{roster.members.length}</b><small>{t("alliance.rosterMembers", "Valid IDs")}</small></span><span><b>{completedCount}</b><small>{t("alliance.attempted", "attempted")}</small></span><button type="button" className="ks-alliance-refresh" onClick={() => activeAlliance && void loadRoster(activeAlliance)} disabled={loadingRoster || registering}>{loadingRoster ? <LoaderCircle size={14} className="ks-alliance-spin"/> : <RotateCcw size={14}/>}<span>{t("alliance.refreshRoster", "Refresh roster")}</span></button></div>
         </div>
         <div className={"ks-alliance-data-note" + (roster.stale ? " is-stale" : "")} role="status"><Info size={15}/><span>{roster.stale ? t("alliance.staleRoster", "This roster may be outdated. Review names and IDs carefully before registering.") : t("alliance.freshRoster", "Roster loaded. Review the members below before registering.")}{typeof roster.ageSeconds === "number" && <small><Clock3 size={12}/>{t("alliance.dataAge", "Data age")}: {roster.ageSeconds < 60 ? Math.max(0, Math.round(roster.ageSeconds)) + "s" : Math.round(roster.ageSeconds / 60) + "m"}</small>}</span></div>
