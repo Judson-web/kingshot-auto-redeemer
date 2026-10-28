@@ -21,6 +21,18 @@ test("alliance lookup ignores stale responses after a newer search or roster req
   assert.match(component, /requestId !== rosterRequestRef\.current/);
 });
 
+test("refreshing the same alliance preserves attempt history and only reconciles current selection", () => {
+  assert.match(component, /const sameAlliance = Boolean/);
+  assert.match(component, /if \(sameAlliance\) \{[\s\S]*?setSelected\(current => current\.filter\(id => validIds\.has\(id\)\)\)/);
+  assert.match(component, /if \(!sameAlliance\) \{/);
+});
+
+test("a new search clears a superseded roster loading state", () => {
+  assert.match(component, /rosterRequestRef\.current\+\+/);
+  assert.match(component, /setLoadingRoster\(false\);\s*setRoster\(null\);/);
+  assert.match(component, /normalized\.ageSeconds > 3600/);
+});
+
 test("alliance search submits the entered name or tag to the server", () => {
   assert.match(component, /mode: "search", kingdomId: kingdomId\.trim\(\), \.\.\.\(query\.trim\(\) \? \{ q: query\.trim\(\) \} : \{\}\)/);
 });
