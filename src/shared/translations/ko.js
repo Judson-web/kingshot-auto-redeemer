@@ -870,6 +870,8 @@ export default {
   "alliance.findDescription": "왕국 ID로 연맹을 검색한 뒤 원하는 연맹을 선택해 최신 구성원 명단을 확인하세요.",
   "alliance.kingdomPlaceholder": "예: 1125",
   "alliance.searchLabel": "연맹 이름 또는 태그",
+  "alliance.filterOptional": "연맹 필터 (선택 사항)",
+  "alliance.syncCompactNote": "매일 새로 발견된 미등록 구성원만 추가하며 기존 등록은 삭제하지 않습니다.",
   "alliance.optional": "선택 사항",
   "alliance.searchPlaceholder": "이름 또는 태그로 검색",
   "alliance.searching": "검색 중…",
