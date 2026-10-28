@@ -78,7 +78,7 @@ export default async function handler(req:any,res:any){
       throw new Error("Registration failed for new member "+member.id+": "+message);
      }
     }
-    const nextRun=new Date(Date.now()+Number(config.interval_hours||24)*3600000).toISOString();
+    const nextRun=new Date(Date.now()+24*3600000).toISOString();
     await db`update public.alliance_sync_config set alliance_name=${roster.name},last_success_at=now(),next_run_at=${nextRun}::timestamptz,lease_token=null,lease_expires_at=null,consecutive_failures=0,last_status='success',last_error_code=null,last_error_message=null,last_roster_count=${roster.members.length},last_added_count=${registered},updated_at=now() where id=${config.id}::uuid`;
     await db`update public.alliance_sync_runs set finished_at=now(),status='success',roster_count=${roster.members.length},added_count=${registered},skipped_count=${skipped} where id=${runId}::uuid`;
     results.push({configId:config.id,status:"success",rosterCount:roster.members.length,registered,skipped});
