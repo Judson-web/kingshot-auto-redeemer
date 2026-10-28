@@ -372,3 +372,22 @@
 .ks-alliance-diff-list>strong{font-size:11px;margin-bottom:2px}.ks-alliance-diff-list>span{font-size:11px;color:#d6d4cc;overflow-wrap:anywhere}.ks-alliance-diff-list small{color:#92938f;font-size:10px}.ks-alliance-diff-list .ks-alliance-secondary{margin-top:5px}
 .ks-alliance-roster-diff>p{margin:12px 0 0;color:#a5a6a8;font-size:12px}
 @media(max-width:560px){.ks-alliance-roster-diff{margin-left:12px;margin-right:12px}.ks-alliance-roster-diff-stats{gap:5px}.ks-alliance-roster-diff-stats>span{padding:8px}.ks-alliance-roster-diff-stats b{font-size:17px}}
+
+/* Automatic alliance sync controls. Kept within the alliance page scope. */
+.ks-alliance-sync-panel { margin-top: 22px; }
+.ks-alliance-sync-body { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; padding:18px 22px; flex-wrap:wrap; }
+.ks-alliance-sync-body select { min-height:42px; min-width:180px; border:1px solid #3b3c3e; border-radius:9px; background:#171819; color:#f0eee8; padding:0 12px; }
+.ks-alliance-sync-status { display:flex; align-items:flex-start; gap:12px; min-width:0; flex:1; }
+.ks-alliance-sync-status>div { display:flex; min-width:0; flex-direction:column; gap:5px; }
+.ks-alliance-sync-status strong { color:#f2efe7; font-size:13px; }
+.ks-alliance-sync-status small,.ks-alliance-sync-result { color:#a5a6a8; font-size:11px; line-height:1.5; overflow-wrap:anywhere; }
+.ks-alliance-sync-dot { flex:0 0 8px; width:8px; height:8px; border-radius:50%; margin-top:5px; background:#7c7c7c; }
+.ks-alliance-sync-dot.is-on { background:#85c79c; box-shadow:0 0 0 3px rgb(133 199 156 / 12%); }
+.ks-alliance-sync-dot.is-off { background:#d7a66d; }
+.ks-alliance-sync-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.ks-alliance-sync-actions button,.ks-alliance-sync-body>button { min-height:40px; }
+.ks-alliance-sync-message,.ks-alliance-sync-error,.ks-alliance-sync-result,.ks-alliance-sync-footnote { margin:0 22px 12px; }
+.ks-alliance-sync-message { color:#9dd8b1; font-size:12px; }
+.ks-alliance-sync-error { color:#e49b9b !important; font-size:12px; }
+.ks-alliance-sync-footnote { padding-top:12px; border-top:1px solid #252628; color:#8b8c8e; font-size:11px; line-height:1.65; }
+@media(max-width:560px){.ks-alliance-sync-body{align-items:stretch;flex-direction:column;padding:16px}.ks-alliance-sync-actions{width:100%}.ks-alliance-sync-actions button{flex:1}.ks-alliance-sync-message,.ks-alliance-sync-error,.ks-alliance-sync-result,.ks-alliance-sync-footnote{margin-left:16px;margin-right:16px}}
