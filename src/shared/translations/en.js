@@ -897,6 +897,7 @@ export default {
   "alliance.historyRoster": "Roster",
   "alliance.historyAdded": "New registrations",
   "alliance.historySkipped": "Already registered / skipped",
+  "alliance.historyDeparted": "Departed this run",
   "alliance.historyNeedsAttention": "Needs attention",
   "alliance.historyRetryHint": "Refresh the roster and retry registration only after checking the affected Player IDs.",
   "alliance.historyEmpty": "No completed sync runs are recorded yet. Registering this alliance will start its sync history.",
