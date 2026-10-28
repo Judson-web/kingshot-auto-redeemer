@@ -3,15 +3,14 @@ import { ArrowRight, Users } from "lucide-react";
 import { useSiteLanguage } from "../shared/site-language.js";
 
 export default function AllianceFeatureAnnouncement() {
-  const { t } = useSiteLanguage();
+  const { t, isKorean } = useSiteLanguage();
+  const message = isKorean ? "연맹 명단을 확인하고 신규 구성원을 최대 100명씩 등록하세요." : "Refresh your alliance roster and register newly found members in batches of up to 100.";
   return <section className="ks-alliance-feature-banner" aria-label={t("alliance.bannerLabel", "New feature: Alliance Registration")}>
     <span className="ks-alliance-feature-icon" aria-hidden="true"><Users size={17}/></span>
-    <div className="ks-alliance-feature-marquee" aria-label={t("alliance.bannerMessage", "Find your alliance and register members in batches of up to 100.")}>
+    <div className="ks-alliance-feature-marquee" aria-label={message}>
       <div className="ks-alliance-feature-track">
-        <span>{t("alliance.bannerMessage", "Find your alliance and register members in batches of up to 100.")}</span>
-        <span lang="ko">동맹을 찾고 최대 100명씩 플레이어를 등록하세요.</span>
-        <span aria-hidden="true">{t("alliance.bannerMessage", "Find your alliance and register members in batches of up to 100.")}</span>
-        <span aria-hidden="true">동맹을 찾고 최대 100명씩 플레이어를 등록하세요.</span>
+        <span>{message}</span>
+        <span aria-hidden="true">{message}</span>
       </div>
     </div>
     <a className="ks-alliance-feature-link" href="/alliance-registration">{t("alliance.bannerCta", "Alliance Registration")}<ArrowRight size={14} aria-hidden="true"/></a>
