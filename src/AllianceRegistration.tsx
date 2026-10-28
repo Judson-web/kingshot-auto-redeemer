@@ -402,8 +402,10 @@ export default function AllianceRegistration() {
             kingdomId: String(data.kingdomId)
           });
         } else if (response.ok || response.status === 401 || response.status === 403) {
-          // A confirmed inactive response clears the indicator. Authentication failures do too.
+          // When the durable server job finishes, refresh player statuses from the source of truth.
+          const completed = Boolean(allianceServerProgress?.active);
           setAllianceServerProgress(null);
+          if (completed && !cancelled) void loadRoster(activeAlliance, true);
         }
         // Keep the last confirmed progress through transient 429/5xx responses.
       } catch {
@@ -431,7 +433,13 @@ export default function AllianceRegistration() {
         body: JSON.stringify({ action: "register-alliance", kingdomId: activeAlliance.kingdomId || kingdomId.trim(), allianceTag: activeAlliance.tag, allianceName: activeAlliance.name })
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(String(data.error || t("alliance.allianceRegistrationFailed", "Could not register this alliance.")));
+      if (!response.ok) {
+        if (String(data.code || "") === "kingdom_alliance_limit") {
+          setAllianceSyncCapacity(current => ({ registeredCount: Math.max(3, current?.registeredCount ?? 3), limit: 3, isRegistered: false, managedByCurrentUser: false, enabled: false, status: null, canRegister: false }));
+          throw new Error(t("alliance.kingdomAllianceCapReached", "This kingdom already has 3 registered alliances (3/3). No more alliances can be registered here."));
+        }
+        throw new Error(String(data.error || t("alliance.allianceRegistrationFailed", "Could not register this alliance.")));
+      }
       // Reflect the accepted registration immediately while the server continues processing the roster.
       setAllianceSyncCapacity(current => ({ registeredCount: current?.registeredCount ?? 0, limit: 3, isRegistered: true, managedByCurrentUser: current?.managedByCurrentUser ?? true, enabled: true, status: "active", canRegister: false }));
       setProgress({ done: roster.members.length, total: roster.members.length, currentId: "", note: t("alliance.serverContinues", "Registration continues on the server. You can leave this page.") });
@@ -504,6 +512,7 @@ export default function AllianceRegistration() {
           </div>
           <div className="ks-alliance-roster-stats"><span><b>{formatNumber(roster.alliance.power)}</b><small>{t("alliance.power", "Power")}</small></span><span><b>{roster.members.length}</b><small>{t("alliance.members", "Members")}</small></span></div>
         </div>
+        {allianceSyncCapacity && !allianceSyncCapacity.isRegistered && allianceSyncCapacity.registeredCount >= allianceSyncCapacity.limit && <div className="ks-alliance-cap-alert" role="status"><CircleAlert size={17} aria-hidden="true"/><span><strong>{t("alliance.kingdomAllianceCapTitle", "Kingdom registration limit reached")}</strong><small>{t("alliance.kingdomAllianceCapReached", "This kingdom already has 3 registered alliances (3/3). No more alliances can be registered here.")}</small></span><b>{allianceSyncCapacity.registeredCount}/{allianceSyncCapacity.limit}</b></div>}
         {allianceServerProgress?.active && allianceServerProgress.allianceTag.toLocaleLowerCase() === activeAlliance.tag.toLocaleLowerCase() && allianceServerProgress.kingdomId === String(activeAlliance.kingdomId || kingdomId.trim()) && <div className="ks-alliance-server-progress" role="status" aria-live="polite">
           <div className="ks-alliance-server-progress-top"><span><LoaderCircle size={13} className="ks-alliance-spin" aria-hidden="true"/><strong>{t("alliance.serverProgressTitle", "Registering alliance")} · [{allianceServerProgress.allianceTag}] {allianceServerProgress.allianceName}</strong></span><b>{allianceServerProgress.processedCount} / {allianceServerProgress.totalCount || "—"}</b></div>
           <progress max={allianceServerProgress.totalCount || 1} value={Math.min(allianceServerProgress.processedCount, allianceServerProgress.totalCount || 0)} aria-label={t("alliance.progressLabel", "Alliance registration progress")}/>
