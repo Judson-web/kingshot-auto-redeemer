@@ -365,7 +365,7 @@ export default function AllianceRegistration() {
         <div className="ks-alliance-eyebrow"><span aria-hidden="true"/>{t("alliance.eyebrow", "BULK REGISTRATION")}</div>
         <h1>{t("alliance.pageTitle", "Alliance Registration")} <span className="ks-beta-tag ks-beta-tag-page">BETA</span></h1>
         <p>{t("alliance.pageIntro", "Browse alliance details and the full member roster without signing in. Sign in only when you are ready to register members who are not in the registry yet.")}</p>
-        <p className="ks-alliance-sync-note"><Clock3 size={13} aria-hidden="true"/><span>{t("alliance.syncCompactNote", "Daily sync adds new unregistered members only. Existing registrations are never removed.")}</span></p>
+        <p className="ks-alliance-sync-note"><Clock3 size={13} aria-hidden="true"/><span>{t("alliance.syncCompactNote", "Every 24h: adds new members only. Existing registrations stay.")}</span></p>
         <div className="ks-alliance-flow" aria-label={t("alliance.flowLabel", "Registration steps")}>
           <span className="is-current"><b>1</b>{t("alliance.flowFind", "Find alliance")}</span><i aria-hidden="true"/><span className={roster ? "is-current" : ""}><b>2</b>{t("alliance.flowReview", "Review members")}</span><i aria-hidden="true"/><span className={outcomes.length ? "is-current" : ""}><b>3</b>{t("alliance.flowRegister", "Register")}</span>
         </div>
