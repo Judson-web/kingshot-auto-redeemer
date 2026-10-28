@@ -8,11 +8,10 @@ const english = await readFile(new URL("../src/shared/translations/en.js", impor
 const korean = await readFile(new URL("../src/shared/translations/ko.js", import.meta.url), "utf8");
 const api = await readFile(new URL("../api/kingshot-player.ts", import.meta.url), "utf8");
 
-test("alliance registration requires explicit member selection before registering", () => {
-  assert.match(component, /setSelected\(\[\]\);/);
-  assert.match(component, /disabled=\{registering \|\| !selected\.length\}/);
-  assert.match(component, /const BATCH_LIMIT = 100/);
-  assert.match(component, /if \(!batch\.length\) return/);
+test("alliance registration uses one server-side whole-alliance action", () => {
+  assert.match(component, /const registerEntireAlliance = async/);
+  assert.match(component, /action: "register-alliance"/);
+  assert.doesNotMatch(component, /Register selected members|Select visible|Select new members|ks-alliance-selection-bar|ks-alliance-submit-row/);
 });
 
 test("alliance lookup ignores stale responses after a newer search or roster request", () => {
@@ -38,11 +37,10 @@ test("alliance search submits the entered name or tag to the server", () => {
   assert.match(component, /mode: "search", kingdomId: kingdomId\.trim\(\), \.\.\.\(query\.trim\(\) \? \{ q: query\.trim\(\) \} : \{\}\)/);
 });
 
-test("alliance roster edge cases have explicit empty, stale-data, and refresh UI", () => {
-  assert.match(component, /alliance\.emptyRosterTitle/);
-  assert.match(component, /alliance\.staleRoster/);
+test("alliance roster keeps a member filter, empty state, and refresh action", () => {
+  assert.match(component, /alliance\.noMembersMatch/);
   assert.match(component, /alliance\.refreshRoster/);
-  assert.match(component, /alliance\.clearFilterHint/);
+  assert.match(component, /alliance\.memberFilterPlaceholder/);
 });
 
 test("alliance page has reduced-motion, focus, and small-screen interaction styling", () => {
@@ -52,8 +50,8 @@ test("alliance page has reduced-motion, focus, and small-screen interaction styl
   assert.match(styles, /ks-alliance-empty-state/);
 });
 
-test("new alliance UI copy exists in both English and Korean dictionaries", () => {
-  for (const key of ["alliance.flowFind", "alliance.clearSelection", "alliance.staleRoster", "alliance.refreshRoster"]) {
+test("alliance registration labels exist in English and Korean dictionaries", () => {
+  for (const key of ["alliance.pageTitle", "alliance.alreadyRegistered", "alliance.notRegistered", "alliance.refreshRoster"]) {
     assert.ok(english.includes('"' + key + '"'), "missing English translation: " + key);
     assert.ok(korean.includes('"' + key + '"'), "missing Korean translation: " + key);
   }
@@ -71,14 +69,12 @@ test("alliance flag images reveal a fallback icon if the upstream asset fails", 
   assert.match(api, /row\.icon_url \?\? row\.iconUrl/);
 });
 
-test("registration results use compact scrollable cards and explicitly mark existing registrations", () => {
-  assert.match(component, /alliance\.alreadyRegistered/);
+test("whole-alliance registration respects the three-per-kingdom capacity and uses server progress", () => {
   assert.match(component, /allianceSyncCapacity\?\.canRegister/);
   assert.match(component, /allianceAlreadyRegistered/);
-  assert.match(component, /capacityData\.canRegister/,
-    "the whole-alliance register action must respect the server-enforced three-per-kingdom capacity");
-  assert.match(component, /className="ks-alliance-outcome-list" role="list"/);
-  assert.match(styles, /\.ks-alliance-outcome-list \{ max-height: 360px; overflow-y: auto/);
+  assert.match(component, /capacityData\.canRegister/);
+  assert.match(component, /ks-alliance-server-progress/);
+  assert.doesNotMatch(component, /ks-alliance-outcome-list/);
 });
 
 
@@ -89,8 +85,10 @@ test("alliance roster returns to the cached search results until the page is ref
   assert.match(component, /loadRoster\(activeAlliance, true\)/);
 });
 
-test("registered roster members show status without a selection checkbox", () => {
-  assert.match(component, /!registeredIds\.includes\(member\.playerId\) && !outcomes\.some\(item => item\.id === member\.playerId && item\.kind === "existing"\) && <input type="checkbox"/);
+test("roster shows registration status for every member without manual selection", () => {
+  assert.match(component, /registeredIds\.includes\(member\.playerId\) \? t\("alliance\.alreadyRegistered"/);
+  assert.match(component, /t\("alliance\.notRegistered", "Not registered"\)/);
+  assert.doesNotMatch(component, /<input type="checkbox"/);
 });
 
 test("automatic alliance sync is informational and scheduled after first registration", () => {
