@@ -289,7 +289,8 @@ export default function AllianceRegistration() {
             if (response.status !== 429) break;
             const seconds = Math.max(1, Math.min(120, Number(response.headers.get("Retry-After")) || 60));
             setProgress({ done: index, total: batch.length, currentId: id, note: t("alliance.rateLimitWait", "Registration is rate limited. Resuming in") + " " + seconds + "s." });
-            await delay((seconds + 1) * 1000);
+            for (let waited = 0; waited < (seconds + 1) * 1000 && !cancelRequestedRef.current; waited += 250) await delay(Math.min(250, (seconds + 1) * 1000 - waited));
+            if (cancelRequestedRef.current) break;
           }
           if (response?.ok) outcome = makeSuccessOutcome(id, safePlayer(member, roster.alliance), data) as Outcome;
           else outcome = makeFailureOutcome({
