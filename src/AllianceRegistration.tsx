@@ -58,8 +58,84 @@ export default function AllianceRegistration() {
   const [processedIds, setProcessedIds] = useState<string[]>([]);
   const [registering, setRegistering] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0, currentId: "", note: "" });
+  const [syncConfig, setSyncConfig] = useState<any>(null);
+  const [syncInterval, setSyncInterval] = useState(24);
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [syncMessage, setSyncMessage] = useState("");
+  const [syncError, setSyncError] = useState("");
+  const [syncResult, setSyncResult] = useState<any>(null);
+
   const searchRequestRef = useRef(0);
   const rosterRequestRef = useRef(0);
+
+
+  const refreshSyncConfig = async (alliance: AllianceEntry | null = activeAlliance) => {
+    if (!alliance) { setSyncConfig(null); return; }
+    try {
+      const response = await fetch("/api/kingshot-alliance-sync", { credentials: "same-origin", cache: "no-store" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Could not load auto-sync settings.");
+      const config = (Array.isArray(data.configs) ? data.configs : []).find((item: any) =>
+        String(item.kingdom_id) === String(alliance.kingdomId || kingdomId.trim()) &&
+        String(item.alliance_tag).toLowerCase() === String(alliance.tag).toLowerCase()
+      );
+      setSyncConfig(config || null);
+      if (config?.interval_hours) setSyncInterval(Number(config.interval_hours));
+    } catch (error) {
+      setSyncError(error instanceof Error ? error.message : "Could not load auto-sync settings.");
+    }
+  };
+
+  useEffect(() => {
+    if (accountState.status === "authenticated" && activeAlliance) {
+      setSyncError("");
+      void refreshSyncConfig(activeAlliance);
+    } else {
+      setSyncConfig(null);
+    }
+  }, [activeAlliance?.tag, activeAlliance?.kingdomId, accountState.status]);
+
+  const setupAutoSync = async () => {
+    if (!activeAlliance || syncBusy) return;
+    setSyncBusy(true); setSyncError(""); setSyncMessage(""); setSyncResult(null);
+    try {
+      const response = await fetch("/api/kingshot-alliance-sync", {
+        method: "POST", credentials: "same-origin", cache: "no-store",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "create", kingdomId: activeAlliance.kingdomId || kingdomId.trim(), allianceTag: activeAlliance.tag, allianceName: activeAlliance.name, intervalHours: syncInterval })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Could not enable auto sync.");
+      setSyncConfig(data.config || null);
+      setSyncMessage("Auto sync is registered. Its settings are fixed; you can pause or resume the schedule.");
+    } catch (error) {
+      setSyncError(error instanceof Error ? error.message : "Could not enable auto sync.");
+    } finally { setSyncBusy(false); }
+  };
+
+  const updateAutoSync = async (action: "sync" | "pause" | "resume") => {
+    if (!syncConfig || syncBusy) return;
+    setSyncBusy(true); setSyncError(""); setSyncMessage(""); setSyncResult(null);
+    try {
+      const response = await fetch("/api/kingshot-alliance-sync", {
+        method: "POST", credentials: "same-origin", cache: "no-store",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action, id: syncConfig.id })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Could not update auto-sync settings.");
+      if (action === "sync") {
+        setSyncResult(data);
+        setSyncMessage("Sync completed successfully.");
+      } else {
+        setSyncConfig((current: any) => current ? { ...current, ...(data.config || {}) } : current);
+        setSyncMessage(action === "pause" ? "Auto sync is paused." : "Auto sync has resumed.");
+      }
+      await refreshSyncConfig(activeAlliance);
+    } catch (error) {
+      setSyncError(error instanceof Error ? error.message : "Could not update auto-sync settings.");
+    } finally { setSyncBusy(false); }
+  };
 
   const filteredAlliances = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
@@ -73,7 +149,7 @@ export default function AllianceRegistration() {
     );
   }, [roster, memberFilter]);
   const summary = useMemo(() => summarizeRegistrationOutcomes(outcomes), [outcomes]);
-  const remainingCount = (roster?.members || []).filter(member => !processedIds.includes(member.playerId)).length;
+  const remainingCount = (roster?.members || []).filter(member => !registeredIds.includes(member.playerId) && !processedIds.includes(member.playerId)).length;
   const completedCount = processedIds.length;
   const selectedVisibleCount = visibleMembers.filter(member => selected.includes(member.playerId)).length;
 
@@ -158,8 +234,7 @@ export default function AllianceRegistration() {
         stale: Boolean(normalized.stale || (typeof normalized.ageSeconds === "number" && normalized.ageSeconds > 3600)),
         members: [...unique.values()]
       };
-      // Read the current registration table through the authenticated server endpoint.
-      // If status cannot be verified, fail closed rather than allowing duplicate registration.
+      // Supabase is authoritative. Do not show selectable members until every roster ID has been checked.
       const registered = new Set<string>();
       for (let offset = 0; offset < clean.members.length; offset += 150) {
         const ids = clean.members.slice(offset, offset + 150).map(member => member.playerId);
@@ -298,6 +373,7 @@ export default function AllianceRegistration() {
         processed.add(id);
         setProcessedIds([...processed]);
         setOutcomes(current => [...current.filter(item => item.id !== id), outcome as Outcome]);
+        if (outcome && ["registered", "existing", "reactivated"].includes(outcome.kind)) setRegisteredIds(current => current.includes(id) ? current : [...current, id]);
         setProgress({ done: index + 1, total: batch.length, currentId: index + 1 < batch.length ? batch[index + 1].playerId : "", note: "" });
       }
     } finally {
@@ -332,7 +408,7 @@ export default function AllianceRegistration() {
           <div><h2 id="alliance-find-heading">{t("alliance.findHeading", "Find your alliance")}</h2><p>{t("alliance.findDescription", "Search the alliance rankings for your kingdom, then choose the matching alliance.")}</p></div>
         </div>
         <form className="ks-alliance-discover-form" onSubmit={discover}>
-          <label className="ks-alliance-field"><span>{t("alliance.kingdom", "Kingdom ID")}</span><input value={kingdomId} onChange={event => { setKingdomId(event.target.value.replace(/\D/g, "").slice(0, 10)); searchRequestRef.current++; rosterRequestRef.current++; setDiscovering(false); setLoadingRoster(false); setAlliances([]); setActiveAlliance(null); setRoster(null); setSelected([]); setOutcomes([]); setProcessedIds([]); setSearchError(""); setRosterError(""); }} inputMode="numeric" pattern="[0-9]*" maxLength={10} autoComplete="off" required aria-describedby="alliance-kingdom-help" placeholder={t("alliance.kingdomPlaceholder", "e.g. 1125")} disabled={discovering || registering}/><small className="ks-alliance-field-help" id="alliance-kingdom-help">{t("alliance.kingdomHelp", "Digits only. Use the kingdom where the alliance currently plays.")}</small></label>
+          <label className="ks-alliance-field"><span>{t("alliance.kingdom", "Kingdom ID")}</span><input value={kingdomId} onChange={event => { setKingdomId(event.target.value.replace(/\D/g, "").slice(0, 10)); searchRequestRef.current++; rosterRequestRef.current++; setDiscovering(false); setLoadingRoster(false); setAlliances([]); setActiveAlliance(null); setRoster(null); setSelected([]); setRegisteredIds([]); setOutcomes([]); setProcessedIds([]); setSearchError(""); setRosterError(""); }} inputMode="numeric" pattern="[0-9]*" maxLength={10} autoComplete="off" required aria-describedby="alliance-kingdom-help" placeholder={t("alliance.kingdomPlaceholder", "e.g. 1125")} disabled={discovering || registering}/><small className="ks-alliance-field-help" id="alliance-kingdom-help">{t("alliance.kingdomHelp", "Digits only. Use the kingdom where the alliance currently plays.")}</small></label>
           <div className="ks-alliance-optional-filter"><button type="button" className="ks-alliance-text-toggle" aria-expanded={filterOpen} onClick={() => setFilterOpen(value => !value)}><span>{t("alliance.filterOptional", "Filter by alliance name or tag (optional)")}</span><ChevronDown size={15} aria-hidden="true"/></button>{filterOpen && <label className="ks-alliance-field"><span>{t("alliance.searchLabel", "Alliance name or tag")}</span><div className="ks-alliance-search-input"><Search size={16} aria-hidden="true"/><input value={query} onChange={event => { setQuery(event.target.value); setSearchError(""); }} autoComplete="off" aria-label={t("alliance.searchLabel", "Alliance name or tag")} placeholder={t("alliance.searchPlaceholder", "Search by name or tag")} disabled={discovering || registering}/>{query && <button type="button" className="ks-alliance-input-clear" aria-label={t("alliance.clearSearch", "Clear alliance search")} onClick={() => { setQuery(""); setSearchError(""); }} disabled={discovering || registering}><X size={14}/></button>}</div></label>}</div>
           <button className="ks-alliance-primary" type="submit" disabled={discovering || registering || !kingdomId.trim()}>{discovering ? <LoaderCircle size={16} className="ks-alliance-spin"/> : <Search size={16}/>}<span>{discovering ? t("alliance.searching", "Searching…") : t("alliance.searchButton", "Search alliances")}</span></button>
         </form>
@@ -399,6 +475,45 @@ export default function AllianceRegistration() {
         </div>}
       </section>}
     </main>
+
+    {activeAlliance && accountState.status === "authenticated" && <section className="ks-alliance-panel ks-alliance-sync-panel" aria-labelledby="ks-alliance-sync-title">
+      <div className="ks-alliance-panel-head">
+        <div className="ks-alliance-step">↻</div>
+        <div><h2 id="ks-alliance-sync-title">{t("alliance.autoSyncTitle", "Automatic alliance sync")}</h2>
+          <p>{t("alliance.autoSyncDescription", "Check for new members every 24 hours and register only newly discovered players. Existing registrations are never removed.")}</p></div>
+      </div>
+      {!syncConfig ? <div className="ks-alliance-sync-body">
+        <label className="ks-alliance-field"><span>{t("alliance.syncInterval", "Sync interval")}</span>
+          <select value={syncInterval} onChange={event => setSyncInterval(Number(event.target.value))} disabled={syncBusy}>
+            <option value={24}>{t("alliance.syncEvery24", "Every 24 hours")}</option>
+            <option value={48}>{t("alliance.syncEvery48", "Every 48 hours")}</option>
+            <option value={72}>{t("alliance.syncEvery72", "Every 3 days")}</option>
+            <option value={168}>{t("alliance.syncEvery168", "Every 7 days")}</option>
+          </select>
+        </label>
+        <button type="button" className="ks-alliance-primary" onClick={() => void setupAutoSync()} disabled={syncBusy}>
+          {syncBusy ? <LoaderCircle size={15} className="ks-alliance-spin"/> : <Clock3 size={15}/>}
+          {t("alliance.enableAutoSync", "Enable automatic sync")}
+        </button>
+      </div> : <div className="ks-alliance-sync-body">
+        <div className="ks-alliance-sync-status"><span className={"ks-alliance-sync-dot " + (syncConfig.enabled ? "is-on" : "is-off")}></span>
+          <div><strong>{syncConfig.enabled ? t("alliance.syncEnabled", "Automatic sync enabled") : t("alliance.syncPaused", "Automatic sync paused")}</strong>
+            <small>{t("alliance.syncInterval", "Sync interval")}: {syncConfig.interval_hours}h · {t("alliance.syncLastStatus", "Last status")}: {syncConfig.last_status || "pending"}</small>
+            <small>{t("alliance.syncLastSuccess", "Last successful sync")}: {syncConfig.last_success_at ? new Date(syncConfig.last_success_at).toLocaleString() : t("alliance.syncNotYet", "Not yet")}</small>
+            <small>{t("alliance.syncNextRun", "Next scheduled check")}: {syncConfig.next_run_at ? new Date(syncConfig.next_run_at).toLocaleString() : t("alliance.syncPending", "Pending")}</small>
+            {syncConfig.last_error_message && <small className="ks-alliance-sync-error">{syncConfig.last_error_message}</small>}
+          </div>
+        </div>
+        <div className="ks-alliance-sync-actions">
+          <button type="button" className="ks-alliance-primary" onClick={() => void updateAutoSync("sync")} disabled={syncBusy}>{syncBusy ? <LoaderCircle size={14} className="ks-alliance-spin"/> : <RotateCcw size={14}/>} {t("alliance.syncNow", "Sync now")}</button>
+          <button type="button" className="ks-alliance-secondary" onClick={() => void updateAutoSync(syncConfig.enabled ? "pause" : "resume")} disabled={syncBusy}>{syncConfig.enabled ? t("alliance.pauseSync", "Pause") : t("alliance.resumeSync", "Resume")}</button>
+        </div>
+        {syncResult && <small className="ks-alliance-sync-result">{syncResult.rosterCount ?? 0} {t("alliance.syncMembersChecked", "members checked")} · {syncResult.addedCount ?? 0} {t("alliance.syncRegistered", "registered or confirmed")} · {syncResult.skippedCount ?? 0} {t("alliance.syncUnchanged", "already tracked")}</small>}
+      </div>}
+      {syncMessage && <p className="ks-alliance-sync-message" role="status">{syncMessage}</p>}
+      {syncError && <p className="ks-alliance-sync-error" role="alert">{syncError}</p>}
+      <p className="ks-alliance-sync-footnote">{t("alliance.syncSafetyNote", "A provider outage or incomplete roster will not advance the schedule. Departed members are never deregistered. Automatic runs are handled server-side, not by an open browser tab.")}</p>
+    </section>}
     <footer className="ks-alliance-page-footer"><span>{t("common.footer", "Independent Kingshot community service. Not affiliated with Century Games.")}</span><span><a href="/info">{t("info.title", "How it works")}</a> · <a href="/terms?service=kingshot-auto">{t("legal.termsTab", "Terms")}</a> · <a href="/privacy?service=kingshot-auto">{t("legal.privacyTab", "Privacy")}</a></span></footer>
   </div>;
 }
