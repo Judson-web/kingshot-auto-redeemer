@@ -25,7 +25,7 @@ fs.mkdirSync(artifactDir, { recursive: true });
 const scenarios = [
   { name: "home-mobile", path: "/", heading: /automatic redemption/i, maxDiffRatio: 0.04 },
   { name: "support-open-mobile", path: "/", heading: /automatic redemption/i, supportOpen: true, maxDiffRatio: 0.045 },
-  { name: "profile-anonymous-mobile", path: "/profile", heading: /developer\/admin access/i, visibleText: /continue to developer api/i, maxDiffRatio: 0.04 },
+  { name: "profile-anonymous-mobile", path: "/profile", heading: /sign in with discord/i, visibleText: /continue with discord/i, maxDiffRatio: 0.04 },
   { name: "developer-anonymous-mobile", path: "/developer", heading: /developer api documentation/i, visibleText: /continue with discord/i, maxDiffRatio: 0.04 },
   { name: "admin-players-denied-mobile", path: "/admin/players", heading: /player database/i, visibleText: /sign in to view player data/i, waitFor: ".ap-access-card", maxDiffRatio: 0.04 }
 ];
