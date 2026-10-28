@@ -38,9 +38,9 @@ test("alliance search submits the entered name or tag to the server", () => {
 });
 
 test("alliance roster keeps a member filter, empty state, and refresh action", () => {
-  assert.match(component, /alliance\.noMembersMatch/);
   assert.match(component, /alliance\.refreshRoster/);
   assert.match(component, /alliance\.memberFilterPlaceholder/);
+  assert.match(component, /ks-alliance-empty-state/);
 });
 
 test("alliance page has reduced-motion, focus, and small-screen interaction styling", () => {
@@ -106,11 +106,11 @@ test("alliance flag is visible in the roster identity and retains a fallback ico
 });
 
 
-test("alliance batch cancellation stops before submitting the next player", () => {
-  assert.match(component, /cancelRequestedRef\.current = true/);
-  assert.match(component, /if \(cancelRequestedRef\.current\) break/);
-  assert.match(component, /alliance\.cancelRegistration/);
-  assert.match(component, /window\.addEventListener\("pagehide", handlePageHide\)/);
+test("alliance registration UI has no manual player registration or cancellation controls", () => {
+  assert.doesNotMatch(component, /alliance\.cancelRegistration/);
+  assert.doesNotMatch(component, /alliance\.registerSelectedMembers/);
+  assert.doesNotMatch(component, /<input type="checkbox"/);
+  assert.match(component, /action: "register-alliance"/);
 });
 
 test("automatic registration cancellation preserves completed outcomes and skips unstarted IDs", async () => {
