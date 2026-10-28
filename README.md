@@ -52,7 +52,7 @@ The production service is available at [kingshot-autoredeemer.vercel.app](https:
 |---|---|
 | `/` | Home page |
 | `/auto` | Automatic redemption |
-| `/alliance-registration` | Discover an alliance roster, register eligible new players, and optionally configure a scheduled additions-only sync |
+| `/alliance-registration` | Search and select an alliance; the roster is fetched automatically. Register all eligible members in batches or manually choose individual members. A single additions-only 24-hour sync is configured for the alliance, with existing Supabase registrations skipped. |
 | `/manual` | Manual redemption |
 | `/redeem` | Redemption experience |
 | `/gift-codes` | Gift-code information |
@@ -92,7 +92,7 @@ Upstream availability, code validity, player eligibility, and provider rate limi
 
 ## Registration cancellation and network safety
 
-Bulk alliance registration and automatic-registration batches provide a cooperative **Cancel remaining** control. Cancellation stops the next unstarted player from being submitted and preserves results already received; an in-flight request is allowed to settle because stopping the browser request cannot reliably undo work already accepted by the server. Closing or refreshing a tab is only a best-effort stop signal, not a durable server-side cancellation guarantee.
+Whole-alliance registration processes eligible members in bounded batches and provides a cooperative **Cancel remaining** control. Individual-member registration and automatic-registration batches also provide the same control. Cancellation stops the next unstarted player from being submitted and preserves results already received; an in-flight request is allowed to settle because stopping the browser request cannot reliably undo work already accepted by the server. Closing or refreshing a tab is only a best-effort stop signal, not a durable server-side cancellation guarantee.
 
 Manual redemption provides a **Stop waiting** action for a stalled request. If the player lookup is cancelled before a gift code is submitted, the code is not sent by that flow. If the redemption request may already have reached Kingshot, the result is treated as unknown: the UI does not automatically resubmit it. Check the in-game result before trying again. A lost connection or timeout does not prove that the upstream service did nothing. For API integrations, follow the documented idempotency guidance and reuse the same `Idempotency-Key` and request body when retrying an ambiguous request.
 
@@ -102,7 +102,7 @@ These controls improve recovery from slow or unreliable connections, but they ca
 
 Supabase PostgreSQL is the authoritative registry for player registrations and application account state. Neon PostgreSQL is used for two separate purposes: an independent redemption-recovery journal, and the alliance-sync scheduler's configuration, run history, and seen-player status. The two databases do not replicate each other's tables directly. Server-side application handlers coordinate them: before alliance sync attempts registration, it performs a read-only check against Supabase and skips IDs already registered there. The existing registration RPC remains the final guard for new registrations.
 
-Alliance sync is additions-only. It validates the provider roster, uses a database-backed lease to prevent concurrent runs for the same alliance, and records outcomes in Neon. It does not deregister departed members. A provider failure or an unverifiable Supabase status fails closed rather than treating every player as new. The scheduled worker is separate from the redemption worker, and both routes are consolidated through the existing player API entrypoint to stay within the deployment platform's serverless-function limits.
+Alliance member registration supports two explicit paths: **Register entire alliance** fetches the selected alliance roster and processes all eligible IDs in batches of up to 100; **Register selected members** lets the user manually choose individual IDs. The roster is fetched when an alliance is selected, and the user can refresh it before submitting. Already-registered IDs are checked against Supabase and skipped. After the first registration flow, one scheduler configuration is created for that kingdom/alliance; uniqueness constraints prevent duplicate scheduler owners. The scheduled worker refreshes the provider roster every 24 hours and adds only newly discovered, unregistered members. It never deregisters departed members. A provider failure, stale/incomplete roster, or unverifiable Supabase status fails closed rather than treating every player as new. The scheduled worker is separate from the redemption worker, and both routes are consolidated through the existing player API entrypoint to stay within the deployment platform's serverless-function limits.
 
 Public documentation deliberately omits secret names and values, database identifiers, private user records, and recovery artifacts. Keep the Neon connection strings, Supabase service credentials, and scheduler authorization secret in the deployment secret store only.
 

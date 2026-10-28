@@ -8,14 +8,14 @@ export default function AllianceFeatureAnnouncement() {
   const dismiss = () => { setDismissed(true); try { window.localStorage.setItem("ks-alliance-feature-dismissed", "1"); } catch { /* Keep dismissed for this session if storage is unavailable. */ } };
   if (dismissed) return null;
   const message = isKorean
-    ? "연맹 명단을 한눈에 확인하고, 새로운 구성원을 더 빠르게 등록하세요."
-    : "Your alliance, at a glance. Find your roster and register new members in a few clicks.";
+    ? "연맹 명단을 자동으로 불러와 전체 또는 원하는 구성원만 등록하세요."
+    : "Load your alliance roster automatically, register everyone, or choose individual members.";
   return (
     <aside className="ks-alliance-feature-banner" aria-label={t("alliance.bannerLabel", "New feature: Alliance Registration")}>
       <span className="ks-alliance-feature-icon" aria-hidden="true"><Sparkles size={17} /></span>
       <div className="ks-alliance-feature-copy">
         <span className="ks-alliance-feature-kicker">{isKorean ? "새로운 기능" : "NEW FEATURE"} <b className="ks-beta-tag">BETA</b></span>
-        <strong className="ks-alliance-feature-title">{isKorean ? "연맹 등록" : "Alliance Registration"}</strong>
+        <strong className="ks-alliance-feature-title">{isKorean ? "연맹 구성원 등록" : "Alliance Member Registration"}</strong>
         <span className="ks-alliance-feature-message">{message}</span>
       </div>
       <span className="ks-alliance-feature-divider" aria-hidden="true" />
