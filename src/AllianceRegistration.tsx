@@ -80,7 +80,7 @@ export default function AllianceRegistration() {
         String(item.alliance_tag).toLowerCase() === String(alliance.tag).toLowerCase()
       );
       setSyncConfig(config || null);
-      if (config?.interval_hours) setSyncInterval(Number(config.interval_hours));
+      setSyncInterval(24);
     } catch (error) {
       setSyncError(error instanceof Error ? error.message : "Could not load auto-sync settings.");
     }
@@ -102,7 +102,7 @@ export default function AllianceRegistration() {
       const response = await fetch("/api/kingshot-alliance-sync", {
         method: "POST", credentials: "same-origin", cache: "no-store",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "create", kingdomId: activeAlliance.kingdomId || kingdomId.trim(), allianceTag: activeAlliance.tag, allianceName: activeAlliance.name, intervalHours: syncInterval })
+        body: JSON.stringify({ action: "create", kingdomId: activeAlliance.kingdomId || kingdomId.trim(), allianceTag: activeAlliance.tag, allianceName: activeAlliance.name, intervalHours: 24 })
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Could not enable auto sync.");
@@ -382,13 +382,9 @@ export default function AllianceRegistration() {
     }
   };
 
+  const canRegister = accountState.status === "authenticated" && Boolean(accountState.account);
   const selectableVisibleMembers = visibleMembers.filter(member => !registeredIds.includes(member.playerId) && !outcomes.some(item => item.id === member.playerId && item.kind === "existing"));
   const allVisibleSelected = selectableVisibleMembers.length > 0 && selectableVisibleMembers.every(member => selected.includes(member.playerId));
-  if (accountState.status !== "authenticated" || !accountState.account) {
-    const checking = accountState.status === "checking" || accountState.status === "cached";
-    return <div className="app ks-app ks-alliance-app"><PublicSiteHeader current="alliance-registration" /><main id="alliance-main"><section className="ks-alliance-login-gate" aria-labelledby="alliance-login-title"><span className="ks-alliance-login-icon"><ShieldCheck size={26} aria-hidden="true" /></span><p className="ks-alliance-eyebrow"><span aria-hidden="true" />{t("alliance.eyebrow", "BULK REGISTRATION")}</p><h1 id="alliance-login-title">{checking ? t("alliance.authChecking", "Checking your session…") : t("alliance.loginTitle", "Sign in to continue")}</h1><p>{t("alliance.loginDescription", "Sign in with Discord to search alliance rosters and manage member registration. Your roster tools are available only to authenticated users.")}</p>{!checking && <a className="ks-alliance-primary ks-alliance-login-button" href={"/profile?returnTo=" + encodeURIComponent("/alliance-registration")}><ShieldCheck size={16} />{t("alliance.loginButton", "Continue with Discord")}</a>}<small>{t("alliance.loginPrivacy", "Your existing Auto Registration settings are not changed by this feature.")}</small></section></main></div>;
-  }
-
   return <div className="app ks-app ks-alliance-app">
     <a className="skip-link" href="#alliance-main">{t("common.skip", "Skip to main content")}</a>
     <PublicSiteHeader current="alliance-registration" />
@@ -449,15 +445,15 @@ export default function AllianceRegistration() {
         <div className="ks-alliance-selection-bar">
           <div className="ks-alliance-selection-count"><strong>{selected.length}<span> / {BATCH_LIMIT}</span></strong><span>{t("alliance.selectedThisBatch", "selected for this batch")}</span><small>{selectedVisibleCount} {t("alliance.selectedVisible", "of visible members selected")}</small></div>
           <div className="ks-alliance-selection-actions">
-            <button type="button" className="ks-alliance-link-button" onClick={() => allVisibleSelected ? setSelected(current => current.filter(id => !visibleMembers.some(member => member.playerId === id))) : selectVisible()} disabled={registering || !visibleMembers.length}>{allVisibleSelected ? t("alliance.clearVisible", "Clear visible") : t("alliance.selectVisible", "Select visible")} <CheckCheck size={13}/></button>
-            <button type="button" className="ks-alliance-link-button" onClick={() => setSelected([])} disabled={registering || !selected.length}>{t("alliance.clearSelection", "Clear selection")} <X size={13}/></button>
+            <button type="button" className="ks-alliance-link-button" onClick={() => allVisibleSelected ? setSelected(current => current.filter(id => !visibleMembers.some(member => member.playerId === id))) : selectVisible()} disabled={!canRegister || registering || !visibleMembers.length}>{allVisibleSelected ? t("alliance.clearVisible", "Clear visible") : t("alliance.selectVisible", "Select visible")} <CheckCheck size={13}/></button>
+            <button type="button" className="ks-alliance-link-button" onClick={() => setSelected([])} disabled={!canRegister || registering || !selected.length}>{t("alliance.clearSelection", "Clear selection")} <X size={13}/></button>
             <button type="button" className="ks-alliance-link-button" onClick={selectNextBatch} disabled={registering || remainingCount === 0}>{t("alliance.selectNext", "Select next batch")} <ArrowRight size={13}/></button>
           </div>
         </div>
         <label className="ks-alliance-member-filter"><Search size={15} aria-hidden="true"/><input value={memberFilter} onChange={event => setMemberFilter(event.target.value)} placeholder={t("alliance.memberFilterPlaceholder", "Filter by name, Player ID or rank")} aria-label={t("alliance.memberFilterLabel", "Filter alliance members")} disabled={registering}/></label>
         <div className="ks-alliance-member-list" role="group" aria-label={t("alliance.memberListLabel", "Alliance member selection")}>
           {visibleMembers.map(member => <label className={"ks-alliance-member" + (selected.includes(member.playerId) ? " is-selected" : "")} key={member.playerId}>
-            <input type="checkbox" checked={selected.includes(member.playerId)} onChange={() => toggleMember(member.playerId)} disabled={registering || registeredIds.includes(member.playerId) || outcomes.some(item => item.id === member.playerId && item.kind === "existing") || (!selected.includes(member.playerId) && selected.length >= BATCH_LIMIT)}/>
+            <input type="checkbox" checked={selected.includes(member.playerId)} onChange={() => toggleMember(member.playerId)} disabled={!canRegister || registering || registeredIds.includes(member.playerId) || outcomes.some(item => item.id === member.playerId && item.kind === "existing") || (!selected.includes(member.playerId) && selected.length >= BATCH_LIMIT)}/>
             {member.avatarUrl ? <img className="ks-alliance-member-avatar" src={member.avatarUrl} alt="" loading="lazy"/> : <span className="ks-alliance-member-avatar ks-alliance-avatar-fallback"><UserRound size={16}/></span>}
             <span className="ks-alliance-member-copy"><strong>{member.name || t("alliance.unknownPlayer", "Kingshot Player")}</strong><small><span>ID {member.playerId}</span><i>·</i><span>{formatNumber(member.power)} {t("alliance.power", "power")}</span>{member.allianceRank && <><i>·</i><span>{member.allianceRank}</span></>}</small></span>
             {(registeredIds.includes(member.playerId) || outcomes.some(item => item.id === member.playerId && item.kind === "existing")) && <span className="ks-alliance-status-pill is-existing">{t("alliance.alreadyRegistered", "Already registered")}</span>}{selected.includes(member.playerId) && <Check size={16} className="ks-alliance-selected-check" aria-hidden="true"/>}
@@ -466,7 +462,7 @@ export default function AllianceRegistration() {
         </div>
         <div className="ks-alliance-submit-row">
           <div className="ks-alliance-submit-note"><ShieldCheck size={16}/><span>{t("alliance.submitNote", "Player IDs are registered individually through the existing secure workflow. Your game password is never requested.")}<small>{t("alliance.batchNote", "Only selected members are processed. You can review results before choosing another batch.")}</small></span></div>
-          <button type="button" className="ks-alliance-primary ks-alliance-register-button" onClick={() => void registerSelected()} disabled={registering || !selected.length}>{registering ? <LoaderCircle size={16} className="ks-alliance-spin"/> : <CheckCircle2 size={16}/>}<span>{registering ? t("alliance.registering", "Registering…") : t("alliance.registerBatch", "Register selected")} <b>{selected.length}</b></span></button>
+          {canRegister ? <button type="button" className="ks-alliance-primary ks-alliance-register-button" onClick={() => void registerSelected()} disabled={registering || !selected.length}>{registering ? <LoaderCircle size={16} className="ks-alliance-spin"/> : <CheckCircle2 size={16}/>}<span>{registering ? t("alliance.registering", "Registering…") : t("alliance.registerBatch", "Register selected")} <b>{selected.length}</b></span></button> : <a className="ks-alliance-primary ks-alliance-register-button" href={"/profile?returnTo=" + encodeURIComponent("/alliance-registration")}><ShieldCheck size={16}/><span>{t("alliance.loginButton", "Sign in with Discord to register")}</span></a>}
         </div>
         {registering && <div className="ks-alliance-progress" role="status" aria-live="polite" aria-atomic="true"><div className="ks-alliance-progress-top"><strong>{t("alliance.registeringBatch", "Registering batch")}</strong><span>{progress.done} / {progress.total}</span></div><progress max={progress.total || 1} value={progress.done} aria-label={t("alliance.progressLabel", "Alliance registration progress")}/><small>{progress.currentId ? t("alliance.processingId", "Processing Player ID") + " " + progress.currentId : t("alliance.finalizing", "Finishing this batch…")}</small>{progress.note && <small className="ks-alliance-progress-note">{progress.note}</small>}</div>}
         {outcomes.length > 0 && <div className="ks-alliance-outcomes">
@@ -476,21 +472,14 @@ export default function AllianceRegistration() {
       </section>}
     </main>
 
-    {activeAlliance && accountState.status === "authenticated" && <section className="ks-alliance-panel ks-alliance-sync-panel" aria-labelledby="ks-alliance-sync-title">
+    {activeAlliance && canRegister && <section className="ks-alliance-panel ks-alliance-sync-panel" aria-labelledby="ks-alliance-sync-title">
       <div className="ks-alliance-panel-head">
         <div className="ks-alliance-step">↻</div>
         <div><h2 id="ks-alliance-sync-title">{t("alliance.autoSyncTitle", "Automatic alliance sync")}</h2>
-          <p>{t("alliance.autoSyncDescription", "Check for new members every 24 hours and register only newly discovered players. Existing registrations are never removed.")}</p></div>
+          <p>{t("alliance.autoSyncDescription", "Automatic sync runs every 24 hours. This schedule is fixed and cannot be changed. Only newly discovered, unregistered members are added; existing registrations are never removed.")}</p></div>
       </div>
       {!syncConfig ? <div className="ks-alliance-sync-body">
-        <label className="ks-alliance-field"><span>{t("alliance.syncInterval", "Sync interval")}</span>
-          <select value={syncInterval} onChange={event => setSyncInterval(Number(event.target.value))} disabled={syncBusy}>
-            <option value={24}>{t("alliance.syncEvery24", "Every 24 hours")}</option>
-            <option value={48}>{t("alliance.syncEvery48", "Every 48 hours")}</option>
-            <option value={72}>{t("alliance.syncEvery72", "Every 3 days")}</option>
-            <option value={168}>{t("alliance.syncEvery168", "Every 7 days")}</option>
-          </select>
-        </label>
+        <div className="ks-alliance-sync-fixed"><span className="ks-alliance-sync-fixed-icon"><Clock3 size={16}/></span><div><strong>{t("alliance.syncEvery24", "Every 24 hours")}</strong><small>{t("alliance.syncFixed", "Fixed schedule · cannot be changed")}</small></div></div>
         <button type="button" className="ks-alliance-primary" onClick={() => void setupAutoSync()} disabled={syncBusy}>
           {syncBusy ? <LoaderCircle size={15} className="ks-alliance-spin"/> : <Clock3 size={15}/>}
           {t("alliance.enableAutoSync", "Enable automatic sync")}
