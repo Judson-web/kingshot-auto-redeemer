@@ -1,8 +1,9 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, CheckCheck, CheckCircle2, ChevronDown, CircleAlert, Clock3, Info, LoaderCircle, Search, ShieldCheck, Users, UserRound, RotateCcw, X } from "lucide-react";
 import { makeFailureOutcome, makeSuccessOutcome, summarizeRegistrationOutcomes } from "./registration-outcomes.js";
 import { useSiteLanguage } from "./shared/site-language.js";
 import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
+import { useAccountState, refreshAccount } from "./shared/account-state.js";
 import "./alliance-registration.css";
 
 type AllianceEntry = {
@@ -37,6 +38,8 @@ function safePlayer(member: AllianceMember, alliance: AllianceResult["alliance"]
 
 export default function AllianceRegistration() {
   const { t } = useSiteLanguage();
+  const accountState = useAccountState();
+  useEffect(() => { void refreshAccount(); }, []);
   const [kingdomId, setKingdomId] = useState("");
   const [query, setQuery] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -271,6 +274,11 @@ export default function AllianceRegistration() {
   };
 
   const allVisibleSelected = visibleMembers.length > 0 && visibleMembers.every(member => selected.includes(member.playerId));
+  if (accountState.status !== "authenticated" || !accountState.account) {
+    const checking = accountState.status === "checking" || accountState.status === "cached";
+    return <div className="app ks-app ks-alliance-app"><PublicSiteHeader current="alliance-registration" /><main id="alliance-main"><section className="ks-alliance-login-gate" aria-labelledby="alliance-login-title"><span className="ks-alliance-login-icon"><ShieldCheck size={26} aria-hidden="true" /></span><p className="ks-alliance-eyebrow"><span aria-hidden="true" />{t("alliance.eyebrow", "BULK REGISTRATION")}</p><h1 id="alliance-login-title">{checking ? t("alliance.authChecking", "Checking your session…") : t("alliance.loginTitle", "Sign in to continue")}</h1><p>{t("alliance.loginDescription", "Sign in with Discord to search alliance rosters and manage member registration. Your roster tools are available only to authenticated users.")}</p>{!checking && <a className="ks-alliance-primary ks-alliance-login-button" href={"/profile?returnTo=" + encodeURIComponent("/alliance-registration")}><ShieldCheck size={16} />{t("alliance.loginButton", "Continue with Discord")}</a>}<small>{t("alliance.loginPrivacy", "Your existing Auto Registration settings are not changed by this feature.")}</small></section></main></div>;
+  }
+
   return <div className="app ks-app ks-alliance-app">
     <a className="skip-link" href="#alliance-main">{t("common.skip", "Skip to main content")}</a>
     <PublicSiteHeader current="alliance-registration" />
