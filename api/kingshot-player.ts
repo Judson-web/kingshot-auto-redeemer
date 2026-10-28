@@ -302,13 +302,21 @@ async function handleAllianceLookup(req: RequestLike, res: ResponseLike): Promis
     const name = String(row.name ?? row.alliance_name ?? allianceTag).trim().slice(0, 80) || allianceTag;
     const powerRaw = row.power ?? row.score ?? row.alliance_power;
     const countRaw = row.member_count ?? row.memberCount ?? row.count;
-    const flag = String(row.flag_url ?? row.flagUrl ?? "").trim();
+    const flagRaw = row.flag_url ?? row.flagUrl ?? row.flag ?? row.icon_url ?? row.iconUrl ?? row.image_url ?? row.imageUrl ?? row.logo_url ?? row.logoUrl ?? row.emblem_url ?? row.emblemUrl ?? "";
+    const flag = typeof flagRaw === "string" ? flagRaw.trim() : String((flagRaw && typeof flagRaw === "object" ? flagRaw.url ?? flagRaw.src ?? flagRaw.image ?? "" : "")).trim();
+    let normalizedFlag = "";
+    if (flag) {
+     try {
+      const candidate = new URL(flag, "https://www.mightpulse.com/");
+      if (candidate.protocol === "https:" && !candidate.username && !candidate.password) normalizedFlag = candidate.href;
+     } catch { /* Ignore malformed optional alliance artwork. */ }
+    }
     return [{
      name, tag: allianceTag, kingdomId: String(row.kid ?? kingdomId),
      power: powerRaw == null || !Number.isFinite(Number(powerRaw)) ? null : Number(powerRaw),
      memberCount: countRaw == null || !Number.isFinite(Number(countRaw)) ? null : Number(countRaw),
      leaderName: String(row.leader_name ?? row.leaderName ?? "").trim().slice(0, 80),
-     flagUrl: /^https:\/\//i.test(flag) ? flag : "",
+     flagUrl: normalizedFlag,
      rank: Number.isFinite(Number(row.rank)) ? Number(row.rank) : index + 1
     }];
    });
