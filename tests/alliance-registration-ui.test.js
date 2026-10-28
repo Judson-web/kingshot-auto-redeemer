@@ -12,7 +12,7 @@ test("alliance registration requires explicit member selection before registerin
   assert.match(component, /disabled=\{registering \|\| !selected\.length\}/);
   assert.match(component, /const BATCH_LIMIT = 100/);
   assert.match(component, /if \(!batch\.length\) return/);
-});;
+});
 
 test("alliance lookup ignores stale responses after a newer search or roster request", () => {
   assert.match(component, /const searchRequestRef = useRef\(0\)/);
