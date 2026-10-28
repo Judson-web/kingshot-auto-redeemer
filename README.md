@@ -57,9 +57,9 @@ The production service is available at [kingshot-autoredeemer.vercel.app](https:
 | `/redeem` | Redemption experience |
 | `/gift-codes` | Gift-code information |
 | `/info` | Service information |
-| `/profile` | Developer/admin profile and access gate |
+| `/profile` | Shared account profile and settings |
 | `/message` | Public message page |
-| `/developer` | Developer portal |
+| `/developer` | Developer API and key management |
 | `/devsupport` | Developer support |
 | `/push` | Restricted push-notification tools |
 | `/admin/maintenance` | Restricted maintenance controls |
