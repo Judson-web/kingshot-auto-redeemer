@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronDown, CircleAlert, LoaderCircle, Search, ShieldCheck, Users, UserRound, RotateCcw } from "lucide-react";
+import React, { useMemo, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, Check, CheckCheck, CheckCircle2, ChevronDown, CircleAlert, Clock3, Info, LoaderCircle, Search, ShieldCheck, Users, UserRound, RotateCcw, X } from "lucide-react";
 import { makeFailureOutcome, makeSuccessOutcome, summarizeRegistrationOutcomes } from "./registration-outcomes.js";
 import { useSiteLanguage } from "./shared/site-language.js";
 import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
@@ -54,6 +54,8 @@ export default function AllianceRegistration() {
   const [processedIds, setProcessedIds] = useState<string[]>([]);
   const [registering, setRegistering] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0, currentId: "", note: "" });
+  const searchRequestRef = useRef(0);
+  const rosterRequestRef = useRef(0);
 
   const filteredAlliances = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
@@ -68,9 +70,14 @@ export default function AllianceRegistration() {
   }, [roster, memberFilter]);
   const summary = useMemo(() => summarizeRegistrationOutcomes(outcomes), [outcomes]);
   const remainingCount = (roster?.members || []).filter(member => !processedIds.includes(member.playerId)).length;
+  const completedCount = processedIds.length;
+  const selectedVisibleCount = visibleMembers.filter(member => selected.includes(member.playerId)).length;
+  const selectedHaveOutcomes = selected.filter(id => outcomes.some(item => item.id === id)).length;
 
   const discover = async (event: React.FormEvent) => {
     event.preventDefault();
+    const requestId = ++searchRequestRef.current;
+    rosterRequestRef.current++;
     setSearchError("");
     setRosterError("");
     setRoster(null);
@@ -85,9 +92,10 @@ export default function AllianceRegistration() {
     }
     setDiscovering(true);
     try {
-      const params = new URLSearchParams({ developer: "alliance-lookup", mode: "search", kingdomId: kingdomId.trim() });
+      const params = new URLSearchParams({ developer: "alliance-lookup", mode: "search", kingdomId: kingdomId.trim(), ...(query.trim() ? { q: query.trim() } : {}) });
       const response = await fetch("/api/kingshot-player?" + params.toString(), { cache: "no-store", signal: AbortSignal.timeout(30_000) });
       const data = await response.json().catch(() => ({}));
+      if (requestId !== searchRequestRef.current) return;
       if (!response.ok) throw new Error(data.error || t("alliance.searchFailed", "Could not load alliances for this kingdom."));
       const list = Array.isArray(data.alliances) ? data.alliances as AllianceEntry[] : [];
       setAlliances(list);
@@ -96,13 +104,14 @@ export default function AllianceRegistration() {
         setSearchError(t("alliance.noMatches", "No matches in the returned ranking. You can try the exact alliance tag below."));
       }
     } catch (cause) {
-      setSearchError(cause instanceof Error ? cause.message : t("alliance.searchFailed", "Could not load alliances for this kingdom."));
+      if (requestId === searchRequestRef.current) setSearchError(cause instanceof Error ? cause.message : t("alliance.searchFailed", "Could not load alliances for this kingdom."));
     } finally {
-      setDiscovering(false);
+      if (requestId === searchRequestRef.current) setDiscovering(false);
     }
   };
 
   const loadRoster = async (alliance: AllianceEntry) => {
+    const requestId = ++rosterRequestRef.current;
     setActiveAlliance(alliance);
     setLoadingRoster(true);
     setRosterError("");
@@ -119,6 +128,7 @@ export default function AllianceRegistration() {
       });
       const response = await fetch("/api/kingshot-player?" + params.toString(), { cache: "no-store", signal: AbortSignal.timeout(30_000) });
       const data = await response.json().catch(() => ({}));
+      if (requestId !== rosterRequestRef.current) return;
       if (!response.ok) throw new Error(data.error || t("alliance.lookupFailed", "Could not retrieve this alliance roster."));
       const normalized = data as AllianceResult;
       const members = Array.isArray(normalized.members) ? normalized.members : [];
@@ -130,12 +140,12 @@ export default function AllianceRegistration() {
       }
       const clean = { ...normalized, members: [...unique.values()] };
       setRoster(clean);
-      setSelected(clean.members.slice(0, BATCH_LIMIT).map(member => member.playerId));
+      setSelected([]);
       setExactTag(alliance.tag);
     } catch (cause) {
-      setRosterError(cause instanceof Error ? cause.message : t("alliance.lookupFailed", "Could not retrieve this alliance roster."));
+      if (requestId === rosterRequestRef.current) setRosterError(cause instanceof Error ? cause.message : t("alliance.lookupFailed", "Could not retrieve this alliance roster."));
     } finally {
-      setLoadingRoster(false);
+      if (requestId === rosterRequestRef.current) setLoadingRoster(false);
     }
   };
 
@@ -178,7 +188,7 @@ export default function AllianceRegistration() {
 
   const selectNextBatch = () => {
     if (!roster) return;
-    const next = roster.members.filter(member => !processedIds.includes(member.playerId) && !selected.includes(member.playerId))
+    const next = roster.members.filter(member => !processedIds.includes(member.playerId))
       .slice(0, BATCH_LIMIT).map(member => member.playerId);
     setSelected(next);
     setRosterError(next.length ? "" : t("alliance.noUnprocessed", "No unprocessed members remain. Select individual members to retry them."));
@@ -270,7 +280,7 @@ export default function AllianceRegistration() {
           <div><h2 id="alliance-find-heading">{t("alliance.findHeading", "Find your alliance")}</h2><p>{t("alliance.findDescription", "Search the alliance rankings for your kingdom, then choose the matching alliance.")}</p></div>
         </div>
         <form className="ks-alliance-discover-form" onSubmit={discover}>
-          <label className="ks-alliance-field"><span>{t("alliance.kingdom", "Kingdom ID")}</span><input value={kingdomId} onChange={event => { setKingdomId(event.target.value.replace(/\D/g, "").slice(0, 10)); setAlliances([]); setActiveAlliance(null); setRoster(null); setSearchError(""); }} inputMode="numeric" pattern="[0-9]*" autoComplete="off" required placeholder={t("alliance.kingdomPlaceholder", "e.g. 1125")} disabled={discovering || registering}/></label>
+          <label className="ks-alliance-field"><span>{t("alliance.kingdom", "Kingdom ID")}</span><input value={kingdomId} onChange={event => { setKingdomId(event.target.value.replace(/\D/g, "").slice(0, 10)); searchRequestRef.current++; rosterRequestRef.current++; setDiscovering(false); setLoadingRoster(false); setAlliances([]); setActiveAlliance(null); setRoster(null); setSelected([]); setOutcomes([]); setProcessedIds([]); setSearchError(""); setRosterError(""); }} inputMode="numeric" pattern="[0-9]*" autoComplete="off" required placeholder={t("alliance.kingdomPlaceholder", "e.g. 1125")} disabled={discovering || registering}/></label>
           <label className="ks-alliance-field"><span>{t("alliance.searchLabel", "Alliance name or tag")} <small>{t("alliance.optional", "optional")}</small></span><div className="ks-alliance-search-input"><Search size={16} aria-hidden="true"/><input value={query} onChange={event => { setQuery(event.target.value); setSearchError(""); }} autoComplete="off" placeholder={t("alliance.searchPlaceholder", "Search by name or tag")} disabled={discovering || registering}/></div></label>
           <button className="ks-alliance-primary" type="submit" disabled={discovering || registering || !kingdomId.trim()}>{discovering ? <LoaderCircle size={16} className="ks-alliance-spin"/> : <Search size={16}/>}<span>{discovering ? t("alliance.searching", "Searching…") : t("alliance.searchButton", "Search alliances")}</span></button>
         </form>
