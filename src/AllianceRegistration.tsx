@@ -49,7 +49,9 @@ export default function AllianceRegistration() {
   const [activeAlliance, setActiveAlliance] = useState<AllianceEntry | null>(null);
   const [roster, setRoster] = useState<AllianceResult | null>(null);
   const [rosterChanges, setRosterChanges] = useState<{added: AllianceMember[]} | null>(null);
-  const [allianceSyncCapacity, setAllianceSyncCapacity] = useState<{registeredCount:number;limit:number;isRegistered:boolean;managedByCurrentUser:boolean;enabled:boolean;status:string|null;canRegister:boolean}|null>(null);\n  const [syncHistory, setSyncHistory] = useState<{runs:Array<{id:string;status:string;created_at:string;finished_at:string|null;roster_count:number|null;added_count:number|null;skipped_count:number|null;departed_count:number|null;error_code:string|null;error_message:string|null}>;departedCount:number}>({runs:[],departedCount:0});\n  const [loadingSyncHistory, setLoadingSyncHistory] = useState(false);
+  const [allianceSyncCapacity, setAllianceSyncCapacity] = useState<{registeredCount:number;limit:number;isRegistered:boolean;managedByCurrentUser:boolean;enabled:boolean;status:string|null;canRegister:boolean}|null>(null);
+  const [syncHistory, setSyncHistory] = useState<{runs:Array<{id:string;status:string;created_at:string;finished_at:string|null;roster_count:number|null;added_count:number|null;skipped_count:number|null;departed_count:number|null;error_code:string|null;error_message:string|null}>;departedCount:number}>({runs:[],departedCount:0});
+  const [loadingSyncHistory, setLoadingSyncHistory] = useState(false);
   const [loadingRoster, setLoadingRoster] = useState(false);
   const [rosterError, setRosterError] = useState("");
   const [memberFilter, setMemberFilter] = useState("");
