@@ -904,6 +904,7 @@ export default {
   "alliance.refreshRoster": "Refresh roster",
   "alliance.alreadyRegistered": "Already registered",
   "alliance.registeredThisSession": "Registered in this batch",
+  "alliance.drawerDescription": "Register alliance members in batches",
   "alliance.autoSyncTitle": "Automatic alliance sync",
   "alliance.autoSyncDescription": "Check for new members periodically and register only newly discovered players. Existing registrations are never removed.",
   "alliance.syncInterval": "Sync interval",
