@@ -201,3 +201,12 @@ test("kingdom alliance cap check and insert are serialized in one transaction", 
   assert.match(handler, /insert into public\.alliance_sync_config[\s\S]*?select[\s\S]*?from counts where total < 3[\s\S]*?returning id,kingdom_id/);
   assert.match(handler, /!registrationRow\?\.id/);
 });
+
+test("How it works page imports every icon used by its feature sections", async () => {
+  const info = await readFile(new URL("../src/InfoApp.jsx", import.meta.url), "utf8");
+  const iconImport = info.match(/import\s*\{([^}]+)\}\s*from\s*"lucide-react"/);
+  assert.ok(iconImport, "How it works page should import its Lucide icons");
+  const importedIcons = new Set(iconImport[1].split(",").map(value => value.trim().split(/\s+as\s+/)[0]));
+  assert.ok(importedIcons.has("Users"), "Users icon is rendered by the alliance registration feature card");
+  assert.match(info, /icon:Users,titleKey:"info\.cardAlliance"/);
+});
