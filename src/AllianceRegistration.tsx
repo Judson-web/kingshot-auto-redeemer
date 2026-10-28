@@ -62,6 +62,7 @@ export default function AllianceRegistration() {
   const cancelRequestedRef = useRef(false);
   const registrationBusyRef = useRef(false);
   const [progress, setProgress] = useState({ done: 0, total: 0, currentId: "", note: "" });
+  const [allianceServerProgress, setAllianceServerProgress] = useState<{active:boolean;processedCount:number;totalCount:number;currentPlayerId:string;allianceTag:string;allianceName:string}|null>(null);
   const searchRequestRef = useRef(0);
   const rosterRequestRef = useRef(0);
 
@@ -352,6 +353,46 @@ export default function AllianceRegistration() {
     }
   };
 
+  useEffect(() => {
+    if (!activeAlliance || !roster || accountState.status !== "authenticated" || !accountState.account) {
+      setAllianceServerProgress(null);
+      return;
+    }
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const poll = async () => {
+      try {
+        const response = await fetch("/api/kingshot-alliance-sync", {
+          method: "POST", credentials: "same-origin", cache: "no-store",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "progress", kingdomId: activeAlliance.kingdomId || kingdomId.trim(), allianceTag: activeAlliance.tag }),
+          signal: AbortSignal.timeout(10000)
+        });
+        const data = await response.json().catch(() => ({}));
+        if (cancelled) return;
+        if (response.ok && data.active === true &&
+            String(data.kingdomId) === String(activeAlliance.kingdomId || kingdomId.trim()) &&
+            String(data.allianceTag).toLocaleLowerCase() === activeAlliance.tag.toLocaleLowerCase() &&
+            Number.isFinite(Number(data.totalCount)) && Number(data.totalCount) >= 0) {
+          setAllianceServerProgress({
+            active: true,
+            processedCount: Math.max(0, Number(data.processedCount) || 0),
+            totalCount: Math.max(0, Number(data.totalCount) || 0),
+            currentPlayerId: /^\d{5,20}$/.test(String(data.currentPlayerId || "")) ? String(data.currentPlayerId) : "",
+            allianceTag: String(data.allianceTag),
+            allianceName: String(data.allianceName || data.allianceTag)
+          });
+        } else {
+          setAllianceServerProgress(null);
+        }
+      } catch {
+        // A temporary status-read failure must not affect or cancel server-side registration.
+      }
+      if (!cancelled && (registering || allianceServerProgress?.active)) timer = setTimeout(poll, 4000);
+    };
+    void poll();
+    return () => { cancelled = true; if (timer) clearTimeout(timer); };
+  }, [activeAlliance?.kingdomId, activeAlliance?.tag, roster?.alliance?.tag, accountState.status, accountState.account, kingdomId, registering, allianceServerProgress?.active]);
   const canRegister = accountState.status === "authenticated" && Boolean(accountState.account);
 
   const registerEntireAlliance = async () => {
@@ -451,6 +492,11 @@ export default function AllianceRegistration() {
           </div>
           <div className="ks-alliance-roster-stats"><span><b>{formatNumber(roster.alliance.power)}</b><small>{t("alliance.power", "Power")}</small></span><span><b>{roster.members.length}</b><small>{t("alliance.rosterMembers", "Valid IDs")}</small></span><span><b>{completedCount}</b><small>{t("alliance.attempted", "attempted")}</small></span></div>
         </div>
+        {allianceServerProgress?.active && allianceServerProgress.allianceTag.toLocaleLowerCase() === activeAlliance.tag.toLocaleLowerCase() && <div className="ks-alliance-server-progress" role="status" aria-live="polite">
+          <div className="ks-alliance-server-progress-top"><span><LoaderCircle size={13} className="ks-alliance-spin" aria-hidden="true"/><strong>{t("alliance.serverProgressTitle", "Registering alliance")} · [{allianceServerProgress.allianceTag}] {allianceServerProgress.allianceName}</strong></span><b>{allianceServerProgress.processedCount} / {allianceServerProgress.totalCount || "—"}</b></div>
+          <progress max={allianceServerProgress.totalCount || 1} value={Math.min(allianceServerProgress.processedCount, allianceServerProgress.totalCount || 0)} aria-label={t("alliance.progressLabel", "Alliance registration progress")}/>
+          <small>{allianceServerProgress.currentPlayerId ? t("alliance.serverProgressCurrent", "Processing Player ID") + " " + allianceServerProgress.currentPlayerId : t("alliance.serverProgressChecking", "Checking and registering eligible members on the server…")}</small>
+        </div>}
         <div className={"ks-alliance-data-note" + (roster.stale ? " is-stale" : "")} role="status"><Info size={15}/><span>{roster.stale ? t("alliance.staleRoster", "This roster may be outdated. Review names and IDs carefully before registering.") : t("alliance.freshRoster", "Roster loaded. Review the members below before registering.")}{typeof roster.ageSeconds === "number" && <small><Clock3 size={12}/>{t("alliance.dataAge", "Data age")}: {roster.ageSeconds < 60 ? Math.max(0, Math.round(roster.ageSeconds)) + "s" : Math.round(roster.ageSeconds / 60) + "m"}</small>}</span></div>
         {rosterChanges && <section className="ks-alliance-roster-diff" aria-label={t("alliance.rosterChangesTitle", "Refresh summary")}>
           <div className="ks-alliance-roster-diff-head"><strong>{t("alliance.rosterChangesTitle", "New members found")}</strong><span>{t("alliance.diffReviewOnly", "Only newly appearing members are listed. Existing registrations are left unchanged.")}</span></div>
@@ -484,7 +530,7 @@ export default function AllianceRegistration() {
           </> : accountState.status === "checking" || accountState.status === "cached" ? <button type="button" className="ks-alliance-primary ks-alliance-register-button" disabled><LoaderCircle size={16} className="ks-alliance-spin"/><span>{t("alliance.checkingAccount", "Checking sign-in…")}</span></button> : <a className="ks-alliance-primary ks-alliance-register-button" href={"/profile?returnTo=" + encodeURIComponent("/alliance-registration")}><ShieldCheck size={16}/><span>{t("alliance.loginButton", "Sign in with Discord to register")}</span></a>}
           {registering && <button type="button" className="ks-alliance-secondary ks-alliance-cancel-button" onClick={() => { cancelRequestedRef.current = true; setCancelRequested(true); }} disabled={cancelRequested}>{cancelRequested ? t("alliance.cancelPending", "Stopping after this player…") : t("alliance.cancelRegistration", "Cancel remaining registrations")}</button>}
         </div>
-        {registering && <div className="ks-alliance-progress" role="status" aria-live="polite" aria-atomic="true"><div className="ks-alliance-progress-top"><strong>{t("alliance.registeringBatch", "Registering batch")}</strong><span>{progress.done} / {progress.total}</span></div><progress max={progress.total || 1} value={progress.done} aria-label={t("alliance.progressLabel", "Alliance registration progress")}/><small>{progress.currentId ? t("alliance.processingId", "Processing Player ID") + " " + progress.currentId : t("alliance.finalizing", "Finishing this batch…")}</small>{progress.note && <small className="ks-alliance-progress-note">{progress.note}</small>}</div>}
+        {registering && !progress.note && <div className="ks-alliance-progress" role="status" aria-live="polite" aria-atomic="true"><div className="ks-alliance-progress-top"><strong>{t("alliance.registeringBatch", "Registering batch")}</strong><span>{progress.done} / {progress.total}</span></div><progress max={progress.total || 1} value={progress.done} aria-label={t("alliance.progressLabel", "Alliance registration progress")}/><small>{progress.currentId ? t("alliance.processingId", "Processing Player ID") + " " + progress.currentId : t("alliance.finalizing", "Finishing this batch…")}</small>{progress.note && <small className="ks-alliance-progress-note">{progress.note}</small>}</div>}
         {outcomes.length > 0 && <div className="ks-alliance-outcomes">
           <div className="ks-alliance-outcomes-head"><div><span className="ks-alliance-step">03</span><div><h2>{t("alliance.outcomesHeading", "Registration results")}</h2><p>{summary.registered + summary.existing + summary.reactivated} {t("alliance.activeResults", "active")} · {summary.disabled} {t("alliance.disabledResults", "disabled")} · {summary.failed} {t("alliance.failedResults", "need attention")}</p></div></div><button type="button" className="ks-alliance-link-button" onClick={() => { setSelected(outcomes.filter(item => item.kind === "failed" || item.kind === "disabled").map(item => item.id).slice(0, BATCH_LIMIT)); setRosterError(""); }} disabled={registering || !outcomes.some(item => item.kind === "failed" || item.kind === "disabled")}><RotateCcw size={14}/>{t("alliance.retryAttention", "Select issues to retry")}</button></div>
           <div className="ks-alliance-outcome-list" role="list" aria-label={t("alliance.outcomesHeading", "Registration results")}>{outcomes.map(item => <article className={"ks-alliance-outcome is-" + item.kind} key={item.id} role="listitem"><span className="ks-alliance-outcome-mark">{["registered", "existing", "reactivated"].includes(item.kind) ? <CheckCircle2 size={15}/> : <CircleAlert size={15}/>}</span><div><strong>{item.name || t("alliance.unknownPlayer", "Kingshot Player")}</strong><small>ID {item.id} · {item.label}</small>{item.kind === "existing" && <span className="ks-alliance-status-pill is-existing">{t("alliance.alreadyRegistered", "Already registered")}</span>}{["registered", "reactivated"].includes(item.kind) && <span className="ks-alliance-status-pill">{t("alliance.registeredThisSession", "Registered in this batch")}</span>}<p>{item.summary}</p></div></article>)}</div>
