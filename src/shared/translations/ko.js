@@ -968,7 +968,7 @@ export default {
   "alliance.syncMembersChecked": "명 확인",
   "alliance.syncRegistered": "등록 또는 확인됨",
   "alliance.syncUnchanged": "이미 추적 중",
-  "alliance.syncSafetyNote": "제공자 장애나 불완전한 명단에서는 일정을 갱신하지 않습니다. 탈퇴한 플레이어는 등록 해제하지 않습니다. 브라우저가 열려 있지 않아도 서버에서 자동 실행됩니다.",
+  "alliance.syncSafetyNote": "제공자 장애나 불완전한 명단에서는 탈퇴 상태로 처리하지 않습니다. 완전하고 최신인 명단에서 사라진 플레이어는 동맹 기록에 탈퇴 상태로 보존하며, 기존 플레이어 등록은 유지되어 일반 자동 보상 코드 처리에 계속 포함됩니다. 브라우저가 열려 있지 않아도 서버에서 자동 실행됩니다.",
   "alliance.autoSyncEnabledMessage": "자동 동기화가 활성화되었습니다. 다음 예약 실행에서 새 연맹원을 확인합니다.",
   "alliance.syncCompletedMessage": "동기화가 완료되었습니다.",
   "alliance.syncPausedMessage": "자동 동기화가 일시 중지되었습니다.",

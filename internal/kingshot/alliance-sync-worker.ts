@@ -54,7 +54,12 @@ export default async function handler(req:any,res:any){
      if(!heartbeat.length) throw new Error("Sync lease lost or configuration paused.");
      const seen=await db`insert into public.alliance_sync_seen_players(config_id,player_id,registration_status)
       values(${config.id}::uuid,${member.id},'pending')
-      on conflict(config_id,player_id) do update set last_seen_at=now()
+      on conflict(config_id,player_id) do update
+      set last_seen_at=now(),
+          registration_status=case
+            when alliance_sync_seen_players.registration_status='departed' then 'pending'
+            else alliance_sync_seen_players.registration_status
+          end
       returning registration_status,(xmax=0) as is_new`;
      const prior=String(seen[0]?.registration_status||"pending");
      const isNew=Boolean(seen[0]?.is_new);
@@ -78,6 +83,15 @@ export default async function handler(req:any,res:any){
       throw new Error("Registration failed for new member "+member.id+": "+message);
      }
     }
+    // Only a validated, fresh roster can establish departures. Keep the per-alliance
+    // history row, but mark absent members as departed. Never delete their global Supabase
+    // registration: they remain eligible for the normal auto-redemption cycle.
+    const currentMemberIds=roster.members.map(member=>member.id);
+    await db`update public.alliance_sync_seen_players as seen
+      set registration_status='departed',last_error_code=null
+      where seen.config_id=${config.id}::uuid
+        and seen.registration_status<>'departed'
+        and not (seen.player_id = any(${currentMemberIds}::text[]))`);
     const nextRun=new Date(Date.now()+24*3600000).toISOString();
     await db`update public.alliance_sync_config set alliance_name=${roster.name},last_success_at=now(),next_run_at=${nextRun}::timestamptz,lease_token=null,lease_expires_at=null,consecutive_failures=0,last_status='success',last_error_code=null,last_error_message=null,last_roster_count=${roster.members.length},last_added_count=${registered},updated_at=now() where id=${config.id}::uuid`;
     await db`update public.alliance_sync_runs set finished_at=now(),status='success',roster_count=${roster.members.length},added_count=${registered},skipped_count=${skipped} where id=${runId}::uuid`;

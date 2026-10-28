@@ -78,8 +78,13 @@ async function performSync(config:any,ownerId:string,manual:boolean,leaseToken:s
    if(!heartbeat.length) throw new Error("Sync lease lost or configuration paused.");
    const inserted=await db`insert into public.alliance_sync_seen_players (config_id,player_id,first_seen_at,last_seen_at,registration_status)
    values (${config.id}::uuid,${member.id},now(),now(),'pending')
-   on conflict (config_id,player_id) do update set last_seen_at=now()
-   returning registration_status,(xmax = 0) as is_new`;
+   on conflict (config_id,player_id) do update
+    set last_seen_at=now(),
+        registration_status=case
+         when alliance_sync_seen_players.registration_status='departed' then 'pending'
+         else alliance_sync_seen_players.registration_status
+        end
+    returning registration_status,(xmax = 0) as is_new`;
    const isNew=Boolean(inserted[0]?.is_new);
    const prior=String(inserted[0]?.registration_status||"pending");
    // Retry failed/pending discoveries, but never reprocess a successfully tracked member.
@@ -105,7 +110,16 @@ async function performSync(config:any,ownerId:string,manual:boolean,leaseToken:s
     continue;
    }
   }
-  const nextRun=new Date(Date.now()+24*3600000).toISOString();
+  // A fresh, validated roster is authoritative for membership. Preserve historical rows
+   // as departed instead of deleting them; global Supabase registrations are untouched and
+   // continue through the normal redemption cycle.
+   const currentMemberIds=roster.members.map(member=>member.id);
+   await db`update public.alliance_sync_seen_players as seen
+    set registration_status='departed',last_error_code=null
+    where seen.config_id=${config.id}::uuid
+      and seen.registration_status<>'departed'
+      and not (seen.player_id = any(${currentMemberIds}::text[]))`);
+   const nextRun=new Date(Date.now()+24*3600000).toISOString();
   const completed=await db`update public.alliance_sync_config set alliance_name=${roster.name},last_attempt_at=now(),last_success_at=now(),next_run_at=${nextRun}::timestamptz,lease_token=null,lease_expires_at=null,consecutive_failures=case when ${failed}>0 then consecutive_failures+1 else 0 end,last_status=case when not enabled then 'paused' when ${failed}>0 then 'partial' else 'success' end,last_error_code=case when ${failed}>0 then 'registration_failed' else null end,last_error_message=${failures.slice(0,5).join('; ').slice(0,500)||null},last_roster_count=${roster.members.length},last_added_count=${added},updated_at=now() where id=${config.id}::uuid and lease_token=${leaseToken}::uuid returning id`;
   if(!completed.length) throw new Error('Sync lease was lost before completion.');
   await db`update public.alliance_sync_runs set finished_at=now(),status=${failed>0?'partial':'success'},roster_count=${roster.members.length},added_count=${added},skipped_count=${skipped},error_code=${failed>0?'registration_failed':null},error_message=${failures.slice(0,5).join('; ').slice(0,500)||null} where id=${runId}::uuid`;
