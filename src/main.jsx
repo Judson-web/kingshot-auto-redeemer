@@ -130,9 +130,11 @@ function KingshotApp(){
 
 function AutoRedeemApp(){
  const {t}=useSiteLanguage();
- const [ids,setIds]=useState(""),[busy,setBusy]=useState(false),[outcomes,setOutcomes]=useState([]),[error,setError]=useState(""),[inputNotice,setInputNotice]=useState(""),[progress,setProgress]=useState({done:0,total:0,currentId:""});
+ const [ids,setIds]=useState(""),[busy,setBusy]=useState(false),[outcomes,setOutcomes]=useState([]),[error,setError]=useState(""),[inputNotice,setInputNotice]=useState(""),[progress,setProgress]=useState({done:0,total:0,currentId:""}),[cancelRequested,setCancelRequested]=useState(false);
+ const cancelRequestedRef=useRef(false),registrationBusyRef=useRef(false);
  const inputSummary=registrationInputSummary(ids);
  const idInputRef=useRef(null),pendingCaretRef=useRef(null),discardTokenRef=useRef(false);
+ useEffect(()=>{const handlePageHide=()=>{if(registrationBusyRef.current)cancelRequestedRef.current=true};window.addEventListener("pagehide",handlePageHide);return()=>window.removeEventListener("pagehide",handlePageHide)},[]);
  useEffect(()=>{
   if(pendingCaretRef.current===null)return;
   const caret=pendingCaretRef.current;
@@ -159,11 +161,13 @@ function AutoRedeemApp(){
   setError("");
   if(parsed.error){setOutcomes([]);setError(localizeRegistrationValidation(parsed.error,t));return}
   const raw=parsed.ids;
+  cancelRequestedRef.current=false;setCancelRequested(false);registrationBusyRef.current=true;
   setBusy(true);setOutcomes([]);
   setProgress({done:0,total:raw.length,currentId:raw[0]||""});
   const collected=[];
   try{
    for(const id of raw){
+    if(cancelRequestedRef.current)break;
     setProgress({done:collected.length,total:raw.length,currentId:id});
     let result; let player=null; let phase="player lookup";
     try{
@@ -190,7 +194,7 @@ function AutoRedeemApp(){
     setProgress({done:collected.length,total:raw.length,currentId:collected.length<raw.length?raw[collected.length]:""});
    }
   }catch(failure){setError(t("auto.registrationFailed","Registration could not be completed. Please try again."))}
-  finally{setBusy(false);setProgress(current=>({...current,currentId:""}))}
+  finally{registrationBusyRef.current=false;setBusy(false);setCancelRequested(false);setProgress(current=>({...current,currentId:""}))}
  };
  return <div className="app ks-app ks-auto-app"><a className="skip-link" href="#auto-main-content">{t("common.skip","Skip to main content")}</a><PublicSiteHeader current="auto" /><AllianceFeatureAnnouncement/><main id="auto-main-content"><section className="ks-auto-hero"><div className="eyebrow"><span/>{t("auto.eyebrow","KINGSHOT AUTO REDEEM")}</div><h1>{t("auto.title","Automatic redemption")}</h1><p className="hero-copy">{t("auto.hero","Eligible gift codes are checked automatically for registered players.")}</p>
 <form className="ks-register-box ks-register-card" onSubmit={register} aria-describedby={error?"auto-register-help auto-register-error":"auto-register-help"} aria-busy={busy}>
@@ -212,7 +216,7 @@ function AutoRedeemApp(){
  <button className={"ks-submit ks-register-submit"+(busy?" register-loading":"")} disabled={busy}>{busy?<><span className="manual-spinner" aria-hidden="true"><span></span><LoaderCircle size={15}/></span><span className="manual-submit-label"><strong>{t("auto.registering","Registering players")}</strong><small>{t("auto.processingEach","Processing each ID in order…")}</small></span></> : <>{t("auto.submit","Register players")} <ArrowRight size={17} aria-hidden="true"/></>}</button>
  <div className="ks-register-card-footer"><ShieldCheck size={15} aria-hidden="true"/><span>{t("common.noPassword","Your game password is never requested.")}</span></div>
 </form>
-{busy&&<div className="ks-register-progress" role="status" aria-live="polite" aria-atomic="true"><div className="ks-register-progress-top"><b>{t("auto.registering","Registering players")}</b><span>{progress.done} {t("auto.progressOf","of")} {progress.total} {t("auto.progressComplete","complete")}</span></div><progress max={progress.total||1} value={progress.done} aria-label={t("auto.progressLabel","Player registration progress")}/><small>{progress.currentId?t("auto.checkingId","Checking Player ID")+" "+progress.currentId+"…":t("auto.preparing","Preparing the next result…")}</small><p>{t("auto.progressHelp","Results appear as each ID finishes. Each registration is handled separately.")}</p></div>}
+{busy&&<div className="ks-register-progress" role="status" aria-live="polite" aria-atomic="true"><div className="ks-register-progress-top"><b>{t("auto.registering","Registering players")}</b><span>{progress.done} {t("auto.progressOf","of")} {progress.total} {t("auto.progressComplete","complete")}</span></div><progress max={progress.total||1} value={progress.done} aria-label={t("auto.progressLabel","Player registration progress")}/><small>{progress.currentId?t("auto.checkingId","Checking Player ID")+" "+progress.currentId+"…":t("auto.preparing","Preparing the next result…")}</small><p>{t("auto.progressHelp","Results appear as each ID finishes. Each registration is handled separately.")}</p><button type="button" className="ks-alliance-secondary ks-alliance-cancel-button" onClick={()=>{cancelRequestedRef.current=true;setCancelRequested(true)}} disabled={cancelRequested}>{cancelRequested?t("auto.cancelPending","Stopping after the current ID…"):t("auto.cancelRegistration","Cancel remaining IDs")}</button></div>}
 {error&&<div className="ks-error" role="alert" aria-live="assertive" id="auto-register-error"><b>{t("auto.errorTitle","Registration needs attention.")}</b><span>{error}</span></div>}
 <RegistrationOutcomePanel outcomes={outcomes}/>
  </section><section className="ks-auto-how" id="how"><div className="section-title"><span>01</span><h2>{t("auto.how","How it works")}</h2></div><div className="feature-grid"><article><UserRound/><b>{t("auto.step1","Register once")}</b><p>{t("auto.step1Text","Each ID is enrolled separately.")}</p></article><article><RefreshCw/><b>{t("auto.step2","Automatic checks")}</b><p>{t("auto.step2Text","Eligible codes, including older valid codes, are checked.")}</p></article><article><CheckCircle/><b>{t("auto.step3","Individual results")}</b><p>{t("auto.step3Text","One result per ID. An issue with one player does not stop the others.")}</p></article></div></section>
