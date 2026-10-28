@@ -136,7 +136,8 @@ export default function AllianceRegistration() {
       roster.alliance.tag === alliance.tag
     );
     setActiveAlliance(alliance);
-    setAllianceSyncCapacity(null);
+    const sameAllianceCapacity = allianceSyncCapacity && allianceSyncCapacity.isRegistered && activeAlliance?.tag === alliance.tag && String(activeAlliance?.kingdomId || kingdomId.trim()) === String(alliance.kingdomId || kingdomId.trim());
+    if (!sameAllianceCapacity) setAllianceSyncCapacity(null);
     if (!forceRefresh && roster && roster.alliance.kingdomId === (alliance.kingdomId || kingdomId.trim()) && roster.alliance.tag === alliance.tag) { setLoadingRoster(false); return; }
     setLoadingRoster(true);
     setRosterError("");
@@ -431,7 +432,9 @@ export default function AllianceRegistration() {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(String(data.error || t("alliance.allianceRegistrationFailed", "Could not register this alliance.")));
-      setProgress({ done: roster.members.length, total: roster.members.length, currentId: "", note: "" });
+      // Reflect the accepted registration immediately while the server continues processing the roster.
+      setAllianceSyncCapacity(current => ({ registeredCount: current?.registeredCount ?? 0, limit: 3, isRegistered: true, managedByCurrentUser: current?.managedByCurrentUser ?? true, enabled: true, status: "active", canRegister: false }));
+      setProgress({ done: roster.members.length, total: roster.members.length, currentId: "", note: t("alliance.serverContinues", "Registration continues on the server. You can leave this page.") });
       await loadRoster(activeAlliance, true);
     } catch (cause) {
       setRosterError(cause instanceof Error ? cause.message : t("alliance.allianceRegistrationFailed", "Could not register this alliance."));
@@ -471,7 +474,7 @@ export default function AllianceRegistration() {
           <button className="ks-alliance-primary" type="submit" disabled={discovering || registering || !kingdomId.trim()}>{discovering ? <LoaderCircle size={16} className="ks-alliance-spin"/> : <Search size={16}/>}<span>{discovering ? t("alliance.searching", "Searching…") : t("alliance.searchButton", "Search alliances")}</span></button>
         </form>
         {searchError && <p className="ks-alliance-alert" role="status"><CircleAlert size={16}/><span>{searchError}</span></p>}
-        {activeAlliance && loadingRoster && <div className="ks-alliance-loading ks-alliance-loading-inline" role="status"><LoaderCircle size={19} className="ks-alliance-spin"/><span>{t("alliance.loadingRosterFor", "Loading members for")} <strong>[{activeAlliance.tag}] {activeAlliance.name}</strong>…</span></div>}
+        {activeAlliance && loadingRoster && <div className="ks-alliance-loading ks-alliance-loading-inline" role="status"><LoaderCircle size={19} className="ks-alliance-spin"/><span>{t("alliance.loadingAllianceInfo", "Loading")} <strong>[{activeAlliance.tag}] {activeAlliance.name}</strong> {t("alliance.infoSuffix", "info")}…</span></div>}
         {activeAlliance && !roster && <button type="button" className="ks-alliance-link-button ks-alliance-back-to-list" onClick={() => { rosterRequestRef.current++; setLoadingRoster(false); setActiveAlliance(null); updateAllianceLocation(); setRosterError(""); }} disabled={registering}><ChevronDown size={14} aria-hidden="true"/>{t("alliance.backToList", "Back to alliance list")}</button>}
         {!activeAlliance && alliances.length > 0 && <div className="ks-alliance-results">
           <div className="ks-alliance-results-head"><div><strong>{t("alliance.resultsHeading", "Matching alliances")}</strong><small>{t("alliance.resultsHint", "Choose an alliance to preview its roster.")}</small></div><span>{filteredAlliances.length} found</span></div>
@@ -496,7 +499,7 @@ export default function AllianceRegistration() {
         <div className="ks-alliance-roster-summary">
           <div className="ks-alliance-roster-identity"><span className="ks-alliance-tag ks-alliance-roster-flag"><Users size={18} aria-hidden="true"/>{(roster.alliance.flagUrl || activeAlliance.flagUrl) && <img src={roster.alliance.flagUrl || activeAlliance.flagUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={event => { event.currentTarget.style.display = "none"; }}/>}</span><div><strong>[{roster.alliance.tag}] {roster.alliance.name}</strong><small>{t("alliance.kingdomLabel", "Kingdom")} {roster.alliance.kingdomId} · {roster.members.length} {t("alliance.members", "members")}</small></div></div>
           <div className="ks-alliance-roster-actions">
-            {allianceSyncCapacity?.isRegistered ? <span className="ks-alliance-status-pill is-existing" role="status"><CheckCircle2 size={14}/>{t("alliance.allianceAlreadyRegistered", "Registered")}</span> : (allianceSyncCapacity?.canRegister || (!allianceSyncCapacity && !loadingRoster)) ? <button type="button" className="ks-alliance-primary ks-alliance-register-all-button ks-alliance-register-near-info" onClick={() => void registerEntireAlliance()} disabled={registering || !unregisteredRosterCount}>{registering ? <LoaderCircle size={16} className="ks-alliance-spin"/> : <Users size={16}/>}<span>{registering ? t("alliance.registering", "Registering…") : t("alliance.registerButton", "Register")} <b>{unregisteredRosterCount}</b></span></button> : null}
+            {allianceSyncCapacity?.isRegistered ? <span className="ks-alliance-status-pill is-existing" role="status"><CheckCircle2 size={14}/>{t("alliance.allianceAlreadyRegistered", "Registered")}</span> : (allianceSyncCapacity?.canRegister || (!allianceSyncCapacity && !loadingRoster)) ? <button type="button" className="ks-alliance-primary ks-alliance-register-all-button ks-alliance-register-near-info" onClick={() => void registerEntireAlliance()} disabled={registering || !unregisteredRosterCount}>{registering ? <LoaderCircle size={16} className="ks-alliance-spin"/> : <Users size={16}/>}<span>{registering ? t("alliance.registering", "Registering…") : t("alliance.registerButton", "Register")} <b>{unregisteredRosterCount}</b></span></button> : null}{(registering || allianceSyncCapacity?.isRegistered) && <small className="ks-alliance-server-note">{t("alliance.serverContinues", "Registration continues on the server. You can leave this page.")}</small>}
             <button type="button" className="ks-alliance-refresh" onClick={() => activeAlliance && void loadRoster(activeAlliance, true)} disabled={loadingRoster || registering}>{loadingRoster ? <LoaderCircle size={14} className="ks-alliance-spin"/> : <RotateCcw size={14}/>}<span>{t("alliance.refreshRoster", "Refresh")}</span></button>
           </div>
           <div className="ks-alliance-roster-stats"><span><b>{formatNumber(roster.alliance.power)}</b><small>{t("alliance.power", "Power")}</small></span><span><b>{roster.members.length}</b><small>{t("alliance.members", "Members")}</small></span></div>
