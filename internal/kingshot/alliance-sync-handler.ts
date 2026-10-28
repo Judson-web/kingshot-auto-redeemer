@@ -4,11 +4,11 @@ import { neon } from "@neondatabase/serverless";
 import { randomUUID } from "node:crypto";
 import { normalizeRegistrationInput, registerPlayer } from "./register.js";
 import { getRegisteredPlayerIds } from "./registered-player-ids.js";
+import { fetchMightPulse } from "../../lib/mightpulse-key-pool.js";
 
 interface Req { method?: string; url?: string; headers: Record<string,string|string[]|undefined>; body?: Record<string,unknown>; query?: Record<string,unknown>; }
 interface Res { status(n:number):Res; json(v:unknown):Res; setHeader(k:string,v:string|string[]):void; }
 const DB_URL = process.env.ALLIANCE_SYNC_DATABASE_URL || "";
-const MP_BASE = "https://api.mightpulse.com/v1";
 function header(req:Req,key:string){const v=req.headers[key.toLowerCase()]??req.headers[key];return Array.isArray(v)?v[0]:String(v||"");}
 function fail(res:Res,status:number,code:string,message:string){res.status(status).json({error:message,code});}
 function validKingdom(v:unknown){return /^\d{1,10}$/.test(String(v??""));}
@@ -35,8 +35,8 @@ async function getProfileOwner(req:Req):Promise<string|null>{
  return ur.ok&&discord?String(user.id):null;
 }
 async function readAlliance(kingdomId:string,tag:string){
- const u=MP_BASE+"/alliances/"+encodeURIComponent(kingdomId)+"/"+encodeURIComponent(tag)+"?include=info,roster";
- const r=await fetch(u,{headers:{Accept:"application/json"},signal:AbortSignal.timeout(20000)});
+ const u="https://api.mightpulse.com/v1/alliances/"+encodeURIComponent(kingdomId)+"/"+encodeURIComponent(tag)+"?include=info,roster";
+ const r=await fetchMightPulse(u,{headers:{Accept:"application/json"}},{timeoutMs:20000});
  const d:any=await r.json().catch(()=>null);
  if(!r.ok)throw Object.assign(new Error(r.status===429?"Provider rate limited.":"Alliance provider unavailable."),{status:r.status});
  if(!d||typeof d!=="object"||d.fresh===false||d.stale===true)throw Object.assign(new Error("Provider roster is marked stale or malformed."),{code:"stale_roster"});
