@@ -183,7 +183,7 @@ export default function AllianceRegistration() {
       if (sameAlliance) {
         // Keep the session's attempt history even if a member has since left the roster.
         // Only the current selection must be reconciled against the refreshed member list.
-        setSelected(current => current.filter(id => validIds.has(id)));
+        setSelected(current => current.filter(id => validIds.has(id) && !registered.has(id)));
       } else {
         setProcessedIds([]);
         setOutcomes([]);
