@@ -169,12 +169,21 @@ test("alliance registration explains the three-alliance kingdom cap", () => {
   assert.match(korean, /"alliance\.kingdomAllianceCapReached": "이 왕국에는 이미 연맹 3개/);
 });
 
-test("alliance registration is branded as a full feature without beta copy", async () => {
+test("beta badge appears only in alliance drawer and announcement", async () => {
   const nav = await readFile(new URL("../src/components/MobileNavDrawer.jsx", import.meta.url), "utf8");
   const banner = await readFile(new URL("../src/components/AllianceFeatureAnnouncement.jsx", import.meta.url), "utf8");
-  assert.doesNotMatch(nav, /ks-beta-tag|BETA|Register a whole alliance or selected members/);
-  assert.doesNotMatch(banner, /ks-beta-tag|BETA|Alliance Member Registration/);
+  assert.match(nav, /alliance\.pageTitle"[\s\S]*?ks-beta-tag">BETA/);
+  assert.match(banner, /ks-alliance-feature-kicker"[\s\S]*?ks-beta-tag">BETA/);
   assert.match(english, /"alliance\.pageTitle": "Alliance Registration"/);
+  assert.doesNotMatch(component, /ks-beta-tag-page|Alliance Member Registration/);
+});
+
+test("alliance registration social metadata reflects current flow", async () => {
+  const metadata = await readFile(new URL("../alliance-registration.html", import.meta.url), "utf8");
+  assert.match(metadata, /og:title" content="Alliance Registration"/);
+  assert.match(metadata, /route=alliance-registration&v=5/);
+  assert.match(metadata, /kingdom can register up to three alliances/);
+  assert.doesNotMatch(metadata, /select individuals|select individual members/);
 });
 
 test("refreshes roster when server-side alliance processing finishes", () => {
