@@ -897,6 +897,7 @@ export default {
   "alliance.historyRoster": "명단",
   "alliance.historyAdded": "새로 등록됨",
   "alliance.historySkipped": "이미 등록됨 / 건너뜀",
+  "alliance.historyDeparted": "이번 동기화에서 탈퇴한 구성원",
   "alliance.historyNeedsAttention": "확인이 필요합니다",
   "alliance.historyRetryHint": "영향을 받은 플레이어 ID를 확인한 뒤 명단을 새로고침하고 필요한 등록만 다시 시도하세요.",
   "alliance.historyEmpty": "아직 동기화 기록이 없습니다. 연맹을 등록하면 기록이 시작됩니다.",
