@@ -787,7 +787,7 @@ export default {
 "manual.playerIdPlaceholder": "e.g. 43180889",
   "manual.giftCodePlaceholder": "e.g. Hangul2026",
   "auto.playerIdsPlaceholder": "e.g. 43180889, 51234567",
-  "support.ticketPrefix": "Ticket "
+  "support.ticketPrefix": "Ticket ",
   "alliance.title": "Register an entire alliance",
   "alliance.description": "Find your alliance and choose members to add by Player ID.",
   "alliance.kingdom": "Kingdom ID",
