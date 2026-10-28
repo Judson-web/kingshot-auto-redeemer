@@ -804,6 +804,8 @@ export default {
   "alliance.title": "Register alliance members",
   "alliance.registerSelectedMembers": "Register selected members",
   "alliance.registerEntireAlliance": "Register entire alliance",
+  "alliance.registeringProgress": "The server is registering eligible members. Already-registered players are skipped.",
+  "alliance.allianceRegistrationFailed": "Could not register this alliance.",
   "alliance.description": "Find your alliance and choose members to add by Player ID.",
   "alliance.kingdom": "Kingdom ID",
   "alliance.tag": "Alliance tag",

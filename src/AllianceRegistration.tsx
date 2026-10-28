@@ -347,14 +347,30 @@ export default function AllianceRegistration() {
   const canRegister = accountState.status === "authenticated" && Boolean(accountState.account);
 
   const registerEntireAlliance = async () => {
-    if (!roster || registering || !canRegister) return;
-    const ids = roster.members.filter(member => !registeredIds.includes(member.playerId) && !outcomes.some(item => item.id === member.playerId && item.kind === "existing")).map(member => member.playerId);
-    if (!ids.length) return;
+    if (!roster || !activeAlliance || registering || !canRegister) return;
+    cancelRequestedRef.current = false;
+    setCancelRequested(false);
+    setRegistering(true);
+    registrationBusyRef.current = true;
     setRosterError("");
-    for (let offset = 0; offset < ids.length; offset += BATCH_LIMIT) {
-      if (cancelRequestedRef.current) break;
-      await registerSelected(ids.slice(offset, offset + BATCH_LIMIT));
-      if (cancelRequestedRef.current) break;
+    setProgress({ done: 0, total: roster.members.length, currentId: "", note: t("alliance.registeringProgress", "The server is registering eligible members. Already-registered players are skipped.") });
+    try {
+      const response = await fetch("/api/kingshot-alliance-sync", {
+        method: "POST", credentials: "same-origin", cache: "no-store",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "register-alliance", kingdomId: activeAlliance.kingdomId || kingdomId.trim(), allianceTag: activeAlliance.tag, allianceName: activeAlliance.name })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(String(data.error || t("alliance.allianceRegistrationFailed", "Could not register this alliance.")));
+      setProgress({ done: roster.members.length, total: roster.members.length, currentId: "", note: "" });
+      await loadRoster(activeAlliance, true);
+    } catch (cause) {
+      setRosterError(cause instanceof Error ? cause.message : t("alliance.allianceRegistrationFailed", "Could not register this alliance."));
+    } finally {
+      registrationBusyRef.current = false;
+      setRegistering(false);
+      setCancelRequested(false);
+      setProgress(current => ({ ...current, currentId: "", note: "" }));
     }
   };
   const selectableVisibleMembers = visibleMembers.filter(member => !registeredIds.includes(member.playerId) && !outcomes.some(item => item.id === member.playerId && item.kind === "existing"));

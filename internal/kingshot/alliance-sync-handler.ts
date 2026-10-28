@@ -132,7 +132,7 @@ export default async function handler(req:Req,res:Res){
    const rows=await db`select id,kingdom_id,alliance_tag,alliance_name,enabled,interval_hours,last_attempt_at,last_success_at,next_run_at,consecutive_failures,last_status,last_error_code,last_error_message,last_roster_count,last_added_count,created_at,updated_at from public.alliance_sync_config where owner_user_id=${ownerId}::uuid order by created_at desc`;
    return res.status(200).json({configs:rows});
   }
-  if(action==="create"){
+  if(action==="create"||action==="register-alliance"){
    const kingdom=String(req.body?.kingdomId??"").trim(),tag=String(req.body?.allianceTag??"").trim(),name=String(req.body?.allianceName??tag).trim().slice(0,80);
    const interval=24;
    if(!validKingdom(kingdom)||!validTag(tag))return fail(res,400,"invalid_alliance","Check the kingdom ID and alliance tag.");
@@ -141,10 +141,26 @@ export default async function handler(req:Req,res:Res){
    const existing=await db`select owner_user_id,id from public.alliance_sync_config where kingdom_id=${kingdom} and lower(alliance_tag)=lower(${tag}) limit 1`;
    if(existing.length){
     if(String(existing[0].owner_user_id)!==ownerId)return fail(res,409,"alliance_already_managed","This alliance already has an automatic sync owner. Ask that owner to manage it; a second worker will not be created.");
-    return fail(res,409,"alliance_already_registered","This alliance is already registered for automatic sync. Existing settings cannot be edited; pause or resume the current registration instead.");
+    if(action!=="register-alliance")return fail(res,409,"alliance_already_registered","This alliance is already registered for automatic sync. Existing settings cannot be edited; pause or resume the current registration instead.");
+    const existingConfig=await db`select * from public.alliance_sync_config where id=${existing[0].id}::uuid and owner_user_id=${ownerId}::uuid limit 1`;
+    if(!existingConfig.length)return fail(res,404,"not_found","Registered alliance configuration not found.");
+    if(!existingConfig[0].enabled)return fail(res,409,"sync_paused","This alliance is registered but automatic sync is paused. Resume it before running a sync.");
+    const lease=randomUUID();
+    const claimed=await db`update public.alliance_sync_config set lease_token=${lease}::uuid,lease_expires_at=now()+interval '4 minutes',last_status='running',updated_at=now() where id=${existing[0].id}::uuid and enabled=true and (lease_expires_at is null or lease_expires_at<now()) returning *`;
+    if(!claimed.length)return fail(res,409,"sync_in_progress","A sync is already running for this alliance.");
+    const sync=await performSync(claimed[0],ownerId,true,lease);
+    return res.status(200).json({config:claimed[0],initialSync:sync,alreadyRegisteredAlliance:true});
    }
    const verified=await readAlliance(kingdom,tag);
-   const result=await db`insert into public.alliance_sync_config (owner_user_id,kingdom_id,alliance_tag,alliance_name,interval_hours,enabled,next_run_at,last_status,last_roster_count) values (${ownerId}::uuid,${kingdom},${verified.tag},${verified.name},${interval},true,now(),'pending',${verified.members.length}) returning id,kingdom_id,alliance_tag,alliance_name,enabled,interval_hours,next_run_at,last_status`;
+   const result=await db`with kingdom_lock as materialized (select pg_advisory_xact_lock(hashtext(${kingdom}))), kingdom_count as materialized (select count(*)::int as total from public.alliance_sync_config, kingdom_lock where kingdom_id=${kingdom}) insert into public.alliance_sync_config (owner_user_id,kingdom_id,alliance_tag,alliance_name,interval_hours,enabled,next_run_at,last_status,last_roster_count) select ${ownerId}::uuid,${kingdom},${verified.tag},${verified.name},${interval},true,now(),'pending',${verified.members.length} from kingdom_count where total < 3 returning id,kingdom_id,alliance_tag,alliance_name,enabled,interval_hours,next_run_at,last_status`;
+   if(!result.length)return fail(res,409,"kingdom_alliance_limit","This kingdom already has three registered alliances. Existing registrations cannot be removed; contact Support if you need help.");
+   if(action==="register-alliance"){
+    const lease=randomUUID();
+    const claimed=await db`update public.alliance_sync_config set lease_token=${lease}::uuid,lease_expires_at=now()+interval '4 minutes',last_status='running',updated_at=now() where id=${result[0].id}::uuid and enabled=true returning *`;
+    if(!claimed.length)return fail(res,409,"sync_in_progress","The alliance was registered, but its initial roster sync could not be claimed. It will be processed by the scheduled worker.");
+    const sync=await performSync(claimed[0],ownerId,true,lease);
+    return res.status(201).json({config:result[0],validatedRosterCount:verified.members.length,initialSync:sync});
+   }
    return res.status(201).json({config:result[0],validatedRosterCount:verified.members.length});
   }
   const id=String(req.body?.id??"");
