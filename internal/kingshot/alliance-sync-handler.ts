@@ -162,6 +162,18 @@ export default async function handler(req:Req,res:Res){
    const current=await db`select player_id from public.alliance_sync_seen_players where config_id=${config.id}::uuid and last_seen_at>=${run.created_at}::timestamptz and registration_status='pending' order by last_seen_at desc limit 1`;
    return res.status(200).json({active:true,allianceTag:String(config.alliance_tag),allianceName:String(config.alliance_name||config.alliance_tag),kingdomId:String(config.kingdom_id),processedCount:Math.min(processedCount,totalCount||processedCount),totalCount,currentPlayerId:current.length?String(current[0].player_id):"",status:String(run.status)});
   }
+  if(action==="history"){
+   const kingdom=String(req.body?.kingdomId??getParam(req,"kingdomId")).trim();
+   const tag=String(req.body?.allianceTag??getParam(req,"allianceTag")).trim();
+   if(!validKingdom(kingdom)||!validTag(tag))return fail(res,400,"invalid_alliance","Check the kingdom ID and alliance tag.");
+   // History is read-only and shared for the alliance. Registration does not confer management rights.
+   const configs=await db`select id,alliance_name,alliance_tag,kingdom_id from public.alliance_sync_config where kingdom_id=${kingdom} and lower(alliance_tag)=lower(${tag}) limit 1`;
+   if(!configs.length)return res.status(200).json({runs:[],departedCount:0});
+   const config=configs[0];
+   const runs=await db`select id,status,created_at,finished_at,roster_count,added_count,skipped_count,error_code,error_message from public.alliance_sync_runs where config_id=${config.id}::uuid order by created_at desc limit 10`;
+   const departed=await db`select count(*)::int as total from public.alliance_sync_seen_players where config_id=${config.id}::uuid and registration_status='departed'`;
+   return res.status(200).json({runs,departedCount:Number(departed[0]?.total||0)});
+  }
   if(action==="capacity"){
    const kingdom=String(req.body?.kingdomId??getParam(req,"kingdomId")).trim();
    const tag=String(req.body?.allianceTag??getParam(req,"allianceTag")).trim();
