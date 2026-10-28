@@ -306,6 +306,17 @@ export default function AllianceRegistration() {
       setRegistering(false);
       setProgress(current => ({ ...current, currentId: "", note: "" }));
     }
+    // The first explicit batch registration enables the fixed 24-hour alliance schedule.
+    // A conflict means this alliance already has a single scheduler owner, so never create a duplicate.
+    if (activeAlliance && batch.length) {
+      try {
+        await fetch("/api/kingshot-alliance-sync", {
+          method: "POST", credentials: "same-origin", cache: "no-store",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "create", kingdomId: activeAlliance.kingdomId || kingdomId.trim(), allianceTag: activeAlliance.tag, allianceName: activeAlliance.name })
+        });
+      } catch { /* Registration succeeds independently; the server scheduler can be retried later. */ }
+    }
   };
 
   const canRegister = accountState.status === "authenticated" && Boolean(accountState.account);
@@ -370,7 +381,7 @@ export default function AllianceRegistration() {
           <div><h2 id="alliance-roster-heading">{t("alliance.rosterHeading", "Review the roster")}</h2><p>{t("alliance.rosterDescription", "Choose the members to register. Selection is capped at 100 IDs per batch.")}</p><button type="button" className="ks-alliance-link-button ks-alliance-back-to-list" onClick={() => { if (!registering) setActiveAlliance(null); }} disabled={registering}><ChevronDown size={14} aria-hidden="true"/>{t("alliance.backToList", "Back to alliance list")}</button></div>
         </div>
         <div className="ks-alliance-roster-summary">
-          <div className="ks-alliance-roster-identity"><span className="ks-alliance-tag ks-alliance-roster-flag">{(roster.alliance.flagUrl || activeAlliance.flagUrl) ? <img src={roster.alliance.flagUrl || activeAlliance.flagUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={event => { event.currentTarget.style.display = "none"; }}/> : <Users size={18} aria-hidden="true"/>}</span><div><strong>[{roster.alliance.tag}] {roster.alliance.name}</strong><small>{t("alliance.kingdomLabel", "Kingdom")} {roster.alliance.kingdomId} · {roster.members.length} {t("alliance.members", "members")}</small></div></div>
+          <div className="ks-alliance-roster-identity"><span className="ks-alliance-tag ks-alliance-roster-flag"><Users size={18} aria-hidden="true"/>{(roster.alliance.flagUrl || activeAlliance.flagUrl) && <img src={roster.alliance.flagUrl || activeAlliance.flagUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={event => { event.currentTarget.style.display = "none"; }}/>}</span><div><strong>[{roster.alliance.tag}] {roster.alliance.name}</strong><small>{t("alliance.kingdomLabel", "Kingdom")} {roster.alliance.kingdomId} · {roster.members.length} {t("alliance.members", "members")}</small></div></div>
           <div className="ks-alliance-roster-stats"><span><b>{formatNumber(roster.alliance.power)}</b><small>{t("alliance.power", "Power")}</small></span><span><b>{roster.members.length}</b><small>{t("alliance.rosterMembers", "Valid IDs")}</small></span><span><b>{completedCount}</b><small>{t("alliance.attempted", "attempted")}</small></span><button type="button" className="ks-alliance-refresh" onClick={() => activeAlliance && void loadRoster(activeAlliance, true)} disabled={loadingRoster || registering}>{loadingRoster ? <LoaderCircle size={14} className="ks-alliance-spin"/> : <RotateCcw size={14}/>}<span>{t("alliance.refreshRoster", "Refresh roster")}</span></button></div>
         </div>
         <div className={"ks-alliance-data-note" + (roster.stale ? " is-stale" : "")} role="status"><Info size={15}/><span>{roster.stale ? t("alliance.staleRoster", "This roster may be outdated. Review names and IDs carefully before registering.") : t("alliance.freshRoster", "Roster loaded. Review the members below before registering.")}{typeof roster.ageSeconds === "number" && <small><Clock3 size={12}/>{t("alliance.dataAge", "Data age")}: {roster.ageSeconds < 60 ? Math.max(0, Math.round(roster.ageSeconds)) + "s" : Math.round(roster.ageSeconds / 60) + "m"}</small>}</span></div>
