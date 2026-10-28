@@ -8,7 +8,6 @@ const english = await readFile(new URL("../src/shared/translations/en.js", impor
 const korean = await readFile(new URL("../src/shared/translations/ko.js", import.meta.url), "utf8");
 const api = await readFile(new URL("../api/kingshot-player.ts", import.meta.url), "utf8");
 const metadata = await readFile(new URL("../alliance-registration.html", import.meta.url), "utf8");
-const metadata = await readFile(new URL("../alliance-registration.html", import.meta.url), "utf8");
 
 test("alliance registration uses one server-side whole-alliance action", () => {
   assert.match(component, /const registerEntireAlliance = async/);
