@@ -75,7 +75,8 @@ function localizeRegistrationSummary(summary,t){
 function KingshotApp(){
  const {t}=useSiteLanguage();
  const [playerId,setPlayerId]=useState(""),[code,setCode]=useState(""),[player,setPlayer]=useState(null),[busy,setBusy]=useState(false),[result,setResult]=useState(null),[error,setError]=useState(""),[errorTitle,setErrorTitle]=useState("Couldn’t redeem that code.");
- const manualSubmissionRef=useRef(false);
+ const manualSubmissionRef=useRef(false),manualControllerRef=useRef(null),manualPhaseRef=useRef("lookup"),manualAbortReasonRef=useRef("");
+ const requestManualFetch=async(url,init,timeoutMs,phase)=>{const controller=new AbortController();manualControllerRef.current=controller;manualPhaseRef.current=phase;manualAbortReasonRef.current="";const timeout=setTimeout(()=>{if(manualAbortReasonRef.current!=="user")manualAbortReasonRef.current="timeout";controller.abort()},timeoutMs);try{return await fetch(url,{...init,signal:controller.signal})}finally{clearTimeout(timeout);if(manualControllerRef.current===controller)manualControllerRef.current=null}};
  useEffect(()=>{const params=new URLSearchParams(window.location.search);const requestedCode=params.get("code");if(requestedCode&&/^[A-Za-z0-9_-]{6,32}$/.test(requestedCode))setCode(requestedCode)},[]);
  const redeem=async e=>{
   e.preventDefault();
@@ -87,12 +88,12 @@ function KingshotApp(){
   try{
    let p=player;
    if(!p||String(p.governor_id||p.fid||p.id)!==id){
-    const pr=await fetch("/api/kingshot-player?id="+encodeURIComponent(id),{signal:AbortSignal.timeout(15000)});
+    const pr=await requestManualFetch("/api/kingshot-player?id="+encodeURIComponent(id),{},15000,"lookup");
     const pd=await pr.json().catch(()=>({}));
     if(!pr.ok)throw Object.assign(new Error(pd.error||"Could not find this player."),{code:pd.code,status:pr.status});
     p=pd.player||pd;setPlayer(p);
    }
-   const r=await fetch("/api/kingshot-redeem",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({playerId:id,code:gift,kid:String(p.kid??"")}),signal:AbortSignal.timeout(40000)});
+   const r=await requestManualFetch("/api/kingshot-redeem",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({playerId:id,code:gift,kid:String(p.kid??"")})},40000,"redeem");
    const d=await r.json().catch(()=>({}));
    if(d.status||d.statusLabel||d.message){
     setResult({...d,ok:Boolean(d.ok),statusLabel:d.statusLabel||d.status||"Redemption result",message:d.message||d.error||"Kingshot returned a redemption result."});
@@ -100,6 +101,12 @@ function KingshotApp(){
    }else if(!r.ok)throw Error(d.error||"Redemption failed.");
    else setResult(d);
   }catch(e){
+   if(manualAbortReasonRef.current==="user"){
+    setResult(null);
+    if(manualPhaseRef.current==="redeem") {setErrorTitle(t("manual.cancelledUnknownTitle","Stopped waiting, result unknown"));setError(t("manual.cancelledUnknown","The request may already have reached Kingshot. Check the in-game redemption result before trying again. It was not automatically retried."))}
+    else {setErrorTitle(t("manual.cancelledTitle","Request cancelled"));setError(t("manual.cancelledBeforeSubmit","The player lookup was cancelled before the gift code was submitted."))}
+    return;
+   }
    const issue=playerIdFeedback(e?.code,e?.message);
    const timedOut=e?.name==="TimeoutError"||e?.name==="AbortError";
    if(issue){setErrorTitle(issue.type==="invalid"?"Check Player ID":"Player not found");setError(issue.type==="invalid"?t("manual.playerIdHint","Use the numeric Player ID shown in Kingshot under Profile → Info. It must contain 5–20 digits; your kingdom number is different."):t("manual.playerNotFoundMessage","No player was found for this ID. Check every digit against Kingshot → Profile → Info. If the ID is correct, try again shortly."))}
@@ -120,7 +127,7 @@ function KingshotApp(){
    <div className="ks-field manual-field-card"><label htmlFor="manual-player-id"><span>{t("manual.playerId","Player ID")}</span><i>01</i></label><div className={error&&errorTitle==="Check Player ID"?"is-invalid":""}><Search size={16}/><input id="manual-player-id" inputMode="numeric" required minLength={5} maxLength={20} pattern="[0-9]{5,20}" aria-describedby={error&&errorTitle==="Check Player ID"?"manual-player-help manual-error":"manual-player-help"} aria-invalid={Boolean(error&&errorTitle==="Check Player ID")} enterKeyHint="next" autoComplete="off" value={playerId} onChange={e=>{setPlayerId(e.target.value.replace(/\D/g,""));setPlayer(null);setResult(null);setError("");setErrorTitle("Couldn’t redeem that code.")}} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();document.getElementById("manual-gift-code")?.focus()}}} placeholder={t("manual.playerIdPlaceholder","e.g. 43180889")}/></div><small id="manual-player-help">{t("manual.playerIdHelp","Your Player ID is different from your kingdom number.")}</small></div>
    <div className="ks-field manual-field-card"><label htmlFor="manual-gift-code"><span>{t("manual.giftCode","Gift code")}</span><i>02</i></label><div className={error&&errorTitle==="Check gift code"?"is-invalid":""}><Gift size={16}/><input id="manual-gift-code" required minLength={6} maxLength={32} pattern="[A-Za-z0-9_-]{6,32}" aria-describedby={error&&errorTitle==="Check gift code"?"manual-code-help manual-error":"manual-code-help"} aria-invalid={Boolean(error&&errorTitle==="Check gift code")} value={code} onChange={e=>{setCode(e.target.value.replace(/\s/g,""));setError("");setErrorTitle("Couldn’t redeem that code.")}} placeholder={t("manual.giftCodePlaceholder","e.g. Hangul2026")} autoCapitalize="none" autoComplete="off" spellCheck="false" enterKeyHint="done"/></div><small id="manual-code-help">{t("manual.codeHelp","6–32 letters, numbers, underscores, or hyphens.")}</small></div>
   </div>
-  <div className="manual-submit-row"><span>{t("common.noPassword","Your game password is never requested.")}</span><button className="ks-submit manual-submit" disabled={busy}>{busy?<><span className="manual-spinner" aria-hidden="true"><span></span><LoaderCircle size={15}/></span><span className="manual-submit-label"><strong>{t("manual.processing","Processing")}</strong><small>{t("manual.sending","Sending securely…")}</small></span></>:<><Gift size={16}/> {t("manual.submit","Redeem code")}</>}</button></div>
+  <div className="manual-submit-row"><span>{t("common.noPassword","Your game password is never requested.")}</span>{busy&&<button type="button" className="ks-alliance-secondary ks-alliance-cancel-button" onClick={()=>{manualAbortReasonRef.current="user";manualControllerRef.current?.abort()}}>{t("manual.stopWaiting","Stop waiting")}</button>}<button className="ks-submit manual-submit" disabled={busy}>{busy?<><span className="manual-spinner" aria-hidden="true"><span></span><LoaderCircle size={15}/></span><span className="manual-submit-label"><strong>{t("manual.processing","Processing")}</strong><small>{t("manual.sending","Sending securely…")}</small></span></>:<><Gift size={16}/> {t("manual.submit","Redeem code")}</>}</button></div>
  </form>
  {error&&<div className="ks-error" id="manual-error" role="alert" aria-live="assertive"><b>{t(errorTitle==="Check Player ID"?"manual.errorTitlePlayerId":errorTitle==="Check gift code"?"manual.errorTitleGiftCode":errorTitle==="Request timed out"?"manual.requestTimedOut":errorTitle==="Player not found"?"manual.playerNotFoundTitle":"manual.errorTitleGeneric",errorTitle)}</b><span>{error}</span></div>}
  {player&&!result&&<div className="ks-player"><KingshotAvatar playerId={playerId||player?.fid||player?.governor_id} avatarUrl={player.avatar_url} size={38} initials={(player.nick_name||"K").slice(0,1)}/><div><b>{playerDisplayName(player,"Kingshot Player")}</b><PlayerMetaLine player={player}/></div><CheckCircle size={17}/></div>}
