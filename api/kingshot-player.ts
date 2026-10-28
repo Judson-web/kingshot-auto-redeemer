@@ -277,10 +277,6 @@ async function handleAllianceLookup(req: RequestLike, res: ResponseLike): Promis
  const tag = param("tag").slice(0, 20);
  const mode = param("mode");
  if (mode === "registration-status") {
-  if (!(await isAuthenticatedProfileRequest(req))) {
-   res.status(401).json({ error: "Sign in with Discord to check registration status.", code: "authentication_required" });
-   return;
-  }
   const rawIds = param("ids").split(",").map(value => value.trim()).filter(Boolean);
   const ids = [...new Set(rawIds)].filter(id => /^\d{5,20}$/.test(id)).slice(0, 200);
   if (!ids.length || ids.length !== [...new Set(rawIds)].length) {
