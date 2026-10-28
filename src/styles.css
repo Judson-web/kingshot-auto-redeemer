@@ -3147,3 +3147,26 @@ body:has(.support-float-panel.support-chat-panel) .ks-install-prompt{display:non
 @media (prefers-reduced-motion: reduce) {
   .ks-alliance-feature-banner .ks-alliance-feature-track { animation: none !important; white-space: normal !important; width: auto !important; }
 }
+
+
+/* Premium shared alliance announcement, deliberately isolated from generic section/banner rules. */
+.ks-app .ks-alliance-feature-banner{
+  position:relative!important;isolation:isolate;display:flex!important;align-items:center!important;gap:14px!important;
+  width:min(1080px,calc(100% - 40px))!important;min-height:76px!important;margin:16px auto 0!important;padding:13px 16px!important;
+  overflow:hidden!important;border:1px solid rgba(222,190,125,.35)!important;border-radius:17px!important;
+  background:radial-gradient(ellipse at 10% 0%,rgba(211,169,92,.17),transparent 48%),linear-gradient(112deg,#1d1a14 0%,#121318 52%,#19151d 100%)!important;
+  color:#f4ead3!important;box-shadow:0 12px 34px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.045)!important;
+}
+.ks-app .ks-alliance-feature-banner:before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:.35;background:linear-gradient(110deg,transparent 15%,rgba(255,236,185,.08) 48%,transparent 70%);transform:translateX(-100%);animation:ks-alliance-sheen 8s ease-in-out infinite}
+.ks-app .ks-alliance-feature-icon{display:grid!important;place-items:center!important;flex:0 0 42px!important;width:42px!important;height:42px!important;border:1px solid rgba(226,195,133,.38)!important;border-radius:13px!important;background:linear-gradient(145deg,rgba(218,177,99,.22),rgba(63,49,31,.45))!important;color:#e8c985!important;box-shadow:inset 0 1px rgba(255,255,255,.08),0 5px 18px rgba(0,0,0,.18)!important}
+.ks-app .ks-alliance-feature-copy{display:flex!important;flex:1 1 auto!important;min-width:0!important;flex-direction:column!important;gap:5px!important}
+.ks-app .ks-alliance-feature-kicker{color:#d8b777!important;font-size:9px!important;font-weight:850!important;letter-spacing:.17em!important;line-height:1.2!important}
+.ks-app .ks-alliance-feature-message{color:#f1e8d6!important;font-size:clamp(11px,1.3vw,13px)!important;font-weight:550!important;line-height:1.5!important;letter-spacing:.005em!important;overflow-wrap:anywhere}
+.ks-app .ks-alliance-feature-divider{width:1px!important;height:34px!important;flex:0 0 1px!important;background:linear-gradient(transparent,rgba(221,190,126,.48),transparent)!important}
+.ks-app .ks-alliance-feature-link{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;flex:0 0 auto!important;min-height:42px!important;padding:0 13px!important;border:1px solid #e4c889!important;border-radius:11px!important;background:linear-gradient(135deg,#ead39e,#c9a45f)!important;color:#211a10!important;text-decoration:none!important;font-size:11px!important;font-weight:850!important;white-space:nowrap!important;box-shadow:0 6px 18px rgba(197,154,76,.17)!important;transition:transform .18s ease,filter .18s ease,box-shadow .18s ease!important}
+.ks-app .ks-alliance-feature-link:hover{filter:brightness(1.08)!important;transform:translateY(-1px)!important;box-shadow:0 9px 24px rgba(197,154,76,.24)!important}
+.ks-app .ks-alliance-feature-link:focus-visible{outline:2px solid #f6e3b3!important;outline-offset:4px!important}
+@keyframes ks-alliance-sheen{0%,72%,100%{transform:translateX(-100%)}88%{transform:translateX(100%)}}
+@media(max-width:620px){.ks-app .ks-alliance-feature-banner{width:calc(100% - 24px)!important;gap:10px!important;min-height:70px!important;margin-top:12px!important;padding:10px!important;border-radius:14px!important}.ks-app .ks-alliance-feature-icon{flex-basis:34px!important;width:34px!important;height:34px!important;border-radius:10px!important}.ks-app .ks-alliance-feature-divider{display:none!important}.ks-app .ks-alliance-feature-message{font-size:11px!important}.ks-app .ks-alliance-feature-link{min-height:38px!important;gap:5px!important;padding:0 9px!important;font-size:10px!important}.ks-app .ks-alliance-feature-link>svg:first-child{display:none!important}}
+@media(max-width:390px){.ks-app .ks-alliance-feature-banner{gap:8px!important;padding:9px!important}.ks-app .ks-alliance-feature-icon{display:none!important}.ks-app .ks-alliance-feature-link{gap:4px!important;padding:0 8px!important}.ks-app .ks-alliance-feature-message{font-size:10px!important}}
+@media(prefers-reduced-motion:reduce){.ks-app .ks-alliance-feature-banner:before{animation:none!important;display:none!important}.ks-app .ks-alliance-feature-link{transition:none!important}}
