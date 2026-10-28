@@ -4,6 +4,8 @@ import developerApi from "../lib/developer-api.js";
 import developerApiV3 from "../lib/developer-api-v3.js";
 import developerApiV4 from "../lib/developer-api-v4.js";
 import developerAuth, { isAuthenticatedProfileRequest } from "../lib/developer-auth.js";
+import allianceSyncHandler from "../internal/kingshot/alliance-sync-handler.js";
+import allianceSyncWorker from "../internal/kingshot/alliance-sync-worker.js";
 import developerAccount from "../lib/developer-account.js";
 import { isValidPlayerId, lookupPlayer, normalizePlayerId, PlayerLookupError } from "../internal/kingshot/player.js";
 import { extractMightPulseAvatarFrameFromPlayerData, resolveMightPulseProfileUid, validateFrameAssetId } from "../lib/mightpulse-avatar-frame.js";
@@ -438,6 +440,8 @@ export default async function handler(req: RequestLike, res: ResponseLike): Prom
  res.setHeader("X-Request-Id", requestId);
  const requestUrl = new URL(req.url || "/", "http://localhost");
  const developerPath = String(req.query?.developerPath || requestUrl.searchParams.get("developerPath") || req.query?.developer || requestUrl.searchParams.get("developer") || "").replace(/^\/+|\/+$/g, "");
+ if (developerPath === "alliance-sync") return allianceSyncHandler(req as any, res as any);
+ if (developerPath === "alliance-sync-worker") return allianceSyncWorker(req as any, res as any);
  if (developerPath === "alliance-lookup") return handleAllianceLookup(req, res);
  if (developerPath === "account-auth") return developerAuth(req, res);
  if (developerPath === "account-keys") return developerAccount(req, res);
