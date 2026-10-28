@@ -57,6 +57,9 @@ export default function AllianceRegistration() {
   const [outcomes, setOutcomes] = useState<Outcome[]>([]);
   const [processedIds, setProcessedIds] = useState<string[]>([]);
   const [registering, setRegistering] = useState(false);
+  const [cancelRequested, setCancelRequested] = useState(false);
+  const cancelRequestedRef = useRef(false);
+  const registrationBusyRef = useRef(false);
   const [progress, setProgress] = useState({ done: 0, total: 0, currentId: "", note: "" });
   const searchRequestRef = useRef(0);
   const rosterRequestRef = useRef(0);
@@ -238,6 +241,12 @@ export default function AllianceRegistration() {
     setRosterError(next.length ? "" : t("alliance.noUnprocessed", "No unprocessed members remain. Select individual members to retry them."));
   };
 
+  useEffect(() => {
+    const handlePageHide = () => { if (registrationBusyRef.current) cancelRequestedRef.current = true; };
+    window.addEventListener("pagehide", handlePageHide);
+    return () => window.removeEventListener("pagehide", handlePageHide);
+  }, []);
+
   const registerSelected = async () => {
     if (!roster || registering) return;
     const batch = roster.members.filter(member => selected.includes(member.playerId) && !registeredIds.includes(member.playerId)).slice(0, BATCH_LIMIT);
@@ -246,12 +255,16 @@ export default function AllianceRegistration() {
       setRosterError(t("alliance.batchLimit", "A batch can contain at most 100 unique Player IDs."));
       return;
     }
+    cancelRequestedRef.current = false;
+    setCancelRequested(false);
+    registrationBusyRef.current = true;
     setRegistering(true);
     setRosterError("");
     setProgress({ done: 0, total: batch.length, currentId: batch[0].playerId, note: "" });
     const processed = new Set(processedIds);
     try {
       for (let index = 0; index < batch.length; index++) {
+        if (cancelRequestedRef.current) break;
         const member = batch[index];
         const id = member.playerId;
         setProgress({ done: index, total: batch.length, currentId: id, note: "" });
@@ -303,7 +316,9 @@ export default function AllianceRegistration() {
         setProgress({ done: index + 1, total: batch.length, currentId: index + 1 < batch.length ? batch[index + 1].playerId : "", note: "" });
       }
     } finally {
+      registrationBusyRef.current = false;
       setRegistering(false);
+      setCancelRequested(false);
       setProgress(current => ({ ...current, currentId: "", note: "" }));
     }
     // The first explicit batch registration enables the fixed 24-hour alliance schedule.
@@ -417,6 +432,7 @@ export default function AllianceRegistration() {
         <div className="ks-alliance-submit-row">
           <div className="ks-alliance-submit-note"><ShieldCheck size={16}/><span>{t("alliance.submitNote", "Already-registered players remain visible but cannot be registered twice. If automatic sync has not caught up, select any unregistered members here and submit them manually. Your game password is never requested.")}<small>{t("alliance.batchNote", "Only selected members are processed. You can review results before choosing another batch.")}</small></span></div>
           {canRegister ? <button type="button" className="ks-alliance-primary ks-alliance-register-button" onClick={() => void registerSelected()} disabled={registering || !selected.length}>{registering ? <LoaderCircle size={16} className="ks-alliance-spin"/> : <CheckCircle2 size={16}/>}<span>{registering ? t("alliance.registering", "Registering…") : t("alliance.registerBatch", "Register selected")} <b>{selected.length}</b></span></button> : accountState.status === "checking" || accountState.status === "cached" ? <button type="button" className="ks-alliance-primary ks-alliance-register-button" disabled><LoaderCircle size={16} className="ks-alliance-spin"/><span>{t("alliance.checkingAccount", "Checking sign-in…")}</span></button> : <a className="ks-alliance-primary ks-alliance-register-button" href={"/profile?returnTo=" + encodeURIComponent("/alliance-registration")}><ShieldCheck size={16}/><span>{t("alliance.loginButton", "Sign in with Discord to register")}</span></a>}
+          {registering && <button type="button" className="ks-alliance-secondary ks-alliance-cancel-button" onClick={() => { cancelRequestedRef.current = true; setCancelRequested(true); }} disabled={cancelRequested}>{cancelRequested ? t("alliance.cancelPending", "Stopping after this player…") : t("alliance.cancelRegistration", "Cancel remaining registrations")}</button>}
         </div>
         {registering && <div className="ks-alliance-progress" role="status" aria-live="polite" aria-atomic="true"><div className="ks-alliance-progress-top"><strong>{t("alliance.registeringBatch", "Registering batch")}</strong><span>{progress.done} / {progress.total}</span></div><progress max={progress.total || 1} value={progress.done} aria-label={t("alliance.progressLabel", "Alliance registration progress")}/><small>{progress.currentId ? t("alliance.processingId", "Processing Player ID") + " " + progress.currentId : t("alliance.finalizing", "Finishing this batch…")}</small>{progress.note && <small className="ks-alliance-progress-note">{progress.note}</small>}</div>}
         {outcomes.length > 0 && <div className="ks-alliance-outcomes">
