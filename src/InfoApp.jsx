@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from "react";
-import {ArrowLeft,ArrowRight,Clock3,Database,History,LockKeyhole,RefreshCw,Zap,Menu,X,ShieldCheck} from "lucide-react";
+import {ArrowLeft,ArrowRight,Clock3,Database,History,LockKeyhole,RefreshCw,Zap,Menu,X,ShieldCheck,Users} from "lucide-react";
 import "./how-it-works-redesign.css";
 import MobileNavDrawer from "./components/MobileNavDrawer.jsx";
 import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
