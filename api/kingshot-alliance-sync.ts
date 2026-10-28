@@ -1,6 +1,6 @@
 import { rateLimit } from "../lib/request-rate-limit.js";
 import { isAuthenticatedProfileRequest } from "../lib/developer-auth.js";
-import { sql } from "@neondatabase/serverless";
+import { neon } from "@neondatabase/serverless";
 import { randomUUID } from "node:crypto";
 import { normalizeRegistrationInput, registerPlayer } from "../internal/kingshot/register.js";
 
@@ -13,7 +13,7 @@ function fail(res:Res,status:number,code:string,message:string){res.status(statu
 function validKingdom(v:unknown){return /^\d{1,10}$/.test(String(v??""));}
 function validTag(v:unknown){return /^[A-Za-z0-9_-]{1,20}$/.test(String(v??""));}
 function getParam(req:Req,key:string){const url=new URL(req.url||"/","http://localhost");return String(req.query?.[key]??url.searchParams.get(key)??"").trim();}
-function database(){if(!DB_URL)throw new Error("Alliance sync database is not configured."); return sql(DB_URL);}
+function database(){if(!DB_URL)throw new Error("Alliance sync database is not configured."); return neon(DB_URL);}
 async function getProfileOwner(req:Req):Promise<string|null>{
  const cookie=header(req,"cookie");
  const match=cookie.split(";").map(v=>v.trim()).find(v=>v.startsWith("__Host-ks_profile_session="));
