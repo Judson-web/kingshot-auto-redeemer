@@ -106,7 +106,7 @@ export default function AllianceRegistration() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Could not enable auto sync.");
       setSyncConfig(data.config || null);
-      setSyncMessage("Auto sync is enabled. New members will be checked on the next scheduled run.");
+      setSyncMessage("Auto sync is registered. Its settings are fixed; you can pause or resume the schedule.");
     } catch (error) {
       setSyncError(error instanceof Error ? error.message : "Could not enable auto sync.");
     } finally { setSyncBusy(false); }
