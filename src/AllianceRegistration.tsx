@@ -1,8 +1,9 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, CheckCheck, CheckCircle2, ChevronDown, CircleAlert, Clock3, Info, LoaderCircle, Search, ShieldCheck, Users, UserRound, RotateCcw, X } from "lucide-react";
 import { makeFailureOutcome, makeSuccessOutcome, summarizeRegistrationOutcomes } from "./registration-outcomes.js";
 import { useSiteLanguage } from "./shared/site-language.js";
 import PublicSiteHeader from "./components/PublicSiteHeader.jsx";
+import { useAccountState, refreshAccount } from "./shared/account-state.js";
 import "./alliance-registration.css";
 
 type AllianceEntry = {
@@ -37,6 +38,8 @@ function safePlayer(member: AllianceMember, alliance: AllianceResult["alliance"]
 
 export default function AllianceRegistration() {
   const { t } = useSiteLanguage();
+  const accountState = useAccountState();
+  useEffect(() => { void refreshAccount(); }, []);
   const [kingdomId, setKingdomId] = useState("");
   const [query, setQuery] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -45,6 +48,7 @@ export default function AllianceRegistration() {
   const [searchError, setSearchError] = useState("");
   const [activeAlliance, setActiveAlliance] = useState<AllianceEntry | null>(null);
   const [roster, setRoster] = useState<AllianceResult | null>(null);
+  const [rosterChanges, setRosterChanges] = useState<{added: AllianceMember[]; removed: AllianceMember[]; changed: AllianceMember[]} | null>(null);
   const [loadingRoster, setLoadingRoster] = useState(false);
   const [rosterError, setRosterError] = useState("");
   const [memberFilter, setMemberFilter] = useState("");
@@ -123,6 +127,7 @@ export default function AllianceRegistration() {
     // just because the user asks for newer upstream data.
     if (!sameAlliance) {
       setRoster(null);
+      setRosterChanges(null);
       setOutcomes([]);
       setProcessedIds([]);
       setSelected([]);
@@ -151,6 +156,17 @@ export default function AllianceRegistration() {
         stale: Boolean(normalized.stale || (typeof normalized.ageSeconds === "number" && normalized.ageSeconds > 3600)),
         members: [...unique.values()]
       };
+      if (sameAlliance && roster) {
+        const previousById = new Map(roster.members.map(member => [member.playerId, member]));
+        const currentById = new Map(clean.members.map(member => [member.playerId, member]));
+        const added = clean.members.filter(member => !previousById.has(member.playerId));
+        const removed = roster.members.filter(member => !currentById.has(member.playerId));
+        const changed = clean.members.filter(member => {
+          const old = previousById.get(member.playerId);
+          return old && (old.name !== member.name || old.power !== member.power || old.townCenterLevel !== member.townCenterLevel || old.allianceRank !== member.allianceRank);
+        });
+        setRosterChanges({ added, removed, changed });
+      } else setRosterChanges(null);
       setRoster(clean);
       const validIds = new Set(clean.members.map(member => member.playerId));
       if (sameAlliance) {
@@ -194,6 +210,13 @@ export default function AllianceRegistration() {
     }
   };
 
+  const selectNewMembers = () => {
+    if (!roster || !rosterChanges?.added.length) return;
+    const eligible = rosterChanges.added.filter(member => !processedIds.includes(member.playerId));
+    setSelected(eligible.slice(0, BATCH_LIMIT).map(member => member.playerId));
+    setRosterError(eligible.length > BATCH_LIMIT ? t("alliance.newMembersCapped", "Selected the first 100 new members. Register the rest in another batch.") : "");
+  };
+
   const selectNextBatch = () => {
     if (!roster) return;
     const next = roster.members.filter(member => !processedIds.includes(member.playerId))
@@ -226,7 +249,8 @@ export default function AllianceRegistration() {
           for (let attempt = 0; attempt < 3; attempt++) {
             response = await fetch("/api/kingshot-register", {
               method: "POST",
-              headers: { "content-type": "application/json" },
+              headers: { "content-type": "application/json", "x-alliance-registration": "1" },
+              credentials: "same-origin",
               body: JSON.stringify({
                 playerId: id,
                 kingdomId: String(member.kingdomId || roster.alliance.kingdomId || kingdomId.trim()),
@@ -271,6 +295,11 @@ export default function AllianceRegistration() {
   };
 
   const allVisibleSelected = visibleMembers.length > 0 && visibleMembers.every(member => selected.includes(member.playerId));
+  if (accountState.status !== "authenticated" || !accountState.account) {
+    const checking = accountState.status === "checking" || accountState.status === "cached";
+    return <div className="app ks-app ks-alliance-app"><PublicSiteHeader current="alliance-registration" /><main id="alliance-main"><section className="ks-alliance-login-gate" aria-labelledby="alliance-login-title"><span className="ks-alliance-login-icon"><ShieldCheck size={26} aria-hidden="true" /></span><p className="ks-alliance-eyebrow"><span aria-hidden="true" />{t("alliance.eyebrow", "BULK REGISTRATION")}</p><h1 id="alliance-login-title">{checking ? t("alliance.authChecking", "Checking your session…") : t("alliance.loginTitle", "Sign in to continue")}</h1><p>{t("alliance.loginDescription", "Sign in with Discord to search alliance rosters and manage member registration. Your roster tools are available only to authenticated users.")}</p>{!checking && <a className="ks-alliance-primary ks-alliance-login-button" href={"/profile?returnTo=" + encodeURIComponent("/alliance-registration")}><ShieldCheck size={16} />{t("alliance.loginButton", "Continue with Discord")}</a>}<small>{t("alliance.loginPrivacy", "Your existing Auto Registration settings are not changed by this feature.")}</small></section></main></div>;
+  }
+
   return <div className="app ks-app ks-alliance-app">
     <a className="skip-link" href="#alliance-main">{t("common.skip", "Skip to main content")}</a>
     <PublicSiteHeader current="alliance-registration" />
@@ -323,6 +352,12 @@ export default function AllianceRegistration() {
           <div className="ks-alliance-roster-stats"><span><b>{formatNumber(roster.alliance.power)}</b><small>{t("alliance.power", "Power")}</small></span><span><b>{roster.members.length}</b><small>{t("alliance.rosterMembers", "Valid IDs")}</small></span><span><b>{completedCount}</b><small>{t("alliance.attempted", "attempted")}</small></span><button type="button" className="ks-alliance-refresh" onClick={() => activeAlliance && void loadRoster(activeAlliance)} disabled={loadingRoster || registering}>{loadingRoster ? <LoaderCircle size={14} className="ks-alliance-spin"/> : <RotateCcw size={14}/>}<span>{t("alliance.refreshRoster", "Refresh roster")}</span></button></div>
         </div>
         <div className={"ks-alliance-data-note" + (roster.stale ? " is-stale" : "")} role="status"><Info size={15}/><span>{roster.stale ? t("alliance.staleRoster", "This roster may be outdated. Review names and IDs carefully before registering.") : t("alliance.freshRoster", "Roster loaded. Review the members below before registering.")}{typeof roster.ageSeconds === "number" && <small><Clock3 size={12}/>{t("alliance.dataAge", "Data age")}: {roster.ageSeconds < 60 ? Math.max(0, Math.round(roster.ageSeconds)) + "s" : Math.round(roster.ageSeconds / 60) + "m"}</small>}</span></div>
+        {rosterChanges && <section className="ks-alliance-roster-diff" aria-label={t("alliance.rosterChangesTitle", "Roster changes since the previous fetch")}>
+          <div className="ks-alliance-roster-diff-head"><strong>{t("alliance.rosterChangesTitle", "Roster changes since the previous fetch")}</strong><span>{t("alliance.diffReviewOnly", "Review only · no members are removed automatically")}</span></div>
+          <div className="ks-alliance-roster-diff-stats"><span className="is-added"><b>{rosterChanges.added.length}</b><small>{t("alliance.newMembers", "New members")}</small></span><span><b>{rosterChanges.changed.length}</b><small>{t("alliance.updatedMembers", "Updated profiles")}</small></span><span className="is-removed"><b>{rosterChanges.removed.length}</b><small>{t("alliance.leftMembers", "No longer listed")}</small></span></div>
+          {rosterChanges.added.length > 0 && <div className="ks-alliance-diff-list"><strong>{t("alliance.newMembersHeading", "Newly found members")}</strong>{rosterChanges.added.slice(0, 12).map(member => <span key={member.playerId}>{member.name} <small>({member.playerId})</small></span>)}{rosterChanges.added.length > 12 && <small>{t("alliance.moreMembers", "and")} {rosterChanges.added.length - 12} {t("alliance.more", "more")}</small>}<button type="button" className="ks-alliance-secondary" onClick={selectNewMembers} disabled={registering}>{t("alliance.selectNewMembers", "Select new members")}</button></div>}
+          {rosterChanges.added.length === 0 && rosterChanges.removed.length === 0 && rosterChanges.changed.length === 0 && <p>{t("alliance.noRosterChanges", "No member changes detected since the previous fetch.")}</p>}
+        </section>}
         <div className="ks-alliance-selection-bar">
           <div className="ks-alliance-selection-count"><strong>{selected.length}<span> / {BATCH_LIMIT}</span></strong><span>{t("alliance.selectedThisBatch", "selected for this batch")}</span><small>{selectedVisibleCount} {t("alliance.selectedVisible", "of visible members selected")}</small></div>
           <div className="ks-alliance-selection-actions">

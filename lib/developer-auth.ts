@@ -115,3 +115,19 @@ export default async function handler(req:Req,res:Res){res.setHeader("Cache-Cont
   if(action==="oauth"){const accessToken=String(req.body?.access_token||"");const provider=String(req.body?.provider||"discord");if(provider!=="discord"){res.status(400).json({error:"Only Discord sign-in is supported."});return}if(!accessToken||accessToken.length>8192){res.status(400).json({error:"Missing or invalid Discord session token."});return}const user=await authUser(accessToken);if(!hasProvider(user,"discord")){res.status(403).json({error:"Discord identity was not confirmed by Supabase. Ensure Discord is enabled as an Auth provider."});return}const token=random();const ok=await rpc("kingshot_developer_account_session_create",{p_token_hash:sha(token),p_user_id:user.id});if(ok!==true){res.status(403).json({error:"Could not establish a developer session for this Discord account."});return}setCookie(res,token,5184000);res.status(200).json({ok:true,role:roleOf(user),provider:"discord"});return}
  res.status(400).json({error:"Only Discord OAuth sign-in is supported for developer accounts."});return;
  }catch(e){const err=e as Error&{status?:number};const status=err.status===400||err.status===422?400:err.status===429?429:err.status===403?403:500;res.status(status).json({error:status===500?"Developer account service is temporarily unavailable.":err.message})}}
+
+/** Validate the profile's server-side Discord session for protected alliance tools. */
+export async function isAuthenticatedProfileRequest(req: { headers: Record<string, string | string[] | undefined> }): Promise<boolean> {
+ try {
+  const token = cookieValue(req as Req, PROFILE_COOKIE);
+  if (!token || !KEY) return false;
+  const userId = await rpc("kingshot_developer_account_session_get", { p_token_hash: sha(token) });
+  if (typeof userId !== "string" || !userId) return false;
+  const response = await fetch(SUPABASE_URL + "/auth/v1/admin/users/" + encodeURIComponent(userId), {
+   headers: { apikey: KEY, authorization: "Bearer " + KEY },
+   signal: AbortSignal.timeout(8000)
+  });
+  const user: any = await response.json().catch(() => null);
+  return Boolean(response.ok && hasProvider(user, "discord"));
+ } catch { return false; }
+}

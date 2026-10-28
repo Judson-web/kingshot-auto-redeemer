@@ -3,7 +3,7 @@ import { fetchMightPulse } from "../lib/mightpulse-key-pool.js";
 import developerApi from "../lib/developer-api.js";
 import developerApiV3 from "../lib/developer-api-v3.js";
 import developerApiV4 from "../lib/developer-api-v4.js";
-import developerAuth from "../lib/developer-auth.js";
+import developerAuth, { isAuthenticatedProfileRequest } from "../lib/developer-auth.js";
 import developerAccount from "../lib/developer-account.js";
 import { isValidPlayerId, lookupPlayer, normalizePlayerId, PlayerLookupError } from "../internal/kingshot/player.js";
 import { extractMightPulseAvatarFrameFromPlayerData, resolveMightPulseProfileUid, validateFrameAssetId } from "../lib/mightpulse-avatar-frame.js";
@@ -258,6 +258,10 @@ function findAllianceRows(value: unknown, depth = 0): Record<string, any>[] {
 }
 
 async function handleAllianceLookup(req: RequestLike, res: ResponseLike): Promise<void> {
+ if (!(await isAuthenticatedProfileRequest(req))) {
+  res.status(401).json({ error: "Sign in with Discord to use alliance registration tools.", code: "authentication_required" });
+  return;
+ }
  if (req.method && req.method.toUpperCase() !== "GET") {
   res.setHeader("Allow", "GET");
   res.status(405).json({ error: "Method not allowed." });

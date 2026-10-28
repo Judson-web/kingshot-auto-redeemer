@@ -341,3 +341,34 @@
 .ks-alliance-cards::-webkit-scrollbar-track { background: #161719; border-radius: 8px; }
 .ks-alliance-cards::-webkit-scrollbar-thumb { background: #4c4c4f; border: 2px solid #161719; border-radius: 8px; }
 @media (max-width: 720px) { .ks-alliance-cards { max-height: min(56vh, 420px); } }
+
+/* Alliance feature announcement and authenticated entry state. */
+.ks-alliance-announcement{position:relative;display:flex;align-items:center;gap:12px;min-height:42px;overflow:hidden;border-bottom:1px solid #3a3427;background:#171611;color:#e7d6aa;font-size:12px}
+.ks-alliance-announcement-label{position:relative;z-index:1;display:flex;align-items:center;gap:7px;flex:0 0 auto;padding:0 0 0 16px;font-size:10px;font-weight:850;letter-spacing:.09em;text-transform:uppercase}
+.ks-alliance-marquee{min-width:0;flex:1;overflow:hidden;mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)}
+.ks-alliance-marquee-track{display:flex;width:max-content;align-items:center;gap:34px;animation:ks-alliance-marquee 32s linear infinite;white-space:nowrap}
+.ks-alliance-marquee-track span{padding:12px 0}
+.ks-alliance-announcement:hover .ks-alliance-marquee-track{animation-play-state:paused}
+.ks-alliance-announcement a{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;margin-right:14px;color:#15130e;background:#d4bd88;border-radius:8px;padding:8px 11px;font-size:11px;font-weight:800;text-decoration:none}
+@keyframes ks-alliance-marquee{to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){.ks-alliance-marquee-track{animation:none;white-space:normal;width:auto}.ks-alliance-marquee-track span:nth-child(2){display:none}}
+.ks-alliance-login-gate{max-width:620px;margin:clamp(30px,8vh,90px) auto;padding:clamp(24px,5vw,42px);border:1px solid #34312a;border-radius:20px;background:radial-gradient(ellipse at top left,#242117 0,transparent 58%),#111214;text-align:center;box-shadow:0 24px 80px #0003}
+.ks-alliance-login-icon{display:grid;width:56px;height:56px;margin:0 auto 22px;place-items:center;border:1px solid #4b422f;border-radius:16px;background:#211e18;color:#d4bd88}
+.ks-alliance-login-gate .ks-alliance-eyebrow{justify-content:center}
+.ks-alliance-login-gate h1{margin:14px 0 10px;font-size:clamp(27px,5vw,38px);letter-spacing:-.04em}
+.ks-alliance-login-gate>p:not(.ks-alliance-eyebrow){max-width:450px;margin:0 auto;color:#a9a9a6;font-size:14px;line-height:1.75}
+.ks-alliance-login-button{margin:24px auto 0;text-decoration:none}
+.ks-alliance-login-gate>small{display:block;margin-top:20px;color:#858680;font-size:11px;line-height:1.6}
+@media(max-width:560px){.ks-alliance-announcement{gap:8px}.ks-alliance-announcement-label{padding-left:10px}.ks-alliance-announcement a{margin-right:8px}.ks-alliance-login-gate{margin-top:24px}}
+
+.ks-alliance-roster-diff{margin:0 22px 18px;padding:14px;border:1px solid #39352a;border-radius:12px;background:linear-gradient(135deg,#1b1a15,#121314)}
+.ks-alliance-roster-diff-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ks-alliance-roster-diff-head strong{font-size:12px;color:#ece5d2}.ks-alliance-roster-diff-head>span{font-size:10px;color:#a5a39a}
+.ks-alliance-roster-diff-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.ks-alliance-roster-diff-stats>span{display:flex;flex-direction:column;gap:3px;padding:10px;border:1px solid #303033;border-radius:9px;background:#111214}
+.ks-alliance-roster-diff-stats b{font-size:20px;font-variant-numeric:tabular-nums}.ks-alliance-roster-diff-stats small{font-size:10px;color:#a5a6a8}
+.ks-alliance-roster-diff-stats .is-added b{color:#9fd5ad}.ks-alliance-roster-diff-stats .is-removed b{color:#dca0a0}
+.ks-alliance-diff-list{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:14px;padding-top:12px;border-top:1px solid #303033}
+.ks-alliance-diff-list>strong{font-size:11px;margin-bottom:2px}.ks-alliance-diff-list>span{font-size:11px;color:#d6d4cc;overflow-wrap:anywhere}.ks-alliance-diff-list small{color:#92938f;font-size:10px}.ks-alliance-diff-list .ks-alliance-secondary{margin-top:5px}
+.ks-alliance-roster-diff>p{margin:12px 0 0;color:#a5a6a8;font-size:12px}
+@media(max-width:560px){.ks-alliance-roster-diff{margin-left:12px;margin-right:12px}.ks-alliance-roster-diff-stats{gap:5px}.ks-alliance-roster-diff-stats>span{padding:8px}.ks-alliance-roster-diff-stats b{font-size:17px}}

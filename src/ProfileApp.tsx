@@ -28,7 +28,7 @@ useEffect(()=>{
  let live=true;
  const hash=new URLSearchParams(location.hash.slice(1));
  const token=hash.get("access_token");
- const returnTo=new URLSearchParams(location.search).get("returnTo");
+ const returnTo=new URLSearchParams(location.search).get("returnTo") || sessionStorage.getItem("ks-profile-return-to");
  if(token){
   history.replaceState(null,"",location.pathname+location.search);
   saveToken(token);
@@ -38,14 +38,14 @@ useEffect(()=>{
    const next=d.user?{...d.user,kind:(d.role==="admin"?"admin":d.kind==="developer"?"developer":"user") as "user"|"developer"|"admin",role:d.role||"user"}:null;
    setAccountState(next);
    setNotice(t("profile.copy024","Signed in with Discord."));
-   if(["/devsupport","/message","/gift-codes","/admin/players","/admin/maintenance"].includes(returnTo||""))location.assign(returnTo);
+   if(["/devsupport","/message","/gift-codes","/admin/players","/admin/maintenance","/alliance-registration"].includes(returnTo||"")){sessionStorage.removeItem("ks-profile-return-to");location.assign(returnTo)}
   }).catch(e=>{
    if(live){setAccountState(null,{error:e instanceof Error?e.message:t("profile.signInFailed","Discord sign-in failed.")});setError(e instanceof Error?e.message:"Discord sign-in failed.")}
   }).finally(()=>{if(live)setBusy(false)});
  }
  return()=>{live=false};
 },[]);
-async function signIn(){setBusy(true);setError("");try{const d=await request({action:"profile-discord-url"});if(!d.url)throw Error(t("profile.signInNotConfigured","Discord sign-in is not configured."));location.assign(d.url)}catch(e){setError(e instanceof Error?e.message:t("profile.startSignInFailed","Could not start Discord sign-in."));setBusy(false)}}
+async function signIn(){setBusy(true);setError("");try{const returnTo=new URLSearchParams(location.search).get("returnTo");if(returnTo==="/alliance-registration")sessionStorage.setItem("ks-profile-return-to",returnTo);const d=await request({action:"profile-discord-url"});if(!d.url)throw Error(t("profile.signInNotConfigured","Discord sign-in is not configured."));location.assign(d.url)}catch(e){setError(e instanceof Error?e.message:t("profile.startSignInFailed","Could not start Discord sign-in."));setBusy(false)}}
 async function logout(){setBusy(true);setError("");setNotice("");try{const r=await fetch(API,{method:"DELETE",credentials:"same-origin",cache:"no-store",headers:{"content-type":"application/json"},body:JSON.stringify({access_token:readToken()})});const d=await r.json().catch(()=>({}));clearToken();setAccountState(null);if(!r.ok)throw Error(d.error||t("profile.logoutUnconfirmed","Signed out locally, but server-side logout could not be fully confirmed."));setNotice(t("profile.copy025","Signed out successfully."))}catch(e){setError(e instanceof Error?e.message:t("profile.signOutFailed","Could not sign out."))}finally{setBusy(false)}}
 const hasProfileAccess=Boolean(user&&(user.role==="admin"||user.kind==="admin"||user.role==="developer"||user.kind==="developer"));
 const profileLoginAllowed=["/devsupport","/message","/gift-codes","/admin/players","/admin/maintenance"].includes(new URLSearchParams(location.search).get("returnTo")||"");
