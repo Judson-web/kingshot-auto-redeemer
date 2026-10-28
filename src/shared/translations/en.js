@@ -937,6 +937,7 @@ export default {
   "alliance.batchNote": "Only selected players are processed. Review each result before starting another batch.",
   "alliance.attempted": "attempted",
   "alliance.refreshRoster": "Refresh roster",
+  "alliance.notRegistered":"Not registered",
   "alliance.alreadyRegistered": "Already registered",
   "alliance.registeredThisSession": "Registered in this batch",
   "alliance.drawerDescription": "Register a whole alliance or selected members",

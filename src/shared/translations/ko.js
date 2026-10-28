@@ -937,6 +937,7 @@ export default {
   "alliance.batchNote": "선택한 플레이어만 처리됩니다. 다음 배치를 시작하기 전에 결과를 확인하세요.",
   "alliance.attempted": "처리 시도",
   "alliance.refreshRoster": "명단 새로고침",
+  "alliance.notRegistered":"미등록",
   "alliance.alreadyRegistered": "이미 등록됨",
   "alliance.registeredThisSession": "이번 배치에서 등록됨",
   "alliance.drawerDescription": "연맹 전체 또는 선택한 구성원 등록",
