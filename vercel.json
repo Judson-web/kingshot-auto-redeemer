@@ -182,6 +182,12 @@
     },
     "api/custom-message.js": {
       "maxDuration": 300
+    },
+    "api/kingshot-alliance-sync.ts": {
+      "maxDuration": 300
+    },
+    "api/kingshot-alliance-sync-worker.ts": {
+      "maxDuration": 300
     }
   },
   "crons": [
