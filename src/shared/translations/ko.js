@@ -803,6 +803,7 @@ export default {
   "support.ticketPrefix": "문의 티켓 ",
   "alliance.title": "연맹 구성원 등록",
   "alliance.registerSelectedMembers": "선택한 구성원 등록",
+  "alliance.registerButton": "등록",
   "alliance.registerEntireAlliance": "연맹 전체 등록",
   "alliance.allianceAlreadyRegistered": "연맹 등록 완료",
   "alliance.kingdomAllianceCapReached": "이 왕국의 연맹 동기화 슬롯 3/3개를 사용 중입니다. 개별 구성원 등록은 계속 이용할 수 있습니다.",
