@@ -163,7 +163,7 @@ export default {
   "auto.preparing":"다음 결과를 준비하고 있습니다…",
   "auto.cancelRegistration":"남은 ID 등록 취소",
   "auto.cancelPending":"현재 ID 처리 후 중지합니다…",
-  "auto.cancelled":"현재 ID 처리 후 중지했습니다. 시작하지 않은 ID는 제출되지 않았습니다."
+  "auto.cancelled":"현재 ID 처리 후 중지했습니다. 시작하지 않은 ID는 제출되지 않았습니다.",
   "auto.progressHelp":"각 ID 처리가 끝나면 결과가 표시됩니다. 등록은 ID별로 개별 처리됩니다.",
   "auto.errorTitle":"등록 상태를 확인해야 합니다.",
   "auto.how":"이용 방법",
@@ -703,7 +703,7 @@ export default {
   "manual.cancelledUnknownTitle":"대기를 중지했습니다. 결과 확인 필요",
   "manual.cancelledUnknown":"요청이 이미 Kingshot에 전달되었을 수 있습니다. 다시 시도하기 전에 게임 내 결과를 확인하세요. 자동 재시도는 하지 않았습니다.",
   "manual.cancelledTitle":"요청 취소됨",
-  "manual.cancelledBeforeSubmit":"선물 코드 제출 전 플레이어 조회가 취소되었습니다."
+  "manual.cancelledBeforeSubmit":"선물 코드 제출 전 플레이어 조회가 취소되었습니다.",
   "manual.requestTimeoutMessage": "요청 시간이 초과되었습니다. Kingshot에 요청이 이미 전달되었을 수 있어 자동으로 재시도하지 않았습니다. 다시 제출하기 전에 게임 내 우편을 확인해 주세요.",
   "manual.summarySuccess": "보상은 게임 내 우편함에서 확인해 주세요.",
   "manual.summaryClaimed": "이 계정에서 이미 사용한 코드입니다.",
@@ -838,7 +838,7 @@ export default {
   "alliance.rateLimitExhausted": "등록 요청 제한이 해제되지 않았습니다. 잠시 후 이 구성원을 다시 시도하세요.",
   "alliance.cancelRegistration":"남은 등록 취소",
   "alliance.cancelPending":"현재 플레이어 처리 후 중지합니다…",
-  "alliance.cancelled":"현재 플레이어 처리 후 등록을 중지했습니다. 나머지 선택된 플레이어는 제출되지 않았습니다."
+  "alliance.cancelled":"현재 플레이어 처리 후 등록을 중지했습니다. 나머지 선택된 플레이어는 제출되지 않았습니다.",
   "alliance.registrationFailed": "등록 결과를 확인하지 못했습니다. 다시 시도하기 전에 상태를 확인하세요.",
   "alliance.requestTimeout": "요청 시간이 초과되었습니다. 다시 시도하기 전에 이 플레이어 ID의 상태를 확인하세요.",
   "alliance.connectionInterrupted": "연결이 중단되었습니다. 다시 시도하기 전에 이 플레이어 ID의 상태를 확인하세요.",
