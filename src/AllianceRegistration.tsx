@@ -67,7 +67,6 @@ export default function AllianceRegistration() {
     );
   }, [roster, memberFilter]);
   const summary = useMemo(() => summarizeRegistrationOutcomes(outcomes), [outcomes]);
-  const activeCount = outcomes.filter(item => ["registered", "existing", "reactivated"].includes(item.kind)).length;
   const remainingCount = (roster?.members || []).filter(member => !processedIds.includes(member.playerId)).length;
 
   const discover = async (event: React.FormEvent) => {
@@ -254,7 +253,6 @@ export default function AllianceRegistration() {
   };
 
   const allVisibleSelected = visibleMembers.length > 0 && visibleMembers.every(member => selected.includes(member.playerId));
-  const selectedAllActive = outcomes.length > 0 && outcomes.filter(item => selected.includes(item.id)).every(item => ["registered", "existing", "reactivated"].includes(item.kind));
   return <div className="app ks-app ks-alliance-app">
     <a className="skip-link" href="#alliance-main">{t("common.skip", "Skip to main content")}</a>
     <PublicSiteHeader current="alliance-registration" />
@@ -313,7 +311,7 @@ export default function AllianceRegistration() {
           <div><strong>{selected.length} / {BATCH_LIMIT}</strong><span>{t("alliance.selectedThisBatch", "selected for this batch")}</span></div>
           <div className="ks-alliance-selection-actions">
             <button type="button" className="ks-alliance-link-button" onClick={() => allVisibleSelected ? setSelected(current => current.filter(id => !visibleMembers.some(member => member.playerId === id))) : selectVisible()} disabled={registering || !visibleMembers.length}>{allVisibleSelected ? t("alliance.clearVisible", "Clear visible") : t("alliance.selectVisible", "Select visible")}</button>
-            <button type="button" className="ks-alliance-link-button" onClick={selectNextBatch} disabled={registering || remainingCount === 0}>{t("alliance.selectNext", "Select next batch")} <ArrowRight size={13}/></button>
+            <button type="button" className="ks-alliance-link-button" onClick={selectNextBatch} disabled={registering || remainingCount === 0 || (selected.length > 0 && !selected.every(id => processedIds.includes(id)))}>{t("alliance.selectNext", "Select next batch")} <ArrowRight size={13}/></button>
           </div>
         </div>
         <label className="ks-alliance-member-filter"><Search size={15} aria-hidden="true"/><input value={memberFilter} onChange={event => setMemberFilter(event.target.value)} placeholder={t("alliance.memberFilterPlaceholder", "Filter by name, Player ID or rank")} aria-label={t("alliance.memberFilterLabel", "Filter alliance members")} disabled={registering}/></label>
