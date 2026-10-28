@@ -66,6 +66,11 @@ export default {
   "info.step4Text":"중복 시도를 방지하고 교환 기록을 유지하기 위해 각 결과를 저장합니다.",
   "info.features":"서비스가 제공하는 기능",
   "info.failures":"처리가 완료되지 않는 경우",
+  "info.safeStopTitle":"네트워크 문제가 발생했을 때 안전하게 중지하기",
+  "info.safeStopRegistration":"여러 플레이어 등록",
+  "info.safeStopRegistrationText":"취소하면 아직 시작하지 않은 다음 플레이어의 등록을 중단합니다. 현재 요청은 완료될 수 있으며 이미 받은 결과는 유지됩니다. 페이지를 닫는 것은 최선의 중지 신호일 뿐, 서버 작업 취소를 보장하지 않습니다.",
+  "info.safeStopManual":"수동 교환",
+  "info.safeStopManualText":"코드 제출 후 연결이 끊기면 결과를 알 수 없을 수 있습니다. 서비스는 같은 교환 요청을 자동으로 다시 제출하지 않습니다. 다시 시도하기 전에 Kingshot 게임 내 결과를 확인하세요."
   "info.ready":"시작할 준비가 되셨나요?",
   "info.choose":"교환 방법을 선택하세요.",
   "info.chooseText":"플레이어를 등록해 자동 확인을 이용하거나 기프트 코드를 직접 제출할 수 있습니다.",
