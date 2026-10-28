@@ -57,3 +57,21 @@ test("new alliance UI copy exists in both English and Korean dictionaries", () =
     assert.ok(korean.includes('"' + key + '"'), "missing Korean translation: " + key);
   }
 });
+
+
+test("all alliance results are rendered without a show-more cap or exact-tag fallback", () => {
+  assert.match(component, /filteredAlliances\.map\(item =>/);
+  assert.doesNotMatch(component, /showAllAlliances|setShowAllAlliances|exactTagToggle|loadExactTag|ks-alliance-exact/);
+});
+
+test("alliance flag images reveal a fallback icon if the upstream asset fails", () => {
+  assert.match(component, /className="ks-alliance-flag"><Users size=\{18\}/);
+  assert.match(component, /onError=\{event => \{ event\.currentTarget\.style\.display = "none"; \}\}/);
+  assert.match(api, /row\.icon_url \?\? row\.iconUrl/);
+});
+
+test("registration results use compact scrollable cards and explicitly mark existing registrations", () => {
+  assert.match(component, /alliance\.alreadyRegistered/);
+  assert.match(component, /className="ks-alliance-outcome-list" role="list"/);
+  assert.match(styles, /\.ks-alliance-outcome-list \{ max-height: 360px; overflow-y: auto/);
+});
