@@ -262,6 +262,7 @@ export default function AllianceRegistration() {
     setRosterError("");
     setProgress({ done: 0, total: batch.length, currentId: batch[0].playerId, note: "" });
     const processed = new Set(processedIds);
+    let completedInBatch = 0;
     try {
       for (let index = 0; index < batch.length; index++) {
         if (cancelRequestedRef.current) break;
@@ -311,12 +312,13 @@ export default function AllianceRegistration() {
           }) as Outcome;
         }
         processed.add(id);
+        completedInBatch++;
         setProcessedIds([...processed]);
         setOutcomes(current => [...current.filter(item => item.id !== id), outcome as Outcome]);
         if (outcome && ["registered", "existing", "reactivated"].includes(outcome.kind)) setRegisteredIds(current => current.includes(id) ? current : [...current, id]);
         setProgress({ done: index + 1, total: batch.length, currentId: index + 1 < batch.length ? batch[index + 1].playerId : "", note: "" });
       }
-      if (cancelRequestedRef.current) setRosterError(t("alliance.cancelled", "Registration stopped after the current player. Remaining selected players were not submitted."));
+      if (cancelRequestedRef.current && completedInBatch < batch.length) setRosterError(t("alliance.cancelled", "Registration stopped after the current player. Remaining selected players were not submitted."));
     } finally {
       registrationBusyRef.current = false;
       setRegistering(false);
