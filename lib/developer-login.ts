@@ -25,6 +25,6 @@ export default async function handler(req: RequestLike, res: ResponseLike): Prom
   res.status(410).json({
     error: "Legacy developer passkey authentication has been retired.",
     replacement: "/developer",
-    message: "Use the existing verified Discord account session and developer account panel."
+    message: "Use the existing verified Discord account session and account panel."
   });
 }
