@@ -193,10 +193,10 @@ test("refreshes roster when server-side alliance processing finishes", () => {
 
 test("kingdom alliance cap check and insert are serialized in one transaction", async () => {
   const handler = await readFile(new URL("../internal/kingshot/alliance-sync-handler.ts", import.meta.url), "utf8");
-  assert.match(handler, /db\.begin\(async tx=>\{/);
-  assert.match(handler, /pg_advisory_xact_lock\(hashtextextended\(\$\{kingdom\},0\)\)/);
+  assert.match(handler, /with kingdom_lock as materialized/);
+  assert.match(handler, /pg_advisory_xact_lock\(hashtextextended\(\$\{kingdom\},0\)\)/);\n  assert.match(handler, /from counts where total < 3/);
   assert.match(handler, /select count\(\*\)::int as total from public\.alliance_sync_config where kingdom_id=\$\{kingdom\}/);
-  assert.match(handler, /if\(Number\(counts\[0\]\?\.total\|\|0\)>=3\)return \{limited:true,config:null\}/);
+  assert.match(handler, /Number\(registrationRow\?\.total\|\|0\)>=3/);
   assert.match(handler, /insert into public\.alliance_sync_config[\s\S]*?values[\s\S]*?returning id,kingdom_id/);
-  assert.match(handler, /registration\.limited\|\|!registration\.config/);
+  assert.match(handler, /!registrationRow\?\.id/);
 });
