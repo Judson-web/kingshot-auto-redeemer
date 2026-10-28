@@ -3170,6 +3170,12 @@ body:has(.support-float-panel.support-chat-panel) .ks-install-prompt{display:non
 @media(max-width:620px){.ks-app .ks-alliance-feature-banner{width:calc(100% - 24px)!important;gap:10px!important;min-height:70px!important;margin-top:12px!important;padding:10px!important;border-radius:14px!important}.ks-app .ks-alliance-feature-icon{flex-basis:34px!important;width:34px!important;height:34px!important;border-radius:10px!important}.ks-app .ks-alliance-feature-divider{display:none!important}.ks-app .ks-alliance-feature-message{font-size:11px!important}.ks-app .ks-alliance-feature-link{min-height:38px!important;gap:5px!important;padding:0 9px!important;font-size:10px!important}.ks-app .ks-alliance-feature-link>svg:first-child{display:none!important}}
 @media(max-width:390px){.ks-app .ks-alliance-feature-banner{gap:8px!important;padding:9px!important}.ks-app .ks-alliance-feature-icon{display:none!important}.ks-app .ks-alliance-feature-link{gap:4px!important;padding:0 8px!important}.ks-app .ks-alliance-feature-message{font-size:10px!important}}
 @media(prefers-reduced-motion:reduce){.ks-app .ks-alliance-feature-banner:before{animation:none!important;display:none!important}.ks-app .ks-alliance-feature-link{transition:none!important}}
+.ks-app .ks-alliance-feature-link>.ks-alliance-feature-arrow{display:block!important;visibility:visible!important;opacity:1!important;flex:0 0 14px!important;width:14px!important;height:14px!important;color:#211a10!important;stroke:currentColor!important;stroke-width:2.4!important}
+.ks-app .ks-alliance-feature-dismiss{display:grid!important;place-items:center!important;flex:0 0 24px!important;width:24px!important;min-width:24px!important;height:24px!important;margin-left:0!important;padding:0!important;border:1px solid rgba(244,234,211,.24)!important;border-radius:7px!important;background:rgba(255,255,255,.045)!important;color:#e7d8b8!important;line-height:1!important;cursor:pointer!important;box-shadow:none!important}
+.ks-app .ks-alliance-feature-dismiss:hover{background:rgba(255,255,255,.12)!important;color:#fff2d1!important}
+.ks-app .ks-alliance-feature-dismiss:focus-visible{outline:2px solid #f6e3b3!important;outline-offset:3px!important}
+@media(max-width:620px){.ks-app .ks-alliance-feature-dismiss{flex-basis:22px!important;width:22px!important;min-width:22px!important;height:22px!important}}
+
 
 
 /* Alliance announcement: communicate public roster access and fixed sync cadence at a glance. */
