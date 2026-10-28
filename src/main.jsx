@@ -8,6 +8,7 @@ import"./styles.css";import"./registration-outcomes.css";import"./ux-feedback.cs
 import"./manual-redesign.css";import"./auto-registration-redesign.css";import"./drawer-redesign.css";import"./maintenance-redesign.css";import"./icon-palette.css";import"./public-site-header.css";
 import MobileNavDrawer from"./components/MobileNavDrawer.jsx";
 import PublicSiteHeader from"./components/PublicSiteHeader.jsx";
+import AllianceFeatureAnnouncement from "./components/AllianceFeatureAnnouncement.jsx";
 import {useSiteLanguage,translate,getSiteLanguage} from "./shared/site-language.js";
 import TownCenterLevel from"./components/TownCenterLevel.tsx";
 import { useServiceStatus } from "./shared/service-status.js";
@@ -106,7 +107,7 @@ function KingshotApp(){
   }finally{manualSubmissionRef.current=false;setBusy(false)}
  };
 
- return <div className="app ks-app ks-manual-app"><a className="skip-link" href="#main-content">{t("common.skip","Skip to main content")}</a><PublicSiteHeader current="manual" /><main id="main-content"><section className="ks-hero manual-page-hero" id="redeem">
+ return <div className="app ks-app ks-manual-app"><a className="skip-link" href="#main-content">{t("common.skip","Skip to main content")}</a><PublicSiteHeader current="manual" /><AllianceFeatureAnnouncement/><main id="main-content"><section className="ks-hero manual-page-hero" id="redeem">
  <div className="manual-hero-copy">
   <div className="eyebrow"><span/>{t("manual.eyebrow","KINGSHOT GIFT CODE REDEEMER")}</div>
   <h1>{t("manual.title","Redeem a gift code")}</h1>
@@ -191,7 +192,7 @@ function AutoRedeemApp(){
   }catch(failure){setError(t("auto.registrationFailed","Registration could not be completed. Please try again."))}
   finally{setBusy(false);setProgress(current=>({...current,currentId:""}))}
  };
- return <div className="app ks-app ks-auto-app"><a className="skip-link" href="#auto-main-content">{t("common.skip","Skip to main content")}</a><PublicSiteHeader current="auto" /><main id="auto-main-content"><section className="ks-auto-hero"><div className="eyebrow"><span/>{t("auto.eyebrow","KINGSHOT AUTO REDEEM")}</div><h1>{t("auto.title","Automatic redemption")}</h1><p className="hero-copy">{t("auto.hero","Eligible gift codes are checked automatically for registered players.")}</p>
+ return <div className="app ks-app ks-auto-app"><a className="skip-link" href="#auto-main-content">{t("common.skip","Skip to main content")}</a><PublicSiteHeader current="auto" /><AllianceFeatureAnnouncement/><main id="auto-main-content"><section className="ks-auto-hero"><div className="eyebrow"><span/>{t("auto.eyebrow","KINGSHOT AUTO REDEEM")}</div><h1>{t("auto.title","Automatic redemption")}</h1><p className="hero-copy">{t("auto.hero","Eligible gift codes are checked automatically for registered players.")}</p>
 <form className="ks-register-box ks-register-card" onSubmit={register} aria-describedby={error?"auto-register-help auto-register-error":"auto-register-help"} aria-busy={busy}>
  <div className="ks-register-card-intro">
   <div className="ks-register-card-intro-icon"><Gift size={20} aria-hidden="true"/></div>
