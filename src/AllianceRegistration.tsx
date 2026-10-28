@@ -136,8 +136,8 @@ export default function AllianceRegistration() {
       roster.alliance.tag === alliance.tag
     );
     setActiveAlliance(alliance);
-    const sameAllianceCapacity = allianceSyncCapacity && allianceSyncCapacity.isRegistered && activeAlliance?.tag === alliance.tag && String(activeAlliance?.kingdomId || kingdomId.trim()) === String(alliance.kingdomId || kingdomId.trim());
-    if (!sameAllianceCapacity) setAllianceSyncCapacity(null);
+    const switchingAlliance = !activeAlliance || activeAlliance.tag.toLocaleLowerCase() !== alliance.tag.toLocaleLowerCase() || String(activeAlliance.kingdomId || kingdomId.trim()) !== String(alliance.kingdomId || kingdomId.trim());
+    if (switchingAlliance) setAllianceSyncCapacity(null);
     if (!forceRefresh && roster && roster.alliance.kingdomId === (alliance.kingdomId || kingdomId.trim()) && roster.alliance.tag === alliance.tag) { setLoadingRoster(false); return; }
     setLoadingRoster(true);
     setRosterError("");
