@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Search, Users, Check, ChevronDown, ChevronUp, LoaderCircle, Plus } from "lucide-react";
-import { useSiteLanguage, translate } from "./shared/site-language.js";
+import { useSiteLanguage } from "./shared/site-language.js";
 import "./alliance-registration.css";
 
 type AllianceMember = {
@@ -36,12 +36,12 @@ export default function AllianceRegistration({ onAddPlayers, disabled = false }:
    const data = await response.json().catch(() => ({}));
    if (!response.ok) throw new Error(data.error || t("alliance.lookupFailed", "Could not find that alliance."));
    setResult(data);
-   setSelected((data.members || []).map((member: AllianceMember) => member.playerId));
+   setSelected((data.members || []).slice(0, 10).map((member: AllianceMember) => member.playerId));
   } catch (cause) {
    setError(cause instanceof Error ? cause.message : t("alliance.lookupFailed", "Could not find that alliance."));
   } finally { setLoading(false); }
  };
- const toggle = (id: string) => setSelected(current => current.includes(id) ? current.filter(value => value !== id) : [...current, id]);
+ const toggle = (id: string) => setSelected(current => current.includes(id) ? current.filter(value => value !== id) : current.length >= 10 ? current : [...current, id]);
  const allVisibleSelected = visible.length > 0 && visible.every(member => selected.includes(member.playerId));
  const add = () => {
   if (!result) return;
@@ -67,7 +67,7 @@ export default function AllianceRegistration({ onAddPlayers, disabled = false }:
     <div className="ks-alliance-summary"><div><span className="ks-alliance-tag">[{result.alliance.tag}]</span><strong>{result.alliance.name}</strong><small>{t("alliance.kingdomLabel", "Kingdom")} {result.alliance.kingdomId} · {result.members.length} {t("alliance.members", "members")}</small></div><span className="ks-alliance-power">{number(result.alliance.power)} {t("alliance.power", "power")}</span></div>
     {result.stale && <p className="ks-alliance-hint">{t("alliance.stale", "The provider returned its latest cached roster. Confirm members in-game before registering.")}</p>}
     {!result.members.length ? <p className="ks-alliance-hint">{t("alliance.empty", "No valid player IDs were returned for this roster.")}</p> : <>
-     <div className="ks-alliance-list-head"><strong>{t("alliance.chooseMembers", "Choose members")}</strong><button type="button" onClick={() => setSelected(current => allVisibleSelected ? current.filter(id => !visible.some(member => member.playerId === id)) : [...new Set([...current, ...visible.map(member => member.playerId)])]}>{allVisibleSelected ? t("alliance.clearVisible", "Clear visible") : t("alliance.selectVisible", "Select visible")}</button></div>
+     <div className="ks-alliance-list-head"><strong>{t("alliance.chooseMembers", "Choose up to 10 members")}</strong><button type="button" onClick={() => setSelected(current => allVisibleSelected ? current.filter(id => !visible.some(member => member.playerId === id)) : [...new Set([...current, ...visible.map(member => member.playerId)])].slice(0, 10)}>{allVisibleSelected ? t("alliance.clearVisible", "Clear visible") : t("alliance.selectVisible", "Select visible")}</button></div>
      <input className="ks-alliance-filter" aria-label={t("alliance.filter", "Filter members")} value={filter} onChange={event => setFilter(event.target.value)} placeholder={t("alliance.filterPlaceholder", "Filter by name or Player ID")}/>
      <div className="ks-alliance-member-list">{visible.map(member => <label className="ks-alliance-member" key={member.playerId}><input type="checkbox" checked={selected.includes(member.playerId)} onChange={() => toggle(member.playerId)}/>{member.avatarUrl ? <img src={member.avatarUrl} alt="" loading="lazy"/> : <span className="ks-alliance-avatar"><Users size={15}/></span>}<span className="ks-alliance-member-copy"><strong>{member.name}</strong><small>ID {member.playerId} · {number(member.power)} {t("alliance.power", "power")}</small></span>{selected.includes(member.playerId) && <Check size={16} className="ks-alliance-check"/>}</label>)}</div>
      <div className="ks-alliance-footer"><span>{selected.length} / {result.members.length} {t("alliance.selected", "selected")}</span><button type="button" onClick={add} disabled={!selected.length}><Plus size={16}/>{t("alliance.addSelected", "Add selected IDs")}</button></div>
