@@ -1,4 +1,4 @@
-import { sql } from "@neondatabase/serverless";
+import { neon } from "@neondatabase/serverless";
 import { randomUUID } from "node:crypto";
 import { normalizeRegistrationInput, registerPlayer } from "../internal/kingshot/register.js";
 
@@ -24,7 +24,7 @@ export default async function handler(req:any,res:any){
  if(req.method!=="GET"&&req.method!=="POST"){res.setHeader("Allow","GET, POST");return res.status(405).json({error:"Method not allowed"});}
  if(!JOB_SECRET||req.headers.authorization!=="Bearer "+JOB_SECRET)return res.status(401).json({error:"Unauthorized"});
  if(!DB_URL)return res.status(503).json({error:"Sync DB not configured"});
- const db=sql(DB_URL);
+ const db=neon(DB_URL);
  const results:any[]=[];
  try{
   // One invocation handles a small bounded batch, so a daily schedule can serve multiple alliances
