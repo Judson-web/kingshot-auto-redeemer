@@ -52,6 +52,7 @@ The production service is available at [kingshot-autoredeemer.vercel.app](https:
 |---|---|
 | `/` | Home page |
 | `/auto` | Automatic redemption |
+| `/alliance-registration` | Discover an alliance roster, register eligible new players, and optionally configure a scheduled additions-only sync |
 | `/manual` | Manual redemption |
 | `/redeem` | Redemption experience |
 | `/gift-codes` | Gift-code information |
@@ -88,6 +89,14 @@ V3 remains available without changing its existing response shape for compatibil
 6. **Notify:** optional web-push notifications can alert subscribed users to supported updates.
 
 Upstream availability, code validity, player eligibility, and provider rate limits can affect results. The service cannot guarantee that every code will work or that every notification will be delivered.
+
+## Database and worker architecture
+
+Supabase PostgreSQL is the authoritative registry for player registrations and application account state. Neon PostgreSQL is used for two separate purposes: an independent redemption-recovery journal, and the alliance-sync scheduler's configuration, run history, and seen-player status. The two databases do not replicate each other's tables directly. Server-side application handlers coordinate them: before alliance sync attempts registration, it performs a read-only check against Supabase and skips IDs already registered there. The existing registration RPC remains the final guard for new registrations.
+
+Alliance sync is additions-only. It validates the provider roster, uses a database-backed lease to prevent concurrent runs for the same alliance, and records outcomes in Neon. It does not deregister departed members. A provider failure or an unverifiable Supabase status fails closed rather than treating every player as new. The scheduled worker is separate from the redemption worker, and both routes are consolidated through the existing player API entrypoint to stay within the deployment platform's serverless-function limits.
+
+Public documentation deliberately omits secret names and values, database identifiers, private user records, and recovery artifacts. Keep the Neon connection strings, Supabase service credentials, and scheduler authorization secret in the deployment secret store only.
 
 ## Reliability and upstream request handling
 
@@ -128,6 +137,7 @@ Use the website's support channel to report a suspected vulnerability. Avoid pos
 | Language | JavaScript/JSX and TypeScript |
 | Hosting | Vercel |
 | Primary application database | Supabase PostgreSQL |
+| Recovery journal and alliance-sync state | Neon PostgreSQL, accessed only from server-side handlers |
 | Additional components | Supabase Storage, GitHub Actions, and supporting server-side services |
 | License | GNU Affero General Public License v3.0 (AGPL-3.0) |
 
