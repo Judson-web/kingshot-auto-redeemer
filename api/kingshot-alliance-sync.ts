@@ -61,13 +61,14 @@ async function readAlliance(kingdomId:string,tag:string){
  if(canonicalTag.toLocaleLowerCase()!==tag.toLocaleLowerCase())throw Object.assign(new Error("Alliance tag does not match the requested alliance."),{code:"alliance_mismatch"});
  return {name:String(a.name??a.alliance_name??tag).trim().slice(0,80),tag:canonicalTag,members:unique,rawCount:raw.length};
 }
-async function performSync(config:any,ownerId:string,manual:boolean){
+async function performSync(config:any,ownerId:string,manual:boolean,leaseToken:string){
  const db=database();
  const runId=randomUUID();
  try{
   await db`insert into public.alliance_sync_runs (id,config_id,status) values (${runId}::uuid,${config.id}::uuid,'running')`;
   const roster=await readAlliance(String(config.kingdom_id),String(config.alliance_tag));
-  let added=0,skipped=0;
+  let added=0,skipped=0,failed=0;
+  const failures:string[]=[];
   for(const member of roster.members){
    const heartbeat=await db`update public.alliance_sync_config set lease_expires_at=now()+interval '4 minutes' where id=${config.id}::uuid and lease_token=${leaseToken}::uuid and enabled=true returning id`;
    if(!heartbeat.length) throw new Error("Sync lease lost or configuration paused.");
@@ -90,17 +91,20 @@ async function performSync(config:any,ownerId:string,manual:boolean){
    }catch(e){
     const message=String((e as Error)?.message||"Registration failed.").slice(0,300);
     await db`update public.alliance_sync_seen_players set registration_status='error',last_error_code='registration_failed' where config_id=${config.id}::uuid and player_id=${member.id}`;
-    throw new Error("New member registration failed for "+member.id+": "+message);
+    failed++;
+    failures.push(member.id+": "+message);
+    continue;
    }
   }
   const nextRun=new Date(Date.now()+Number(config.interval_hours||24)*3600000).toISOString();
-  await db`update public.alliance_sync_config set alliance_name=${roster.name},last_attempt_at=now(),last_success_at=now(),next_run_at=${nextRun}::timestamptz,lease_token=null,lease_expires_at=null,consecutive_failures=0,last_status=case when enabled then 'success' else 'paused' end,last_error_code=null,last_error_message=null,last_roster_count=${roster.members.length},last_added_count=${added},updated_at=now() where id=${config.id}::uuid`;
-  await db`update public.alliance_sync_runs set finished_at=now(),status='success',roster_count=${roster.members.length},added_count=${added},skipped_count=${skipped} where id=${runId}::uuid`;
-  return {ok:true,rosterCount:roster.members.length,addedCount:added,skippedCount:skipped,nextRunAt:nextRun,manual};
+  const completed=await db`update public.alliance_sync_config set alliance_name=${roster.name},last_attempt_at=now(),last_success_at=now(),next_run_at=${nextRun}::timestamptz,lease_token=null,lease_expires_at=null,consecutive_failures=case when ${failed}>0 then consecutive_failures+1 else 0 end,last_status=case when not enabled then 'paused' when ${failed}>0 then 'partial' else 'success' end,last_error_code=case when ${failed}>0 then 'registration_failed' else null end,last_error_message=${failures.slice(0,5).join('; ').slice(0,500)||null},last_roster_count=${roster.members.length},last_added_count=${added},updated_at=now() where id=${config.id}::uuid and lease_token=${leaseToken}::uuid returning id`;
+  if(!completed.length) throw new Error('Sync lease was lost before completion.');
+  await db`update public.alliance_sync_runs set finished_at=now(),status=${failed>0?'partial':'success'},roster_count=${roster.members.length},added_count=${added},skipped_count=${skipped},error_code=${failed>0?'registration_failed':null},error_message=${failures.slice(0,5).join('; ').slice(0,500)||null} where id=${runId}::uuid`;
+  return {ok:true,rosterCount:roster.members.length,addedCount:added,skippedCount:skipped,failedCount:failed,nextRunAt:nextRun,manual};
  }catch(e){
   const message=String((e as Error)?.message||"Sync failed.").slice(0,500);
   const code=String((e as any)?.code||"sync_failed").slice(0,60);
-  await db`update public.alliance_sync_config set last_attempt_at=now(),lease_token=null,lease_expires_at=null,consecutive_failures=consecutive_failures+1,last_status=case when enabled then 'error' else 'paused' end,last_error_code=${code},last_error_message=${message},next_run_at=now()+least(interval '6 hours', interval '5 minutes' * power(2,least(consecutive_failures,6))),updated_at=now() where id=${config.id}::uuid`;
+  await db`update public.alliance_sync_config set last_attempt_at=now(),lease_token=null,lease_expires_at=null,consecutive_failures=consecutive_failures+1,last_status=case when enabled then 'error' else 'paused' end,last_error_code=${code},last_error_message=${message},next_run_at=now()+least(interval '6 hours', interval '5 minutes' * power(2,least(consecutive_failures,6))),updated_at=now() where id=${config.id}::uuid and lease_token=${leaseToken}::uuid`;
   await db`update public.alliance_sync_runs set finished_at=now(),status='error',error_code=${code},error_message=${message} where id=${runId}::uuid`;
   throw e;
  }
@@ -151,7 +155,7 @@ export default async function handler(req:Req,res:Res){
    const lease= randomUUID();
    const claimed=await db`update public.alliance_sync_config set lease_token=${lease}::uuid,lease_expires_at=now()+interval '4 minutes',last_status='running',updated_at=now() where id=${id}::uuid and owner_user_id=${ownerId}::uuid and (lease_expires_at is null or lease_expires_at<now()) returning *`;
    if(!claimed.length)return fail(res,409,"sync_in_progress","A sync is already running for this alliance.");
-   const result=await performSync(claimed[0],ownerId,true);
+   const result=await performSync(claimed[0],ownerId,true,lease);
    return res.status(200).json(result);
   }
   return fail(res,400,"unknown_action","Unsupported alliance sync action.");
