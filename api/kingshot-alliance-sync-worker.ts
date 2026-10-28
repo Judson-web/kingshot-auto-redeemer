@@ -13,7 +13,9 @@ async function loadRoster(kingdom:string,tag:string){
  const rows=Array.isArray(s.members)?s.members:Array.isArray(s.roster)?s.roster:Array.isArray(a.members)?a.members:null;
  if(!rows||!rows.length)throw new Error("Empty roster rejected.");
  const members=rows.map((m:any)=>({id:String(m?.governor_id??m?.fid??"").trim(),kid:String(m?.kid??kingdom),name:String(m?.nick_name??m?.name??m?.nickname??"").trim().slice(0,80),avatarUrl:String(m?.avatar_url??m?.avatarUrl??"").trim()})).filter(m=>/^\d{5,20}$/.test(m.id)&&m.kid===kingdom);
- const unique=[...new Map(members.map(m=>[m.id,m])).values()];
+ const byId = new Map<string, {id:string;kid:string;name:string;avatarUrl:string}>();
+ for (const member of members) if (!byId.has(member.id)) byId.set(member.id, member);
+ const unique=[...byId.values()];
  const count=Number(a.member_count??a.memberCount??a.count??rows.length);
  if(!unique.length||unique.length<Math.min(count,5)||(count>0&&unique.length/count<.65))throw new Error("Incomplete roster rejected.");
  if(String(a.abbr??a.tag??tag).toLowerCase()!==tag.toLowerCase())throw new Error("Alliance mismatch.");
@@ -40,11 +42,13 @@ export default async function handler(req:any,res:any){
    from due where c.id=due.id returning c.*`;
    if(!claims.length)break;
    const config=claims[0],runId=randomUUID();
-   await db`insert into public.alliance_sync_runs(id,config_id,status) values(${runId}::uuid,${config.id}::uuid,'running')`;
    try{
+    await db`insert into public.alliance_sync_runs(id,config_id,status) values(${runId}::uuid,${config.id}::uuid,'running')`;
     const roster=await loadRoster(String(config.kingdom_id),String(config.alliance_tag));
     let registered=0,skipped=0;
     for(const member of roster.members){
+     const heartbeat=await db`update public.alliance_sync_config set lease_expires_at=now()+interval '4 minutes' where id=${config.id}::uuid and lease_token=${lease}::uuid and enabled=true returning id`;
+     if(!heartbeat.length) throw new Error("Sync lease lost or configuration paused.");
      const seen=await db`insert into public.alliance_sync_seen_players(config_id,player_id,registration_status)
       values(${config.id}::uuid,${member.id},'pending')
       on conflict(config_id,player_id) do update set last_seen_at=now()
