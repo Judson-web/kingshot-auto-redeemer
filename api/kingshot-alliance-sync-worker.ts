@@ -1,6 +1,7 @@
 import { neon } from "@neondatabase/serverless";
 import { randomUUID } from "node:crypto";
 import { normalizeRegistrationInput, registerPlayer } from "../internal/kingshot/register.js";
+import { getRegisteredPlayerIds } from "../internal/kingshot/registered-player-ids.js";
 
 const DB_URL=process.env.ALLIANCE_SYNC_DATABASE_URL||"";
 const JOB_SECRET=process.env.ALLIANCE_SYNC_CRON_SECRET||process.env.CRON_SECRET||"";
@@ -45,6 +46,8 @@ export default async function handler(req:any,res:any){
    try{
     await db`insert into public.alliance_sync_runs(id,config_id,status) values(${runId}::uuid,${config.id}::uuid,'running')`;
     const roster=await loadRoster(String(config.kingdom_id),String(config.alliance_tag));
+    // Reconcile against Supabase before attempting any registration writes.
+    const alreadyRegisteredIds=await getRegisteredPlayerIds(roster.members.map(member=>member.id));
     let registered=0,skipped=0;
     for(const member of roster.members){
      const heartbeat=await db`update public.alliance_sync_config set lease_expires_at=now()+interval '4 minutes' where id=${config.id}::uuid and lease_token=${lease}::uuid and enabled=true returning id`;
@@ -57,6 +60,11 @@ export default async function handler(req:any,res:any){
      const isNew=Boolean(seen[0]?.is_new);
      // Retry pending/error rows only. Successfully processed members are intentionally never re-registered.
      if(!isNew&&!["pending","error"].includes(prior)){skipped++;continue;}
+     if(alreadyRegisteredIds.has(member.id)){
+      await db\`update public.alliance_sync_seen_players set registration_status=\'already_registered\',registered_at=coalesce(registered_at,now()),last_error_code=null where config_id=\${config.id}::uuid and player_id=\${member.id}\`;
+      skipped++;
+      continue;
+     }
      try{
       const input=normalizeRegistrationInput({playerId:member.id,kingdomId:String(config.kingdom_id),playerName:member.name,avatarUrl:member.avatarUrl});
       const result=await registerPlayer(input);
