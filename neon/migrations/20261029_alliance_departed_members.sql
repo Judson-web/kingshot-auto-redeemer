@@ -13,3 +13,8 @@ ALTER TABLE public.alliance_sync_seen_players
     'error'::text,
     'departed'::text
   ]));
+
+-- Record how many previously tracked members left during each validated sync run.
+ALTER TABLE public.alliance_sync_runs
+  ADD COLUMN IF NOT EXISTS departed_count integer NOT NULL DEFAULT 0
+  CHECK (departed_count >= 0);
