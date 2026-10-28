@@ -54,6 +54,9 @@ export function useSiteLanguage(){
   detectDefaultLanguage().then(detected=>{
    if(!active||getSavedSiteLanguage()||selectionVersion!==languageSelectionVersion)return;
    currentSiteLanguage=detected;
+   // Cache the first successful automatic choice so route changes and remounts
+   // reuse one site-wide language preference instead of re-detecting per page.
+   try{localStorage.setItem(KEY,detected)}catch{}
    setLanguage(detected);
   });
   return()=>{active=false};
