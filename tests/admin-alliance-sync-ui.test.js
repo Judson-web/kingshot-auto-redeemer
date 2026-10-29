@@ -26,6 +26,7 @@ test("roster errors are recoverable and isolated from configuration loading", ()
 test("manual registration queues a durable job and displays server-backed progress", () => {
   assert.match(component, /action:"ADMIN_REGISTER_ALLIANCE_MEMBERS"/);
   assert.match(component, /action:"GET_ALLIANCE_REGISTRATION_JOB"/);
+  assert.match(component, /action:"PROCESS_ALLIANCE_REGISTRATION_JOB"/);
   assert.match(component, /allianceRegistrationJob=/);
   assert.match(component, /aas-registration-progress/);
   assert.match(component, /aria-valuenow=/);
@@ -69,13 +70,13 @@ test("alliance sync page verifies administrator access before fetching private c
   assert.doesNotMatch(component, /Inspect live rosters, repair missed player registrations, and manage sync configurations from one place\./);
 });
 
-test("registration progress is stored in the database and processed by the scheduled worker", async () => {
-  const migration = await readFile(new URL("../supabase/migrations/202610290001_alliance_manual_registration_jobs.sql", import.meta.url), "utf8");
-  const worker = await readFile(new URL("../internal/kingshot/alliance-sync-worker.ts", import.meta.url), "utf8");
+test("registration progress is stored in Neon and resumable through server-side batches", async () => {
+  const migration = await readFile(new URL("../migrations/neon/202610290001_alliance_manual_registration_jobs.sql", import.meta.url), "utf8");
   assert.match(migration, /alliance_manual_registration_jobs/);
   assert.match(migration, /processed_count/);
   assert.match(migration, /enable row level security/i);
-  assert.match(worker, /processManualRegistrationJobs/);
-  assert.match(worker, /alliance_manual_registration_jobs/);
-  assert.match(worker, /registerWithRetry/);
+  const adminData = await readFile(new URL("../lib/admin-data.js", import.meta.url), "utf8");
+  assert.match(adminData, /PROCESS_ALLIANCE_REGISTRATION_JOB/);
+  assert.match(adminData, /status='queued'/);
+  assert.match(adminData, /registerPlayer/);
 });
