@@ -1,6 +1,6 @@
 # Automatic Alliance Sync Scheduler
 
-Alliance sync configurations are stored in the Alliance Sync Neon database. Each enabled configuration is due when `next_run_at <= now()`. The worker uses a lease per configuration, validates a fresh MightPulse roster, skips players already registered in Supabase, and schedules the next normal run 24 hours later. Failed syncs use exponential backoff.
+Alliance sync configurations, run history, leases, and seen-player state are stored in Supabase PostgreSQL. Each enabled configuration is due when `next_run_at <= now()`. The worker claims configurations through the Supabase lease RPC, validates a fresh MightPulse roster, skips players already registered in Supabase, and schedules the next normal run 24 hours later. Failed syncs use exponential backoff.
 
 ## Why this scheduler exists
 
