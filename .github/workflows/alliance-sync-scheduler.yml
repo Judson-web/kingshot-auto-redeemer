@@ -1,0 +1,45 @@
+name: Alliance Sync Scheduler
+
+on:
+  schedule:
+    # Vercel Hobby cron is daily-only; GitHub Actions provides the frequent
+    # wake-up so due alliance syncs and short backoff retries are not stranded.
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: alliance-sync-production-worker
+  cancel-in-progress: false
+
+jobs:
+  run-due-syncs:
+    name: Run due alliance syncs
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Validate scheduler secret
+        env:
+          SYNC_SECRET: ${{ secrets.ALLIANCE_SYNC_CRON_SECRET || secrets.CRON_SECRET }}
+        shell: bash
+        run: |
+          if [ -z "${SYNC_SECRET}" ]; then
+            echo "::error::Add the GitHub Actions secret ALLIANCE_SYNC_CRON_SECRET (same value as Vercel's ALLIANCE_SYNC_CRON_SECRET or CRON_SECRET)."
+            exit 1
+          fi
+
+      - name: Invoke production alliance sync worker
+        env:
+          SYNC_SECRET: ${{ secrets.ALLIANCE_SYNC_CRON_SECRET || secrets.CRON_SECRET }}
+          SYNC_URL: https://kingshot-autoredeemer.vercel.app/api/kingshot-alliance-sync-worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error \
+            --max-time 310 \
+            --request POST \
+            --header "Authorization: Bearer ${SYNC_SECRET}" \
+            --header "Accept: application/json" \
+            "${SYNC_URL}"
