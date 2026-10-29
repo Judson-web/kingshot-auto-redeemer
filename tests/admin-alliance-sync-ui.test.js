@@ -71,6 +71,14 @@ test("alliance sync page verifies administrator access before fetching private c
   assert.doesNotMatch(component, /Inspect live rosters, repair missed player registrations, and manage sync configurations from one place\./);
 });
 
+test("manual registration retries transient processor failures and exposes an explicit resume action", () => {
+  assert.match(component, /attempt<4/);
+  assert.match(component, /Math\.pow\(2,attempt\)/);
+  assert.match(component, /setJobError\(message\)/);
+  assert.match(component, /Resume registration/);
+  assert.match(component, /\[job\?\.id,resumeNonce\]/);
+});
+
 test("registration progress is stored in Neon and resumable through server-side batches", async () => {
   const migration = await readFile(new URL("../migrations/neon/202610290001_alliance_manual_registration_jobs.sql", import.meta.url), "utf8");
   assert.match(migration, /alliance_manual_registration_jobs/);
