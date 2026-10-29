@@ -123,3 +123,19 @@ test("push console uses a review dialog instead of a generic browser confirmatio
   assert.doesNotMatch(consoleSource, /window\.confirm/);
   assert.match(consoleSource, /if \(busy \|\| !title\.trim\(\) \|\| !message\.trim\(\)\) return/);
 });
+
+
+test("verified gift-code pushes are explicit, actionable, and deduplicate stable batches", async () => {
+  const worker = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
+  const push = await readFile(new URL("../internal/push-notifications.ts", import.meta.url), "utf8");
+  const sw = await readFile(new URL("../public/sw.js", import.meta.url), "utf8");
+  assert.match(worker, /Kingshot verification passed for /);
+  assert.match(worker, /verified gift codes ready/);
+  assert.match(worker, /const sortedKey=uniqueCodes\.map\(item=>String\(item\.code\)\.trim\(\)\.toUpperCase\(\)\)\.sort\(\)\.join\("\\|"/);
+  assert.match(worker, /tag="gift-codes-"\+\(tagHash>>>0\)\.toString\("base36"\)/);
+  assert.match(worker, /action:"view-codes"/);
+  assert.match(worker, /action:"dismiss"/);
+  assert.match(push, /actions\?:Array/);
+  assert.match(sw, /event\.action==="dismiss"/);
+  assert.match(sw, /requireInteraction:Boolean\(p\.requireInteraction\)/);
+});
