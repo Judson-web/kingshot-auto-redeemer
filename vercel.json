@@ -203,6 +203,10 @@
     {
       "path": "/api/kingshot-alliance-sync-worker",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/kingshot-alliance-sync-worker?mode=manual-registration",
+      "schedule": "* * * * *"
     }
   ]
 }
