@@ -111,3 +111,15 @@ test("admin session bootstrap succeeds only when server confirms the owner sessi
     error => error.status === 401
   );
 });
+
+
+test("push console uses a review dialog instead of a generic browser confirmation", async () => {
+  const consoleSource = await readFile(new URL("../src/PushConsoleApp.tsx", import.meta.url), "utf8");
+  assert.match(consoleSource, /role="dialog" aria-modal="true"/);
+  assert.match(consoleSource, /Review announcement/);
+  assert.match(consoleSource, /audienceCount\.toLocaleString\(\) \+ " devices"/);
+  assert.match(consoleSource, /Opens:/);
+  assert.match(consoleSource, /onClick=\{confirmSend\}/);
+  assert.doesNotMatch(consoleSource, /window\.confirm/);
+  assert.match(consoleSource, /if \(busy \|\| !title\.trim\(\) \|\| !message\.trim\(\)\) return/);
+});
