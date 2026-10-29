@@ -125,6 +125,10 @@
       "destination": "/devsupport.html"
     },
     {
+      "source": "/admin/alliance-sync",
+      "destination": "/index.html"
+    },
+    {
       "source": "/admin/maintenance",
       "destination": "/index.html"
     },
