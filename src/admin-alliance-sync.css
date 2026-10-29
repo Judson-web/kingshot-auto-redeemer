@@ -118,3 +118,15 @@
 @media(prefers-reduced-motion:reduce){.aas-page *{scroll-behavior:auto!important;transition:none!important}.aas-spin{animation:none}}
 
 .aas-access-page{min-height:70vh;display:flex;flex-direction:column}.aas-access-card{position:relative;max-width:560px;width:100%;margin:clamp(35px,8vh,90px) auto 0;padding:clamp(24px,5vw,38px);border:1px solid var(--aas-line);border-radius:20px;background:linear-gradient(145deg,#131a24,#0e1218);box-shadow:0 22px 70px #0002}.aas-access-icon{display:grid;place-items:center;width:48px;height:48px;margin-bottom:24px;border:1px solid #514a37;border-radius:15px;background:#28251d;color:#d6c18b}.aas-access-card h1{margin:9px 0 12px;font-size:clamp(25px,4vw,32px);line-height:1.15;letter-spacing:-.03em}.aas-access-card p{margin:0;color:#a9b3c0;font-size:14px;line-height:1.7}.aas-access-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}.aas-access-actions a{text-decoration:none}
+
+.aas-registration-progress{margin:0 0 16px;padding:13px 14px;border:1px solid #45402f;border-radius:12px;background:linear-gradient(135deg,#1a1a17,#111720);color:#e8edf5}
+.aas-progress-heading,.aas-progress-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.aas-progress-heading strong{font-size:13px;font-weight:700}
+.aas-progress-heading>span{font-size:12px;color:#d6c18b;font-variant-numeric:tabular-nums}
+.aas-progress-track{height:7px;margin:11px 0 9px;overflow:hidden;border-radius:99px;background:#29313b}
+.aas-progress-track>span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#b7a06a,#e4d09a);transition:width .25s ease}
+.aas-progress-meta{font-size:11px;color:#9ba7b7}
+.aas-registration-progress.is-completed .aas-progress-track>span{background:#72c99b}
+.aas-registration-progress.is-partial .aas-progress-track>span,.aas-registration-progress.is-failed .aas-progress-track>span{background:#d69b70}
+.aas-registration-progress>p{margin:9px 0 0;color:#f0b7bd;font-size:12px;line-height:1.5}
+@media(prefers-reduced-motion:reduce){.aas-progress-track>span{transition:none}}
