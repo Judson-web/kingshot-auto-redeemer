@@ -40,7 +40,6 @@ export default function PushNotifications() {
   const {t}=useSiteLanguage();
   const [state, setState] = useState<PushState>("checking");
   const [hidden, setHidden] = useState(false);
-  const [stateSignature, setStateSignature] = useState("unknown");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -58,11 +57,18 @@ export default function PushNotifications() {
         let sub = null;
         try { const reg = await navigator.serviceWorker.ready; sub = await reg.pushManager.getSubscription(); } catch {}
         if (!alive) return;
-        const nextSignature = permission + ":" + (sub ? "subscribed" : "unsubscribed");
-        setStateSignature(nextSignature);
-        let dismissed = "";
-        try { dismissed = localStorage.getItem("ks-push-panel-dismissed-v2") || ""; } catch {}
-        setHidden(dismissed === nextSignature);
+        // Dismissal is a durable user preference, not tied to the current
+        // permission/subscription state. Otherwise enabling notifications changes
+        // the signature and causes the panel to reappear after a reload.
+        let dismissed = false;
+        try {
+          dismissed = localStorage.getItem("ks-push-panel-dismissed-v3") === "1";
+          if (!dismissed && localStorage.getItem("ks-push-panel-dismissed-v2")) {
+            dismissed = true;
+            localStorage.setItem("ks-push-panel-dismissed-v3", "1");
+          }
+        } catch {}
+        setHidden(dismissed);
         if (permission === "denied") setState("denied");
         else if (permission === "granted" && sub) setState("on");
         else setState("off");
@@ -79,7 +85,7 @@ export default function PushNotifications() {
 
   const dismiss = () => {
     setHidden(true);
-    try { localStorage.setItem("ks-push-panel-dismissed-v2", stateSignature); } catch {}
+    try { localStorage.setItem("ks-push-panel-dismissed-v3", "1"); } catch {}
   };
 
   const toggle = async () => {

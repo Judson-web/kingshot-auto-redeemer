@@ -11,16 +11,20 @@ test("admin access state distinguishes auth failures from ordinary API errors", 
   assert.equal(isAdminAccessDenied(new Error("The player database response was incomplete.")), false);
 });
 
-test("public prompts are scoped to public redemption routes, not private workspaces", async () => {
+test("notification preferences stay available on public pages, not private workspaces", async () => {
   const entry = await readFile(new URL("../src/main.jsx", import.meta.url), "utf8");
   const push = await readFile(new URL("../src/components/PushNotifications.tsx", import.meta.url), "utf8");
   assert.match(entry, /privateWorkspacePaths=new Set\(\["\/dev","\/devsupport","\/admin\/players","\/admin\/maintenance","\/push","\/message","\/gift-codes"\]\)/);
-  assert.match(entry, /showNotificationPrompt=\["\/","\/auto","\/manual","\/redeem"\]\.includes\(location\.pathname\)/);
+  assert.match(entry, /showNotificationPrompt=!isPrivateWorkspace/);
   assert.match(entry, /isPrivateWorkspace\?publicPage:<PublicAnnouncements>/);
   assert.match(entry, /!isPrivateWorkspace&&<InstallAppPrompt\/>/);
   assert.match(entry, /showNotificationPrompt&&<PushNotifications\/>/);
   assert.match(entry, /showPublicSupport&&<SupportWidget\/>/);
   assert.match(push, /bottom: "calc\(84px \+ env\(safe-area-inset-bottom, 0px\)\)"/);
+  assert.match(push, /ks-push-panel-dismissed-v3/);
+  assert.match(push, /localStorage\.getItem\("ks-push-panel-dismissed-v3"\) === "1"/);
+  assert.match(push, /localStorage\.setItem\("ks-push-panel-dismissed-v3", "1"\)/);
+  assert.match(push, /ks-push-panel-dismissed-v2/);
 });
 
 test("admin player page never renders empty statistics before a valid player list loads", async () => {
