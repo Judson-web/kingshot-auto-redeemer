@@ -255,3 +255,20 @@ Use HTTPS, protect the key as a secret, respect quotas, do not rotate IPs or key
 ## Maintainer and contact
 
 Built and maintained by **Judson** (@judson00713 on Discord). For API integration questions, contact the [maintainer on Discord](https://discord.com/users/871756466900598815). Direct messages depend on privacy settings and availability; response times may vary. For account, registration, or redemption issues, use the in-app Support Centre. Never send passwords, API keys, session tokens, or sign-in codes through Discord.
+
+
+## Alliance roster and change tracking
+
+`GET /api/v4/alliances?kingdomId=1125&tag=APX&limit=50&offset=0&cursor=...` returns an alliance roster, or kingdom alliance rankings when `tag` is omitted. `changeCursor` is a content fingerprint; pass it as `cursor` to detect whether the returned roster changed. It is not a historical event log. The result size is bounded to 100 entries.
+
+## Redemption history
+
+`GET /api/v4/redemption-history?playerId=43180889&limit=25&offset=0` reads stored redemption records newest first. This is read-only and never submits a redemption.
+
+## Webhook subscriptions
+
+Use `GET` or `POST /api/v4/webhooks` to list or create subscriptions, and `DELETE /api/v4/webhooks/{webhookId}` to disable one. Supported event names are `redemption.completed` and `redemption.unknown`; each key can have up to five HTTPS subscriptions. The signing secret is returned once. Set `V4_WEBHOOK_ENCRYPTION_KEY` to a 32-byte hexadecimal key before enabling subscription creation. Deliveries are queued durably and attempted by a scheduled worker every five minutes. Failed deliveries retry with exponential backoff for up to eight attempts. Verify `X-Kingshot-Signature` as HMAC-SHA256 over `<timestamp>.<raw request body>` using the signing secret, and deduplicate by `X-Kingshot-Event-Id`. Configure `V4_WEBHOOK_ENCRYPTION_KEY` as 32-byte hex and `V4_WEBHOOK_WORKER_SECRET` (or `CRON_SECRET`) in both Vercel and GitHub Actions.
+
+## Compact API usage
+
+Usage counters and last-use information belong inline in the Developer API key panel. There is no separate analytics or quota dashboard page.

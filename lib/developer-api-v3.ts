@@ -32,6 +32,11 @@ export default async function developerApiV3(req: V3Request, res: V3Response, pa
   }
   const auth = await authorizeDeveloperKey(req, res, id);
   if (!auth) return;
+  if (req.apiVersionAdapter === 4) {
+    const requiredScope = route === "player" ? "players:read" : "redemptions:write";
+    const scopes = Array.isArray(auth.scopes) ? auth.scopes.map(String) : ["players:read", "alliances:read", "redemptions:write", "redemptions:read", "webhooks:manage", "usage:read"];
+    if (!scopes.includes(requiredScope)) { sendError(res, 403, "insufficient_scope", "This API key does not have the required scope: " + requiredScope, id); return; }
+  }
   if (route === "player") {
     await handleV3PlayerLookup(req, res, id, auth);
     return;

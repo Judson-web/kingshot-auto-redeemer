@@ -1135,6 +1135,312 @@
           }
         }
       }
+    },
+    "/api/v4/alliances": {
+      "get": {
+        "tags": [
+          "Developer API"
+        ],
+        "summary": "Read an alliance roster or kingdom rankings",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "kingdomId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\\\d{1,10}$"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Missing, invalid, expired, or revoked API key"
+          },
+          "403": {
+            "description": "Required scope missing"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "Feature temporarily unavailable"
+          }
+        }
+      }
+    },
+    "/api/v4/redemption-history": {
+      "get": {
+        "tags": [
+          "Developer API"
+        ],
+        "summary": "Read stored player redemption history",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "playerId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\\\d{5,20}$"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Missing, invalid, expired, or revoked API key"
+          },
+          "403": {
+            "description": "Required scope missing"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "Feature temporarily unavailable"
+          }
+        }
+      }
+    },
+    "/api/v4/webhooks": {
+      "get": {
+        "tags": [
+          "Developer API"
+        ],
+        "summary": "List webhook subscriptions",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Missing, invalid, expired, or revoked API key"
+          },
+          "403": {
+            "description": "Required scope missing"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "Feature temporarily unavailable"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Developer API"
+        ],
+        "summary": "Create webhook subscription",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "url",
+                  "events"
+                ],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "redemption.completed",
+                        "redemption.unknown"
+                      ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 2
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Subscription created; signing secret shown once"
+          },
+          "400": {
+            "description": "Invalid subscription"
+          },
+          "503": {
+            "description": "Storage or encryption unavailable"
+          }
+        }
+      }
+    },
+    "/api/v4/webhooks/{webhookId}": {
+      "delete": {
+        "tags": [
+          "Developer API"
+        ],
+        "summary": "Disable webhook subscription",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "webhookId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Missing, invalid, expired, or revoked API key"
+          },
+          "403": {
+            "description": "Required scope missing"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "Feature temporarily unavailable"
+          }
+        }
+      }
+    },
+    "/api/v4/usage": {
+      "get": {
+        "tags": [
+          "Developer API"
+        ],
+        "summary": "Read compact usage for current key",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Missing, invalid, expired, or revoked API key"
+          },
+          "403": {
+            "description": "Required scope missing"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "Feature temporarily unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1144,6 +1450,11 @@
         "scheme": "bearer",
         "bearerFormat": "API key",
         "description": "Create a key from the developer portal. Keep it secret and send it only over HTTPS."
+      },
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "API key"
       }
     },
     "schemas": {

@@ -1,6 +1,30 @@
 {
   "rewrites": [
     {
+      "source": "/api/kingshot-v4-webhook-worker",
+      "destination": "/api/kingshot-player?developer=v4-webhook-worker"
+    },
+    {
+      "source": "/api/v4/alliances",
+      "destination": "/api/kingshot-player?developer=v4-alliances"
+    },
+    {
+      "source": "/api/v4/redemption-history",
+      "destination": "/api/kingshot-player?developer=v4-redemption-history"
+    },
+    {
+      "source": "/api/v4/webhooks",
+      "destination": "/api/kingshot-player?developer=v4-webhooks"
+    },
+    {
+      "source": "/api/v4/webhooks/:webhookId",
+      "destination": "/api/kingshot-player?developer=v4-webhooks/:webhookId"
+    },
+    {
+      "source": "/api/v4/usage",
+      "destination": "/api/kingshot-player?developer=v4-usage"
+    },
+    {
       "source": "/api/kingshot-alliance-sync",
       "destination": "/api/kingshot-player?developer=alliance-sync"
     },
