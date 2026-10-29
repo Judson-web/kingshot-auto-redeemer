@@ -27,6 +27,16 @@ test("notification preferences stay available on public pages, not private works
   assert.match(push, /ks-push-panel-dismissed-v2/);
 });
 
+test("push notifications use richer platform presentation and safe click navigation", async () => {
+  const worker = await readFile(new URL("../public/sw.js", import.meta.url), "utf8");
+  assert.match(worker, /const CACHE="kingshot-shell-v9"/);
+  assert.match(worker, /timestamp:Date\.now\(\)/);
+  assert.match(worker, /vibrate:\[120,60,120\]/);
+  assert.match(worker, /dir:"auto"/);
+  assert.match(worker, /new URL\(client\.url\)\.origin===self\.location\.origin/);
+  assert.match(worker, /await client\.navigate\(target\)/);
+});
+
 test("admin player page never renders empty statistics before a valid player list loads", async () => {
   const page = await readFile(new URL("../src/AdminPlayersApp.tsx", import.meta.url), "utf8");
   const helper = await readFile(new URL("../src/admin-access-state.js", import.meta.url), "utf8");
@@ -100,4 +110,48 @@ test("admin session bootstrap succeeds only when server confirms the owner sessi
     () => ensureAdminWorkspaceSession(async () => ({ ok: true, status: 200, json: async () => ({ authenticated: false }) })),
     error => error.status === 401
   );
+});
+
+
+test("push console uses a review dialog instead of a generic browser confirmation", async () => {
+  const consoleSource = await readFile(new URL("../src/PushConsoleApp.tsx", import.meta.url), "utf8");
+  assert.match(consoleSource, /role="dialog" aria-modal="true"/);
+  assert.match(consoleSource, /Review announcement/);
+  assert.match(consoleSource, /audienceCount\.toLocaleString\(\) \+ " devices"/);
+  assert.match(consoleSource, /Opens:/);
+  assert.match(consoleSource, /onClick=\{confirmSend\}/);
+  assert.doesNotMatch(consoleSource, /window\.confirm/);
+  assert.match(consoleSource, /if \(busy \|\| !title\.trim\(\) \|\| !message\.trim\(\)\) return/);
+});
+
+
+test("verified gift-code pushes are explicit, actionable, and deduplicate stable batches", async () => {
+  const worker = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
+  const push = await readFile(new URL("../internal/push-notifications.ts", import.meta.url), "utf8");
+  const sw = await readFile(new URL("../public/sw.js", import.meta.url), "utf8");
+  assert.match(worker, /Kingshot verification passed for /);
+  assert.match(worker, /verified gift codes ready/);
+  assert.match(worker, /const sortedKey=uniqueCodes\.map\(item=>String\(item\.code\)\.trim\(\)\.toUpperCase\(\)\)\.sort\(\)\.join\("\\|"/);
+  assert.match(worker, /tag="gift-codes-"\+\(tagHash>>>0\)\.toString\(36\)/);
+  assert.match(worker, /action:"view-codes"/);
+  assert.match(worker, /action:"dismiss"/);
+  assert.match(push, /actions\?:Array/);
+  assert.match(sw, /event\.action==="dismiss"/);
+  assert.match(sw, /requireInteraction:Boolean\(p\.requireInteraction\)/);
+});
+
+
+test("verified gift-code pushes are explicit, actionable, and deduplicate stable batches", async () => {
+  const worker = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
+  const push = await readFile(new URL("../internal/push-notifications.ts", import.meta.url), "utf8");
+  const sw = await readFile(new URL("../public/sw.js", import.meta.url), "utf8");
+  assert.match(worker, /Kingshot verification passed for /);
+  assert.match(worker, /verified gift codes ready/);
+  assert.match(worker, /const sortedKey=uniqueCodes\.map/);
+  assert.match(worker, /tag="gift-codes-"\+\(tagHash>>>0\)\.toString\("base36"\)/);
+  assert.match(worker, /action:"view-codes"/);
+  assert.match(worker, /action:"dismiss"/);
+  assert.match(push, /actions\?:Array/);
+  assert.match(sw, /event\.action==="dismiss"/);
+  assert.match(sw, /requireInteraction:Boolean\(p\.requireInteraction\)/);
 });

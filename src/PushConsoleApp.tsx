@@ -5,6 +5,7 @@ export default function PushConsoleApp() {
   const [authed, setAuthed] = useState(false);
   const [checking, setChecking] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [url, setUrl] = useState("/gift-codes");
@@ -35,22 +36,27 @@ export default function PushConsoleApp() {
     return () => { alive = false; };
   }, [authed]);
 
-  const send = async event => {
+  const send = event => {
     event.preventDefault();
-    const audience = audienceCount === null ? "the current subscribed audience (count unavailable)" : audienceCount + " subscribed device(s)";
-    if (!window.confirm("Send this push notification to " + audience + "? This cannot be undone.")) return;
-    setBusy(true); setError(""); setResult(null);
+    setError("");
     const trimmedImage = imageUrl.trim();
     if (trimmedImage) {
       try {
         const parsedImage = new URL(trimmedImage);
         if (parsedImage.protocol !== "https:") throw new Error();
       } catch {
-        setError("Use a valid HTTPS image URL, or clear the image field."); setBusy(false); return;
+        setError("Use a valid HTTPS image URL, or clear the image field.");
+        return;
       }
     }
+    setConfirmOpen(true);
+  };
+
+  const confirmSend = async () => {
+    if (busy || !title.trim() || !message.trim()) return;
+    setBusy(true); setError(""); setResult(null); setConfirmOpen(false);
     try {
-      const response = await fetch("/api/custom-message", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "PUSH_SEND", title, message, url, imageUrl: trimmedImage }), credentials: "same-origin" });
+      const response = await fetch("/api/custom-message", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "PUSH_SEND", title: title.trim(), message: message.trim(), url, imageUrl: imageUrl.trim() }), credentials: "same-origin" });
       const data = await response.json().catch(() => ({}));
       if (response.status === 401) { setAuthed(false); throw Error("Your session expired. Sign in again."); }
       if (!response.ok) throw Error(data.error || "Could not send notification.");
@@ -90,6 +96,25 @@ export default function PushConsoleApp() {
           <div style={{ marginTop: 14, padding: 14, borderRadius: 12, background: "#ffffff07", border: "1px solid #ffffff12" }}><div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10, fontWeight: 800, letterSpacing: ".1em", color: "#aeb7ff", marginBottom: 10 }}><ImageIcon size={14}/> LIVE NOTIFICATION PREVIEW</div><strong style={{ display: "block", fontSize: 15 }}>{title || "Your notification title"}</strong><p style={{ margin: "5px 0 0", lineHeight: 1.5, color: "var(--muted, #a8afbf)", overflowWrap: "anywhere" }}>{message || "Your notification message will appear here."}</p>{/^https:\/\//i.test(imageUrl.trim()) && !imagePreviewError && <img src={imageUrl.trim()} alt="Large image as it will be included in the notification" loading="lazy" referrerPolicy="no-referrer" onError={() => setImagePreviewError(true)} style={{ display: "block", width: "100%", maxHeight: 180, objectFit: "cover", borderRadius: 8, marginTop: 12 }} />}{imagePreviewError && imageUrl.trim() && <small style={{ display: "block", marginTop: 8, color: "#ffb0b0" }}>Image preview unavailable; the push can still be sent without an image.</small>}<small style={{ display: "block", marginTop: 10, color: "var(--muted, #a8afbf)" }}>Kingshot Redeemer · just now</small></div>
           <button style={button} disabled={busy || !title.trim() || !message.trim()}>{busy ? <LoaderCircle className="spin" size={17}/> : <Send size={17}/>} Send push notification</button>
         </form>
+        {confirmOpen && <div role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !busy) setConfirmOpen(false); }} style={{ position: "fixed", inset: 0, zIndex: 1000, display: "grid", placeItems: "center", padding: 18, background: "#05070bd9", backdropFilter: "blur(5px)" }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="push-confirm-title" aria-describedby="push-confirm-description" style={{ width: "min(100%, 460px)", maxHeight: "min(88vh, 760px)", overflowY: "auto", padding: 22, borderRadius: 18, border: "1px solid var(--border, #3a4252)", background: "var(--panel, #151922)", color: "var(--text, #f4f6fb)", boxShadow: "0 24px 80px #0009" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}><span style={{ display: "grid", placeItems: "center", width: 40, height: 40, borderRadius: 12, background: "#f0a43b1a", color: "#ffc46b" }}><BellRing size={20}/></span><div><h2 id="push-confirm-title" style={{ margin: 0, fontSize: 20 }}>Review announcement</h2><small style={{ color: "var(--muted, #a8afbf)" }}>Final check before sending</small></div></div>
+            <p id="push-confirm-description" style={{ margin: "0 0 14px", color: "var(--muted, #a8afbf)", lineHeight: 1.55 }}>This sends a push notification to every currently subscribed device. Delivery cannot be recalled, and display depends on each device and browser.</p>
+            <div style={{ padding: 14, borderRadius: 12, border: "1px solid var(--border, #303642)", background: "#ffffff07" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", marginBottom: 10 }}><small style={{ color: "var(--muted, #a8afbf)" }}>RECIPIENTS</small><strong>{audienceLoading ? "Count refreshing…" : audienceCount === null ? "Count unavailable" : audienceCount.toLocaleString() + " devices"}</strong></div>
+              <strong style={{ display: "block", overflowWrap: "anywhere" }}>{title.trim() || "Untitled notification"}</strong>
+              <p style={{ margin: "6px 0 0", lineHeight: 1.5, overflowWrap: "anywhere", color: "var(--muted, #a8afbf)" }}>{message.trim()}</p>
+              {imageUrl.trim() && /^https:\/\//i.test(imageUrl.trim()) && !imagePreviewError && <img src={imageUrl.trim()} alt="Announcement image" referrerPolicy="no-referrer" style={{ display: "block", width: "100%", maxHeight: 140, objectFit: "cover", borderRadius: 8, marginTop: 10 }} />}
+              <small style={{ display: "block", marginTop: 10, color: "var(--muted, #a8afbf)" }}>Opens: {url === "/" ? "Auto redeem home" : url === "/manual" ? "Manual redeem" : url === "/info" ? "Information" : "Gift codes"}</small>
+            </div>
+            {audienceCount === 0 && <p role="status" style={{ color: "#ffc46b", lineHeight: 1.5, fontSize: 13 }}>There are currently no subscribed devices. Sending may reach nobody.</p>}
+            {audienceCount === null && <p role="status" style={{ color: "#ffc46b", lineHeight: 1.5, fontSize: 13 }}>The audience count could not be verified. The server will send to the subscriptions available at send time.</p>}
+            <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+              <button type="button" disabled={busy} onClick={() => setConfirmOpen(false)} style={{ ...button, marginTop: 0, background: "transparent", color: "inherit", border: "1px solid var(--border, #3a4252)", flex: 1 }}>Cancel</button>
+              <button type="button" disabled={busy || !title.trim() || !message.trim()} onClick={confirmSend} style={{ ...button, marginTop: 0, flex: 1 }}>{busy ? <LoaderCircle className="spin" size={16}/> : <Send size={16}/>} Confirm send</button>
+            </div>
+          </section>
+        </div>}
         {result && <div role="status" style={{ display: "flex", gap: 9, marginTop: 16, padding: 13, borderRadius: 11, background: "#56d6a00d", border: "1px solid #56d6a033", color: "#a9efcd", lineHeight: 1.5 }}><CheckCircle2 size={18} style={{ flexShrink: 0 }}/><span>Push service accepted {result.sent || 0} delivery request(s). This does not guarantee the device displayed them. {result.failed ? result.failed + " failed." : ""} {result.removed ? result.removed + " expired subscription(s) removed." : ""}</span></div>}
       </>}
       {error && <div role="alert" style={{ display: "flex", gap: 9, marginTop: 16, padding: 13, borderRadius: 11, background: "#ef646310", border: "1px solid #ef646433", color: "#ffb0b0", lineHeight: 1.5 }}><AlertTriangle size={17} style={{ flexShrink: 0 }}/><span>{error}</span></div>}

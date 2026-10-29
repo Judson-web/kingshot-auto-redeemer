@@ -149,7 +149,7 @@ test("alliance loading copy and social preview describe the current registration
   assert.match(component, /alliance\.loadingAllianceInfo/);
   assert.match(english, /"alliance\.loadingAllianceInfo": "Loading"/);
   assert.match(korean, /"alliance\.loadingAllianceInfo": "불러오는 중"/);
-  assert.match(metadata, /og:title" content="Alliance Registration"/);
+  assert.match(metadata, /og:title" content="Kingshot Alliance Registration"/);
   assert.match(metadata, /route=alliance-registration&v=6/);
   assert.doesNotMatch(metadata, /select individuals|select individual members/);
 });
@@ -179,8 +179,8 @@ test("beta badge appears only in alliance drawer and announcement", async () => 
 
 test("alliance registration social metadata reflects current flow", async () => {
   const metadata = await readFile(new URL("../alliance-registration.html", import.meta.url), "utf8");
-  assert.match(metadata, /og:title" content="Alliance Registration"/);
-  assert.match(metadata, /route=alliance-registration&v=5/);
+  assert.match(metadata, /og:title" content="Kingshot Alliance Registration"/);
+  assert.match(metadata, /route=alliance-registration&v=6/);
   assert.match(metadata, /Up to four alliances per kingdom/);
   assert.match(metadata, /route=alliance-registration&v=6/);
   assert.match(metadata, /server-side roster sync/);
