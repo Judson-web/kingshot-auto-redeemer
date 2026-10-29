@@ -345,7 +345,7 @@ function recordVisitorPageView(){
  try{
   if(!window.fetch||!window.sessionStorage)return;
   const path=location.pathname;
-  if(!path||path.startsWith("/api/")||path==="/push"||path==="/message"||path==="/developer"||path==="/dev"||path==="/devsupport"||path==="/admin/players"||path==="/admin/maintenance")return;
+  if(!path||path.startsWith("/api/")||path==="/push"||path==="/message"||path==="/developer"||path==="/dev"||path==="/devsupport"||path==="/admin/players"||path==="/admin/alliance-sync"||path==="/admin/maintenance")return;
   const key="ks_telemetry_seen:"+path;
   if(sessionStorage.getItem(key))return;
   sessionStorage.setItem(key,"1");
@@ -359,7 +359,7 @@ if(typeof window!=="undefined")window.addEventListener("load",recordVisitorPageV
 
 registerAppServiceWorker();
 
-const privateWorkspacePaths=new Set(["/dev","/devsupport","/admin/players","/admin/maintenance","/push","/message","/gift-codes"]);
+const privateWorkspacePaths=new Set(["/dev","/devsupport","/admin/players","/admin/alliance-sync","/admin/maintenance","/push","/message","/gift-codes"]);
 const isPrivateWorkspace=privateWorkspacePaths.has(location.pathname);
 const showNotificationPrompt=!isPrivateWorkspace;
 const showPublicSupport=!isPrivateWorkspace;
