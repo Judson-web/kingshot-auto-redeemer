@@ -2,16 +2,19 @@ import { neon } from "@neondatabase/serverless";
 import { randomUUID } from "node:crypto";
 import { normalizeRegistrationInput, registerPlayer } from "./register.js";
 import { getRegisteredPlayerIds } from "./registered-player-ids.js";
+import { fetchMightPulse } from "../../lib/mightpulse-key-pool.js";
 
 const DB_URL=process.env.ALLIANCE_SYNC_DATABASE_URL||"";
 const JOB_SECRET=process.env.ALLIANCE_SYNC_CRON_SECRET||process.env.CRON_SECRET||"";
-const MP_BASE="https://api.mightpulse.com/v1";
 const wait=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms));
 async function registerWithRetry(input:any){let last:unknown;for(let attempt=0;attempt<3;attempt++){try{return await registerPlayer(input)}catch(error){last=error;if(attempt<2)await wait(400*(attempt+1));}}throw last instanceof Error?last:new Error("Registration failed after retries.");}
 async function loadRoster(kingdom:string,tag:string){
- const r=await fetch(MP_BASE+"/alliances/"+encodeURIComponent(kingdom)+"/"+encodeURIComponent(tag)+"?include=info,roster",{headers:{Accept:"application/json"},signal:AbortSignal.timeout(20000)});
+ const url="https://api.mightpulse.com/v1/alliances/"+encodeURIComponent(kingdom)+"/"+encodeURIComponent(tag)+"?include=info,roster";
+ const r=await fetchMightPulse(url,{headers:{Accept:"application/json"}},{timeoutMs:20000});
  const d:any=await r.json().catch(()=>null);
- if(!r.ok||!d||d.fresh===false||d.stale===true)throw new Error("Provider unavailable or stale roster.");
+ if(!r.ok)throw new Error(r.status===401||r.status===403?"MightPulse authentication failed.":r.status===429?"MightPulse rate limited.":`MightPulse request failed (${r.status}).`);
+ if(!d||typeof d!=="object")throw new Error("MightPulse returned an invalid roster response.");
+ if(d.fresh===false||d.stale===true)throw new Error("MightPulse marked the roster stale.");
  const s=d.data&&typeof d.data==="object"?d.data:d,a=s.alliance??s;
  const rows=Array.isArray(s.members)?s.members:Array.isArray(s.roster)?s.roster:Array.isArray(a.members)?a.members:null;
  if(!rows||!rows.length)throw new Error("Empty roster rejected.");
