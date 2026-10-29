@@ -25,12 +25,35 @@ async function loadRoster(kingdom:string,tag:string){
  if(String(a.abbr??a.tag??tag).toLowerCase()!==tag.toLowerCase())throw new Error("Alliance mismatch.");
  return {name:String(a.name??a.alliance_name??tag).slice(0,80),members:unique};
 }
+async function processManualRegistrationJobs(db:any){
+ const outcomes:any[]=[];
+ for(let attempt=0;attempt<3;attempt++){
+  const candidates=await db`select id,updated_at from public.alliance_manual_registration_jobs where status='queued' or (status='running' and updated_at<now()-interval '20 seconds') order by created_at limit 1`;
+  if(!candidates.length)break;
+  const candidate=candidates[0];
+  const claimed=await db`update public.alliance_manual_registration_jobs set status='running',started_at=coalesce(started_at,now()),updated_at=now() where id=${candidate.id}::uuid and updated_at=${candidate.updated_at}::timestamptz and (status='queued' or (status='running' and updated_at<now()-interval '20 seconds')) returning id`;
+  if(!claimed.length)continue;
+  const rows=await db`select j.*,c.kingdom_id,c.alliance_tag from public.alliance_manual_registration_jobs j join public.alliance_sync_config c on c.id=j.config_id where j.id=${candidate.id}::uuid limit 1`;
+  if(!rows.length)continue;
+  const job=rows[0];const ids=Array.isArray(job.selected_player_ids)?job.selected_player_ids:JSON.parse(String(job.selected_player_ids||'[]'));
+  const offset=Number(job.processed_count||0);const batch=ids.slice(offset,offset+5);
+  if(!batch.length){const status=Number(job.failed_count||0)>0?'partial':'completed';await db`update public.alliance_manual_registration_jobs set status=${status},finished_at=now(),updated_at=now(),current_player_id=null where id=${job.id}::uuid`;outcomes.push({jobId:job.id,status});continue;}
+  let roster;try{roster=await loadRoster(String(job.kingdom_id),String(job.alliance_tag));}catch(e){const message=String((e as Error)?.message||'Roster validation failed.').slice(0,250);await db`update public.alliance_manual_registration_jobs set status='failed',error_message=${message},finished_at=now(),updated_at=now() where id=${job.id}::uuid`;outcomes.push({jobId:job.id,status:'failed'});continue;}
+  const members=new Map(roster.members.map((m:any)=>[m.id,m]));
+  for(const playerIdValue of batch){const playerId=String(playerIdValue);let result:any;try{const member:any=members.get(playerId);if(!member)throw new Error('Player is no longer in the validated alliance roster.');const input=normalizeRegistrationInput({playerId,kingdomId:String(job.kingdom_id),playerName:member.name,avatarUrl:member.avatarUrl});const registered=await registerWithRetry(input);result={playerId,ok:true,alreadyRegistered:Boolean(registered?.alreadyRegistered)};}catch(e){result={playerId,ok:false,error:String((e as Error)?.message||'Registration failed.').slice(0,180)};}await db`update public.alliance_manual_registration_jobs set processed_count=processed_count+1,succeeded_count=succeeded_count+${result.ok?1:0},failed_count=failed_count+${result.ok?0:1},skipped_count=skipped_count+${result.alreadyRegistered?1:0},current_player_id=${playerId},results=coalesce(results,'[]'::jsonb)||${JSON.stringify([result])}::jsonb,updated_at=now() where id=${job.id}::uuid and status='running'`;}
+  const latest=await db`select processed_count,total_count,failed_count from public.alliance_manual_registration_jobs where id=${job.id}::uuid limit 1`;
+  if(latest.length&&Number(latest[0].processed_count)>=Number(latest[0].total_count)){const status=Number(latest[0].failed_count)>0?'partial':'completed';await db`update public.alliance_manual_registration_jobs set status=${status},finished_at=now(),updated_at=now(),current_player_id=null where id=${job.id}::uuid`;outcomes.push({jobId:job.id,status,processed:Number(latest[0].processed_count)});}else outcomes.push({jobId:job.id,status:'running',processed:Number(latest[0]?.processed_count||0)});
+ }
+ return outcomes;
+}
 export default async function handler(req:any,res:any){
  res.setHeader("Cache-Control","no-store");
  if(req.method!=="GET"&&req.method!=="POST"){res.setHeader("Allow","GET, POST");return res.status(405).json({error:"Method not allowed"});}
  if(!JOB_SECRET||req.headers.authorization!=="Bearer "+JOB_SECRET)return res.status(401).json({error:"Unauthorized"});
  if(!DB_URL)return res.status(503).json({error:"Sync DB not configured"});
  const db=neon(DB_URL);
+ const requestUrl=new URL(req.url||"/","http://localhost");
+ if(requestUrl.searchParams.get("mode")==="manual-registration"){try{const jobs=await processManualRegistrationJobs(db);return res.status(200).json({ok:true,processedJobs:jobs.length,jobs});}catch{return res.status(500).json({error:"Manual registration queue processing failed safely."});}}
  const results:any[]=[];
  try{
   // One invocation handles a small bounded batch, so a daily schedule can serve multiple alliances
