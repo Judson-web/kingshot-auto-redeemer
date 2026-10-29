@@ -1013,7 +1013,7 @@ export default {
   "developer.redemptionScope":"교환 권한",
   "developer.fullScope":"기본 전체 권한",
   "developer.keyExpiry":"키 만료일",
-  "developer.saveSettings":"설정 저장",,
+  "developer.saveSettings":"설정 저장",
 
   "developer.webhooksTitle":"웹훅 구독",
   "developer.webhooksIntro":"지원되는 보상 코드 교환 이벤트를 HTTPS 엔드포인트로 전송합니다. API 키당 최대 5개까지 구독할 수 있으며 서명 비밀키는 한 번만 표시됩니다.",
