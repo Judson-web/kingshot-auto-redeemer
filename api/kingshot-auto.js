@@ -596,7 +596,20 @@ export default async function handler(req,res){
   const verifiedCodeSet=new Set((Array.isArray(latestCodeRows)?latestCodeRows:[]).filter(r=>r?.validation_status==="verified"&&r?.active!==false&&r?.suppressed!==true).map(r=>String(r?.code||"").trim().toUpperCase()));
   activeCodes=activeCodes.filter(c=>verifiedCodeSet.has(c.code.toUpperCase()));
   const newlyAvailableCodes=activeCodes.filter(item=>verifiedCodeSet.has(item.code.toUpperCase())&&!previouslyVerifiedCodes.has(item.code.toUpperCase()));
-  if(newlyAvailableCodes.length){const listed=newlyAvailableCodes.map(item=>item.code).slice(0,5),extra=newlyAvailableCodes.length-listed.length;try{await broadcastPush({title:listed.length===1?"🎁 A new gift code is ready":"🎁 New gift codes are ready",body:"Verified and available: "+listed.join(", ")+(extra>0?" + "+extra+" more":"")+". Tap to view the codes and redeem your rewards.",url:"/manual?code="+encodeURIComponent(listed[0]),image:"https://kingshot-autoredeemer.vercel.app/api/og",tag:"new-gift-codes-"+[...listed].sort().join("-").slice(0,60)})}catch(error){console.error("New gift-code push notification failed:",error instanceof Error?error.message:error)}}
+  if(newlyAvailableCodes.length){
+   // Stable tags make repeat delivery of the same verified batch replace, rather than stack, alerts.
+   const uniqueCodes=[...new Map(newlyAvailableCodes.map(item=>[String(item.code).trim().toUpperCase(),item])).values()];
+   const listed=uniqueCodes.map(item=>item.code).slice(0,3),extra=uniqueCodes.length-listed.length;
+   const sortedKey=uniqueCodes.map(item=>String(item.code).trim().toUpperCase()).sort().join("|");
+   let tagHash=2166136261;for(let i=0;i<sortedKey.length;i++){tagHash^=sortedKey.charCodeAt(i);tagHash=Math.imul(tagHash,16777619)}
+   const tag="gift-codes-"+(tagHash>>>0).toString(36);
+   const title=uniqueCodes.length===1?"🎁 Verified gift code ready":"🎁 "+uniqueCodes.length+" verified gift codes ready";
+   const body=uniqueCodes.length===1
+    ?"Kingshot verification passed for "+listed[0]+". Tap View code to open redemption with the code filled in."
+    :"Ready to redeem: "+listed.join(", ")+(extra>0?" and "+extra+" more":"")+". Tap View codes to redeem.";
+   try{await broadcastPush({title,body,url:"/manual?code="+encodeURIComponent(listed[0]),image:"https://kingshot-autoredeemer.vercel.app/api/og",tag,actions:[{action:"view-codes",title:uniqueCodes.length===1?"View code":"View codes"},{action:"dismiss",title:"Dismiss"}]})}
+   catch(error){console.error("New gift-code push notification failed:",error instanceof Error?error.message:error)}
+  }
   console.log("Kingshot code validation gate:",{pending:pendingCandidates.length,verificationAttempt,verifiedForWorkers:activeCodes.map(c=>c.code)});
 
 
