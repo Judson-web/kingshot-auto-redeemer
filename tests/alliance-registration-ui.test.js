@@ -70,7 +70,7 @@ test("alliance flag images reveal a fallback icon if the upstream asset fails", 
   assert.match(api, /row\.icon_url \?\? row\.iconUrl/);
 });
 
-test("whole-alliance registration respects the three-per-kingdom capacity and uses server progress", () => {
+test("whole-alliance registration respects the four-per-kingdom capacity and uses server progress", () => {
   assert.match(component, /allianceSyncCapacity\?\.canRegister/);
   assert.match(component, /allianceAlreadyRegistered/);
   assert.match(component, /capacityData\.canRegister/);
@@ -160,12 +160,12 @@ test("mobile search card keeps its submit button inside the panel", () => {
   assert.match(styles, /ks-alliance-discovery\{overflow:visible!important\}/);
 });
 
-test("alliance registration explains the three-alliance kingdom cap", () => {
+test("alliance registration explains the four-alliance kingdom cap", () => {
   assert.match(component, /kingdom_alliance_limit/);
   assert.match(component, /alliance\.kingdomAllianceCapTitle/);
   assert.match(component, /allianceSyncCapacity\.registeredCount >= allianceSyncCapacity\.limit/);
-  assert.match(english, /"alliance\.kingdomAllianceCapReached": "This kingdom already has 3 registered alliances/);
-  assert.match(korean, /"alliance\.kingdomAllianceCapReached": "이 왕국에는 이미 연맹 3개/);
+  assert.match(english, /"alliance\.kingdomAllianceCapReached": "This kingdom already has 4 registered alliances/);
+  assert.match(korean, /"alliance\.kingdomAllianceCapReached": "이 왕국에는 이미 연맹 4개/);
 });
 
 test("beta badge appears only in alliance drawer and announcement", async () => {
@@ -181,7 +181,7 @@ test("alliance registration social metadata reflects current flow", async () => 
   const metadata = await readFile(new URL("../alliance-registration.html", import.meta.url), "utf8");
   assert.match(metadata, /og:title" content="Alliance Registration"/);
   assert.match(metadata, /route=alliance-registration&v=5/);
-  assert.match(metadata, /kingdom can register up to three alliances/);
+  assert.match(metadata, /kingdom can register up to four alliances/);
   assert.doesNotMatch(metadata, /select individuals|select individual members/);
 });
 
