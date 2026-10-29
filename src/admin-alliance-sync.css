@@ -130,3 +130,6 @@
 .aas-registration-progress.is-partial .aas-progress-track>span,.aas-registration-progress.is-failed .aas-progress-track>span{background:#d69b70}
 .aas-registration-progress>p{margin:9px 0 0;color:#f0b7bd;font-size:12px;line-height:1.5}
 @media(prefers-reduced-motion:reduce){.aas-progress-track>span{transition:none}}
+
+/* Registration mode selector */
+.aas-registration-mode{display:flex;align-items:center;gap:9px;margin-top:13px;padding:10px 12px;border:1px solid #303b4a;border-radius:10px;background:#111720;color:#e0e6ef;font-size:12px;font-weight:650;cursor:pointer}.aas-registration-mode input{width:15px;height:15px;accent-color:#d6c18b;flex:0 0 auto}.aas-roster-heading small{display:block;margin-top:7px;color:#8e9aab;font-size:11px;line-height:1.5}

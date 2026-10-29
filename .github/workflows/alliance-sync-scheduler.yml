@@ -43,3 +43,29 @@ jobs:
             --header "Authorization: Bearer ${SYNC_SECRET}" \
             --header "Accept: application/json" \
             "${SYNC_URL}"
+
+  run-manual-registration-queue:
+    name: Drain durable manual registration queue
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    concurrency:
+      group: alliance-manual-registration-queue
+      cancel-in-progress: false
+    steps:
+      - name: Validate queue worker secret
+        env:
+          WORKER_SECRET: ${{ secrets.ALLIANCE_SYNC_CRON_SECRET || secrets.CRON_SECRET }}
+        shell: bash
+        run: |
+          if [ -z "${WORKER_SECRET}" ]; then
+            echo "::error::Add ALLIANCE_SYNC_CRON_SECRET (or CRON_SECRET) to repository secrets."
+            exit 1
+          fi
+      - name: Process durable manual registration jobs
+        env:
+          WORKER_SECRET: ${{ secrets.ALLIANCE_SYNC_CRON_SECRET || secrets.CRON_SECRET }}
+          WORKER_URL: https://kingshot-autoredeemer.vercel.app/api/kingshot-alliance-manual-registration-worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error --max-time 75 --request POST --header "Authorization: Bearer ${WORKER_SECRET}" --header "Accept: application/json" "${WORKER_URL}"
