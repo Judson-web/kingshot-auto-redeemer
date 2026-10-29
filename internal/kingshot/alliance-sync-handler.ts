@@ -15,6 +15,8 @@ function validKingdom(v:unknown){return /^\d{1,10}$/.test(String(v??""));}
 function validTag(v:unknown){return /^[A-Za-z0-9_-]{1,20}$/.test(String(v??""));}
 function getParam(req:Req,key:string){const url=new URL(req.url||"/","http://localhost");return String(req.query?.[key]??url.searchParams.get(key)??"").trim();}
 function database(){if(!DB_URL)throw new Error("Alliance sync database is not configured."); return neon(DB_URL);}
+const wait=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms));
+async function registerWithRetry(input:any){let last:unknown;for(let attempt=0;attempt<3;attempt++){try{return await registerPlayer(input)}catch(error){last=error;if(attempt<2)await wait(400*(attempt+1));}}throw last instanceof Error?last:new Error("Registration failed after retries.");}
 async function getProfileOwner(req:Req):Promise<string|null>{
  const cookie=header(req,"cookie");
  const match=cookie.split(";").map(v=>v.trim()).find(v=>v.startsWith("__Host-ks_profile_session="));
@@ -98,7 +100,7 @@ async function performSync(config:any,ownerId:string,manual:boolean,leaseToken:s
    try{
     // Keep the established RPC for the actual player insert, including its idempotency and policy checks.
     const input=normalizeRegistrationInput({playerId:member.id,kingdomId:String(config.kingdom_id),playerName:member.name,avatarUrl:member.avatarUrl});
-    const result=await registerPlayer(input);
+    const result=await registerWithRetry(input);
     if(result?.stale===true)throw new Error("Player data is stale.");
     const already=Boolean(result?.alreadyRegistered);
     await db`update public.alliance_sync_seen_players set registration_status=${already?"already_registered":"registered"},registered_at=now(),last_error_code=null where config_id=${config.id}::uuid and player_id=${member.id}`;
@@ -122,7 +124,7 @@ async function performSync(config:any,ownerId:string,manual:boolean,leaseToken:s
       and not (seen.player_id = any(${currentMemberIds}::text[]))
     returning seen.player_id`;
    const departedCount=departedRows.length;
-   const nextRun=new Date(Date.now()+24*3600000).toISOString();
+   const nextRun=new Date(Date.now()+(failed>0?5*60000:24*3600000)).toISOString();
   const completed=await db`update public.alliance_sync_config set alliance_name=${roster.name},last_attempt_at=now(),last_success_at=now(),next_run_at=${nextRun}::timestamptz,lease_token=null,lease_expires_at=null,consecutive_failures=case when ${failed}>0 then consecutive_failures+1 else 0 end,last_status=case when not enabled then 'paused' when ${failed}>0 then 'partial' else 'success' end,last_error_code=case when ${failed}>0 then 'registration_failed' else null end,last_error_message=${failures.slice(0,5).join('; ').slice(0,500)||null},last_roster_count=${roster.members.length},last_added_count=${added},updated_at=now() where id=${config.id}::uuid and lease_token=${leaseToken}::uuid returning id`;
   if(!completed.length) throw new Error('Sync lease was lost before completion.');
   await db`update public.alliance_sync_runs set finished_at=now(),status=${failed>0?'partial':'success'},roster_count=${roster.members.length},added_count=${added},skipped_count=${skipped},departed_count=${departedCount},error_code=${failed>0?'registration_failed':null},error_message=${failures.slice(0,5).join('; ').slice(0,500)||null} where id=${runId}::uuid`;
