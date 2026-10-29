@@ -1,4 +1,15 @@
-import test from "node:test";
+test("registration progress is stored in Supabase and resumable through server-side batches", async () => {
+  const migration = await readFile(new URL("../supabase/migrations/20261029150000_move_manual_alliance_registration_queue_to_supabase.sql", import.meta.url), "utf8");
+  assert.match(migration, /alliance_manual_registration_jobs/);
+  assert.match(migration, /processed_count/);
+  assert.match(migration, /enable row level security/i);
+  assert.match(migration, /claim_alliance_manual_registration_job/);
+  assert.match(migration, /for update skip locked/i);
+  const adminData = await readFile(new URL("../lib/admin-data.js", import.meta.url), "utf8");
+  assert.match(adminData, /storage:"supabase"/);
+  assert.match(adminData, /PROCESS_ALLIANCE_REGISTRATION_JOB/);
+  assert.match(adminData, /registerPlayer/);
+});import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
@@ -30,7 +41,7 @@ test("manual registration queues a durable job and displays server-backed progre
   assert.match(component, /aas-registration-progress/);
   assert.match(component, /aria-valuenow=/);
   assert.match(component, /active\?\.id===job\.config_id/);
-  assert.match(component, /setBusy\(" "\);|setBusy\(" "\);/);
+  assert.match(component, /setBusy\(" "\);/);
   assert.match(component, /Review failed registrations/);
 });
 
