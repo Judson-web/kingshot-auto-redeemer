@@ -361,7 +361,7 @@ registerAppServiceWorker();
 
 const privateWorkspacePaths=new Set(["/dev","/devsupport","/admin/players","/admin/maintenance","/push","/message","/gift-codes"]);
 const isPrivateWorkspace=privateWorkspacePaths.has(location.pathname);
-const showNotificationPrompt=["/","/auto","/manual","/redeem"].includes(location.pathname);
+const showNotificationPrompt=!isPrivateWorkspace;
 const showPublicSupport=!isPrivateWorkspace;
 const maintenanceAdminAccess=location.pathname==="/admin/maintenance"||(location.pathname==="/profile"&&new URLSearchParams(location.search).get("returnTo")==="/admin/maintenance");
 createRoot(document.getElementById("root")).render(<><React.Suspense fallback={<div role="status" aria-live="polite" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,minHeight:"45vh",padding:24,color:"#d4bd88",fontSize:13}}><LoaderCircle size={18}/> {translate(getSiteLanguage(),"common.loadingWorkspace","Loading workspace…")}</div>}>{maintenanceAdminAccess?publicPage:<MaintenanceGate>{isPrivateWorkspace?publicPage:<PublicAnnouncements>{publicPage}</PublicAnnouncements>}{!isPrivateWorkspace&&<InstallAppPrompt/>}{showNotificationPrompt&&<PushNotifications/>}{showPublicSupport&&<SupportWidget/>}</MaintenanceGate>}</React.Suspense><CopyToastHost/></>);
