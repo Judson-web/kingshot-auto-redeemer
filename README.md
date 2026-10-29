@@ -68,6 +68,10 @@ The production service is available at [kingshot-autoredeemer.vercel.app](https:
 
 Restricted pages and actions require the appropriate server-side authorization. A route being listed here does not mean it is available to anonymous visitors.
 
+## Automatic alliance sync
+
+Enabled alliance sync configurations are checked by a server-side worker on a frequent schedule, with per-alliance leases, fresh-roster validation, duplicate-registration checks against Supabase, and retry backoff. The GitHub Actions scheduler requires the `ALLIANCE_SYNC_CRON_SECRET` repository secret to match the Vercel worker secret. See [Automatic Alliance Sync Scheduler](./docs/alliance-sync-scheduler.md) for setup and verification.
+
 ## Developer API
 
 **V4 is the current API for new integrations.** It provides player lookup at `GET /api/v4/players/{playerId}` and manual redemption at `POST /api/v4/redemptions`, with a consistent `success`, `data`, `error`, and `meta` response envelope.
