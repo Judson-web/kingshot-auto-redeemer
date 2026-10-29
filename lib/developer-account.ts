@@ -33,7 +33,7 @@ export default async function handler(req:Req,res:Res){res.setHeader("Cache-Cont
    try{const parsed=new URL(url);if(parsed.href!==url&&parsed.toString()!==url){}await assertPublicWebhookUrl(parsed.href)}catch{res.status(400).json({error:"Use a valid HTTPS webhook URL that resolves only to public IP addresses."});return}
    const allowed=new Set(["redemption.completed","redemption.unknown"]);
    if(!events.length||events.length>2||events.some(e=>!allowed.has(e))){res.status(400).json({error:"Choose at least one supported event."});return}
-   const rows=await db("/rest/v1/kingshot_developer_webhooks?select=id&key_id=eq."+encodeURIComponent(keyId)+"&disabled_at=is.null");
+   const rows=await db("/rest/v1/kingshot_developer_webhooks?select=id&key_id=eq."+encodeURIComponent(keyId));
    if(Array.isArray(rows)&&rows.length>=5){res.status(409).json({error:"This API key already has five active webhook subscriptions."});return}
    const encryption=process.env.V4_WEBHOOK_ENCRYPTION_KEY||"";
    if(!/^[0-9a-f]{64}$/i.test(encryption)){res.status(503).json({error:"Webhook encryption is not configured on this deployment."});return}
