@@ -29,7 +29,7 @@ export default async function handler(req:Req,res:Res){res.setHeader("Cache-Cont
    res.status(200).json({items:Array.isArray(rows)?rows:[]});return
   }
   if(req.method==="POST"){
-   const url=String(req.body?.url||"").trim(),events=Array.isArray(req.body?.events)?req.body!.events!.map(String):[];
+   const url=String(req.body?.url||"").trim(),events=Array.isArray(req.body?.events)?(req.body?.events as unknown[]).map(String):[];
    try{const parsed=new URL(url);if(parsed.href!==url&&parsed.toString()!==url){}await assertPublicWebhookUrl(parsed.href)}catch{res.status(400).json({error:"Use a valid HTTPS webhook URL that resolves only to public IP addresses."});return}
    const allowed=new Set(["redemption.completed","redemption.unknown"]);
    if(!events.length||events.length>2||events.some(e=>!allowed.has(e))){res.status(400).json({error:"Choose at least one supported event."});return}
