@@ -24,5 +24,3 @@ create index if not exists alliance_manual_registration_jobs_queue
   on public.alliance_manual_registration_jobs(status, created_at)
   where status in ('queued','running');
 alter table public.alliance_manual_registration_jobs enable row level security;
-revoke all on public.alliance_manual_registration_jobs from anon, authenticated;
-grant all on public.alliance_manual_registration_jobs to service_role;
