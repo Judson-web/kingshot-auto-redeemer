@@ -3190,3 +3190,12 @@ body:has(.support-float-panel.support-chat-panel) .ks-install-prompt{display:non
 .ks-alliance-cancel-button:focus-visible { outline: 2px solid var(--accent, #d8bd7c); outline-offset: 3px; }
 .ks-alliance-cancel-button:disabled { opacity: .7; cursor: wait; }
 .ks-register-progress .ks-alliance-cancel-button { margin-top: 10px; }
+
+
+/* Alliance registration mobile: keep the floating Support launcher from covering roster/history cards. */
+.support-float-root.support-float-root-alliance{bottom:max(12px,env(safe-area-inset-bottom))}
+@media(max-width:620px){
+  .support-float-root.support-float-root-alliance .support-float-trigger{width:48px!important;height:48px!important;min-width:48px!important;padding:0!important;border-radius:50%!important}
+  .support-float-root.support-float-root-alliance .support-float-trigger-label{display:none!important}
+  .ks-alliance-app main{padding-bottom:112px!important}
+}
