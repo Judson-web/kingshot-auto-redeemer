@@ -26,7 +26,7 @@ test("durable queue uses compare-and-swap claims, fresh roster checks, and persi
 
 test("browser-driven registration remains available and is still the default",()=>{
  assert.match(adminData,/updated_at<now\(\)-interval '120 seconds'/);
- assert.match(ui,/serverSideRegistration\\]=useState\\(false\\)/);
+ assert.match(ui,/serverSideRegistration\]=useState\(false\)/);
  assert.match(ui,/ADMIN_REGISTER_ALLIANCE_MEMBER/);
  assert.match(ui,/ADMIN_REGISTER_ALLIANCE_MEMBERS/);
  assert.match(ui,/Browser-driven: registers selected players one at a time/);
