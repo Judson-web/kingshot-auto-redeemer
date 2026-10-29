@@ -1013,7 +1013,7 @@ export default {
   "developer.redemptionScope":"Redemption access",
   "developer.fullScope":"Standard access",
   "developer.keyExpiry":"Key expiry",
-  "developer.saveSettings":"Save settings",,
+  "developer.saveSettings":"Save settings",
 
   "developer.webhooksTitle":"Webhook subscriptions",
   "developer.webhooksIntro":"Send supported redemption events to your HTTPS endpoint. Each API key can have up to five subscriptions. The signing secret is shown only once.",
