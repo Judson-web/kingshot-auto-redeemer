@@ -191,15 +191,13 @@ test("refreshes roster when server-side alliance processing finishes", () => {
 });
 
 
-test("kingdom alliance cap check and insert are serialized in one transaction", async () => {
+test("kingdom alliance cap check and insert are serialized by a Supabase transaction", async () => {
   const handler = await readFile(new URL("../internal/kingshot/alliance-sync-handler.ts", import.meta.url), "utf8");
-  assert.match(handler, /with kingdom_lock as materialized/);
-  assert.match(handler, /pg_advisory_xact_lock\(hashtextextended\(\$\{kingdom\},0\)\)/);
-  assert.match(handler, /from counts where total < 3/);
-  assert.match(handler, /select count\(\*\)::int as total from public\.alliance_sync_config where kingdom_id=\$\{kingdom\}/);
-  assert.match(handler, /Number\(registrationRow\?\.total\|\|0\)>=3/);
-  assert.match(handler, /insert into public\.alliance_sync_config[\s\S]*?select[\s\S]*?from counts where total < 3[\s\S]*?returning id,kingdom_id/);
-  assert.match(handler, /!registrationRow\?\.id/);
+  const migration = await readFile(new URL("../supabase/migrations/20261029223000_add_transactional_alliance_sync_rpcs.sql", import.meta.url), "utf8");
+  assert.match(handler, /register_alliance_sync_config/);
+  assert.match(migration, /pg_advisory_xact_lock/);
+  assert.match(migration, /if v_total >= 3 then/);
+  assert.match(migration, /alliance_already_managed/);
 });
 
 test("How it works page imports every icon used by its feature sections", async () => {

@@ -29,7 +29,7 @@ test("admin queue reads and writes Supabase while normal alliance sync stays sep
  assert.match(adminData,/storage:"supabase"/);
  assert.match(adminData,/alliance_manual_registration_jobs/);
  assert.doesNotMatch(adminData,/select \\* from public\\.alliance_manual_registration_jobs/);
- assert.match(ui,/serverSideRegistration\]=useState\(false\)/);
+ assert.match(ui,/serverSideRegistration,setServerSideRegistration\]=useState\(false\)/);
  assert.match(ui,/ADMIN_REGISTER_ALLIANCE_MEMBER/);
  assert.match(ui,/ADMIN_REGISTER_ALLIANCE_MEMBERS/);
  assert.match(ui,/Browser-driven: registers selected players one at a time/);

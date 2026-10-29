@@ -15,21 +15,21 @@ test("alliance page shows roster freshness and an inline read-only sync history"
   assert.match(ui, /alliance\.syncHistoryTitle/);
   assert.match(ui, /alliance\.historyRetryHint/);
   assert.match(ui, /alliance\.departedMembersCurrent/);
-  assert.match(handler, /if\(action==="history"\)/);
-  assert.match(handler, /order by created_at desc limit 10/);
-  assert.match(handler, /registration_status='departed'/);
-  assert.match(handler, /departed_count/);
-  assert.match(handler, /returning seen\.player_id/);
+  assert.match(handler, /if\(action==='history'\)/);
+  assert.match(handler, /order=created_at\.desc[^`]*limit=10/);
+  assert.match(handler, /registration_status=eq\.departed/);
+  assert.match(handler, /departedCount/);
+  assert.match(handler, /select=player_id`/);
 });
 
 test("history is read-only and does not expose pause, resume, or deletion controls", () => {
   assert.match(ui, /alliance\.refreshHistory/);
   assert.doesNotMatch(ui, /alliance\.pauseSync|alliance\.resumeSync|action:"delete"/);
-  const historyStart = handler.indexOf('if(action==="history")');
-  const historyEnd = handler.indexOf('if(action==="capacity")');
+  const historyStart = handler.indexOf("if(action==='history')");
+  const historyEnd = handler.indexOf("if(action==='capacity')");
   assert.ok(historyStart >= 0 && historyEnd > historyStart);
   const historyHandler = handler.slice(historyStart, historyEnd);
-  assert.doesNotMatch(historyHandler, /insert into|update public\.|delete from/i);
+  assert.doesNotMatch(historyHandler, /insertRows|patchRows|callRpc|deleteRows/i);
 });
 
 test("English and Korean have matching keys for the new history and freshness UI", () => {
