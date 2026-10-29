@@ -1,5 +1,6 @@
 import React,{useCallback,useEffect,useMemo,useState}from"react";
 import{ArrowLeft,Check,ChevronDown,LoaderCircle,RefreshCw,Search,ShieldCheck,Trash2,Users,UserPlus,AlertCircle}from"lucide-react";
+import "./admin-alliance-sync.css";
 type Member={playerId:string;name:string;avatarUrl:string;alreadyRegistered:boolean};
 type Config={id:string;kingdom_id:string;alliance_tag:string;alliance_name:string;enabled:boolean;last_status:string;last_roster_count:number|null;last_added_count:number|null;last_attempt_at:string|null;last_success_at:string|null;next_run_at:string|null;last_error_message:string|null;registered_count:number;error_count:number};
 const API="/api/kingshot-admin-data";
@@ -13,7 +14,7 @@ export default function AdminAllianceSyncApp(){
  const eligible=useMemo(()=>members.filter(m=>!m.alreadyRegistered),[members]);
  const visible=useMemo(()=>members.filter(m=>(m.playerId+" "+m.name).toLowerCase().includes(filter.trim().toLowerCase())),[members,filter]);
  const selectAll=()=>setSelected(current=>current.length===eligible.length?[]:eligible.map(m=>m.playerId));
- const repair=async()=>{if(!active||!selected.length)return;setBusy("repair");setError("");setNotice("");setResult(null);try{const d=await request({method:"POST",body:JSON.stringify({action:"ADMIN_REGISTER_ALLIANCE_MEMBERS",id:active.id,playerIds:selected})});setResult({succeeded:Number(d.succeeded)||0,failed:Number(d.failed)||0,results:Array.isArray(d.results)?d.results:[]});setNotice("Manual registration pass finished. Successful player registrations remain in the normal Auto Redeem roster.");await openRoster(active);await load()}catch(e){setError(e instanceof Error?e.message:"Manual registration failed.")}finally{setBusy("")}};
+ const repair=async()=>{if(!active||!selected.length)return;setBusy("repair");setError("");setNotice("");setResult(null);try{const d=await request({method:"POST",body:JSON.stringify({action:"ADMIN_REGISTER_ALLIANCE_MEMBERS",id:active.id,playerIds:selected})});const summary={succeeded:Number(d.succeeded)||0,failed:Number(d.failed)||0,results:Array.isArray(d.results)?d.results:[]};setNotice("Manual registration pass finished. Successful player registrations remain in the normal Auto Redeem roster.");await openRoster(active);setResult(summary);await load()}catch(e){setError(e instanceof Error?e.message:"Manual registration failed.")}finally{setBusy("")}};
  const unregister=async(c:Config)=>{if(!window.confirm("Unregister ["+c.alliance_tag+"] in Kingdom "+c.kingdom_id+"? This removes alliance-sync configuration and its sync history. It does not delete global player registrations."))return;setBusy(c.id);setError("");setNotice("");try{await request({method:"POST",body:JSON.stringify({action:"UNREGISTER_ALLIANCE_SYNC",id:c.id})});if(active?.id===c.id){setActive(null);setMembers([])}setNotice("Alliance sync configuration removed. Player Auto Redeem registrations were left untouched.");await load()}catch(e){setError(e instanceof Error?e.message:"Could not unregister alliance.")}finally{setBusy("")}};
  return <main className="aas-page">
   <a className="aas-back" href="/admin/players"><ArrowLeft size={17}/> Admin workspace</a>
