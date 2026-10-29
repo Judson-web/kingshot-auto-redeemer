@@ -24,7 +24,7 @@
 
 ## Maintainer & contact
 
-Created and maintained by **Judson** (`@judson00713` on Discord). [Contact the maintainer on Discord](https://discord.com/users/871756466900598815) for developer API questions, integration help, or project feedback. For account, registration, or redemption issues, use the website's in-app Support Centre so the request stays attached to a support conversation. Response times may vary.
+Created and maintained by **Judson** (`@judson00713` on Discord). For account, registration, or redemption issues, use the website's in-app Support Centre so the request stays attached to a support conversation. For developer API questions or project feedback, use the public contact options provided by the service. Response times may vary.
 
 ---
 
@@ -53,7 +53,7 @@ The public application is available at [kingshot-autoredeemer.vercel.app](https:
 
 Alliance registration fetches the selected alliance roster, then lets users register eligible members in batches or select members individually. Existing registrations are checked before new ones are created, and server-side safeguards help prevent duplicate player records or duplicate sync configurations.
 
-Whole-alliance sync is limited to **four registered alliance configurations per kingdom**, as enforced by the server-side capacity response and creation handler. This cap applies to alliance-sync configurations, not ordinary player registration through Auto Redeem, Manual Redeem, or individual-player workflows. The UI checks capacity before offering a new whole-alliance sync registration.
+Whole-alliance sync is limited to **three registered alliance configurations per kingdom**, as enforced by the server-side capacity response and creation handler. This cap applies to alliance-sync configurations, not ordinary player registration through Auto Redeem, Manual Redeem, or individual-player workflows. The UI checks capacity before offering a new whole-alliance sync registration.
 
 The alliance page fetches and validates the selected roster, checks registration status, and processes eligible players in bounded batches. The page's registration flow and the scheduled sync are separate: the scheduled worker stores configuration and run state in Supabase, claims per-alliance leases, checks the current provider roster, skips IDs already registered in Supabase, and uses retry/backoff after failures. Normal syncs are scheduled for 24 hours later; the GitHub Actions workflow wakes the worker every five minutes so due work and short retries can run. Provider failures, stale data, or incomplete rosters must fail safely rather than treating the whole roster as new. Scheduled sync adds newly discovered eligible members; it does not automatically deregister players who leave an alliance. A second owner cannot create a second sync worker for the same alliance.
 
@@ -65,11 +65,26 @@ Administrators can review an announcement's content and destination in an in-app
 
 ## Developer API
 
-**V4 is the recommended API for new integrations.** It provides player lookup at `GET /api/v4/players/{playerId}` and manual redemption at `POST /api/v4/redemptions`, with a consistent `success`, `data`, `error`, and `meta` response envelope.
+**V4 is the recommended API for new integrations.** It provides player lookup, manual redemption, alliance roster/ranking lookup, read-only redemption history, webhook subscriptions, and compact usage information. Responses use a consistent `success`, `data`, `error`, and `meta` envelope.
 
 - [Interactive developer portal](https://kingshot-autoredeemer.vercel.app/developer)
 - [V4 API reference](https://kingshot-autoredeemer.vercel.app/developer-v4.md)
 - [OpenAPI 3.1 specification](https://kingshot-autoredeemer.vercel.app/openapi.json)
+
+V4 endpoints include:
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/v4/players/{playerId}` | Look up supported player information. |
+| `POST /api/v4/redemptions` | Submit a manual gift-code redemption with idempotency support. |
+| `GET /api/v4/alliances` | Read an alliance roster or kingdom alliance rankings. |
+| `GET /api/v4/redemption-history` | Read stored redemption history without submitting a new redemption. |
+| `GET /api/v4/webhooks` | List webhook subscriptions for the authenticated key. |
+| `POST /api/v4/webhooks` | Create a webhook subscription for supported redemption events. |
+| `DELETE /api/v4/webhooks/{webhookId}` | Disable a webhook subscription. |
+| `GET /api/v4/usage` | Read compact usage counters for the authenticated key. |
+
+Developer keys support permission scopes and optional expiry. Usage counters and last-used information are shown inline in the existing Developer API panel; there is no separate analytics or quota dashboard. Webhook signing secrets are shown once when created. Subscribers should verify the documented HMAC signature and deduplicate events by event ID.
 
 V3 remains available for compatibility. V1 routes are deprecated. For redemption responses, check `data.ok` for the in-game result: an HTTP 200 response means the API request was processed, not necessarily that rewards were granted. For an ambiguous redemption timeout, retry only with the same `Idempotency-Key` and request body, as described in the API documentation.
 
@@ -94,7 +109,7 @@ These controls improve recovery from slow or unreliable connections, but they ca
 
 ## Data, reliability, and security
 
-Supabase PostgreSQL is the authoritative application store for player registrations and alliance-sync state, including configurations, run history, leases, and seen-player status. An optional durable manual-registration queue also stores job state and per-player outcomes in Supabase and is processed by the existing scheduled worker. Neon PostgreSQL remains in use for the separate redemption-recovery journal; it is not the authoritative player registry and is not used for alliance-registration state. The redemption worker uses that journal as part of its recovery workflow. Supporting infrastructure may change, so this README avoids exposing private project identifiers, credential values, or detailed recovery procedures.
+The service uses server-side persistence for registrations, alliance-sync state, redemption records, and queued work. Background jobs coordinate scheduled processing and retry recoverable failures. Implementation details and provider credentials are intentionally omitted here; this README describes the public architecture rather than private deployment topology or recovery procedures.
 
 Security practices include:
 
