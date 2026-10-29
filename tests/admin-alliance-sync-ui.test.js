@@ -30,7 +30,7 @@ test("manual registration queues a durable job and displays server-backed progre
   assert.match(component, /aas-registration-progress/);
   assert.match(component, /aria-valuenow=/);
   assert.match(component, /active\?\.id===job\.config_id/);
-  assert.match(component, /setBusy\(""\);/);
+  assert.match(component, /finally\{if\(mounted\.current\)setBusy\(\"\"\)\}/);
   assert.match(component, /Review failed registrations/);
 });
 
