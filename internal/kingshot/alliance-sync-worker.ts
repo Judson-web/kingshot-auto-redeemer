@@ -31,10 +31,10 @@ async function loadRoster(kingdom:string,tag:string){
 async function processManualRegistrationJobs(db:any){
  const outcomes:any[]=[];
  for(let attempt=0;attempt<3;attempt++){
-  const candidates=await db`select id,updated_at from public.alliance_manual_registration_jobs where status='queued' or (status='running' and updated_at<now()-interval '20 seconds') order by created_at limit 1`;
+  const candidates=await db`select id,updated_at from public.alliance_manual_registration_jobs where status='queued' or (status='running' and updated_at<now()-interval '120 seconds') order by created_at limit 1`;
   if(!candidates.length)break;
   const candidate=candidates[0];
-  const claimed=await db`update public.alliance_manual_registration_jobs set status='running',started_at=coalesce(started_at,now()),updated_at=now() where id=${candidate.id}::uuid and updated_at=${candidate.updated_at}::timestamptz and (status='queued' or (status='running' and updated_at<now()-interval '20 seconds')) returning id`;
+  const claimed=await db`update public.alliance_manual_registration_jobs set status='running',started_at=coalesce(started_at,now()),updated_at=now() where id=${candidate.id}::uuid and updated_at=${candidate.updated_at}::timestamptz and (status='queued' or (status='running' and updated_at<now()-interval '120 seconds')) returning id`;
   if(!claimed.length)continue;
   const rows=await db`select j.*,c.kingdom_id,c.alliance_tag from public.alliance_manual_registration_jobs j join public.alliance_sync_config c on c.id=j.config_id where j.id=${candidate.id}::uuid limit 1`;
   if(!rows.length)continue;
