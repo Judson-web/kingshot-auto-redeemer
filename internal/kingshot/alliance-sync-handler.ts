@@ -104,6 +104,16 @@ async function performSync(config:any,ownerId:string,manual:boolean,leaseToken:s
   await patchRows('alliance_sync_runs',`id=eq.${enc(runId)}`,{finished_at:new Date().toISOString(),status:'error',error_code:code,error_message:message});throw e;
  }
 }
+export async function runAllianceSyncAsAdmin(configId:string, adminUserId:string){
+ const rows=await selectRows('alliance_sync_config',`id=eq.${enc(configId)}&select=*&limit=1`);
+ const config=Array.isArray(rows)?rows[0]:null;
+ if(!config)throw Object.assign(new Error('Alliance sync configuration not found.'),{status:404,code:'not_found'});
+ if(!config.enabled)throw Object.assign(new Error('Resume this alliance before running a manual sync.'),{status:409,code:'sync_paused'});
+ const lease=randomUUID();
+ const claimed=await patchRows('alliance_sync_config',`id=eq.${enc(configId)}&enabled=eq.true&or=(lease_token.is.null,lease_expires_at.lt.${enc(new Date().toISOString())})`,{lease_token:lease,lease_expires_at:new Date(Date.now()+4*60000).toISOString(),last_status:'running',updated_at:new Date().toISOString()});
+ if(!Array.isArray(claimed)||!claimed.length)throw Object.assign(new Error('A sync is already running for this alliance.'),{status:409,code:'sync_in_progress'});
+ return await performSync(claimed[0],adminUserId,true,lease);
+}
 export default async function handler(req:Req,res:Res){
  res.setHeader('Cache-Control','private, no-store');
  if(req.method!=='GET'&&req.method!=='POST'){res.setHeader('Allow','GET, POST');return fail(res,405,'method_not_allowed','Method not allowed.');}
