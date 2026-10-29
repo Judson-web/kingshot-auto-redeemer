@@ -52,6 +52,7 @@ export default function AllianceRegistration() {
   const [allianceSyncCapacity, setAllianceSyncCapacity] = useState<{registeredCount:number;limit:number;isRegistered:boolean;managedByCurrentUser:boolean;enabled:boolean;status:string|null;canRegister:boolean}|null>(null);
   const [syncHistory, setSyncHistory] = useState<{runs:Array<{id:string;status:string;created_at:string;finished_at:string|null;roster_count:number|null;added_count:number|null;skipped_count:number|null;departed_count:number|null;error_code:string|null;error_message:string|null}>;departedCount:number}>({runs:[],departedCount:0});
   const [loadingSyncHistory, setLoadingSyncHistory] = useState(false);
+  const [syncHistoryExpanded, setSyncHistoryExpanded] = useState(false);
   const [loadingRoster, setLoadingRoster] = useState(false);
   const [rosterError, setRosterError] = useState("");
   const [memberFilter, setMemberFilter] = useState("");
@@ -531,7 +532,12 @@ export default function AllianceRegistration() {
           <div className="ks-alliance-roster-stats"><span><b>{formatNumber(roster.alliance.power)}</b><small>{t("alliance.power", "Power")}</small></span><span><b>{roster.members.length}</b><small>{t("alliance.members", "Members")}</small></span></div>
         </div>
         {allianceSyncCapacity && <p className="ks-alliance-capacity-note" role="status">{allianceSyncCapacity.registeredCount < allianceSyncCapacity.limit ? t("alliance.capacityRemaining", "Alliance sync registrations in this kingdom:") + " " + allianceSyncCapacity.registeredCount + "/" + allianceSyncCapacity.limit + " · " + (allianceSyncCapacity.limit-allianceSyncCapacity.registeredCount) + " " + t("alliance.slotsRemaining", "slot(s) remaining") : t("alliance.capacityFullNote", "The kingdom's three alliance-sync slots are full. Individual player registration through Auto Redeem is unaffected.")}</p>}
-        <section className="ks-alliance-history" aria-labelledby="alliance-history-heading">
+        <button type="button" className="ks-alliance-text-toggle ks-alliance-history-toggle" aria-expanded={syncHistoryExpanded} aria-controls="alliance-sync-history-panel" onClick={() => setSyncHistoryExpanded(value => !value)}>
+          <span>{t("alliance.syncHistoryTitle", "Recent sync history")} · {syncHistory.runs.length}</span>
+          <ChevronDown size={16} aria-hidden="true" className={syncHistoryExpanded ? "is-expanded" : ""}/>
+        </button>
+        {syncHistoryExpanded && <div id="alliance-sync-history-panel">
+          <section className="ks-alliance-history" aria-labelledby="alliance-history-heading">
           <div className="ks-alliance-history-heading"><div><h3 id="alliance-history-heading">{t("alliance.syncHistoryTitle", "Recent sync history")}</h3><p>{t("alliance.syncHistoryIntro", "A short record of automatic alliance sync runs. This does not change any player's Auto Redeem registration.")}</p></div><button type="button" className="ks-alliance-refresh" onClick={() => activeAlliance && void loadRoster(activeAlliance, true)} disabled={loadingRoster || registering || loadingSyncHistory}>{loadingSyncHistory ? <LoaderCircle size={14} className="ks-alliance-spin" aria-hidden="true"/> : <RotateCcw size={14} aria-hidden="true"/>}<span>{t("alliance.refreshHistory", "Refresh history")}</span></button></div>
           {syncHistory.departedCount > 0 && <p className="ks-alliance-departed-note">{syncHistory.departedCount} {t("alliance.departedMembersCurrent", "former member(s) are retained in sync history and excluded from the live roster. Their normal Auto Redeem registration is unchanged.")}</p>}
           {loadingSyncHistory ? <p className="ks-alliance-history-empty" role="status">{t("alliance.historyLoading", "Loading sync history…")}</p> : syncHistory.runs.length ? <ol className="ks-alliance-history-list">
@@ -541,7 +547,9 @@ export default function AllianceRegistration() {
               {run.error_message && <p className="ks-alliance-history-error"><strong>{t("alliance.historyNeedsAttention", "Needs attention")}:</strong> {run.error_message} {t("alliance.historyRetryHint", "Refresh the roster and retry registration only after checking the affected Player IDs.")}</p>}
             </li>)}
           </ol> : <p className="ks-alliance-history-empty">{t("alliance.historyEmpty", "No completed sync runs are recorded yet. Registering this alliance will start its sync history.")}</p>}
-        </section>
+          </section>
+        </div>}
+
         {allianceSyncCapacity && !allianceSyncCapacity.isRegistered && allianceSyncCapacity.registeredCount >= allianceSyncCapacity.limit && <div className="ks-alliance-cap-alert" role="status"><CircleAlert size={17} aria-hidden="true"/><span><strong>{t("alliance.kingdomAllianceCapTitle", "Kingdom registration limit reached")}</strong><small>{t("alliance.kingdomAllianceCapReached", "This kingdom already has 3 registered alliances (3/3). No more alliances can be registered here.")}</small></span><b>{allianceSyncCapacity.registeredCount}/{allianceSyncCapacity.limit}</b></div>}
         {allianceServerProgress?.active && allianceServerProgress.allianceTag.toLocaleLowerCase() === activeAlliance.tag.toLocaleLowerCase() && allianceServerProgress.kingdomId === String(activeAlliance.kingdomId || kingdomId.trim()) && <div className="ks-alliance-server-progress" role="status" aria-live="polite" aria-atomic="true">
           <div className="ks-alliance-server-progress-top"><span><LoaderCircle size={13} className="ks-alliance-spin" aria-hidden="true"/><strong>{t("alliance.serverProgressTitle", "Registering alliance")} · [{allianceServerProgress.allianceTag}] {allianceServerProgress.allianceName}</strong></span><b>{allianceServerProgress.processedCount} / {allianceServerProgress.totalCount || "—"}</b></div>
