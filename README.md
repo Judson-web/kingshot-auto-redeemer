@@ -47,35 +47,15 @@ Kingshot Auto Redeemer helps players discover eligible public gift codes and red
 
 ## Live website
 
-The production service is available at [kingshot-autoredeemer.vercel.app](https://kingshot-autoredeemer.vercel.app/).
-
-| Route | Purpose |
-|---|---|
-| `/` | Home page |
-| `/auto` | Automatic redemption |
-| `/alliance-registration` | Find an alliance and register eligible roster members |
-| `/manual` | Manual redemption |
-| `/redeem` | Redemption experience |
-| `/gift-codes` | Gift-code information |
-| `/info` | Service information |
-| `/profile` | Shared account profile and settings |
-| `/message` | Public message page |
-| `/developer` | Developer API and key management |
-| `/devsupport` | Developer support |
-| `/push` | Restricted push-notification tools |
-| `/admin/maintenance` | Restricted maintenance controls |
-| `/terms` | Terms of service |
-| `/privacy` | Privacy notice |
-
-Restricted pages and actions require the appropriate server-side authorization. Listing a route here does not mean it is available to anonymous visitors.
+The public application is available at [kingshot-autoredeemer.vercel.app](https://kingshot-autoredeemer.vercel.app/). Use the site's navigation for current routes and features. Administrative and developer tools may require a verified session and server-side authorization; a URL alone does not grant access.
 
 ## Alliance registration and sync
 
 Alliance registration fetches the selected alliance roster, then lets users register eligible members in batches or select members individually. Existing registrations are checked before new ones are created, and server-side safeguards help prevent duplicate player records or duplicate sync configurations.
 
-Whole-alliance sync is limited to **three registered alliance configurations per kingdom**. This limit applies to alliance-sync registrations only. It does not prevent registering players from the same kingdom through Auto Redeem, Manual Redeem, or individual-member registration. When a kingdom has reached its alliance-sync limit, the whole-alliance registration option is unavailable while individual-member registration remains available.
+Whole-alliance sync is limited to **four registered alliance configurations per kingdom**, as enforced by the server-side capacity response and creation handler. This cap applies to alliance-sync configurations, not ordinary player registration through Auto Redeem, Manual Redeem, or individual-player workflows. The UI checks capacity before offering a new whole-alliance sync registration.
 
-Scheduled sync is additions-only: it can register newly discovered eligible members, but does not automatically deregister players who leave an alliance. A provider failure or an incomplete roster should not be treated as proof that every player is new. Registration changes and removal requests are handled through the supported website workflows.
+The alliance page fetches and validates the selected roster, checks registration status, and processes eligible players in bounded batches. The page's registration flow and the scheduled sync are separate: the scheduled worker stores configuration and run state in Supabase, claims per-alliance leases, checks the current provider roster, skips IDs already registered in Supabase, and uses retry/backoff after failures. Normal syncs are scheduled for 24 hours later; the GitHub Actions workflow wakes the worker every five minutes so due work and short retries can run. Provider failures, stale data, or incomplete rosters must fail safely rather than treating the whole roster as new. Scheduled sync adds newly discovered eligible members; it does not automatically deregister players who leave an alliance. A second owner cannot create a second sync worker for the same alliance.
 
 ## Notifications
 
@@ -114,7 +94,7 @@ These controls improve recovery from slow or unreliable connections, but they ca
 
 ## Data, reliability, and security
 
-Supabase PostgreSQL is the primary application data store for registration and related application state. Server-side workflows coordinate registration and processing, while automated checks help protect important behavior. Supporting infrastructure may change over time, so this README intentionally describes the public-facing architecture rather than private deployment topology or operational procedures.
+Supabase PostgreSQL is the authoritative application store for player registrations and alliance-sync state, including configurations, run history, leases, and seen-player status. An optional durable manual-registration queue also stores job state and per-player outcomes in Supabase and is processed by the existing scheduled worker. Neon PostgreSQL remains in use for the separate redemption-recovery journal; it is not the authoritative player registry and is not used for alliance-registration state. The redemption worker uses that journal as part of its recovery workflow. Supporting infrastructure may change, so this README avoids exposing private project identifiers, credential values, or detailed recovery procedures.
 
 Security practices include:
 
@@ -144,8 +124,9 @@ The service handles information needed to provide its features. Depending on how
 | Runtime | Node.js 24.x |
 | Language | JavaScript/JSX and TypeScript |
 | Hosting | Vercel |
-| Primary application database | Supabase PostgreSQL |
-| Additional components | GitHub Actions and supporting server-side services |
+| Primary application database and alliance-registration state | Supabase PostgreSQL |
+| Redemption recovery journal | Neon PostgreSQL, accessed by server-side redemption handlers |
+| Scheduled worker trigger | GitHub Actions and Vercel server-side functions |
 | License | GNU Affero General Public License v3.0 (AGPL-3.0) |
 
 The repository contains both JavaScript/JSX and TypeScript. Type checking is part of the available verification workflow; this does not mean every source file has been migrated to TypeScript.
@@ -231,7 +212,7 @@ npm run typecheck
 npm run build
 ```
 
-Run `npm run test:ui` when changing user-interface behavior. Include regression tests when practical. Never attach credentials, user identifiers, database dumps, production logs, or recovery artifacts to public issues or pull requests.
+Run `npm run test:ui` when changing user-interface behavior. The configured verification workflow also runs a dependency audit, security regression checks, tests, type checking, a production build, a production smoke test, and accessibility/responsive/visual UI regression checks. Whether those checks passed for a particular commit must be verified in GitHub Actions. Include regression tests when practical. Never attach credentials, user identifiers, database dumps, production logs, or recovery artifacts to public issues or pull requests.
 
 ## Project status
 
