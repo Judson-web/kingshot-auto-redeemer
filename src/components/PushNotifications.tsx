@@ -40,7 +40,6 @@ export default function PushNotifications() {
   const {t}=useSiteLanguage();
   const [state, setState] = useState<PushState>("checking");
   const [hidden, setHidden] = useState(false);
-  const [stateSignature, setStateSignature] = useState("unknown");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -58,8 +57,6 @@ export default function PushNotifications() {
         let sub = null;
         try { const reg = await navigator.serviceWorker.ready; sub = await reg.pushManager.getSubscription(); } catch {}
         if (!alive) return;
-        const nextSignature = permission + ":" + (sub ? "subscribed" : "unsubscribed");
-        setStateSignature(nextSignature);
         // Dismissal is a durable user preference, not tied to the current
         // permission/subscription state. Otherwise enabling notifications changes
         // the signature and causes the panel to reappear after a reload.
