@@ -195,7 +195,7 @@ export default function SupportWidget({maintenanceMode=false}: {maintenanceMode?
   }
  }catch(e){setError(e instanceof Error?e.message:t("support.unavailable","Support is unavailable right now."))}finally{setBusy(false)}}
  function newConversation(){const next=getPageContext(language);setPageContext(next);setConversation(null);setMessages([]);setMessage("");setAttachment(null);if(attachmentPreview)URL.revokeObjectURL(attachmentPreview);setAttachmentPreview("");setSubject("");setTopic(next.topic);setPlayerId("");setError("");setNotice("");setUnread(0);if(fileInput.current)fileInput.current.value="";try{localStorage.removeItem(STORAGE)}catch{}}
- return <div className="support-float-root" ref={rootRef}>
+ return <div className={"support-float-root"+(typeof window!=="undefined"&&window.location.pathname==="/alliance-registration"?" support-float-root-alliance":"")} ref={rootRef}>
   {!open&&!maintenanceMode&&<button ref={triggerRef} className="support-float-trigger" type="button" aria-label={t("support.openChat","Open support chat")+(unread?" ("+unread+" "+t("support.unreadReplies","unread replies")+")":"")} aria-expanded={false} onClick={()=>{const context=getPageContext(language);setPageContext(context);if(!conversation&&topic===pageContext.topic)setTopic(context.topic);setNotice("");setOpen(true)}}>
    <MessageCircle size={21}/>
    {unread>0&&<span className="support-unread-badge" aria-label={unread+(language==="ko"?"":" ")+t("support.unreadRepliesAriaSuffix","unread support replies")}>{unread>9?"9+":unread}</span>}

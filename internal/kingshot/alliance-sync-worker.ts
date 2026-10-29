@@ -59,6 +59,16 @@ export default async function handler(req:any,res:any){
  if(requestUrl.searchParams.get("mode")==="manual-registration"){try{const jobs=await processManualRegistrationJobs(db);return res.status(200).json({ok:true,processedJobs:jobs.length,jobs});}catch{return res.status(500).json({error:"Manual registration queue processing failed safely."});}}
  const results:any[]=[];
  try{
+  // Reconcile abandoned run rows before claiming new work. A valid, unexpired lease
+  // protects a live run; a later successful run also proves an older "running" row stale.
+  await db`update public.alliance_sync_runs as r
+   set finished_at=now(),status='error',error_code='stale_run_reconciled',
+       error_message='This sync run did not finish. It was reconciled automatically after its lease expired or a newer run succeeded.'
+   from public.alliance_sync_config as c
+   where r.config_id=c.id and r.status='running'
+     and r.started_at < now()-interval '10 minutes'
+     and ((c.lease_token is null or c.lease_expires_at is null or c.lease_expires_at < now())
+       or c.last_success_at > r.started_at)`;
   // One invocation handles a small bounded batch, so a daily schedule can serve multiple alliances
   // without competing with the separate redemption worker.
   for(let attempt=0;attempt<10;attempt++){
