@@ -23,4 +23,7 @@ create index if not exists alliance_manual_registration_jobs_owner_recent
 create index if not exists alliance_manual_registration_jobs_queue
   on public.alliance_manual_registration_jobs(status, created_at)
   where status in ('queued','running');
+create unique index if not exists alliance_manual_registration_jobs_one_active_per_config
+  on public.alliance_manual_registration_jobs(config_id)
+  where status in ('queued','running');
 alter table public.alliance_manual_registration_jobs enable row level security;
