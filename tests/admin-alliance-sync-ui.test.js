@@ -89,3 +89,13 @@ test("registration progress is stored in Neon and resumable through server-side 
   assert.match(adminData, /status='queued'/);
   assert.match(adminData, /registerPlayer/);
 });
+
+
+test("manual registration supports browser-driven per-player mode and optional durable server queue", () => {
+  assert.match(component, /serverSideRegistration/);
+  assert.match(component, /ADMIN_REGISTER_ALLIANCE_MEMBER/);
+  assert.match(component, /client-/);
+  assert.match(component, /Use durable server-side queue \(optional\)/);
+  const adminData = component.replace(/\s+/g, " ");
+  assert.match(adminData, /Browser-driven: registers selected players one at a time/);
+});
