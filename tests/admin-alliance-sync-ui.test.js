@@ -23,6 +23,12 @@ test("roster errors are recoverable and isolated from configuration loading", ()
   assert.match(component, /Could not load the live roster/);
 });
 
+test("transient alliance notices and terminal progress auto-dismiss", () => {
+  assert.match(component, /setTimeout\(\(\)=>setNotice\(""\),6000\)/);
+  assert.match(component, /setTimeout\(\(\)=>setPageError\(""\),10000\)/);
+  assert.match(component, /setTimeout\(\(\)=>\{setJob\(current=>current\?\.id===job\.id\?null:current\);setResult\(null\);setJobError\(""\)\},8000\)/);
+});
+
 test("completed registration jobs do not persist as stale progress when reopening an alliance roster", () => {
   assert.match(component, /const terminalJob=!!savedJob&&\["completed","partial","failed"\]\.includes\(String\(savedJob\.status\)\)/);
   assert.match(component, /setJob\(savedJob&&!terminalJob\?savedJob:null\);setResult\(null\)/);
