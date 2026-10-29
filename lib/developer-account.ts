@@ -30,11 +30,11 @@ export default async function handler(req:Req,res:Res){res.setHeader("Cache-Cont
   }
   if(req.method==="POST"){
    const url=String(req.body?.url||"").trim(),events=Array.isArray(req.body?.events)?(req.body?.events as unknown[]).map(String):[];
-   try{const parsed=new URL(url);if(parsed.href!==url&&parsed.toString()!==url){}await assertPublicWebhookUrl(parsed.href)}catch{res.status(400).json({error:"Use a valid HTTPS webhook URL that resolves only to public IP addresses."});return}
+   try{const parsed=new URL(url);await assertPublicWebhookUrl(parsed.href)}catch{res.status(400).json({error:"Use a valid HTTPS webhook URL that resolves only to public IP addresses."});return}
    const allowed=new Set(["redemption.completed","redemption.unknown"]);
    if(!events.length||events.length>2||events.some(e=>!allowed.has(e))){res.status(400).json({error:"Choose at least one supported event."});return}
    const rows=await db("/rest/v1/kingshot_developer_webhooks?select=id&key_id=eq."+encodeURIComponent(keyId));
-   if(Array.isArray(rows)&&rows.length>=5){res.status(409).json({error:"This API key already has five active webhook subscriptions."});return}
+   if(Array.isArray(rows)&&rows.length>=5){res.status(409).json({error:"This API key already has five webhook subscriptions."});return}
    const encryption=process.env.V4_WEBHOOK_ENCRYPTION_KEY||"";
    if(!/^[0-9a-f]{64}$/i.test(encryption)){res.status(503).json({error:"Webhook encryption is not configured on this deployment."});return}
    const secret="whsec_"+crypto.randomBytes(32).toString("base64url"),iv=crypto.randomBytes(12),cipher=crypto.createCipheriv("aes-256-gcm",Buffer.from(encryption,"hex"),iv),ct=Buffer.concat([cipher.update(secret,"utf8"),cipher.final()]),encrypted=[iv.toString("base64url"),cipher.getAuthTag().toString("base64url"),ct.toString("base64url")].join(".");
