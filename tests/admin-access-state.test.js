@@ -27,6 +27,16 @@ test("notification preferences stay available on public pages, not private works
   assert.match(push, /ks-push-panel-dismissed-v2/);
 });
 
+test("push notifications use richer platform presentation and safe click navigation", async () => {
+  const worker = await readFile(new URL("../public/sw.js", import.meta.url), "utf8");
+  assert.match(worker, /const CACHE="kingshot-shell-v9"/);
+  assert.match(worker, /timestamp:Date\.now\(\)/);
+  assert.match(worker, /vibrate:\[120,60,120\]/);
+  assert.match(worker, /dir:"auto"/);
+  assert.match(worker, /new URL\(client\.url\)\.origin===self\.location\.origin/);
+  assert.match(worker, /await client\.navigate\(target\)/);
+});
+
 test("admin player page never renders empty statistics before a valid player list loads", async () => {
   const page = await readFile(new URL("../src/AdminPlayersApp.tsx", import.meta.url), "utf8");
   const helper = await readFile(new URL("../src/admin-access-state.js", import.meta.url), "utf8");
