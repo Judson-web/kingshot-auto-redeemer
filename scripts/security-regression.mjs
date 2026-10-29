@@ -254,6 +254,13 @@ assertCheck("Legacy developer passkey endpoint cannot create sessions",
  legacyPasskeyMigration.includes("drop function if exists public.kingshot_developer_create_session_with_key(text,text)"));
 assertCheck("Modern admin authentication has request rate limiting",
  /const protectedAuthActions=new Set\(\[[\s\S]*?"profile-oauth"[\s\S]*?\]\);\s*if\(protectedAuthActions\.has\(action\)&&!rateLimit\(req,res,"developer-account-auth:"\+action,8,900000\)\)/.test(developerAuth) && developerAuth.indexOf("protectedAuthActions.has(action)") < developerAuth.indexOf('if(action==="profile-link-url")'));
+assertCheck("Discord identity export is owner-session protected, minimized, uncached, and audited",
+ adminData.includes('get("discordUsers")==="1"') &&
+ adminData.includes('fetch(SUPABASE_URL+"/auth/v1/admin/users?page="+page+"&per_page=100"') &&
+ adminData.includes('audit("VIEW_DISCORD_IDENTITIES","auth_users"') &&
+ adminData.includes('res.setHeader("Cache-Control","private, no-store")') &&
+ adminData.includes("supabase_user_id") && adminData.includes("discord_id") &&
+ !adminData.includes("email:user.email") && adminData.includes("identities.sort("));
 assertCheck("Admin data requires a stored owner session before privileged work",
  adminData.includes('const COOKIE="__Host-ks_owner_session"') &&
  adminData.includes("const session=getCookie(req);if(!session)return res.status(401)") &&
