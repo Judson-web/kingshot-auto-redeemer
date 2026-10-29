@@ -54,3 +54,13 @@ test("admin UI clearly distinguishes registered members, failures, and disabled 
   assert.match(component, /aas-enabled.*is-disabled/);
   assert.match(component, /Last sync error/);
 });
+
+
+test("alliance sync page verifies administrator access before fetching private configurations", async () => {
+  assert.match(component, /ensureAdminWorkspaceSession/);
+  assert.match(component, /await ensureAdminWorkspaceSession\(\);const d=await request/);
+  assert.match(component, /setAccessDenied\(isAdminAccessDenied\(e\)\)/);
+  assert.match(component, /if\(accessDenied\)return/);
+  assert.match(component, /profile\?returnTo=%2Fadmin%2Falliance-sync/);
+  assert.doesNotMatch(component, /Inspect live rosters, repair missed player registrations, and manage sync configurations from one place\./);
+});
