@@ -23,6 +23,11 @@ test("roster errors are recoverable and isolated from configuration loading", ()
   assert.match(component, /Could not load the live roster/);
 });
 
+test("completed registration jobs do not persist as stale progress when reopening an alliance roster", () => {
+  assert.match(component, /const terminalJob=!!savedJob&&\["completed","partial","failed"\]\.includes\(String\(savedJob\.status\)\)/);
+  assert.match(component, /setJob\(savedJob&&!terminalJob\?savedJob:null\);setResult\(null\)/);
+});
+
 test("manual registration queues a durable job and displays server-backed progress", () => {
   assert.match(component, /action:"ADMIN_REGISTER_ALLIANCE_MEMBERS"/);
   assert.match(component, /action:"GET_ALLIANCE_REGISTRATION_JOB"/);
