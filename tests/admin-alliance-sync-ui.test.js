@@ -23,8 +23,12 @@ test("roster errors are recoverable and isolated from configuration loading", ()
   assert.match(component, /Could not load the live roster/);
 });
 
-test("manual registration displays results after refreshing the roster", () => {
-  assert.match(component, /await openRoster\(target,\{refresh:true\}\);setResult\(summary\);setNotice\(summary\.failed/);
+test("manual registration queues a durable job and displays server-backed progress", () => {
+  assert.match(component, /action:"ADMIN_REGISTER_ALLIANCE_MEMBERS"/);
+  assert.match(component, /action:"GET_ALLIANCE_REGISTRATION_JOB"/);
+  assert.match(component, /allianceRegistrationJob=/);
+  assert.match(component, /aas-registration-progress/);
+  assert.match(component, /aria-valuenow=/);
   assert.match(component, /Review failed registrations/);
 });
 
@@ -63,4 +67,15 @@ test("alliance sync page verifies administrator access before fetching private c
   assert.match(component, /if\(accessDenied\)return/);
   assert.match(component, /profile\?returnTo=%2Fadmin%2Falliance-sync/);
   assert.doesNotMatch(component, /Inspect live rosters, repair missed player registrations, and manage sync configurations from one place\./);
+});
+
+test("registration progress is stored in the database and processed by the scheduled worker", async () => {
+  const migration = await readFile(new URL("../supabase/migrations/202610290001_alliance_manual_registration_jobs.sql", import.meta.url), "utf8");
+  const worker = await readFile(new URL("../internal/kingshot/alliance-sync-worker.ts", import.meta.url), "utf8");
+  assert.match(migration, /alliance_manual_registration_jobs/);
+  assert.match(migration, /processed_count/);
+  assert.match(migration, /enable row level security/i);
+  assert.match(worker, /processManualRegistrationJobs/);
+  assert.match(worker, /alliance_manual_registration_jobs/);
+  assert.match(worker, /registerWithRetry/);
 });
