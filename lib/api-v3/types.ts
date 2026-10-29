@@ -6,6 +6,7 @@ export interface V3Request {
   headers: Record<string, HeaderValue>;
   body?: unknown;
   query?: Record<string, unknown>;
+  apiVersionAdapter?: 4;
 }
 export interface V3Response {
   status(code: number): V3Response;

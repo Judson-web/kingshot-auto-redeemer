@@ -1,0 +1,35 @@
+name: Developer API V4 Webhook Delivery
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: developer-v4-webhook-delivery
+  cancel-in-progress: false
+jobs:
+  deliver:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Validate worker secret
+        env:
+          WORKER_SECRET: ${{ secrets.V4_WEBHOOK_WORKER_SECRET || secrets.CRON_SECRET }}
+        shell: bash
+        run: |
+          if [ -z "${WORKER_SECRET}" ]; then
+            echo "::error::Configure V4_WEBHOOK_WORKER_SECRET (or CRON_SECRET) in GitHub Actions and Vercel."
+            exit 1
+          fi
+      - name: Drain webhook delivery queue
+        env:
+          WORKER_SECRET: ${{ secrets.V4_WEBHOOK_WORKER_SECRET || secrets.CRON_SECRET }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error --max-time 70 \
+            --request POST \
+            --header "Authorization: Bearer ${WORKER_SECRET}" \
+            --header "Accept: application/json" \
+            "https://kingshot-autoredeemer.vercel.app/api/kingshot-v4-webhook-worker"

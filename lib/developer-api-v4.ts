@@ -8,6 +8,7 @@ import {
   readV4IdempotencyKey
 } from "./api-v4/contract.js";
 import { withDevMetadata } from "./developer-contact.js";
+import { handleV4Extended } from "./api-v4/extended.js";
 
 type Header = { name: string; value: string };
 
@@ -54,6 +55,7 @@ function setV4Headers(res: V3Response, methods: string): void {
  * are namespaced so a V3 replay cannot be mistaken for a V4 replay.
  */
 export default async function developerApiV4(req: V3Request, res: V3Response, path: string): Promise<void> {
+  if (["alliances", "redemption-history", "webhooks", "usage"].includes(path) || path.startsWith("webhooks/")) { await handleV4Extended(req, res, path); return; }
   const id = requestId();
   const route = path === "player" ? "player" : path === "redemptions" ? "redemptions" : "";
   const allowedMethod = route === "redemptions" ? "POST" : "GET";
@@ -81,7 +83,7 @@ export default async function developerApiV4(req: V3Request, res: V3Response, pa
     return;
   }
 
-  let adaptedRequest = req;
+  let adaptedRequest: V3Request = { ...req, apiVersionAdapter: 4 };
   let idempotencyKeyPresent = false;
   if (route === "redemptions") {
     const idempotency = readV4IdempotencyKey(req);
@@ -101,7 +103,7 @@ export default async function developerApiV4(req: V3Request, res: V3Response, pa
         Object.entries(req.headers || {}).filter(([name]) => name.toLowerCase() !== "idempotency-key")
       );
       headers["idempotency-key"] = namespaceV4IdempotencyKey(idempotency.key);
-      adaptedRequest = { ...req, headers };
+      adaptedRequest = { ...req, apiVersionAdapter: 4, headers };
     }
   }
 

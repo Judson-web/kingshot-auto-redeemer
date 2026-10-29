@@ -3,6 +3,7 @@ import { fetchMightPulse } from "../lib/mightpulse-key-pool.js";
 import developerApi from "../lib/developer-api.js";
 import developerApiV3 from "../lib/developer-api-v3.js";
 import developerApiV4 from "../lib/developer-api-v4.js";
+import webhookWorker from "../lib/api-v4/webhooks.js";
 import developerAuth, { isAuthenticatedProfileRequest } from "../lib/developer-auth.js";
 import allianceSyncHandler from "../internal/kingshot/alliance-sync-handler.js";
 import allianceSyncWorker from "../internal/kingshot/alliance-sync-worker.js";
@@ -439,6 +440,7 @@ export default async function handler(req: RequestLike, res: ResponseLike): Prom
  const developerPath = String(req.query?.developerPath || requestUrl.searchParams.get("developerPath") || req.query?.developer || requestUrl.searchParams.get("developer") || "").replace(/^\/+|\/+$/g, "");
  if (developerPath === "alliance-sync") { await allianceSyncHandler(req as any, res as any); return; }
  if (developerPath === "alliance-sync-worker") return allianceSyncWorker(req as any, res as any);
+ if (developerPath === "v4-webhook-worker") return webhookWorker(req as any, res as any);
  if (developerPath === "alliance-lookup") return handleAllianceLookup(req, res);
  if (developerPath === "account-auth") return developerAuth(req, res);
  if (developerPath === "account-keys") return developerAccount(req, res);

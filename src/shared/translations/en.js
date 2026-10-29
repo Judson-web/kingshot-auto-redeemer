@@ -1000,6 +1000,18 @@ export default {
   "alliance.syncResumedMessage": "Auto sync has resumed.",
   "alliance.syncLoadError": "Could not load auto-sync settings.",
   "alliance.syncSetupError": "Could not enable auto sync.",
-  "alliance.syncUpdateError": "Could not update auto-sync settings."
+  "alliance.syncUpdateError": "Could not update auto-sync settings.",
 
+  "developer.usageInline":"Usage",
+  "developer.settingsSaved":"API key settings saved.",
+  "developer.lastUsed":"Last used",
+  "developer.neverUsed":"Never",
+  "developer.expires":"Expires",
+  "developer.noExpiry":"No expiry",
+  "developer.keyScopes":"API key scopes",
+  "developer.readOnlyScope":"Read-only",
+  "developer.redemptionScope":"Redemption access",
+  "developer.fullScope":"Standard access",
+  "developer.keyExpiry":"Key expiry",
+  "developer.saveSettings":"Save settings",
 };

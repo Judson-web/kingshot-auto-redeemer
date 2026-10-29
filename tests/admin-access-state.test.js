@@ -148,7 +148,7 @@ test("verified gift-code pushes are explicit, actionable, and deduplicate stable
   assert.match(worker, /Kingshot verification passed for /);
   assert.match(worker, /verified gift codes ready/);
   assert.match(worker, /const sortedKey=uniqueCodes\.map/);
-  assert.match(worker, /tag="gift-codes-"\+\(tagHash>>>0\)\.toString\("base36"\)/);
+  assert.match(worker, /tag="gift-codes-"\+\(tagHash>>>0\)\.toString\(36\)/);
   assert.match(worker, /action:"view-codes"/);
   assert.match(worker, /action:"dismiss"/);
   assert.match(push, /actions\?:Array/);

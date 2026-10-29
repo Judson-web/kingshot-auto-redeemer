@@ -1000,6 +1000,18 @@ export default {
   "alliance.syncResumedMessage": "자동 동기화가 재개되었습니다.",
   "alliance.syncLoadError": "자동 동기화 설정을 불러오지 못했습니다.",
   "alliance.syncSetupError": "자동 동기화를 활성화하지 못했습니다.",
-  "alliance.syncUpdateError": "자동 동기화 설정을 변경하지 못했습니다."
+  "alliance.syncUpdateError": "자동 동기화 설정을 변경하지 못했습니다.",
 
+  "developer.usageInline":"사용량",
+  "developer.settingsSaved":"API 키 설정을 저장했습니다.",
+  "developer.lastUsed":"마지막 사용",
+  "developer.neverUsed":"사용 기록 없음",
+  "developer.expires":"만료일",
+  "developer.noExpiry":"만료일 없음",
+  "developer.keyScopes":"API 키 권한",
+  "developer.readOnlyScope":"읽기 전용",
+  "developer.redemptionScope":"교환 권한",
+  "developer.fullScope":"기본 전체 권한",
+  "developer.keyExpiry":"키 만료일",
+  "developer.saveSettings":"설정 저장",
 };
