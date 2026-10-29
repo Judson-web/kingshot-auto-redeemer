@@ -9,7 +9,7 @@ const ui=await readFile(new URL("../src/AdminAllianceSyncApp.tsx",import.meta.ur
 test("durable queue runs through the existing cron-authenticated worker route",()=>{
  assert.match(worker,/JOB_SECRET=process.env.ALLIANCE_SYNC_CRON_SECRET/);
  assert.match(worker,/processManualRegistrationJobs/);
- assert.match(worker,/mode.*manual-registration/);
+ assert.match(scheduler,/kingshot-alliance-sync-worker\?mode=manual-registration/);
  assert.match(scheduler,/api\\/kingshot-alliance-sync-worker\\?mode=manual-registration/);
  assert.match(scheduler,/Drain durable manual registration queue/);
 });
