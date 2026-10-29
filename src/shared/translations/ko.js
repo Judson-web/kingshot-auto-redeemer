@@ -810,7 +810,7 @@ export default {
   "alliance.registerEntireAlliance": "연맹 전체 등록",
   "alliance.allianceAlreadyRegistered": "연맹 등록 완료",
   "alliance.kingdomAllianceCapTitle": "왕국 연맹 등록 한도에 도달했습니다",
-  "alliance.kingdomAllianceCapReached": "이 왕국에는 이미 연맹 3개(3/3)가 등록되어 있어 더 이상 등록할 수 없습니다.",
+  "alliance.kingdomAllianceCapReached": "이 왕국에는 이미 연맹 4개(4/4)가 등록되어 있어 더 이상 등록할 수 없습니다.",
   "alliance.checkingAllianceSlots": "연맹 동기화 가능 여부 확인 중…",
   "alliance.registeringProgress": "서버에서 등록 가능한 구성원을 처리합니다. 이미 등록된 플레이어는 건너뜁니다.",
   "alliance.allianceRegistrationFailed": "연맹을 등록하지 못했습니다.",

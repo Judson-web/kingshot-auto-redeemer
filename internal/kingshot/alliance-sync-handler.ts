@@ -104,6 +104,16 @@ async function performSync(config:any,ownerId:string,manual:boolean,leaseToken:s
   await patchRows('alliance_sync_runs',`id=eq.${enc(runId)}`,{finished_at:new Date().toISOString(),status:'error',error_code:code,error_message:message});throw e;
  }
 }
+export async function runAllianceSyncAsAdmin(configId:string, adminUserId:string){
+ const rows=await selectRows('alliance_sync_config',`id=eq.${enc(configId)}&select=*&limit=1`);
+ const config=Array.isArray(rows)?rows[0]:null;
+ if(!config)throw Object.assign(new Error('Alliance sync configuration not found.'),{status:404,code:'not_found'});
+ if(!config.enabled)throw Object.assign(new Error('Resume this alliance before running a manual sync.'),{status:409,code:'sync_paused'});
+ const lease=randomUUID();
+ const claimed=await patchRows('alliance_sync_config',`id=eq.${enc(configId)}&enabled=eq.true&or=(lease_token.is.null,lease_expires_at.lt.${enc(new Date().toISOString())})`,{lease_token:lease,lease_expires_at:new Date(Date.now()+4*60000).toISOString(),last_status:'running',updated_at:new Date().toISOString()});
+ if(!Array.isArray(claimed)||!claimed.length)throw Object.assign(new Error('A sync is already running for this alliance.'),{status:409,code:'sync_in_progress'});
+ return await performSync(claimed[0],adminUserId,true,lease);
+}
 export default async function handler(req:Req,res:Res){
  res.setHeader('Cache-Control','private, no-store');
  if(req.method!=='GET'&&req.method!=='POST'){res.setHeader('Allow','GET, POST');return fail(res,405,'method_not_allowed','Method not allowed.');}
@@ -127,7 +137,7 @@ export default async function handler(req:Req,res:Res){
    const runs=await selectRows('alliance_sync_runs',`config_id=eq.${enc(c.id)}&order=created_at.desc&select=id,status,created_at,finished_at,roster_count,added_count,skipped_count,departed_count,error_code,error_message&limit=10`);const departed=await selectRows('alliance_sync_seen_players',`config_id=eq.${enc(c.id)}&registration_status=eq.departed&select=player_id`);return res.status(200).json({runs:Array.isArray(runs)?runs:[],departedCount:Array.isArray(departed)?departed.length:0});
   }
   if(action==='capacity'){
-   const rows=await selectRows('alliance_sync_config',`kingdom_id=eq.${enc(kingdom)}&select=id,owner_user_id,enabled,last_status,alliance_tag`);const list=Array.isArray(rows)?rows:[];const existing=list.find((x:any)=>String(x.alliance_tag).toLowerCase()===tag.toLowerCase());return res.status(200).json({kingdomId:kingdom,registeredCount:list.length,limit:3,isRegistered:Boolean(existing),managedByCurrentUser:Boolean(existing&&String(existing.owner_user_id)===ownerId),enabled:existing?Boolean(existing.enabled):false,status:existing?.last_status||null,canRegister:!existing&&list.length<3});
+   const rows=await selectRows('alliance_sync_config',`kingdom_id=eq.${enc(kingdom)}&select=id,owner_user_id,enabled,last_status,alliance_tag`);const list=Array.isArray(rows)?rows:[];const existing=list.find((x:any)=>String(x.alliance_tag).toLowerCase()===tag.toLowerCase());return res.status(200).json({kingdomId:kingdom,registeredCount:list.length,limit:4,isRegistered:Boolean(existing),managedByCurrentUser:Boolean(existing&&String(existing.owner_user_id)===ownerId),enabled:existing?Boolean(existing.enabled):false,status:existing?.last_status||null,canRegister:!existing&&list.length<4});
   }
   if(req.method==='GET'||action==='list'){
    const rows=await selectRows('alliance_sync_config',`owner_user_id=eq.${enc(ownerId)}&select=id,kingdom_id,alliance_tag,alliance_name,enabled,interval_hours,last_attempt_at,last_success_at,next_run_at,consecutive_failures,last_status,last_error_code,last_error_message,last_roster_count,last_added_count,created_at,updated_at&order=created_at.desc`);return res.status(200).json({configs:Array.isArray(rows)?rows:[]});

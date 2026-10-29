@@ -810,7 +810,7 @@ export default {
   "alliance.registerEntireAlliance": "Register entire alliance",
   "alliance.allianceAlreadyRegistered": "Alliance registered",
   "alliance.kingdomAllianceCapTitle": "Kingdom registration limit reached",
-  "alliance.kingdomAllianceCapReached": "This kingdom already has 3 registered alliances (3/3). No more alliances can be registered here.",
+  "alliance.kingdomAllianceCapReached": "This kingdom already has 4 registered alliances (4/4). No more alliances can be registered here.",
   "alliance.checkingAllianceSlots": "Checking alliance sync availability…",
   "alliance.registeringProgress": "The server is registering eligible members. Already-registered players are skipped.",
   "alliance.allianceRegistrationFailed": "Could not register this alliance.",
