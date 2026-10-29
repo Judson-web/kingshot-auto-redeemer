@@ -193,10 +193,11 @@ test("refreshes roster when server-side alliance processing finishes", () => {
 
 test("kingdom alliance cap check and insert are serialized by a Supabase transaction", async () => {
   const handler = await readFile(new URL("../internal/kingshot/alliance-sync-handler.ts", import.meta.url), "utf8");
-  const migration = await readFile(new URL("../supabase/migrations/20261029223000_add_transactional_alliance_sync_rpcs.sql", import.meta.url), "utf8");
+  const migration = await readFile(new URL("../supabase/migrations/20261029233000_raise_alliance_sync_cap_to_four.sql", import.meta.url), "utf8");
   assert.match(handler, /register_alliance_sync_config/);
+  assert.match(handler, /runAllianceSyncAsAdmin/);
   assert.match(migration, /pg_advisory_xact_lock/);
-  assert.match(migration, /if v_total >= 3 then/);
+  assert.match(migration, /if v_total >= 4 then/);
   assert.match(migration, /alliance_already_managed/);
 });
 
