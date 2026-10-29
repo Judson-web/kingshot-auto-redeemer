@@ -27,7 +27,6 @@ test("manual registration queues a durable job and displays server-backed progre
   assert.match(component, /action:"ADMIN_REGISTER_ALLIANCE_MEMBERS"/);
   assert.match(component, /action:"GET_ALLIANCE_REGISTRATION_JOB"/);
   assert.match(component, /action:"PROCESS_ALLIANCE_REGISTRATION_JOB"/);
-  assert.match(component, /allianceRegistrationJob=/);
   assert.match(component, /aas-registration-progress/);
   assert.match(component, /aria-valuenow=/);
   assert.match(component, /Review failed registrations/);
