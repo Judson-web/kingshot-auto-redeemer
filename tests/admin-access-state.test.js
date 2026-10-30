@@ -24,7 +24,8 @@ test("notification preferences stay available on public pages, not private works
   assert.match(push, /ks-push-panel-dismissed-v4/);
   assert.match(push, /localStorage\.getItem\("ks-push-panel-dismissed-v4"\) === "1"/);
   assert.match(push, /localStorage\.setItem\("ks-push-panel-dismissed-v4", "1"\)/);
-  assert.match(push, /ks-push-panel-dismissed-v3/);
+  assert.match(push, /applicationServerKey/);
+  assert.match(push, /staleSubscription/);
 });
 
 test("push notifications use richer platform presentation and safe click navigation", async () => {
