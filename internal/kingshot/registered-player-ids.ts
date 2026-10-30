@@ -38,7 +38,7 @@ export async function getRegisteredPlayerIds(playerIds: readonly string[]): Prom
 export async function getBannedPlayerIds(playerIds: readonly string[]): Promise<Set<string>> {
   const ids = [...new Set(playerIds.map(value => String(value).trim()))];
   if (!ids.length) return new Set<string>();
-  if (ids.some(id => !/^\\d{5,20}$/.test(id))) throw new Error("Invalid player ID in ban reconciliation.");
+  if (ids.some(id => !/^\d{5,20}$/.test(id))) throw new Error("Invalid player ID in ban reconciliation.");
   if (!SUPABASE_KEY) throw new Error("Supabase ban status is not configured.");
   const banned = new Set<string>();
   for (let offset = 0; offset < ids.length; offset += 100) {
