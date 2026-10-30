@@ -1,0 +1,46 @@
+name: Sync Discord Application Commands
+
+on:
+  workflow_dispatch:
+    inputs:
+      guild_id:
+        description: "Optional Discord server ID for fast guild-only sync. Leave blank for global commands."
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discord-command-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Register /player and /register
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Validate required secret
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+        run: |
+          if [ -z "$DISCORD_BOT_TOKEN" ]; then
+            echo "::error::Add the DISCORD_BOT_TOKEN repository secret before running this workflow."
+            exit 1
+          fi
+
+      - name: Sync Discord commands
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_APPLICATION_ID: "1559989049505226812"
+          DISCORD_GUILD_ID: ${{ inputs.guild_id }}
+        run: node scripts/sync-discord-commands.mjs
