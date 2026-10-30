@@ -202,7 +202,7 @@ test("kingdom alliance cap check and insert are serialized by a Supabase transac
   assert.match(migration, /pg_advisory_xact_lock/);
   assert.match(migration, /if v_total >= 4 then/);
   assert.match(migration, /alliance_already_managed/);
-  assert.match(migration, /c\\.alliance_tag = p_alliance_tag/);
+  assert.match(migration, /alliance_tag = p_alliance_tag/);
 });
 
 test("How it works page imports every icon used by its feature sections", async () => {
