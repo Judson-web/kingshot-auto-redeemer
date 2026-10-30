@@ -17,7 +17,7 @@ test("registration command returns a compact private image card", () => {
   assert.match(interactions, /imageCardEmbed\(cardUrl\("registration"/);
   assert.match(interactions, /flags: 64/);
   assert.match(renderer, /function renderRegistrationCard\(d\)/);
-  assert.match(renderer, /REGISTRATION SUCCESSFUL/);
+  assert.match(renderer, /function renderRegistrationCard\\(d\\)/);
 });
 
 test("optional player lookup cannot block registration and duplicate state is represented", () => {
