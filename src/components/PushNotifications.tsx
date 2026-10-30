@@ -132,6 +132,16 @@ export default function PushNotifications() {
       }
       const reg = await navigator.serviceWorker.ready;
       let existing = await reg.pushManager.getSubscription();
+      const keyResponse = await fetch("/api/custom-message", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "PUSH_PUBLIC_KEY" }),
+        credentials: "same-origin",
+        cache: "no-store",
+      });
+      const keyData = await keyResponse.json().catch(() => ({}));
+      if (!keyResponse.ok || !keyData.publicKey) throw Error(keyData.error || t("pushNotifications.notConfigured","Push notifications aren't configured yet."));
+      const applicationServerKey = encodeKey(keyData.publicKey);
       if (existing && Notification.permission === "granted") {
         const oldKey = existing.options.applicationServerKey;
         const oldBytes = oldKey ? new Uint8Array(oldKey) : null;
@@ -163,16 +173,6 @@ export default function PushNotifications() {
         setMessage(t("pushNotifications.offMessage","Notifications are off on this device."));
         return;
       }
-      const keyResponse = await fetch("/api/custom-message", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "PUSH_PUBLIC_KEY" }),
-        credentials: "same-origin",
-        cache: "no-store",
-      });
-      const keyData = await keyResponse.json().catch(() => ({}));
-      if (!keyResponse.ok || !keyData.publicKey) throw Error(keyData.error || t("pushNotifications.notConfigured","Push notifications aren't configured yet."));
-      const applicationServerKey = encodeKey(keyData.publicKey);
 
       // A subscription can outlive a browser permission reset. Remove that stale
       // subscription before asking for permission and creating a fresh one.
