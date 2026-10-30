@@ -119,3 +119,12 @@ test("manual Sync now admin endpoint has enough execution time for full roster r
   assert.match(adminData, /ADMIN_RUN_ALLIANCE_SYNC/);
   assert.match(adminData, /runAllianceSyncAsAdmin\(id,ownerUserId\)/);
 });
+
+test("five-minute scheduler wakes due alliance syncs so failed manual runs retry promptly", async () => {
+  const workflow = await readFile(new URL("../.github/workflows/alliance-sync-scheduler.yml", import.meta.url), "utf8");
+  const handler = await readFile(new URL("../internal/kingshot/alliance-sync-handler.ts", import.meta.url), "utf8");
+  assert.match(workflow, /cron: " \*\/5 \* \* \*"/);
+  assert.match(workflow, /name: Run due alliance syncs and scheduled retries/);
+  assert.doesNotMatch(workflow, /if: github\.event_name == 'workflow_dispatch'/);
+  assert.match(handler, /next_run_at:new Date\(Date\.now\(\)\+5\*60000\)/);
+});
