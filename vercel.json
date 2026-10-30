@@ -101,6 +101,10 @@
       "destination": "/api/discord-tools/interactions"
     },
     {
+      "source": "/api/discord-player-card",
+      "destination": "/api/discord-tools/player-card"
+    },
+    {
       "source": "/api/kingshot-admin-data",
       "destination": "/api/admin-tools/data"
     },
