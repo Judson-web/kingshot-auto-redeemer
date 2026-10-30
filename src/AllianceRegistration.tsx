@@ -139,7 +139,7 @@ export default function AllianceRegistration() {
       roster.alliance.tag === alliance.tag
     );
     setActiveAlliance(alliance);
-    const switchingAlliance = !activeAlliance || activeAlliance.tag.toLocaleLowerCase() !== alliance.tag.toLocaleLowerCase() || String(activeAlliance.kingdomId || kingdomId.trim()) !== String(alliance.kingdomId || kingdomId.trim());
+    const switchingAlliance = !activeAlliance || activeAlliance.tag !== alliance.tag || String(activeAlliance.kingdomId || kingdomId.trim()) !== String(alliance.kingdomId || kingdomId.trim());
     if (switchingAlliance) setAllianceSyncCapacity(null);
     if (!forceRefresh && roster && roster.alliance.kingdomId === (alliance.kingdomId || kingdomId.trim()) && roster.alliance.tag === alliance.tag) { setLoadingRoster(false); return; }
     setLoadingRoster(true);
@@ -405,7 +405,7 @@ export default function AllianceRegistration() {
         if (cancelled) return;
         if (response.ok && data.active === true &&
             String(data.kingdomId) === String(activeAlliance.kingdomId || kingdomId.trim()) &&
-            String(data.allianceTag).toLocaleLowerCase() === activeAlliance.tag.toLocaleLowerCase() &&
+            String(data.allianceTag) === activeAlliance.tag &&
             Number.isFinite(Number(data.totalCount)) && Number(data.totalCount) >= 0) {
           setAllianceServerProgress({
             active: true,
@@ -559,7 +559,7 @@ export default function AllianceRegistration() {
         </div>}
 
         {allianceSyncCapacity && !allianceSyncCapacity.isRegistered && allianceSyncCapacity.registeredCount >= allianceSyncCapacity.limit && <div className="ks-alliance-cap-alert" role="status"><CircleAlert size={17} aria-hidden="true"/><span><strong>{t("alliance.kingdomAllianceCapTitle", "Kingdom registration limit reached")}</strong><small>{t("alliance.kingdomAllianceCapReached", "This kingdom already has 3 registered alliances (3/3). No more alliances can be registered here.")}</small></span><b>{allianceSyncCapacity.registeredCount}/{allianceSyncCapacity.limit}</b></div>}
-        {allianceServerProgress?.active && allianceServerProgress.allianceTag.toLocaleLowerCase() === activeAlliance.tag.toLocaleLowerCase() && allianceServerProgress.kingdomId === String(activeAlliance.kingdomId || kingdomId.trim()) && <div className="ks-alliance-server-progress" role="status" aria-live="polite" aria-atomic="true">
+        {allianceServerProgress?.active && allianceServerProgress.allianceTag === activeAlliance.tag && allianceServerProgress.kingdomId === String(activeAlliance.kingdomId || kingdomId.trim()) && <div className="ks-alliance-server-progress" role="status" aria-live="polite" aria-atomic="true">
           <div className="ks-alliance-server-progress-top"><span><LoaderCircle size={13} className="ks-alliance-spin" aria-hidden="true"/><strong>{t("alliance.serverProgressTitle", "Registering alliance")} · [{allianceServerProgress.allianceTag}] {allianceServerProgress.allianceName}</strong></span><b>{allianceServerProgress.processedCount} / {allianceServerProgress.totalCount || "—"}</b></div>
           <progress max={allianceServerProgress.totalCount || 1} value={Math.min(allianceServerProgress.processedCount, allianceServerProgress.totalCount || 0)} aria-label={t("alliance.progressLabel", "Alliance registration progress")}/>
           <small>{allianceServerProgress.currentPlayerId ? t("alliance.serverProgressCurrent", "Processing Player ID") + " " + allianceServerProgress.currentPlayerId : t("alliance.serverProgressChecking", "Checking and registering eligible members on the server…")}</small>
