@@ -882,7 +882,7 @@ export default {
   "alliance.fetchTimeUnknown": "Fetch time unavailable",
   "alliance.capacityRemaining": "Alliance sync registrations in this kingdom:",
   "alliance.slotsRemaining": "slot(s) remaining",
-  "alliance.capacityFullNote": "The kingdom's three alliance-sync slots are full. Individual player registration through Auto Redeem is unaffected.",
+  "alliance.capacityFullNote": "The kingdom's four alliance-sync slots are full. Individual player registration through Auto Redeem is unaffected.",
   "alliance.syncHistoryTitle": "Recent sync history",
   "alliance.syncHistoryIntro": "A short record of automatic alliance sync runs. This does not change any player's Auto Redeem registration.",
   "alliance.refreshHistory": "Refresh history",
