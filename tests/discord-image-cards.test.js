@@ -20,7 +20,7 @@ test("player card renderer matches the landscape Oracle-style layout", () => {
   for (const label of ["POWER", "KILLS", "TOWN CENTER", "VIP", "ALLIANCE RANK"]) {
     assert.ok(renderer.includes('["' + label + '"'), "missing stat " + label);
   }
-  assert.match(renderer, /image/png/);
+  assert.match(endpoint, /Content-Type", "image\\/png"/);
   assert.match(renderer, /KINGSHOT ORACLE-STYLE PLAYER PROFILE/);
 });
 
