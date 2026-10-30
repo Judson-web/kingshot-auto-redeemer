@@ -221,6 +221,9 @@
     },
     "api/kingshot-player.ts": {
       "maxDuration": 300
+    },
+    "api/admin-tools/[...path].js": {
+      "maxDuration": 300
     }
   }
 }
