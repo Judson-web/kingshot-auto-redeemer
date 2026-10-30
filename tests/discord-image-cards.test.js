@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const interactions = await readFile(new URL("../lib/discord-interactions.js", import.meta.url), "utf8");
-const renderer = await readFile(new URL("../api/discord-player-card.js", import.meta.url), "utf8");
+const renderer = await readFile(new URL("../lib/discord-player-card.js", import.meta.url), "utf8");
 
 test("player command returns a generated image card with the live profile fields", () => {
   for (const field of ["governor", "kingdom", "power", "townCenter", "vip", "alliance", "rank", "kills", "coordinates", "online"]) {
