@@ -89,8 +89,7 @@ declare
   v_cooldown_seconds integer;
 begin
   if p_key_id not in (
-    'key3', 'key2', 'legacy', 'kss1', 'kss', 'kss2', 'kss3', 'kss4',
-    'kss5', 'kss6', 'kss7', 'kss8', 'kss9', 'kss10'
+    'key6', 'key5', 'key4', 'key3', 'key2', 'legacy'
   ) then
     return jsonb_build_object('claimed', false, 'reason', 'INVALID_KEY_SLOT', 'retry_after_ms', 60000);
   end if;
