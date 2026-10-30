@@ -2,8 +2,7 @@ name: Alliance Sync Scheduler
 
 on:
   schedule:
-    # Supabase Cron owns the daily alliance-roster reconciliation.
-    # This five-minute GitHub schedule only drains the manual-registration queue.
+    # Wake due syncs and drain the durable manual-registration queue.
     - cron: "*/5 * * * *"
   workflow_dispatch:
 
@@ -16,10 +15,7 @@ concurrency:
 
 jobs:
   run-due-syncs:
-    # Keep an operator-triggered sync available, but never run a second
-    # automatic alliance scheduler alongside Supabase Cron.
-    if: github.event_name == 'workflow_dispatch'
-    name: Run due alliance syncs (manual dispatch only)
+    name: Run due alliance syncs and scheduled retries
     runs-on: ubuntu-latest
     timeout-minutes: 6
     steps:
