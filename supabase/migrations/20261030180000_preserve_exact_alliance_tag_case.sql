@@ -39,7 +39,7 @@ begin
   from public.alliance_sync_config c
   where c.kingdom_id = p_kingdom_id;
 
-  if v_total >= 4 then
+  if v_total >= 3 then
     raise exception 'kingdom_alliance_limit' using errcode = '23514';
   end if;
 
