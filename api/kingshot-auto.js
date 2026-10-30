@@ -9,12 +9,6 @@ const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supab
 const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
 const APP_ORIGIN=process.env.VERCEL_ENV==="production"&&process.env.VERCEL_PROJECT_PRODUCTION_URL?"https://"+process.env.VERCEL_PROJECT_PRODUCTION_URL:process.env.VERCEL_URL?"https://"+process.env.VERCEL_URL:"https://kingshot-autoredeemer.vercel.app";
 const GIFT_SOURCE_URL="https://kingshot.net/api/gift-codes";
-const PUBLIC_GIFT_SOURCES=[
- // One mainstream publisher only; the first-party Kingshot feed is the other source.
- {name:"beebom",url:"https://beebom.com/kingshot-codes/"}
-];
-// Verified long-running fallback for codes that have been omitted from the upstream API feed.
-// Revalidated against public Kingshot code listings; the redemption endpoint remains the final authority.
 
 if(!SUPABASE_KEY)throw Error("Supabase service key is not configured on the server.");
 
@@ -71,7 +65,7 @@ async function rpc(name,body){
  throw lastError||Error("Supabase RPC "+name+" failed after retries.");
 }
 
-import {extractPublicSourceCodes, mergeCodes, normalizeCodes, isCredibleGiftCodeCandidate, isCanaryEligibleGiftCodeCandidate} from "../internal/kingshot/gift-codes.js";
+import {extractPageCodes, mergeCodes, normalizeCodes, isCredibleGiftCodeCandidate, isCanaryEligibleGiftCodeCandidate} from "../internal/kingshot/gift-codes.js";
 import { getHandledGiftCodes, selectNextOutstandingCode } from "../internal/kingshot/redemption-history.js";
 const WORKER_COUNT=4;
 // Four durable shards × two concurrent redemptions keep each shard small while bounding upstream pressure.
@@ -420,17 +414,13 @@ export default async function handler(req,res){
   // This reduces 429 risk without rotating identities or bypassing upstream quotas.
   currentStage="gift-code-source-fetch";
   const apiSource=await fetchSource(rpc,GIFT_SOURCE_URL,"api");
+  const kingshotPageSource=await fetchSource(rpc,"https://kingshot.net/gift-codes","page");
   await new Promise(resolve=>setTimeout(resolve,250));
-  const publicSources=[];
-  for(const source of PUBLIC_GIFT_SOURCES){
-   await new Promise(resolve=>setTimeout(resolve,250));
-   publicSources.push(await fetchSource(rpc,source.url,"public:"+source.name));
-  }
   currentStage="gift-code-merge-and-persist";
   const adminRows=await rpc("list_kingshot_admin_gift_codes",{});
   const data=apiSource.data;
   const apiCodes=apiSource.codes;
-  const publicCodes=publicSources.flatMap(result=>result.codes.length?result.codes.map(row=>({...row,source:row.source||result.source})):[]);
+  const kingshotPageCodes=kingshotPageSource.codes;
   const suppressedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.suppressed===true).map(row=>String(row?.code||"").trim().toUpperCase()).filter(Boolean));
   const adminCodes=(Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.active!==false&&row?.suppressed!==true).map(row=>({
    code:String(row?.code||"").trim(),
@@ -439,10 +429,10 @@ export default async function handler(req,res){
    source:"admin",
    adminAdded:Boolean(row?.admin_added)
   })).filter(row=>row.code&&row.code.length>=6&&row.code.length<=32);
-  let codes=mergeCodes([apiCodes,publicCodes,adminCodes]).filter(item=>!suppressedCodes.has(String(item.code||"").trim().toUpperCase()));
+  let codes=mergeCodes([apiCodes,kingshotPageCodes,adminCodes]).filter(item=>!suppressedCodes.has(String(item.code||"").trim().toUpperCase()));
   if(!codes.length)throw Error("Kingshot gift-code sources returned no active codes.");
   const codesDiscoveredAt=Date.now();
-  console.log("Kingshot auto feed:",{apiActive:data?.data?.activeCount??null,apiCodes:apiCodes.map(x=>x.code),publicSources:publicCodes.map(x=>({code:x.code,source:x.source})),adminCodes:adminCodes.map(x=>x.code),merged:codes.map(x=>x.code)});
+  console.log("Kingshot auto feed:",{apiActive:data?.data?.activeCount??null,apiCodes:apiCodes.map(x=>x.code),kingshotPageCodes:kingshotPageCodes.map(x=>x.code),adminCodes:adminCodes.map(x=>x.code),merged:codes.map(x=>x.code)});
   const knownCodes=new Set((Array.isArray(adminRows)?adminRows:[]).map(row=>String(row?.code||"").toUpperCase()));
   const previouslyVerifiedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.validation_status==="verified"&&row?.active!==false&&row?.suppressed!==true).map(row=>String(row?.code||"").trim().toUpperCase()).filter(Boolean));
 
@@ -686,7 +676,7 @@ export default async function handler(req,res){
    return map;
   },{});
   for(const value of Object.values(codeTelemetry)){value.avgRedemptionLatencyMs=value.attempts?Math.round(value.totalRedemptionLatencyMs/value.attempts):null;delete value.totalRedemptionLatencyMs;}
-  const sourceResults=[apiSource,...publicSources];
+  const sourceResults=[apiSource,kingshotPageSource];
   const healthySources=sourceResults.filter(x=>x?.ok).length;
   const sourceCount=sourceResults.length;
   const sourceHealthPct=sourceCount?Math.round(healthySources/sourceCount*100):0;
