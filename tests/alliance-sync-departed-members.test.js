@@ -37,3 +37,13 @@ test('invalid provider member counts fail closed in scheduled and manual sync', 
     assert.match(source, /rawCount==null\?/);
   }
 });
+
+
+test('automatic roster sync schedules each alliance for the next daily 11:00 UTC run', () => {
+  assert.match(worker, /function nextDailySyncAt\(\)/);
+  assert.match(worker, /next\.setUTCHours\(11,0,0,0\)/);
+  assert.match(worker, /p_next_run_at:nextRunAt/);
+  assert.match(worker, /next_run_at:nextDailySyncAt\(\)/);
+  assert.match(worker, /registerWithRetry\(input\)/);
+  assert.match(worker, /registration_status:'departed'/);
+});
