@@ -42,7 +42,7 @@ async function getMightPulseAvatarFrame(playerId: string, forceRefresh = false):
   try {
    // The public player API maps a governor ID to MightPulse's internal UID.
    let profileUid: string | null = null;
-   const hasMightPulseKey = [process.env.MIGHTPULSE_API_KEY_3, process.env.MIGHTPULSE_API_KEY_2, process.env.MIGHTPULSE_API_KEY, process.env.KSS_API_KEY].some(value => Boolean(String(value || "").trim()));
+   const hasMightPulseKey = [process.env.MIGHTPULSE_API_KEY_6, process.env.MIGHTPULSE_API_KEY_5, process.env.MIGHTPULSE_API_KEY_4, process.env.MIGHTPULSE_API_KEY_3, process.env.MIGHTPULSE_API_KEY_2, process.env.MIGHTPULSE_API_KEY].some(value => Boolean(String(value || "").trim()));
    if (hasMightPulseKey) {
     try {
      const apiUrl = "https://api.mightpulse.com/v1/players/" + encodeURIComponent(playerId) + "?include=base";
