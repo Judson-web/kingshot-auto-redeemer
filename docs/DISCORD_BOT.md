@@ -1,44 +1,30 @@
-# Discord bot subsystem
+# Discord bot
 
-The Discord integration remains part of the main Kingshot Auto Redeemer repository and keeps the existing Discord application identity. Its operational data is isolated in the separate Supabase project `kingshot-discord-bot`.
+The Discord integration is intentionally lightweight because the bot is not currently in active use. This repository keeps its existing application identity and interaction endpoint, with a branded response layer ready for future activation.
 
-## Database isolation
+## Brand and interface
 
-Configure these server-side Vercel environment variables for the existing production project:
+- Product identity: **Kingshot Auto Redeemer**
+- Visual direction: restrained gold accent, concise copy, consistent author and footer treatment.
+- Player lookup: structured profile card with governor, kingdom, power, Town Center, VIP, alliance, kills, coordinates and online state.
+- Registration: private, clearly labelled success or failure response.
+- No message-content intent, prefix commands, persistent Gateway connection, or always-on worker is required for the current HTTP-interaction model.
+- Optional DISCORD_BRAND_ICON_URL sets the small brand icon used in response cards. Use a stable HTTPS image URL.
 
-- `DISCORD_SUPABASE_URL`: `https://sfntksruilzncahytxve.supabase.co`
-- `DISCORD_SUPABASE_SERVICE_ROLE_KEY`: the new project's service-role/secret key. Keep it server-only. Never use a `NEXT_PUBLIC_` prefix or expose it to browser code.
+## Existing commands
 
-The interaction handler continues to use the main application for player registration and existing player services. The Discord database is only for bot-specific guild state and telemetry. No player-account, redemption, alliance-registration, or main authentication data is copied.
+- /player id:<Kingshot Player ID>
+- /register player_id:<Kingshot Player ID>
 
-The new schema contains:
+The allow-list sync script in scripts/sync-discord-commands.mjs can reconcile global commands. It replaces only the global command scope; guild-scoped commands remain separate.
 
-- `discord_guilds`: guild presence and lifecycle.
-- `discord_guild_settings`: per-guild JSON settings.
-- `discord_command_events`: minimal command outcome and latency telemetry.
-- `discord_audit_log`: structured administrative audit events.
+## Runtime configuration
 
-All four tables have RLS enabled and no client-facing policies. Access is intended only through the server-side service-role key. Never put that key in a browser bundle.
+The interaction endpoint requires the existing server-side Vercel variables:
 
-## Slash command reconciliation
+- DISCORD_BOT_TOKEN
+- DISCORD_PUBLIC_KEY (or DISCORD_APPLICATION_PUBLIC_KEY)
 
-The canonical command allow-list is in `scripts/sync-discord-commands.mjs` and matches the current interaction handler:
+Do not expose either variable to browser code or use a NEXT_PUBLIC_ prefix. The optional DISCORD_BRAND_ICON_URL is a non-secret HTTPS image URL.
 
-- `/player id:<Kingshot Player ID>`
-- `/register player_id:<Kingshot Player ID>`
-
-Run with the existing bot token and application ID:
-
-```sh
-DISCORD_BOT_TOKEN=... DISCORD_APPLICATION_ID=... node scripts/sync-discord-commands.mjs
-```
-
-This replaces the **global command scope** with the two canonical commands, removing stale global commands. Guild-scoped commands are separate in Discord and are not affected. To reconcile one test guild only, also set `DISCORD_GUILD_ID`; this replaces only that guild's command scope. Do not run guild-scoped sync against production guilds until the intended scope is confirmed.
-
-The script reports the before/after counts and resulting command names. It does not delete the bot, change its permissions, or alter its guild membership.
-
-## Required environment setup
-
-The current integration still requires the existing `DISCORD_BOT_TOKEN`, `DISCORD_PUBLIC_KEY` (or `DISCORD_APPLICATION_PUBLIC_KEY`), and the Discord application's interaction endpoint configuration. The command sync script additionally needs `DISCORD_APPLICATION_ID`. Do not rotate the existing bot token as part of the database split.
-
-Telemetry is best-effort: if the isolated database is not configured or temporarily unavailable, player lookup and registration continue to work. The database call is bounded by a short timeout and its errors are not allowed to fail Discord interactions.
+There is deliberately no separate Discord database, telemetry store, bot worker, or duplicate player-registration system in this scope. Player registration continues to use the existing Kingshot backend and its established validation and safeguards.
