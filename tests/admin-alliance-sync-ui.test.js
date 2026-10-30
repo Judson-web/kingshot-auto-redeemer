@@ -110,3 +110,12 @@ test("manual registration supports browser-driven per-player mode and optional d
   const adminData = component.replace(/\s+/g, " ");
   assert.match(adminData, /Browser-driven: registers selected players one at a time/);
 });
+
+
+test("manual Sync now admin endpoint has enough execution time for full roster reconciliation", async () => {
+  const config = JSON.parse(await readFile(new URL("../vercel.json", import.meta.url), "utf8"));
+  assert.equal(config.functions["api/admin-tools/[...path].js"]?.maxDuration, 300);
+  const adminData = await readFile(new URL("../lib/admin-data.js", import.meta.url), "utf8");
+  assert.match(adminData, /ADMIN_RUN_ALLIANCE_SYNC/);
+  assert.match(adminData, /runAllianceSyncAsAdmin\(id,ownerUserId\)/);
+});
