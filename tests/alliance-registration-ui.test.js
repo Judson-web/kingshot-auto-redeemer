@@ -183,7 +183,6 @@ test("alliance registration social metadata reflects current flow", async () => 
   assert.match(metadata, /og:title" content="Kingshot Alliance Registration"/);
   assert.match(metadata, /route=alliance-registration&v=7/);
   assert.match(metadata, /Up to four alliances per kingdom/);
-  assert.match(metadata, /route=alliance-registration&v=7/);
   assert.match(metadata, /server-side roster sync/);
   assert.doesNotMatch(metadata, /select individuals|select individual members/);
 });
