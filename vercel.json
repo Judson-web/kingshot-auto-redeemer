@@ -222,11 +222,5 @@
     "api/kingshot-player.ts": {
       "maxDuration": 300
     }
-  },
-  "crons": [
-    {
-      "path": "/api/kingshot-alliance-sync-worker",
-      "schedule": "0 3 * * *"
-    }
-  ]
+  }
 }

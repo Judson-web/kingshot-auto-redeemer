@@ -2,8 +2,8 @@ name: Alliance Sync Scheduler
 
 on:
   schedule:
-    # Vercel Hobby cron is daily-only; GitHub Actions provides the frequent
-    # wake-up so due alliance syncs and short backoff retries are not stranded.
+    # Supabase Cron owns automatic alliance sync. This five-minute GitHub
+    # schedule remains only to drain the durable manual-registration queue.
     - cron: "*/5 * * * *"
   workflow_dispatch:
 
@@ -16,7 +16,10 @@ concurrency:
 
 jobs:
   run-due-syncs:
-    name: Run due alliance syncs
+    # Keep an operator-triggered sync available, but never run a second
+    # automatic alliance scheduler alongside Supabase Cron.
+    if: github.event_name == 'workflow_dispatch'
+    name: Run due alliance syncs (manual dispatch only)
     runs-on: ubuntu-latest
     timeout-minutes: 6
     steps:
