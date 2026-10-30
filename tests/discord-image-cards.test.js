@@ -38,10 +38,24 @@ test("player avatar URLs are restricted to trusted HTTPS hosts", () => {
   assert.match(interactions, /got-global-avatar\.chosenonegames\.com/);
 });
 
-test("registration remains private and uses a compact structured confirmation", () => {
-  assert.match(interactions, /embeds: \[registrationEmbed\(data\)\]/);
-  assert.match(interactions, /flags: 64/);
-  assert.match(interactions, /result\.alreadyRegistered \? "ALREADY REGISTERED"/);
+test("registration result is public and clearly distinguishes existing players", () => {
+  assert.match(interactions, /registrationEmbed/);
+  assert.match(interactions, /type: 5, data: \{\}/);
+  assert.match(interactions, /Already enrolled/);
+  assert.match(interactions, /Player registered successfully/);
+  assert.match(interactions, /AUTO REDEEM • REGISTRATION CONFIRMED/);
+  const register = interactions.slice(interactions.indexOf("if (name === \"register\")"), interactions.indexOf("return { content: \"That command"));
+  assert.doesNotMatch(register, /flags: 64/);
+});
+
+test("player card offers a verified, paginated alliance roster with player selection", () => {
+  assert.match(interactions, /View alliance roster/);
+  assert.match(interactions, /type: 3, custom_id: "select\|"/);
+  assert.match(interactions, /Back to alliance roster/);
+  assert.match(interactions, /fetchAllianceRoster/);
+  assert.match(interactions, /members\.some\(member => member\.id === id\)/);
+  assert.match(interactions, /Math\.min\(count, 5\)/);
+  assert.match(interactions, /interaction\.type !== 2 && interaction\.type !== 3/);
 });
 
 test("optional player lookup cannot block registration", () => {
