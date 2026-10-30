@@ -150,7 +150,7 @@ test("alliance loading copy and social preview describe the current registration
   assert.match(english, /"alliance\.loadingAllianceInfo": "Loading"/);
   assert.match(korean, /"alliance\.loadingAllianceInfo": "불러오는 중"/);
   assert.match(metadata, /og:title" content="Kingshot Alliance Registration"/);
-  assert.match(metadata, /route=alliance-registration&v=6/);
+  assert.match(metadata, /route=alliance-registration&v=7/);\n  assert.match(metadata, /Up to four alliances per kingdom/);
   assert.doesNotMatch(metadata, /select individuals|select individual members/);
 });
 
@@ -180,9 +180,9 @@ test("beta badge appears only in alliance drawer and announcement", async () => 
 test("alliance registration social metadata reflects current flow", async () => {
   const metadata = await readFile(new URL("../alliance-registration.html", import.meta.url), "utf8");
   assert.match(metadata, /og:title" content="Kingshot Alliance Registration"/);
-  assert.match(metadata, /route=alliance-registration&v=6/);
+  assert.match(metadata, /route=alliance-registration&v=7/);
   assert.match(metadata, /Up to four alliances per kingdom/);
-  assert.match(metadata, /route=alliance-registration&v=6/);
+  assert.match(metadata, /route=alliance-registration&v=7/);
   assert.match(metadata, /server-side roster sync/);
   assert.doesNotMatch(metadata, /select individuals|select individual members/);
 });
@@ -195,12 +195,12 @@ test("refreshes roster when server-side alliance processing finishes", () => {
 
 test("kingdom alliance cap check and insert are serialized by a Supabase transaction", async () => {
   const handler = await readFile(new URL("../internal/kingshot/alliance-sync-handler.ts", import.meta.url), "utf8");
-  const migration = await readFile(new URL("../supabase/migrations/20261029233000_raise_alliance_sync_cap_to_four.sql", import.meta.url), "utf8");
+  const migration = await readFile(new URL("../supabase/migrations/20261030200000_raise_exact_case_alliance_sync_cap_to_four.sql", import.meta.url), "utf8");
   assert.match(handler, /register_alliance_sync_config/);
   assert.match(handler, /runAllianceSyncAsAdmin/);
   assert.match(migration, /pg_advisory_xact_lock/);
   assert.match(migration, /if v_total >= 4 then/);
-  assert.match(migration, /alliance_already_managed/);
+  assert.match(migration, /alliance_already_managed/);\n  assert.match(migration, /c\\.alliance_tag = p_alliance_tag/);
 });
 
 test("How it works page imports every icon used by its feature sections", async () => {
