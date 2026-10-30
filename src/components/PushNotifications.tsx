@@ -144,9 +144,7 @@ export default function PushNotifications() {
       const applicationServerKey = encodeKey(keyData.publicKey);
       if (existing && Notification.permission === "granted") {
         const oldKey = existing.options.applicationServerKey;
-        const oldBytes = oldKey
-          ? new Uint8Array(oldKey instanceof ArrayBuffer ? oldKey : oldKey.buffer, oldKey instanceof ArrayBuffer ? 0 : oldKey.byteOffset, oldKey instanceof ArrayBuffer ? oldKey.byteLength : oldKey.byteLength)
-          : null;
+        const oldBytes = oldKey ? new Uint8Array(oldKey) : null;
         const newBytes = new Uint8Array(applicationServerKey);
         const keyChanged = !oldBytes || oldBytes.length !== newBytes.length ||
           oldBytes.some((value, index) => value !== newBytes[index]);
