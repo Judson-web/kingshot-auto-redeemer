@@ -57,7 +57,7 @@ async function readAlliance(kingdomId:string,tag:string){
  const count=rawCount==null?raw.length:Number(rawCount);
  // Fail closed on invalid counts and suspiciously incomplete responses. The source count can
  // include malformed rows, so a handful of invalid rows are tolerated, but large discrepancies are not.
- if(!Number.isFinite(count)||count<1||!unique.length||unique.length<Math.min(count,5)|| (count>0&&unique.length/count<0.65))
+ if(!Number.isFinite(count)||count<1||!unique.length||unique.length<Math.min(count,5)|| (count>0&&unique.length/count<0.95))
   throw Object.assign(new Error("Roster validation failed; no members were registered."),{code:"incomplete_roster"});
  const canonicalTag=String(a.abbr??a.tag??tag).trim();
  if(canonicalTag!==tag)throw Object.assign(new Error("Alliance tag does not match the requested alliance."),{code:"alliance_mismatch"});
