@@ -32,7 +32,7 @@ jobs:
       - name: Invoke production alliance sync worker
         env:
           SYNC_SECRET: ${{ secrets.ALLIANCE_SYNC_CRON_SECRET || secrets.CRON_SECRET }}
-          SYNC_URL: https://kingshot-autoredeemer.vercel.app/api/kingshot-alliance-sync-worker
+          SYNC_URL: https://kingshot-auto-redeemer.vercel.app/api/kingshot-alliance-sync-worker
         shell: bash
         run: |
           set -euo pipefail
@@ -63,7 +63,7 @@ jobs:
       - name: Process durable manual registration jobs
         env:
           WORKER_SECRET: ${{ secrets.ALLIANCE_SYNC_CRON_SECRET || secrets.CRON_SECRET }}
-          WORKER_URL: https://kingshot-autoredeemer.vercel.app/api/kingshot-alliance-sync-worker?mode=manual-registration
+          WORKER_URL: https://kingshot-auto-redeemer.vercel.app/api/kingshot-alliance-sync-worker?mode=manual-registration
         shell: bash
         run: |
           set -euo pipefail
