@@ -48,4 +48,4 @@ alter table public.discord_audit_log enable row level security;
 
 revoke all on public.discord_guilds, public.discord_guild_settings, public.discord_command_events, public.discord_audit_log from anon, authenticated;
 grant all on public.discord_guilds, public.discord_guild_settings, public.discord_command_events, public.discord_audit_log to service_role;
-grant usage, select on all sequences in schema public to service_role;
+grant usage, select on sequence public.discord_command_events_id_seq to service_role;
