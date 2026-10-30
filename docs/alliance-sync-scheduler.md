@@ -1,10 +1,12 @@
 # Automatic Alliance Sync Scheduler
 
-Alliance sync configurations, run history, leases, and seen-player state are stored in Supabase PostgreSQL. Each enabled configuration is due when `next_run_at <= now()`. The worker claims configurations through the Supabase lease RPC, validates a fresh MightPulse roster, skips players already registered in Supabase, and schedules the next normal run 24 hours later. Failed syncs use exponential backoff.
+Alliance sync configurations, run history, leases, and seen-player state are stored in Supabase PostgreSQL. Each enabled configuration is due when `next_run_at <= now()`. The worker claims configurations through the Supabase lease RPC, validates a fresh MightPulse roster, skips players already registered in Supabase, and schedules the next normal run 24 hours later. Failed manual runs are scheduled for retry after five minutes; the five-minute GitHub schedule wakes the worker to process them.
 
 ## Why this scheduler exists
 
-Vercel Hobby cron is limited to daily schedules, which is too infrequent for the worker's five-minute failure retry/backoff. The GitHub Actions workflow `.github/workflows/alliance-sync-scheduler.yml` wakes the existing server-side worker every five minutes. It does not perform registration in GitHub; all roster validation and registration remain in the existing server-side worker.
+Vercel Hobby cron is limited to daily schedules, which is too infrequent for five-minute retry/backoff. The GitHub Actions workflow `.github/workflows/alliance-sync-scheduler.yml` wakes the existing server-side worker every five minutes for due alliance syncs and drains the durable manual-registration queue. It does not perform roster validation or registration in GitHub; all processing remains in the existing server-side worker.
+
+The existing Supabase daily cron remains as a backup wake-up. Both paths use the same database lease RPC, so an alliance cannot be processed concurrently by overlapping invocations. A successful sync advances its next run, so the five-minute wake-up does not cause repeated daily syncs.
 
 ## One-time secret configuration
 
@@ -22,4 +24,4 @@ The workflow supports either GitHub secret name, `ALLIANCE_SYNC_CRON_SECRET` or 
 3. In the Admin Alliance Sync page, confirm each enabled alliance has a recent attempt and an updated next-run time.
 4. The workflow is serialized with a concurrency group, and the database's per-alliance lease prevents overlapping work across invocations.
 
-GitHub scheduled workflows are best-effort and can be delayed by GitHub. They are not a hard real-time scheduler. The existing Vercel daily cron remains as a backup wake-up. No Neon `pg_cron` HTTP extension is required.
+GitHub scheduled workflows are best-effort and can be delayed by GitHub. They are not a hard real-time scheduler. The existing Supabase daily cron remains a backup wake-up. No Neon `pg_cron` HTTP extension is required.
