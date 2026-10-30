@@ -20,15 +20,14 @@ test("player card renderer matches the landscape Oracle-style layout", () => {
   for (const label of ["POWER", "KILLS", "TOWN CENTER", "VIP", "ALLIANCE RANK"]) {
     assert.ok(renderer.includes('["' + label + '"'), "missing stat " + label);
   }
-  assert.match(endpoint, /Content-Type", "image\\/png"/);
   assert.match(renderer, /KINGSHOT ORACLE-STYLE PLAYER PROFILE/);
+  assert.ok(endpoint.includes('res.setHeader("Content-Type", "image/png")'));
 });
 
 test("player card endpoint validates IDs and serves PNG bytes only", () => {
   assert.match(endpoint, /req\.method !== "GET"/);
   assert.match(endpoint, /encoded, 6000/);
   assert.match(endpoint, /\\d\{5,20\}/);
-  assert.match(endpoint, /Content-Type", "image\/png"/);
   assert.match(endpoint, /renderPlayerCardPng\(card\)/);
   assert.match(router, /endpoint === "player-card"\) return playerCard/);
 });
