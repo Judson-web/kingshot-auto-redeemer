@@ -36,6 +36,5 @@ export default async function handler(req, res) {
  if (endpoint === "user") return user(req, res);
  if (endpoint === "interactions") return interactions(req, res);
  if (endpoint === "player-card") return playerCard(req, res);
- if (endpoint === "player-card") return playerCard(req, res);
  return res.status(404).json({ error: "Discord endpoint not found." });
 }
