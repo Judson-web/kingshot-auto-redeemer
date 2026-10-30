@@ -150,7 +150,8 @@ test("alliance loading copy and social preview describe the current registration
   assert.match(english, /"alliance\.loadingAllianceInfo": "Loading"/);
   assert.match(korean, /"alliance\.loadingAllianceInfo": "불러오는 중"/);
   assert.match(metadata, /og:title" content="Kingshot Alliance Registration"/);
-  assert.match(metadata, /route=alliance-registration&v=7/);\n  assert.match(metadata, /Up to four alliances per kingdom/);
+  assert.match(metadata, /route=alliance-registration&v=7/);
+  assert.match(metadata, /Up to four alliances per kingdom/);
   assert.doesNotMatch(metadata, /select individuals|select individual members/);
 });
 
@@ -200,7 +201,8 @@ test("kingdom alliance cap check and insert are serialized by a Supabase transac
   assert.match(handler, /runAllianceSyncAsAdmin/);
   assert.match(migration, /pg_advisory_xact_lock/);
   assert.match(migration, /if v_total >= 4 then/);
-  assert.match(migration, /alliance_already_managed/);\n  assert.match(migration, /c\\.alliance_tag = p_alliance_tag/);
+  assert.match(migration, /alliance_already_managed/);
+  assert.match(migration, /c\\.alliance_tag = p_alliance_tag/);
 });
 
 test("How it works page imports every icon used by its feature sections", async () => {
