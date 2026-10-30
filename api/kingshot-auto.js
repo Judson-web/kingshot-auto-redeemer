@@ -427,13 +427,6 @@ export default async function handler(req,res){
    await new Promise(resolve=>setTimeout(resolve,250));
    publicSources.push(await fetchSource(rpc,source.url,"public:"+source.name));
   }
-  // Opt-in community aggregator: never guess an endpoint or make unauthenticated calls.
-  const aggregatorUrl=String(process.env.KINGSHOT_AGGREGATOR_URL||"").trim();
-  const aggregatorKey=String(process.env.KINGSHOT_AGGREGATOR_API_KEY||"").trim();
-  if(aggregatorUrl&&aggregatorKey){
-   await new Promise(resolve=>setTimeout(resolve,250));
-   publicSources.push(await fetchSource(rpc,aggregatorUrl,"aggregator"));
-  }
   currentStage="gift-code-merge-and-persist";
   const adminRows=await rpc("list_kingshot_admin_gift_codes",{});
   const data=apiSource.data;
