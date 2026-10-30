@@ -54,12 +54,47 @@ export default function PushNotifications() {
           return;
         }
         const permission = Notification.permission;
-        let sub = null;
-        try { const reg = await navigator.serviceWorker.ready; sub = await reg.pushManager.getSubscription(); } catch {}
+        let sub: PushSubscription | null = null;
+        let currentKey: ArrayBuffer | null = null;
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          sub = await reg.pushManager.getSubscription();
+          const keyResponse = await fetch("/api/custom-message", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ action: "PUSH_PUBLIC_KEY" }),
+            credentials: "same-origin",
+            cache: "no-store",
+          });
+          const keyData = await keyResponse.json().catch(() => ({}));
+          if (keyResponse.ok && keyData.publicKey) currentKey = encodeKey(keyData.publicKey);
+        } catch {}
         if (!alive) return;
-        // Dismissal is a durable user preference, not tied to the current
-        // permission/subscription state. Otherwise enabling notifications changes
-        // the signature and causes the panel to reappear after a reload.
+
+        // Browser push subscriptions are bound to the VAPID public key used
+        // when they were created. A rotated key makes the old subscription
+        // unusable, so retire it and show the opt-in panel again.
+        let staleSubscription = false;
+        if (permission === "granted" && sub && currentKey) {
+          const existingKey = sub.options.applicationServerKey;
+          const existingBytes = existingKey
+            ? new Uint8Array(existingKey instanceof ArrayBuffer ? existingKey : existingKey.buffer, existingKey instanceof ArrayBuffer ? 0 : existingKey.byteOffset, existingKey instanceof ArrayBuffer ? existingKey.byteLength : existingKey.byteLength)
+            : null;
+          const currentBytes = new Uint8Array(currentKey);
+          staleSubscription = !existingBytes || existingBytes.length !== currentBytes.length ||
+            existingBytes.some((value, index) => value !== currentBytes[index]);
+          if (staleSubscription) {
+            await fetch("/api/custom-message", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ action: "PUSH_UNSUBSCRIBE", subscription: sub.toJSON() }),
+              credentials: "same-origin",
+            }).catch(() => {});
+            await sub.unsubscribe().catch(() => {});
+            sub = null;
+          }
+        }
+
         let dismissed = false;
         try {
           dismissed = localStorage.getItem("ks-push-panel-dismissed-v3") === "1";
@@ -67,10 +102,14 @@ export default function PushNotifications() {
             dismissed = true;
             localStorage.setItem("ks-push-panel-dismissed-v3", "1");
           }
+          if (staleSubscription) {
+            dismissed = false;
+            localStorage.removeItem("ks-push-panel-dismissed-v3");
+          }
         } catch {}
         setHidden(dismissed);
         if (permission === "denied") setState("denied");
-        else if (permission === "granted" && sub) setState("on");
+        else if (permission === "granted" && sub && currentKey) setState("on");
         else setState("off");
       } finally { checking = false; }
     };
@@ -96,7 +135,37 @@ export default function PushNotifications() {
         throw Error(t("pushNotifications.unsupported","This browser does not support web push notifications."));
       }
       const reg = await navigator.serviceWorker.ready;
-      const existing = await reg.pushManager.getSubscription();
+      let existing = await reg.pushManager.getSubscription();
+      const keyResponse = await fetch("/api/custom-message", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "PUSH_PUBLIC_KEY" }),
+        credentials: "same-origin",
+        cache: "no-store",
+      });
+      const keyData = await keyResponse.json().catch(() => ({}));
+      if (!keyResponse.ok || !keyData.publicKey) throw Error(keyData.error || t("pushNotifications.notConfigured","Push notifications aren't configured yet."));
+      const applicationServerKey = encodeKey(keyData.publicKey);
+      if (existing && Notification.permission === "granted") {
+        const oldKey = existing.options.applicationServerKey;
+        const oldBytes = oldKey
+          ? new Uint8Array(oldKey instanceof ArrayBuffer ? oldKey : oldKey.buffer, oldKey instanceof ArrayBuffer ? 0 : oldKey.byteOffset, oldKey instanceof ArrayBuffer ? oldKey.byteLength : oldKey.byteLength)
+          : null;
+        const newBytes = new Uint8Array(applicationServerKey);
+        const keyChanged = !oldBytes || oldBytes.length !== newBytes.length ||
+          oldBytes.some((value, index) => value !== newBytes[index]);
+        if (keyChanged) {
+          await fetch("/api/custom-message", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ action: "PUSH_UNSUBSCRIBE", subscription: existing.toJSON() }),
+            credentials: "same-origin",
+          }).catch(() => {});
+          await existing.unsubscribe().catch(() => {});
+          existing = null;
+          try { localStorage.removeItem("ks-push-panel-dismissed-v3"); } catch {}
+        }
+      }
       if (existing && Notification.permission === "granted") {
         const response = await fetch("/api/custom-message", {
           method: "POST",
@@ -130,19 +199,9 @@ export default function PushNotifications() {
           : t("pushNotifications.permissionNotGranted","Notification permission wasn't granted. You can try again whenever you're ready."));
       }
 
-      const keyResponse = await fetch("/api/custom-message", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "PUSH_PUBLIC_KEY" }),
-        credentials: "same-origin",
-        cache: "no-store",
-      });
-      const keyData = await keyResponse.json().catch(() => ({}));
-      if (!keyResponse.ok || !keyData.publicKey) throw Error(keyData.error || t("pushNotifications.notConfigured","Push notifications aren't configured yet."));
-
       const subscription = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: encodeKey(keyData.publicKey),
+        applicationServerKey,
       });
       const saveResponse = await fetch("/api/custom-message", {
         method: "POST",
