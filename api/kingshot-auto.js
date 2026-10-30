@@ -10,9 +10,8 @@ const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_S
 const APP_ORIGIN=process.env.VERCEL_ENV==="production"&&process.env.VERCEL_PROJECT_PRODUCTION_URL?"https://"+process.env.VERCEL_PROJECT_PRODUCTION_URL:process.env.VERCEL_URL?"https://"+process.env.VERCEL_URL:"https://kingshot-autoredeemer.vercel.app";
 const GIFT_SOURCE_URL="https://kingshot.net/api/gift-codes";
 const PUBLIC_GIFT_SOURCES=[
- // Keep only sources whose active-code sections have a useful signal-to-noise ratio.
- {name:"beebom",url:"https://beebom.com/kingshot-codes/"},
- {name:"pocketgamer",url:"https://www.pocketgamer.com/kingshot/codes/"}
+ // One mainstream publisher only; the first-party Kingshot feed is the other source.
+ {name:"beebom",url:"https://beebom.com/kingshot-codes/"}
 ];
 // Verified long-running fallback for codes that have been omitted from the upstream API feed.
 // Revalidated against public Kingshot code listings; the redemption endpoint remains the final authority.
