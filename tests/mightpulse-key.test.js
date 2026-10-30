@@ -19,11 +19,11 @@ test("MightPulse reads use the shared quota-aware multi-key pool", async () => {
 
 test("key pool defines all supported keys, deduplicates repeated secrets, and never logs secret values", async () => {
   const source = await readFile(new URL("../lib/mightpulse-key-pool.js", import.meta.url), "utf8");
-  for (const envName of ["MIGHTPULSE_API_KEY_3", "MIGHTPULSE_API_KEY_2", "MIGHTPULSE_API_KEY"]) {
+  for (const envName of ["MIGHTPULSE_API_KEY_6", "MIGHTPULSE_API_KEY_5", "MIGHTPULSE_API_KEY_4", "MIGHTPULSE_API_KEY_3", "MIGHTPULSE_API_KEY_2", "MIGHTPULSE_API_KEY"]) {
     assert.ok(source.includes("process.env." + envName), "Missing key source " + envName);
   }
   assert.match(source, /seen\.has\(value\)/);
-  assert.match(source, /process\.env\["KSS_API_KEY_" \+ suffix\]/, "Numbered KSS key slots must be supported");
+  assert.doesNotMatch(source, /KSS_API_KEY/, "Retired KSS credentials must not be loaded");
   assert.match(source, /claim_mightpulse_api_key_request/);
   assert.match(source, /record_mightpulse_api_key_usage/);
   assert.match(source, /checkProviderCircuitBreaker/);
