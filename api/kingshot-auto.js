@@ -164,8 +164,21 @@ async function drainNeonRecoveryJournal(rpcClient){
 }
 
 async function drainRedemptionRecoveryQueue(rpcClient){
- await drainNeonRecoveryJournal(rpcClient).catch(error=>console.error("Neon recovery drain failed:",error?.message||error));
- const rows=await rpcClient("list_kingshot_redemption_recovery_queue",{p_limit:50});
+ // Check the durable Supabase recovery queue first. Polling Neon on every
+ // five-minute worker cycle kept its free-tier compute awake even when the
+ // independent journal had nothing to reconcile. A pending Supabase recovery
+ // row is the signal to inspect Neon immediately; if Supabase is unavailable,
+ // retain the Neon fallback so an outage cannot hide a recorded result.
+ let rows;
+ try{
+  rows=await rpcClient("list_kingshot_redemption_recovery_queue",{p_limit:50});
+ }catch(error){
+  await drainNeonRecoveryJournal(rpcClient).catch(neonError=>console.error("Neon recovery drain failed:",neonError?.message||neonError));
+  throw error;
+ }
+ if(Array.isArray(rows)&&rows.length){
+  await drainNeonRecoveryJournal(rpcClient).catch(error=>console.error("Neon recovery drain failed:",error?.message||error));
+ }
  let recovered=0,failed=0;
  for(const row of Array.isArray(rows)?rows:[]){
   try{
