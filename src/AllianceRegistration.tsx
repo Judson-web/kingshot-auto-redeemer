@@ -168,7 +168,7 @@ export default function AllianceRegistration() {
       try {
         const capacityResponse = await fetch("/api/kingshot-alliance-sync", { method:"POST", credentials:"same-origin", cache:"no-store", headers:{"content-type":"application/json"}, body:JSON.stringify({action:"capacity",kingdomId:alliance.kingdomId || kingdomId.trim(),allianceTag:alliance.tag}), signal:AbortSignal.timeout(10000) });
         const capacityData = await capacityResponse.json().catch(() => ({}));
-        if (capacityResponse.ok && Number.isFinite(Number(capacityData.registeredCount)) && capacityData.limit === 4) setAllianceSyncCapacity({registeredCount:Number(capacityData.registeredCount),limit:4,isRegistered:Boolean(capacityData.isRegistered),managedByCurrentUser:Boolean(capacityData.managedByCurrentUser),enabled:Boolean(capacityData.enabled),status:typeof capacityData.status==="string"?capacityData.status:null,canRegister:Boolean(capacityData.canRegister)});
+        if (capacityResponse.ok && Number.isFinite(Number(capacityData.registeredCount)) && capacityData.limit === 3) setAllianceSyncCapacity({registeredCount:Number(capacityData.registeredCount),limit:3,isRegistered:Boolean(capacityData.isRegistered),managedByCurrentUser:Boolean(capacityData.managedByCurrentUser),enabled:Boolean(capacityData.enabled),status:typeof capacityData.status==="string"?capacityData.status:null,canRegister:Boolean(capacityData.canRegister)});
       } catch { setAllianceSyncCapacity(null); }
       setLoadingSyncHistory(true);
       try {
@@ -450,8 +450,8 @@ export default function AllianceRegistration() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         if (String(data.code || "") === "kingdom_alliance_limit") {
-          setAllianceSyncCapacity(current => ({ registeredCount: Math.max(4, current?.registeredCount ?? 4), limit: 4, isRegistered: false, managedByCurrentUser: false, enabled: false, status: null, canRegister: false }));
-          throw new Error(t("alliance.kingdomAllianceCapReached", "This kingdom already has 4 registered alliances (4/4). No more alliances can be registered here."));
+          setAllianceSyncCapacity(current => ({ registeredCount: Math.max(3, current?.registeredCount ?? 3), limit: 3, isRegistered: false, managedByCurrentUser: false, enabled: false, status: null, canRegister: false }));
+          throw new Error(t("alliance.kingdomAllianceCapReached", "This kingdom already has 3 registered alliances (3/3). No more alliances can be registered here."));
         }
         throw new Error(String(data.error || t("alliance.allianceRegistrationFailed", "Could not register this alliance.")));
       }
