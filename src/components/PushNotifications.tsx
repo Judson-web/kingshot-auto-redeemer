@@ -77,8 +77,7 @@ export default function PushNotifications() {
         let staleSubscription = false;
         if (permission === "granted" && sub && currentKey) {
           const existingKey = sub.options.applicationServerKey;
-          const existingBytes = existingKey ? new Uint8Array(existingKey) : null
-            : null;
+          const existingBytes = existingKey ? new Uint8Array(existingKey) : null;
           const currentBytes = new Uint8Array(currentKey);
           staleSubscription = !existingBytes || existingBytes.length !== currentBytes.length ||
             existingBytes.some((value, index) => value !== currentBytes[index]);
