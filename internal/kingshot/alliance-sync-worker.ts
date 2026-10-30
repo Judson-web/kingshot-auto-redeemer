@@ -5,6 +5,7 @@ import { getRegisteredPlayerIds } from "./registered-player-ids.js";
 import { fetchMightPulse } from "../../lib/mightpulse-key-pool.js";
 
 const JOB_SECRET=process.env.ALLIANCE_SYNC_CRON_SECRET||process.env.CRON_SECRET||"";
+function nextDailySyncAt(){const next=new Date();next.setUTCHours(11,0,0,0);if(next.getTime()<=Date.now())next.setUTCDate(next.getUTCDate()+1);return next.toISOString();}
 const wait=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms));
 async function registerWithRetry(input:any){let last:unknown;for(let attempt=0;attempt<3;attempt++){try{return await registerPlayer(input)}catch(error){last=error;if(attempt<2)await wait(400*(attempt+1));}}throw last instanceof Error?last:new Error("Registration failed after retries.");}
 async function loadRoster(kingdom:string,tag:string){
@@ -134,13 +135,13 @@ export default async function handler(req:any,res:any){
     const priorSeen=await selectRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&registration_status=neq.departed&select=player_id`);
     let departedCount=0;
     for(const row of (Array.isArray(priorSeen)?priorSeen:[]))if(!currentIds.has(String(row.player_id))){await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(row.player_id)}`,{registration_status:'departed',last_error_code:null});departedCount++;}
-    const status=failed?'partial':'success';const nextRun=new Date(Date.now()+(failed?5*60000:24*3600000)).toISOString();
-    const finished=await callRpc('finish_alliance_sync_run',{p_config_id:config.id,p_lease_token:lease,p_run_id:runId,p_status:status,p_roster_count:roster.members.length,p_added_count:registered,p_skipped_count:skipped,p_departed_count:departedCount,p_error_code:failed?'registration_failed':null,p_error_message:failures.slice(0,5).join('; ').slice(0,500)||null,p_next_run_at:nextRun,p_alliance_name:roster.name});
+    const status=failed?'partial':'success';const nextRunAt=nextDailySyncAt();
+    const finished=await callRpc('finish_alliance_sync_run',{p_config_id:config.id,p_lease_token:lease,p_run_id:runId,p_status:status,p_roster_count:roster.members.length,p_added_count:registered,p_skipped_count:skipped,p_departed_count:departedCount,p_error_code:failed?'registration_failed':null,p_error_message:failures.slice(0,5).join('; ').slice(0,500)||null,p_next_run_at:nextRunAt,p_alliance_name:roster.name});
     if(finished!==true && !(Array.isArray(finished)&&finished[0]===true))throw new Error('Sync lease was lost before completion.');
-    results.push({configId:config.id,status,rosterCount:roster.members.length,registered,skipped,failed,nextRunAt:nextRun});
+    results.push({configId:config.id,status,rosterCount:roster.members.length,registered,skipped,failed,nextRunAt});
    }catch(e){
     const message=String((e as Error)?.message||'Sync failed.').slice(0,400);
-    await patchRows('alliance_sync_config',`id=eq.${enc(config.id)}&lease_token=eq.${enc(lease)}`,{lease_token:null,lease_expires_at:null,consecutive_failures:Number(config.consecutive_failures||0)+1,last_status:config.enabled?'error':'paused',last_error_code:'sync_failed',last_error_message:message,next_run_at:new Date(Date.now()+5*60000).toISOString(),updated_at:new Date().toISOString()});
+    await patchRows('alliance_sync_config',`id=eq.${enc(config.id)}&lease_token=eq.${enc(lease)}`,{lease_token:null,lease_expires_at:null,consecutive_failures:Number(config.consecutive_failures||0)+1,last_status:config.enabled?'error':'paused',last_error_code:'sync_failed',last_error_message:message,next_run_at:nextDailySyncAt(),updated_at:new Date().toISOString()});
     await patchRows('alliance_sync_runs',`id=eq.${enc(runId)}`,{finished_at:new Date().toISOString(),status:'error',error_code:'sync_failed',error_message:message});
     results.push({configId:config.id,status:'error',message});
    }
