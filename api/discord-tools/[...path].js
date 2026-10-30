@@ -24,7 +24,7 @@ function endpointFromRequest(req) {
   "/api/discord-tools/player-card": "player-card",
  };
  if (aliases[pathname]) return aliases[pathname];
- const match = pathname.match(/\/discord-tools\/(avatar|user|interactions)\/?$/);
+ const match = pathname.match(/\/discord-tools\/(avatar|user|interactions|player-card)\/?$/);
  return match?.[1] || "";
 }
 
@@ -52,7 +52,7 @@ async function playerCard(req,res) {
   const encoded=String(req.query.data||"");
   if(!["player","registration"].includes(kind)||encoded.length>7000||!/^[A-Za-z0-9_-]+$/.test(encoded)) return res.status(400).end();
   const data=JSON.parse(Buffer.from(encoded,"base64url").toString("utf8"));
-  if(!data||typeof data!=="object"||!/^\\d{5,20}$/.test(String(data.playerId||""))) return res.status(400).end();
+  if(!data||typeof data!=="object"||!/^\d{5,20}$/.test(String(data.playerId||""))) return res.status(400).end();
   const svg=kind==="player"?renderPlayerCard(data):renderRegistrationCard(data);
   res.setHeader("Content-Type","image/svg+xml; charset=utf-8");
   res.setHeader("Content-Length",String(Buffer.byteLength(svg)));
