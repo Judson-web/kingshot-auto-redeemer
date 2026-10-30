@@ -168,7 +168,7 @@ export default function AllianceRegistration() {
       try {
         const capacityResponse = await fetch("/api/kingshot-alliance-sync", { method:"POST", credentials:"same-origin", cache:"no-store", headers:{"content-type":"application/json"}, body:JSON.stringify({action:"capacity",kingdomId:alliance.kingdomId || kingdomId.trim(),allianceTag:alliance.tag}), signal:AbortSignal.timeout(10000) });
         const capacityData = await capacityResponse.json().catch(() => ({}));
-        if (capacityResponse.ok && Number.isFinite(Number(capacityData.registeredCount)) && capacityData.limit === 3) setAllianceSyncCapacity({registeredCount:Number(capacityData.registeredCount),limit:3,isRegistered:Boolean(capacityData.isRegistered),managedByCurrentUser:Boolean(capacityData.managedByCurrentUser),enabled:Boolean(capacityData.enabled),status:typeof capacityData.status==="string"?capacityData.status:null,canRegister:Boolean(capacityData.canRegister)});
+        if (capacityResponse.ok && Number.isFinite(Number(capacityData.registeredCount)) && capacityData.limit === 4) setAllianceSyncCapacity({registeredCount:Number(capacityData.registeredCount),limit:4,isRegistered:Boolean(capacityData.isRegistered),managedByCurrentUser:Boolean(capacityData.managedByCurrentUser),enabled:Boolean(capacityData.enabled),status:typeof capacityData.status==="string"?capacityData.status:null,canRegister:Boolean(capacityData.canRegister)});
       } catch { setAllianceSyncCapacity(null); }
       setLoadingSyncHistory(true);
       try {
@@ -450,8 +450,8 @@ export default function AllianceRegistration() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         if (String(data.code || "") === "kingdom_alliance_limit") {
-          setAllianceSyncCapacity(current => ({ registeredCount: Math.max(3, current?.registeredCount ?? 3), limit: 3, isRegistered: false, managedByCurrentUser: false, enabled: false, status: null, canRegister: false }));
-          throw new Error(t("alliance.kingdomAllianceCapReached", "This kingdom already has 3 registered alliances (3/3). No more alliances can be registered here."));
+          setAllianceSyncCapacity(current => ({ registeredCount: Math.max(4, current?.registeredCount ?? 4), limit: 4, isRegistered: false, managedByCurrentUser: false, enabled: false, status: null, canRegister: false }));
+          throw new Error(t("alliance.kingdomAllianceCapReached", "This kingdom already has 4 registered alliances (4/4). No more alliances can be registered here."));
         }
         throw new Error(String(data.error || t("alliance.allianceRegistrationFailed", "Could not register this alliance.")));
       }
@@ -464,7 +464,7 @@ export default function AllianceRegistration() {
       if (!verify.ok || !verified.isRegistered || !verified.managedByCurrentUser) {
         throw new Error(String(verified.error || t("alliance.registrationNotConfirmed", "The server did not confirm this alliance registration. Refresh and try again.")));
       }
-      setAllianceSyncCapacity({ registeredCount: Number(verified.registeredCount) || 0, limit: Number(verified.limit) || 3, isRegistered: true, managedByCurrentUser: true, enabled: Boolean(verified.enabled), status: typeof verified.status === "string" ? verified.status : null, canRegister: false });
+      setAllianceSyncCapacity({ registeredCount: Number(verified.registeredCount) || 0, limit: Number(verified.limit) || 4, isRegistered: true, managedByCurrentUser: true, enabled: Boolean(verified.enabled), status: typeof verified.status === "string" ? verified.status : null, canRegister: false });
       setProgress({ done: roster.members.length, total: roster.members.length, currentId: "", note: t("alliance.serverContinues", "Registration continues on the server. You can leave this page.") });
       await loadRoster(activeAlliance, true);
     } catch (cause) {
@@ -539,7 +539,7 @@ export default function AllianceRegistration() {
           </div>
           <div className="ks-alliance-roster-stats"><span><b>{formatNumber(roster.alliance.power)}</b><small>{t("alliance.power", "Power")}</small></span><span><b>{roster.members.length}</b><small>{t("alliance.members", "Members")}</small></span></div>
         </div>
-        {allianceSyncCapacity && <p className="ks-alliance-capacity-note" role="status">{allianceSyncCapacity.registeredCount < allianceSyncCapacity.limit ? t("alliance.capacityRemaining", "Alliance sync registrations in this kingdom:") + " " + allianceSyncCapacity.registeredCount + "/" + allianceSyncCapacity.limit + " · " + (allianceSyncCapacity.limit-allianceSyncCapacity.registeredCount) + " " + t("alliance.slotsRemaining", "slot(s) remaining") : t("alliance.capacityFullNote", "The kingdom's three alliance-sync slots are full. Individual player registration through Auto Redeem is unaffected.")}</p>}
+        {allianceSyncCapacity && <p className="ks-alliance-capacity-note" role="status">{allianceSyncCapacity.registeredCount < allianceSyncCapacity.limit ? t("alliance.capacityRemaining", "Alliance sync registrations in this kingdom:") + " " + allianceSyncCapacity.registeredCount + "/" + allianceSyncCapacity.limit + " · " + (allianceSyncCapacity.limit-allianceSyncCapacity.registeredCount) + " " + t("alliance.slotsRemaining", "slot(s) remaining") : t("alliance.capacityFullNote", "The kingdom's four alliance-sync slots are full. Individual player registration through Auto Redeem is unaffected.")}</p>}
         <button type="button" className="ks-alliance-text-toggle ks-alliance-history-toggle" aria-expanded={syncHistoryExpanded} aria-controls="alliance-sync-history-panel" onClick={() => setSyncHistoryExpanded(value => !value)}>
           <span>{t("alliance.syncHistoryTitle", "Recent sync history")} · {Math.min(syncHistory.runs.length, 3)}</span>
           <ChevronDown size={16} aria-hidden="true" className={syncHistoryExpanded ? "is-expanded" : ""}/>
