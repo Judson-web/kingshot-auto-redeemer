@@ -3,7 +3,7 @@ import { isAuthenticatedProfileRequest } from "../../lib/developer-auth.js";
 import { selectRows, insertRows, patchRows, callRpc, enc } from "./alliance-sync-store.js";
 import { randomUUID } from "node:crypto";
 import { normalizeRegistrationInput, registerPlayer } from "./register.js";
-import { getRegisteredPlayerIds } from "./registered-player-ids.js";
+import { getRegisteredPlayerIds, getBannedPlayerIds } from "./registered-player-ids.js";
 import { fetchMightPulse } from "../../lib/mightpulse-key-pool.js";
 
 interface Req { method?: string; url?: string; headers: Record<string,string|string[]|undefined>; body?: Record<string,unknown>; query?: Record<string,unknown>; }
@@ -69,7 +69,8 @@ async function performSync(config:any,ownerId:string,manual:boolean,leaseToken:s
   await insertRows('alliance_sync_runs',{id:runId,config_id:config.id,status:'running'});
   roster=await readAlliance(String(config.kingdom_id),String(config.alliance_tag));
   await patchRows('alliance_sync_runs',`id=eq.${enc(runId)}`,{roster_count:roster.members.length});
-  const alreadyRegisteredIds=await getRegisteredPlayerIds(roster.members.map((m:any)=>m.id));
+  const rosterIds=roster.members.map((m:any)=>m.id);
+  const [alreadyRegisteredIds,bannedIds]=await Promise.all([getRegisteredPlayerIds(rosterIds),getBannedPlayerIds(rosterIds)]);
   for(const member of roster.members){
    const heartbeat=await patchRows('alliance_sync_config',`id=eq.${enc(config.id)}&lease_token=eq.${enc(leaseToken)}&enabled=eq.true`,{lease_expires_at:new Date(Date.now()+4*60000).toISOString()});
    if(!Array.isArray(heartbeat)||!heartbeat.length)throw new Error('Sync lease lost or configuration paused.');
@@ -80,6 +81,9 @@ async function performSync(config:any,ownerId:string,manual:boolean,leaseToken:s
     const { sb }=await import('./alliance-sync-store.js');
     await sb('alliance_sync_seen_players?on_conflict=config_id,player_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({config_id:config.id,player_id:member.id,last_seen_at:new Date().toISOString(),registration_status:prior==='departed'?'pending':(prior||'pending')})});
    });
+   if(bannedIds.has(member.id)){
+    await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}`,{registration_status:'banned',registered_at:null,last_error_code:'player_banned'});skipped++;continue;
+   }
    if(prior&& !['pending','error','departed'].includes(prior)){skipped++;continue;}
    if(alreadyRegisteredIds.has(member.id)){
     await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}`,{registration_status:'already_registered',registered_at:new Date().toISOString(),last_error_code:null});skipped++;continue;
@@ -97,7 +101,7 @@ async function performSync(config:any,ownerId:string,manual:boolean,leaseToken:s
   const status=failed?'partial':'success';const nextRun=new Date(Date.now()+(failed?5*60000:24*3600000)).toISOString();
   const done=await callRpc('finish_alliance_sync_run',{p_config_id:config.id,p_lease_token:leaseToken,p_run_id:runId,p_status:status,p_roster_count:roster.members.length,p_added_count:added,p_skipped_count:skipped,p_departed_count:departed,p_error_code:failed?'registration_failed':null,p_error_message:failures.slice(0,5).join('; ').slice(0,500)||null,p_next_run_at:nextRun,p_alliance_name:roster.name});
   if(done!==true&&!(Array.isArray(done)&&done[0]===true))throw new Error('Sync lease was lost before completion.');
-  return {ok:true,rosterCount:roster.members.length,addedCount:added,skippedCount:skipped,failedCount:failed,nextRunAt:nextRun,manual};
+  return {ok:true,rosterCount:roster.members.length,addedCount:added,skippedCount:skipped,bannedCount:roster.members.filter((m:any)=>bannedIds.has(m.id)).length,failedCount:failed,nextRunAt:nextRun,manual};
  }catch(e){
   const message=String((e as Error)?.message||'Sync failed.').slice(0,500),code=String((e as any)?.code||'sync_failed').slice(0,60);
   await patchRows('alliance_sync_config',`id=eq.${enc(config.id)}&lease_token=eq.${enc(leaseToken)}`,{last_attempt_at:new Date().toISOString(),lease_token:null,lease_expires_at:null,consecutive_failures:Number(config.consecutive_failures||0)+1,last_status:config.enabled?'error':'paused',last_error_code:code,last_error_message:message,next_run_at:new Date(Date.now()+5*60000).toISOString(),updated_at:new Date().toISOString()});
