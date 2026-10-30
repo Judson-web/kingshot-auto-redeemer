@@ -1,7 +1,7 @@
 import { sb, selectRows, patchRows, insertRows, callRpc, enc } from "./alliance-sync-store.js";
 import { randomUUID } from "node:crypto";
 import { normalizeRegistrationInput, registerPlayer } from "./register.js";
-import { getRegisteredPlayerIds } from "./registered-player-ids.js";
+import { getRegisteredPlayerIds, getBannedPlayerIds } from "./registered-player-ids.js";
 import { fetchMightPulse } from "../../lib/mightpulse-key-pool.js";
 
 const JOB_SECRET=process.env.ALLIANCE_SYNC_CRON_SECRET||process.env.CRON_SECRET||"";
@@ -24,7 +24,7 @@ async function loadRoster(kingdom:string,tag:string){
  const unique=[...byId.values()];
  const rawCount=a.member_count??a.memberCount??a.count;
  const count=rawCount==null?rows.length:Number(rawCount);
- if(!Number.isFinite(count)||count<1||!unique.length||unique.length<Math.min(count,5)||(count>0&&unique.length/count<.65))throw new Error("Incomplete roster rejected.");
+ if(!Number.isFinite(count)||count<1||!unique.length||unique.length<Math.min(count,5)||(count>0&&unique.length/count<.95))throw new Error("Incomplete roster rejected.");
  if(String(a.abbr??a.tag??tag).toLowerCase()!==tag.toLowerCase())throw new Error("Alliance mismatch.");
  return {name:String(a.name??a.alliance_name??tag).slice(0,80),members:unique};
 }
@@ -109,14 +109,18 @@ export default async function handler(req:any,res:any){
    try{
     await insertRows('alliance_sync_runs',{id:runId,config_id:config.id,status:'running'});
     const roster=await loadRoster(String(config.kingdom_id),String(config.alliance_tag));
-    const alreadyRegisteredIds=await getRegisteredPlayerIds(roster.members.map((m:any)=>m.id));
-    let registered=0,skipped=0,failed=0;const failures:string[]=[];
+    const rosterIds=roster.members.map((m:any)=>m.id);
+    const [alreadyRegisteredIds,bannedIds]=await Promise.all([getRegisteredPlayerIds(rosterIds),getBannedPlayerIds(rosterIds)]);
+    let registered=0,skipped=0,banned=0,failed=0;const failures:string[]=[];
     for(const member of roster.members){
      const heartbeat=await patchRows('alliance_sync_config',`id=eq.${enc(config.id)}&lease_token=eq.${enc(lease)}&enabled=eq.true`,{lease_expires_at:new Date(Date.now()+4*60000).toISOString()});
      if(!Array.isArray(heartbeat)||!heartbeat.length)throw new Error('Sync lease lost or configuration paused.');
      const priorRows=await selectRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}&select=registration_status`);
      const prior=Array.isArray(priorRows)&&priorRows.length?String(priorRows[0].registration_status):'';
      await sb('alliance_sync_seen_players?on_conflict=config_id,player_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify({config_id:config.id,player_id:member.id,last_seen_at:new Date().toISOString(),registration_status:prior==='departed'?'pending':(prior||'pending')})});
+     if(bannedIds.has(member.id)){
+      await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}`,{registration_status:'banned',registered_at:null,last_error_code:'player_banned'});banned++;skipped++;continue;
+     }
      if(prior&& !['pending','error','departed'].includes(prior)){skipped++;continue;}
      if(alreadyRegisteredIds.has(member.id)){
       await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}`,{registration_status:'already_registered',registered_at:new Date().toISOString(),last_error_code:null});skipped++;continue;
@@ -138,7 +142,7 @@ export default async function handler(req:any,res:any){
     const status=failed?'partial':'success';const nextRunAt=nextDailySyncAt();
     const finished=await callRpc('finish_alliance_sync_run',{p_config_id:config.id,p_lease_token:lease,p_run_id:runId,p_status:status,p_roster_count:roster.members.length,p_added_count:registered,p_skipped_count:skipped,p_departed_count:departedCount,p_error_code:failed?'registration_failed':null,p_error_message:failures.slice(0,5).join('; ').slice(0,500)||null,p_next_run_at:nextRunAt,p_alliance_name:roster.name});
     if(finished!==true && !(Array.isArray(finished)&&finished[0]===true))throw new Error('Sync lease was lost before completion.');
-    results.push({configId:config.id,status,rosterCount:roster.members.length,registered,skipped,failed,nextRunAt});
+    results.push({configId:config.id,status,rosterCount:roster.members.length,registered,skipped,banned,failed,nextRunAt});
    }catch(e){
     const message=String((e as Error)?.message||'Sync failed.').slice(0,400);
     await patchRows('alliance_sync_config',`id=eq.${enc(config.id)}&lease_token=eq.${enc(lease)}`,{lease_token:null,lease_expires_at:null,consecutive_failures:Number(config.consecutive_failures||0)+1,last_status:config.enabled?'error':'paused',last_error_code:'sync_failed',last_error_message:message,next_run_at:nextDailySyncAt(),updated_at:new Date().toISOString()});
