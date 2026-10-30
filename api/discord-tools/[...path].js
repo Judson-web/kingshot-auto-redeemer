@@ -1,6 +1,7 @@
 import avatar from "../../lib/discord-avatar.js";
 import user from "../../lib/discord-user.js";
 import interactions from "../../lib/discord-interactions.js";
+import playerCard from "../../lib/discord-player-card.js";
 
 export const config = { api: { bodyParser: false } };
 
@@ -20,6 +21,8 @@ function endpointFromRequest(req) {
   "/api/discord-tools/avatar": "avatar",
   "/api/discord-interactions": "interactions",
   "/api/discord-tools/interactions": "interactions",
+  "/api/discord-player-card": "player-card",
+  "/api/discord-tools/player-card": "player-card",
   "/api/discord-player-card": "player-card",
   "/api/discord-tools/player-card": "player-card",
  };
@@ -65,6 +68,7 @@ export default async function handler(req, res) {
  if (endpoint === "avatar") return avatar(req, res);
  if (endpoint === "user") return user(req, res);
  if (endpoint === "interactions") return interactions(req, res);
+ if (endpoint === "player-card") return playerCard(req, res);
  if (endpoint === "player-card") return playerCard(req, res);
  return res.status(404).json({ error: "Discord endpoint not found." });
 }
