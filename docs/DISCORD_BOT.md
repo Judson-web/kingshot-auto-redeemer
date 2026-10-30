@@ -7,7 +7,8 @@ The Discord integration is intentionally lightweight because the bot is not curr
 - Product identity: **Kingshot Auto Redeemer**
 - Visual direction: restrained gold accent, concise copy, consistent author and footer treatment.
 - Player lookup: structured profile card with governor, kingdom, power, Town Center, VIP, alliance, kills, coordinates and online state.
-- Registration: private, clearly labelled success or failure response.
+- Registration: public, compact success, already-enrolled, or failure response.
+- Player profiles include an interactive alliance-roster button when the player response contains a verified alliance tag. The roster is fetched live from MightPulse, validated, paginated in groups of 25, and lets members open another player profile without registering them.
 - No message-content intent, prefix commands, persistent Gateway connection, or always-on worker is required for the current HTTP-interaction model.
 - Optional DISCORD_BRAND_ICON_URL sets the small brand icon used in response cards. Use a stable HTTPS image URL.
 
