@@ -77,8 +77,7 @@ export default function PushNotifications() {
         let staleSubscription = false;
         if (permission === "granted" && sub && currentKey) {
           const existingKey = sub.options.applicationServerKey;
-          const existingBytes = existingKey
-            ? new Uint8Array(existingKey instanceof ArrayBuffer ? existingKey : existingKey.buffer, existingKey instanceof ArrayBuffer ? 0 : existingKey.byteOffset, existingKey instanceof ArrayBuffer ? existingKey.byteLength : existingKey.byteLength)
+          const existingBytes = existingKey ? new Uint8Array(existingKey) : null
             : null;
           const currentBytes = new Uint8Array(currentKey);
           staleSubscription = !existingBytes || existingBytes.length !== currentBytes.length ||
@@ -97,14 +96,12 @@ export default function PushNotifications() {
 
         let dismissed = false;
         try {
-          dismissed = localStorage.getItem("ks-push-panel-dismissed-v3") === "1";
-          if (!dismissed && localStorage.getItem("ks-push-panel-dismissed-v2")) {
-            dismissed = true;
-            localStorage.setItem("ks-push-panel-dismissed-v3", "1");
-          }
+          // Start a fresh dismissal generation so everyone sees the updated
+          // VAPID opt-in prompt once, including people who dismissed v3.
+          dismissed = localStorage.getItem("ks-push-panel-dismissed-v4") === "1";
           if (staleSubscription) {
             dismissed = false;
-            localStorage.removeItem("ks-push-panel-dismissed-v3");
+            localStorage.removeItem("ks-push-panel-dismissed-v4");
           }
         } catch {}
         setHidden(dismissed);
