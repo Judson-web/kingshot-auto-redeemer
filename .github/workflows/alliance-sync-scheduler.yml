@@ -2,8 +2,8 @@ name: Alliance Sync Scheduler
 
 on:
   schedule:
-    # Supabase Cron owns automatic alliance sync. This five-minute GitHub
-    # schedule remains only to drain the durable manual-registration queue.
+    # Supabase Cron owns the daily alliance-roster reconciliation.
+    # This five-minute GitHub schedule only drains the manual-registration queue.
     - cron: "*/5 * * * *"
   workflow_dispatch:
 
