@@ -574,6 +574,26 @@ export default async function handler(req,res){
   const latestCodeRows=await rpc("list_kingshot_admin_gift_codes",{});
   const verifiedCodeSet=new Set((Array.isArray(latestCodeRows)?latestCodeRows:[]).filter(r=>r?.validation_status==="verified"&&r?.active!==false&&r?.suppressed!==true).map(r=>String(r?.code||"").trim().toUpperCase()));
   activeCodes=activeCodes.filter(c=>verifiedCodeSet.has(c.code.toUpperCase()));
+  // Advisory-only second pass for the Discord worker summary. This rechecks the
+  // already-selected eligible set against the same read-only snapshot; it never
+  // mutates eligibility or feeds back into the redemption selection.
+  const giftCodeAudit=(()=>{
+   const rowsByCode=new Map((Array.isArray(latestCodeRows)?latestCodeRows:[]).map(row=>[String(row?.code||"").trim().toUpperCase(),row]));
+   let consistent=0,review=0,expiryKnown=0;
+   const auditedAt=Date.now();
+   for(const item of activeCodes){
+    const key=String(item?.code||"").trim().toUpperCase();
+    const row=rowsByCode.get(key);
+    const sourceExpiry=Number(item?.expiresAt);
+    const sourceExpired=Number.isFinite(sourceExpiry)&&sourceExpiry>0&&sourceExpiry<=auditedAt;
+    const dbExpiry=row?.expires_at?Date.parse(String(row.expires_at)):NaN;
+    const dbExpired=Number.isFinite(dbExpiry)&&dbExpiry<=auditedAt;
+    if((Number.isFinite(sourceExpiry)&&sourceExpiry>0)||Number.isFinite(dbExpiry))expiryKnown++;
+    if(row&&row.validation_status==="verified"&&row.active!==false&&row.suppressed!==true&&!expiredCodes.has(key)&&!sourceExpired&&!dbExpired)consistent++;
+    else review++;
+   }
+   return {checked:activeCodes.length,consistent,review,expiryKnown};
+  })();
   const newlyAvailableCodes=activeCodes.filter(item=>verifiedCodeSet.has(item.code.toUpperCase())&&!previouslyVerifiedCodes.has(item.code.toUpperCase()));
   if(newlyAvailableCodes.length){
    // Stable tags make repeat delivery of the same verified batch replace, rather than stack, alerts.
