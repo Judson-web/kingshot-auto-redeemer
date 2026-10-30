@@ -121,7 +121,7 @@ export default function PushNotifications() {
 
   const dismiss = () => {
     setHidden(true);
-    try { localStorage.setItem("ks-push-panel-dismissed-v3", "1"); } catch {}
+    try { localStorage.setItem("ks-push-panel-dismissed-v4", "1"); } catch {}
   };
 
   const toggle = async () => {
@@ -160,7 +160,7 @@ export default function PushNotifications() {
           }).catch(() => {});
           await existing.unsubscribe().catch(() => {});
           existing = null;
-          try { localStorage.removeItem("ks-push-panel-dismissed-v3"); } catch {}
+          try { localStorage.removeItem("ks-push-panel-dismissed-v4"); } catch {}
         }
       }
       if (existing && Notification.permission === "granted") {
