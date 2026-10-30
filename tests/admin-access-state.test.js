@@ -14,7 +14,7 @@ test("admin access state distinguishes auth failures from ordinary API errors", 
 test("notification preferences stay available on public pages, not private workspaces", async () => {
   const entry = await readFile(new URL("../src/main.jsx", import.meta.url), "utf8");
   const push = await readFile(new URL("../src/components/PushNotifications.tsx", import.meta.url), "utf8");
-  assert.match(entry, /privateWorkspacePaths=new Set\(\["\/dev","\/devsupport","\/admin\/players","\/admin\/maintenance","\/push","\/message","\/gift-codes"\]\)/);
+  assert.match(entry, /privateWorkspacePaths=new Set\(\["\/dev","\/devsupport","\/admin\/players","\/admin\/alliance-sync","\/admin\/maintenance","\/push","\/message","\/gift-codes"\]\)/);
   assert.match(entry, /showNotificationPrompt=!isPrivateWorkspace/);
   assert.match(entry, /isPrivateWorkspace\?publicPage:<PublicAnnouncements>/);
   assert.match(entry, /!isPrivateWorkspace&&<InstallAppPrompt\/>/);
