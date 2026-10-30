@@ -882,7 +882,7 @@ export default {
   "alliance.fetchTimeUnknown": "조회 시간을 확인할 수 없습니다",
   "alliance.capacityRemaining": "이 왕국의 연맹 자동 동기화 등록:",
   "alliance.slotsRemaining": "개 슬롯 남음",
-  "alliance.capacityFullNote": "이 왕국의 연맹 동기화 슬롯 3개가 모두 사용 중입니다. 일반 자동 교환의 개별 플레이어 등록에는 영향이 없습니다.",
+  "alliance.capacityFullNote": "이 왕국의 연맹 동기화 슬롯 4개가 모두 사용 중입니다. 일반 자동 교환의 개별 플레이어 등록에는 영향이 없습니다.",
   "alliance.syncHistoryTitle": "최근 동기화 기록",
   "alliance.syncHistoryIntro": "연맹 자동 동기화 실행 기록입니다. 플레이어의 일반 자동 교환 등록 상태는 변경되지 않습니다.",
   "alliance.refreshHistory": "기록 새로고침",
