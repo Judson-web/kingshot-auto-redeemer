@@ -85,3 +85,11 @@ test("deferred Discord commands update the original loading response and bound p
   assert.ok(!registerComponent.includes("followup(interaction.token"), "deferred registration buttons must edit their ephemeral original response");
   assert.ok(interactions.includes("maxAttempts: 2, totalTimeoutMs: 18_000"));
 });
+
+test("Discord alliance lookup uses a bounded quota-safe fast path", async () => {
+  const playerApi = await readFile(new URL("../api/kingshot-player.ts", import.meta.url), "utf8");
+  assert.ok(interactions.includes('discordFastPath: "1"'));
+  assert.ok(playerApi.includes('param("discordFastPath") === "1"'));
+  assert.ok(playerApi.includes("fastPath: true, maxAttempts: 2, totalTimeoutMs: 18_000"));
+  assert.ok(playerApi.includes("allianceRequestOptions"));
+});
