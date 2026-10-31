@@ -90,7 +90,9 @@ test("zero-attempt cycles explain when verified codes are already handled or una
 
 
 
-test("redemption concurrency is capped at one request per shard while upstream throttling is investigated", () => {
-  assert.ok(workerSource.includes("const safeConcurrency = Math.min(1"));
+test("redemption concurrency is bounded at two per shard behind the shared upstream reservation gate", () => {
+  assert.ok(workerSource.includes("const safeConcurrency = Math.min(2"));
   assert.ok(workerSource.includes("safeConcurrency, { deadline }"));
+  assert.ok(autoSource.includes("kingshot_reserve_redemption_request"));
+  assert.ok(autoSource.includes("kingshot_set_source_cooldown"));
 });
