@@ -10,8 +10,10 @@ export interface RedeemKingshotResult {
   message?: string;
   error?: string;
   errCode?: unknown;
+  upstreamHttpStatus?: number;
+  retryAfterSeconds?: number | null;
+  upstreamHeaders?: Record<string, string>;
 }
-
 
 const clean=s=>String(s??"").replace(/[^\x20-\x7E]/g,"").trim();
 const errorCategories={SUCCESS:"SUCCESS",RECEIVED:"ALREADY_REDEEMED", "SAME TYPE EXCHANGE":"ALREADY_REDEEMED",TIME_ERROR:"EXPIRED",CDK_NOT_FOUND:"INVALID_CODE",USAGE_LIMIT:"USAGE_LIMIT",ROLE_NOT_EXIST:"PLAYER_NOT_FOUND",STATE_MISMATCH:"KINGDOM_MISMATCH",SIGN_ERROR:"UPSTREAM_AUTH",TIMEOUT_RETRY:"RATE_LIMIT",LOGIN_EXPIRED_MID_PROCESS:"UPSTREAM_AUTH"};
@@ -28,11 +30,26 @@ const labels={
  TIMEOUT_RETRY:["Try again shortly.","The gift service is rate-limiting or temporarily unavailable."]
 };
 
+const DIAGNOSTIC_HEADERS=["server","via","retry-after","cf-ray","cf-cache-status","x-akamai-transformed","x-cache","x-served-by","x-request-id","traceparent"];
+function safeUpstreamHeaders(headers: Headers): Record<string,string> {
+ const result: Record<string,string> = {};
+ for (const name of DIAGNOSTIC_HEADERS) {
+  const value=headers.get(name);
+  if(value)result[name]=value.slice(0,160);
+ }
+ return result;
+}
+function retryAfterSeconds(value: string | null): number | null {
+ if(!value)return null;
+ const seconds=Number(value);
+ if(Number.isFinite(seconds)&&seconds>=0)return Math.min(3600,Math.ceil(seconds));
+ const date=Date.parse(value);
+ return Number.isFinite(date)?Math.min(3600,Math.max(0,Math.ceil((date-Date.now())/1000))):null;
+}
+
 export function normalizeKingshotStatus(message: unknown, errCode: unknown): string {
  const msg = String(message ?? "Unknown Error").trim().replace(/\.$/, "").replace(/[._-]+/g, " ").replace(/\s+/g, " ").toUpperCase();
  const code = String(errCode ?? "").trim();
- // Wrong-code outcomes are permanent. Normalize numeric and textual variants,
- // including string-valued error codes, so they cannot fall through as retries.
  if (code === "40014" || ["CDK NOT FOUND", "GIFT CODE NOT FOUND", "CODE NOT FOUND", "INVALID CODE", "INVALID GIFT CODE"].includes(msg)) return "CDK_NOT_FOUND";
  if (msg === "RECEIVED" || (code === "40008" && msg.includes("RECEIVED"))) return "RECEIVED";
  if (msg === "SAME TYPE EXCHANGE" || (code === "40011" && msg.includes("SAME TYPE"))) return "SAME TYPE EXCHANGE";
@@ -78,19 +95,24 @@ export async function redeemKingshot({playerId,code,kid}: RedeemKingshotInput): 
    body:new URLSearchParams({...payload,sign}),
    signal:AbortSignal.timeout(30000)
   });
+  const upstreamHeaders=safeUpstreamHeaders(r.headers);
+  const retryAfter=retryAfterSeconds(r.headers.get("retry-after"));
+  const diagnosticSuffix=" [upstream_http="+r.status+(retryAfter!==null?"; retry_after_seconds="+retryAfter:"")+(upstreamHeaders.server?"; server="+upstreamHeaders.server:"")+(upstreamHeaders.via?"; via="+upstreamHeaders.via:"")+(upstreamHeaders["cf-ray"]?"; cf_ray_present=true":"")+"]";
   const raw=await r.text();
   let d: { msg?: unknown; err_code?: unknown } = {};
   try{d=JSON.parse(raw)}catch{
    const snippet=raw.replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim().slice(0,180);
-   return {httpStatus:502,error:snippet?"Kingshot returned a non-JSON response: "+snippet:"Kingshot returned an invalid response."};
+   return {httpStatus:502,status:"ERROR",errorCategory:r.status===429?"HTTP_RATE_LIMIT":"HTTP_NON_JSON",upstreamHttpStatus:r.status,retryAfterSeconds:retryAfter,upstreamHeaders,error:(snippet?"Kingshot returned a non-JSON response: "+snippet:"Kingshot returned an invalid response.")+diagnosticSuffix};
   }
-  if([429,502,503,504].includes(r.status))return {httpStatus:503,errorCategory:r.status===429?"RATE_LIMIT":"UPSTREAM_UNAVAILABLE",error:"Kingshot is rate-limiting or temporarily unavailable. Try again shortly."};
+  if([429,502,503,504].includes(r.status)){
+   return {httpStatus:503,status:"ERROR",errorCategory:r.status===429?"HTTP_RATE_LIMIT":"HTTP_UPSTREAM_UNAVAILABLE",upstreamHttpStatus:r.status,retryAfterSeconds:retryAfter,upstreamHeaders,error:"Kingshot HTTP "+r.status+" response. "+(r.status===429?"The upstream HTTP layer rate-limited this request.":"The upstream service is temporarily unavailable.")+diagnosticSuffix};
+  }
   const msg=String(d.msg||"Unknown Error").replace(/\.$/,"").toUpperCase();
   const status=normalizeKingshotStatus(d.msg, d.err_code);
   const [statusLabel,message]=labels[status]||[status,"Kingshot returned: "+msg];
   const ok=["SUCCESS","RECEIVED","SAME TYPE EXCHANGE"].includes(status);
-  return {httpStatus:ok?200:400,ok,status,errorCategory:errorCategories[status]||"UPSTREAM_ERROR",statusLabel,message,errCode:d.err_code??null};
+  return {httpStatus:ok?200:400,ok,status,errorCategory:errorCategories[status]||"UPSTREAM_ERROR",statusLabel,message,errCode:d.err_code??null,upstreamHttpStatus:r.status,upstreamHeaders};
  }catch(e){
-  return {httpStatus:504,errorCategory:"TIMEOUT",error:"Kingshot redemption request timed out."};
+  return {httpStatus:504,status:"ERROR",errorCategory:"TIMEOUT",error:"Kingshot redemption request timed out."};
  }
 }
