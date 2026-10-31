@@ -59,6 +59,14 @@ Discord registration records the initiating Discord account for audit, while the
 
 The alliance page fetches and validates the selected roster, checks registration status, and processes eligible players in bounded batches. The admin **Sync now** action runs the same server-side reconciliation path, with a 300-second Vercel execution budget for larger rosters. Each run validates a fresh provider roster against the alliance's reported member count and rejects suspiciously incomplete responses before changing registration state. The worker batch-checks the authoritative Supabase player registry and player-ban registry (up to 100 IDs per query), then skips already-registered and banned players before attempting registration. Per-alliance seen-player state records outcomes for audit and incremental processing; it is not the authoritative count of globally registered players. If a manual sync fails, the server records a retry due in five minutes. The GitHub Actions scheduler wakes the existing worker every five minutes to pick up due syncs and retries; Supabase's daily cron remains a backup wake-up. Both scheduler paths use the same per-alliance database lease, preventing overlapping runs for the same alliance. Successful syncs advance the next scheduled run by 24 hours. Scheduled sync adds newly discovered eligible members; it does not automatically deregister players who leave an alliance.
 
+## Discord bot
+
+The bot interface reflects current registration state directly from the existing player registry.
+
+The Discord bot provides player profiles with the player's auto-redeem enrollment state, alliance navigation and registration status, verified gift-code lookup, and server alert controls. Use `/bot-info` in Discord for a compact feature summary and an invite link. Player enrollment state is read from the existing Supabase `kingshot_autoredeem` records. A failed lookup is shown as unavailable rather than guessed, and an alliance explicitly marked `unregistered` is not mislabeled as paused.
+
+Discord server Administrator permission is separate from website/project Admin access. Discord-side commands use Discord's native Administrator permission; website announcement administration uses the verified project-owner session.
+
 ## Discord bot administration
 
 Discord server **Administrator** permission is separate from the website/project **Admin** role and the verified project-owner bypass. `/set-gift-code-alert-channel` and `/announce` require Discord’s native Administrator permission, checked server-side from the signed interaction payload. The commands are also registered with `default_member_permissions: "8"` and disabled in DMs. A Discord server Administrator can configure that server’s alert destination and publish announcements, but gains no website Admin access, operational privileges, project-owner status, or alliance-registration cap bypass. The project-owner bypass remains a separate exact Discord-account check.
