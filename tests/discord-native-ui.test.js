@@ -204,7 +204,7 @@ test("Discord alliance cards show authoritative registration status and player c
   assert.ok(interactions.includes('action === "player-return"'));
   assert.ok(interactions.includes("Back to player profile"));
   assert.ok(interactions.includes("fetchPlayerRegistrationStatus(playerId)"));
-  assert.ok(interactions.includes('field("AUTO-REDEEM", data.registrationStatus || "Status unavailable")'));
+  assert.ok(interactions.includes('field("AUTO-REDEEM", data.registrationStatus || "Status unavailable", true)') || interactions.includes('field("AUTO-REDEEM", data.registrationStatus || "Status unavailable")'));
   assert.ok(interactions.includes("status === \"unregistered\""));
   assert.ok(interactions.includes("name === \"bot-info\""));
 });
