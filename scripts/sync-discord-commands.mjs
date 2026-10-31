@@ -25,7 +25,7 @@ if (guildId && !/^\d{5,25}$/.test(guildId)) {
   process.exit(1);
 }
 
-const commands = [
+const commands = [\n  { name: "codes", description: "List active verified gift codes and recent redemption results", type: 1 },
   {
     name: "player",
     description: "Look up a Kingshot player",
