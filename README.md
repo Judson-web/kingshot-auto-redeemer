@@ -61,7 +61,7 @@ The alliance page fetches and validates the selected roster, checks registration
 
 ## Discord bot
 
-The bot interface reflects current registration state directly from the existing player registry.
+The bot interface reflects current registration state directly from the existing player registry. CI revalidation is enabled for the merged alliance-navigation baseline.
 
 The Discord bot provides player profiles with the player's auto-redeem enrollment state, alliance navigation and registration status, verified gift-code lookup, and server alert controls. Use `/bot-info` in Discord for a compact feature summary and an invite link. Player enrollment state is read from the existing Supabase `kingshot_autoredeem` records. A failed lookup is shown as unavailable rather than guessed, and an alliance explicitly marked `unregistered` is not mislabeled as paused.
 
