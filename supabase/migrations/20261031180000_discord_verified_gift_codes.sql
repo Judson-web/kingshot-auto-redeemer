@@ -9,7 +9,7 @@ stable
 as $function$
   select
     g.code,
-    count(r.id)::bigint as recent_successes,
+    count(r.gift_code)::bigint as recent_successes,
     g.validated_at
   from public.kingshot_gift_codes g
   left join public.kingshot_redemptions r
