@@ -56,7 +56,8 @@ test("alliance explorer exposes search, roster selection, pagination, and back n
     assert.ok((expected === 'name: "alliance"' ? commands : interactions).includes(expected), "missing alliance explorer feature: " + expected);
   }
   assert.ok(interactions.includes("max_values: 1"));
-  assert.ok(interactions.includes("slice(start, start + pageSize)"));\n  assert.ok(interactions.includes("const pageSize = 10;"));
+  assert.ok(interactions.includes("slice(start, start + pageSize)"));
+  assert.ok(interactions.includes("const pageSize = 10;"));
   assert.ok(interactions.includes("interaction.data?.values?.[0]"));
 });
 
@@ -70,10 +71,13 @@ test("alliance browsing is read-only and uses the existing alliance lookup API",
 
 test("deferred Discord commands update the original loading response and bound player lookup", () => {
   const commandStart = interactions.indexOf("async function handleCommand(req, interaction, res) {");
-  const commandEnd = interactions.indexOf("\nasync function handleComponent", commandStart);
+  const commandEnd = interactions.indexOf("
+async function handleComponent", commandStart);
   const commandHandler = interactions.slice(commandStart, commandEnd);
   const componentStart = interactions.indexOf('if (action === "register")');
-  const componentEnd = interactions.indexOf("\n  }\n  return acknowledge", componentStart) + 4;
+  const componentEnd = interactions.indexOf("
+  }
+  return acknowledge", componentStart) + 4;
   const registerComponent = interactions.slice(componentStart, componentEnd);
 
   assert.ok(interactions.includes("async function completeDeferred(token, body, label)"));
@@ -123,4 +127,19 @@ test("Discord deferred commands and components stay alive with Vercel waitUntil"
   assert.ok(handler.includes("retainAfterAcknowledgement(componentTask, interaction, \"message-component\")"));
   assert.ok(handler.includes("if (res.headersSent)"));
 });
-\n\ntest("verified gift-code command is backed by active validation and recent successful redemptions", () => {\n  for (const expected of ["fetchVerifiedGiftCodes", "validation_status=eq.verified", "active=eq.true", "suppressed=eq.false", "kingshot_redemptions", "status=eq.SUCCESS", "7 * 24 * 60 * 60 * 1000", "recentSuccesses", "giftCodesEmbed", "ks:codes-page:"]) assert.ok(interactions.includes(expected), "missing verified gift-code behavior: " + expected);\n  assert.ok(commands.includes('name: "codes"'));\n});\n\ntest("Discord registration command is public and registration cards can show player avatars", () => {\n  const start = interactions.indexOf('if (name === "register")');\n  const end = interactions.indexOf('return { content: "That command', start);\n  const block = interactions.slice(start, end);\n  assert.ok(block.includes("acknowledge(res, { type: 5, data: {} })"));\n  assert.ok(!block.includes("flags: 64"));\n  assert.ok(interactions.includes("const avatar = safeAvatar(data.avatar)"));\n  assert.ok(interactions.includes("thumbnail: avatar"));\n});\n
+
+
+test("verified gift-code command is backed by active validation and recent successful redemptions", () => {
+  for (const expected of ["fetchVerifiedGiftCodes", "validation_status=eq.verified", "active=eq.true", "suppressed=eq.false", "kingshot_redemptions", "status=eq.SUCCESS", "7 * 24 * 60 * 60 * 1000", "recentSuccesses", "giftCodesEmbed", "ks:codes-page:"]) assert.ok(interactions.includes(expected), "missing verified gift-code behavior: " + expected);
+  assert.ok(commands.includes('name: "codes"'));
+});
+
+test("Discord registration command is public and registration cards can show player avatars", () => {
+  const start = interactions.indexOf('if (name === "register")');
+  const end = interactions.indexOf('return { content: "That command', start);
+  const block = interactions.slice(start, end);
+  assert.ok(block.includes("acknowledge(res, { type: 5, data: {} })"));
+  assert.ok(!block.includes("flags: 64"));
+  assert.ok(interactions.includes("const avatar = safeAvatar(data.avatar)"));
+  assert.ok(interactions.includes("thumbnail: avatar"));
+});
