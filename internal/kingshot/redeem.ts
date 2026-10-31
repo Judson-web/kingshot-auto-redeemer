@@ -48,7 +48,7 @@ function retryAfterSeconds(value: string | null): number | null {
 }
 
 export function normalizeKingshotStatus(message: unknown, errCode: unknown): string {
- const msg = String(message ?? "Unknown Error").trim().replace(/\\.$/, "").replace(/[._-]+/g, " ").replace(/\\s+/g, " ").toUpperCase();
+ const msg = String(message ?? "Unknown Error").trim().replace(/\.$/, "").replace(/[._-]+/g, " ").replace(/\s+/g, " ").toUpperCase();
  const code = String(errCode ?? "").trim();
  if (code === "40014" || ["CDK NOT FOUND", "GIFT CODE NOT FOUND", "CODE NOT FOUND", "INVALID CODE", "INVALID GIFT CODE"].includes(msg)) return "CDK_NOT_FOUND";
  if (msg === "RECEIVED" || (code === "40008" && msg.includes("RECEIVED"))) return "RECEIVED";
@@ -70,9 +70,9 @@ function invalidInput(message: string): RedeemKingshotResult {
 }
 
 export async function redeemKingshot({playerId,code,kid}: RedeemKingshotInput): Promise<RedeemKingshotResult> {
- const fid=clean(playerId).replace(/\\D/g,""),giftCode=clean(code),kingdom=clean(kid).replace(/\\D/g,"");
- if(!/^\\d{5,20}$/.test(fid))return invalidInput("Enter a valid Kingshot Player ID (5–20 digits).");
- if(!/^\\d{1,10}$/.test(kingdom))return invalidInput("Could not resolve a valid kingdom for this player.");
+ const fid=clean(playerId).replace(/\D/g,""),giftCode=clean(code),kingdom=clean(kid).replace(/\D/g,"");
+ if(!/^\d{5,20}$/.test(fid))return invalidInput("Enter a valid Kingshot Player ID (5–20 digits).");
+ if(!/^\d{1,10}$/.test(kingdom))return invalidInput("Could not resolve a valid kingdom for this player.");
  if(!/^[A-Za-z0-9_-]{6,32}$/.test(giftCode))return invalidInput("Gift codes must be 6–32 letters, numbers, underscores, or hyphens.");
  const secret=process.env.KINGSHOT_API_SECRET;
  if(!secret)return {httpStatus:503,error:"Kingshot redemption secret is not configured on the server."};
@@ -101,13 +101,13 @@ export async function redeemKingshot({playerId,code,kid}: RedeemKingshotInput): 
   const raw=await r.text();
   let d: { msg?: unknown; err_code?: unknown } = {};
   try{d=JSON.parse(raw)}catch{
-   const snippet=raw.replace(/<[^>]*>/g," ").replace(/\\s+/g," ").trim().slice(0,180);
+   const snippet=raw.replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim().slice(0,180);
    return {httpStatus:502,status:"ERROR",errorCategory:r.status===429?"HTTP_RATE_LIMIT":"HTTP_NON_JSON",upstreamHttpStatus:r.status,retryAfterSeconds:retryAfter,upstreamHeaders,error:(snippet?"Kingshot returned a non-JSON response: "+snippet:"Kingshot returned an invalid response.")+diagnosticSuffix};
   }
   if([429,502,503,504].includes(r.status)){
    return {httpStatus:503,status:"ERROR",errorCategory:r.status===429?"HTTP_RATE_LIMIT":"HTTP_UPSTREAM_UNAVAILABLE",upstreamHttpStatus:r.status,retryAfterSeconds:retryAfter,upstreamHeaders,error:"Kingshot HTTP "+r.status+" response. "+(r.status===429?"The upstream HTTP layer rate-limited this request.":"The upstream service is temporarily unavailable.")+diagnosticSuffix};
   }
-  const msg=String(d.msg||"Unknown Error").replace(/\\.$/,"").toUpperCase();
+  const msg=String(d.msg||"Unknown Error").replace(/\.$/,"").toUpperCase();
   const status=normalizeKingshotStatus(d.msg, d.err_code);
   const [statusLabel,message]=labels[status]||[status,"Kingshot returned: "+msg];
   const ok=["SUCCESS","RECEIVED","SAME TYPE EXCHANGE"].includes(status);
