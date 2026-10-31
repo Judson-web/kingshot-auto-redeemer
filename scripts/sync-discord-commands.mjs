@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Safely reconcile this application's three Kingshot slash commands.
+ * Safely reconcile this application's four Kingshot slash commands.
  *
  * Uses Discord's per-command POST upsert endpoint, not bulk overwrite. This
  * preserves commands owned by other integrations in the same scope.
@@ -26,6 +26,7 @@ if (guildId && !/^\d{5,25}$/.test(guildId)) {
 }
 
 const commands = [
+  { name: "codes", description: "List active verified gift codes and recent redemption results", type: 1 },
   {
     name: "player",
     description: "Look up a Kingshot player",
