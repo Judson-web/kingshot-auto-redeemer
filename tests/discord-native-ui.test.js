@@ -43,8 +43,10 @@ test("registration responses are public and preserve the authoritative backend",
   const buttonStart = interactions.indexOf('if (action === "register")');
   const buttonEnd = interactions.indexOf("\n  }", buttonStart);
   assert.ok(!interactions.slice(buttonStart, buttonEnd).includes("flags: 64"));
-  assert.ok(interactions.includes('alliance-registration.html?kingdomId='));
+  assert.ok(interactions.includes('custom_id: "ks:register-alliance:"'));
   assert.ok(interactions.includes('label: "Register alliance"'));
+  assert.ok(interactions.includes("registerAllianceFromDiscord"));
+  assert.ok(!interactions.includes('alliance-registration.html?kingdomId='));
   assert.ok(interactions.includes('field("ALLIANCE", data.alliance || "—")'));
   assert.ok(interactions.includes('return details.tag ? "[" + details.tag + "] " + (details.name || "Alliance")'));
   assert.ok(interactions.includes("Already enrolled"));
@@ -151,4 +153,17 @@ test("Discord registration command is public on valid registration and cards can
   assert.ok(block.includes("acknowledge(res, { type: 5, data: {} })"));
   assert.ok(interactions.includes("const avatar = safeAvatar(data.avatar)"));
   assert.ok(interactions.includes("thumbnail: avatar"));
+});
+
+test("Discord alliance registration uses signed identity and owner-only database bypass", async () => {
+ const handler=await readFile(new URL("../internal/kingshot/alliance-sync-handler.ts",import.meta.url),"utf8");
+ const migration=await readFile(new URL("../supabase/migrations/20261101150000_discord_alliance_registration_owner_bypass.sql",import.meta.url),"utf8");
+ assert.ok(interactions.includes("interaction.member?.user?.id || interaction.user?.id"));
+ assert.ok(interactions.includes("verifySignature("));
+ assert.ok(handler.includes("registerAllianceFromDiscord"));
+ assert.ok(handler.includes("discordUserId==='871756466900598815'"));
+ assert.ok(handler.includes("p_owner_bypass:isOwner"));
+ assert.ok(migration.includes("p_owner_bypass boolean"));
+ assert.ok(migration.includes("if not p_owner_bypass and v_total >= 4"));
+ assert.ok(migration.includes("grant execute on function public.register_alliance_sync_config_from_discord"));
 });
