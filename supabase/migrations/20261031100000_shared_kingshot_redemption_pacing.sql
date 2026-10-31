@@ -13,7 +13,7 @@ security definer
 set search_path = public
 as $function$
 declare
-  v_next timestamptz;
+  v_cooldown timestamptz;
   v_start timestamptz;
 begin
   if p_source_url is null or length(trim(p_source_url)) = 0 then
@@ -27,19 +27,19 @@ begin
   on conflict (source_url) do nothing;
 
   select cooldown_until, next_request_at
-    into v_next, v_start
+    into v_cooldown, v_start
     from public.kingshot_source_cooldowns
     where source_url = p_source_url
     for update;
 
   -- A provider-wide circuit cooldown blocks new submissions entirely.
-  if v_next > now() then
+  if v_cooldown > now() then
     return null;
   end if;
 
   v_start := greatest(now(), coalesce(v_start, now()));
   update public.kingshot_source_cooldowns
-    set next_request_at = v_start + make_interval(secs => greatest(100, least(coalesce(p_spacing_ms, 500), 5000))::numeric / 1000),
+    set next_request_at = v_start + make_interval(secs => greatest(100, least(coalesce(p_spacing_ms, 500), 5000)) / 1000.0),
         updated_at = now()
     where source_url = p_source_url;
 
