@@ -9,17 +9,17 @@ The Kingshot Auto Redeemer Discord integration uses Discord's signed HTTP Intera
 - `/alliance kingdom:<number> search:<optional name or tag>` searches the kingdom alliance rankings and opens a native select menu.
 - Selecting an alliance opens its roster, with a governor selector, roster summary, and previous/next pagination.
 - Selecting a governor opens the same player profile view with a **Back to roster** button. **Back to alliances** returns to the kingdom's alliance selector.
-- Roster pages contain up to 25 members, matching Discord's select-menu option limit. No roster member is registered by browsing.
+- Roster pages contain up to 10 members, matching Discord's select-menu option limit. No roster member is registered by browsing.
 - Refresh updates the existing message rather than posting another card.
 - Registration from a player profile uses an ephemeral confirmation and removes the registration action after a successful new registration.
-- The `/register` command also returns a private ephemeral confirmation.
+- The `/register` command returns a public confirmation embed with the player avatar when the upstream provides an allow-listed image URL.
 - No generated player PNG, image-conversion API, hosted card URL, or player-card rendering endpoint is used.
 - Player avatars may appear as a small native Discord embed thumbnail when the upstream URL matches the allow-list.
 
 ## Commands
 
 - `/player id:<Kingshot Player ID>`
-- `/register player_id:<Kingshot Player ID>`
+- `/register player_id:<Kingshot Player ID>`\n- `/codes`\n\n`/codes` lists only active, unsuppressed codes with `validation_status=verified`, excludes expired codes, and shows successful redemption counts from the last seven days. It is read from the primary Supabase gift-code and redemption tables; it does not treat scraper discovery alone as verification.\n\n`/register` posts a public result by default. Registration button interactions from a player profile remain private confirmations.
 
 The allow-list sync script in `scripts/sync-discord-commands.mjs` reconciles global commands. It replaces only the global command scope; guild-scoped commands remain separate.
 
