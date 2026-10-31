@@ -20,7 +20,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "web-push": "^3.6.7",
-    "@neondatabase/serverless": "^1.0.2"
+    "@neondatabase/serverless": "^1.0.2",
+    "@vercel/functions": "1.6.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
