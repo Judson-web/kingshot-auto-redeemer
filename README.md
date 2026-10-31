@@ -61,8 +61,6 @@ The alliance page fetches and validates the selected roster, checks registration
 
 ## Discord bot
 
-The bot interface reflects current registration state directly from the existing player registry. CI revalidation is enabled for the merged alliance-navigation baseline, including player status cards.
-
 The Discord bot provides player profiles with the player's auto-redeem enrollment state, alliance navigation and registration status, verified gift-code lookup, and server alert controls. Use `/bot-info` in Discord for a compact feature summary and an invite link. Player enrollment state is read from the existing Supabase `kingshot_autoredeem` records. A failed lookup is shown as unavailable rather than guessed, and an alliance explicitly marked `unregistered` is not mislabeled as paused.
 
 Discord server Administrator permission is separate from website/project Admin access. Discord-side commands use Discord's native Administrator permission; website announcement administration uses the verified project-owner session.
@@ -268,3 +266,4 @@ AGPL-3.0 includes source-sharing obligations for modified versions made availabl
 ## Frontend accessibility and visual regression
 
 The `ui-regression` verification job runs the built frontend with deterministic API fixtures. It checks accessibility rules, mobile and desktop overflow and overlay geometry, and committed screenshots for key application pages. See [the UI regression guide](docs/ui-regression.md) for local setup and intentional baseline updates.
+\n\n### Scheduled announcements\n\nThe private website announcement console can send immediately or schedule a one-time or recurring announcement. Schedules persist in Supabase, support pause/resume/cancel, optional end times, a local timezone label, Discord-only / website-push-only / combined delivery, private image uploads, and validated Discord role mentions. A GitHub Actions worker wakes every five minutes using `CRON_SECRET`; delivery claims are atomic and leased, retries are bounded, and one-time schedules complete after delivery. Configure the repository Actions secret `CRON_SECRET` to match the production environment variable.\n

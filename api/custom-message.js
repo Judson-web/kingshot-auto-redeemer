@@ -77,7 +77,7 @@ async function resolveRoleMentions(message,guildId){
  }
  let out=message;
  for(const role of cached.items){
-  const escaped=RegExp.escape(role.name).replace(/\s+/g,"\\s+");
+  const escaped=RegExp.escape(role.name).replace(/\s+/g,"\s+");
   if(!escaped)continue;
   out=out.replace(new RegExp("@"+escaped,"gi"),"<@&"+role.id+">");
  }
@@ -143,7 +143,7 @@ export default async function handler(req,res){
    if(!(await validSession(req)))return res.status(401).json({error:"Unauthorized."});
    return res.status(200).json({destinations:await resolveDestinationNames()});
   }
-  if(!(await validSession(req)))return res.status(401).json({error:"Unauthorized."});
+  if(action!=="SCHEDULE_RUN"&&!(await validSession(req)))return res.status(401).json({error:"Unauthorized."});
 
   if(action.startsWith("GIFT_CODE_")||action==="TRIGGER_KINGDOM_VALIDATION"||action==="WAKE_REDEEM_WORKERS"){
    const base=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
@@ -218,6 +218,119 @@ export default async function handler(req,res){
    }
    return res.status(400).json({error:"Invalid gift-code action."});
   }
+  const adminBase=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
+  const adminKey=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
+  const adminDb=async(path,options={})=>{
+   if(!adminKey)throw Error("Announcement storage is not configured.");
+   const response=await fetch(adminBase+"/rest/v1/"+path,{...options,headers:{apikey:adminKey,authorization:"Bearer "+adminKey,"content-type":"application/json",Prefer:"return=representation",...(options.headers||{})},signal:AbortSignal.timeout(12000)});
+   const data=await response.json().catch(()=>null);
+   if(!response.ok)throw Error(data?.message||"Announcement database request failed ("+response.status+").");
+   return data;
+  };
+  if(action==="ANNOUNCEMENT_ATTACHMENT_UPLOAD"){
+   const encoded=String(body.fileBase64||"");
+   const mime=clean(body.mimeType,80).toLowerCase();
+   const allowed=new Set(["image/png","image/jpeg","image/webp","image/gif"]);
+   if(!allowed.has(mime))return res.status(400).json({error:"Use a PNG, JPEG, WebP, or GIF image."});
+   if(!encoded||encoded.length>4_200_000)return res.status(413).json({error:"Image attachments must be 3 MB or smaller."});
+   const bytes=Buffer.from(encoded,"base64");
+   if(!bytes.length||bytes.length>3*1024*1024)return res.status(413).json({error:"Image attachments must be 3 MB or smaller."});
+   const ext=({"image/png":"png","image/jpeg":"jpg","image/webp":"webp","image/gif":"gif"})[mime];
+   const objectPath=OWNER_DISCORD_ID+"/"+crypto.randomUUID()+"."+ext;
+   const upload=await fetch(adminBase+"/storage/v1/object/announcement-attachments/"+objectPath,{method:"POST",headers:{apikey:adminKey,authorization:"Bearer "+adminKey,"content-type":mime,"x-upsert":"false"},body:bytes,signal:AbortSignal.timeout(15000)});
+   if(!upload.ok)return res.status(502).json({error:"Could not store the announcement attachment."});
+   const signed=await fetch(adminBase+"/storage/v1/object/sign/announcement-attachments/"+objectPath,{method:"POST",headers:{apikey:adminKey,authorization:"Bearer "+adminKey,"content-type":"application/json"},body:JSON.stringify({expiresIn:31536000}),signal:AbortSignal.timeout(10000)});
+   const signedData=await signed.json().catch(()=>({}));
+   if(!signed.ok||!signedData.signedURL)return res.status(502).json({error:"Attachment stored, but a delivery URL could not be created."});
+   const baseUrl=adminBase.replace(/\/$/,"");
+   return res.status(200).json({ok:true,objectPath,imageUrl:signedData.signedURL.startsWith("http")?signedData.signedURL:baseUrl+"/storage/v1"+signedData.signedURL});
+  }
+  if(action==="ANNOUNCEMENT_ROLES"){
+   const guildId=clean(body.guildId,25);
+   if(!/^\d{17,20}$/.test(guildId))return res.status(400).json({error:"Choose a valid Discord server."});
+   const token=process.env.DISCORD_BOT_TOKEN||"";
+   if(!token)return res.status(503).json({error:"Discord bot is not configured."});
+   const response=await fetch("https://discord.com/api/v10/guilds/"+guildId+"/roles",{headers:{Authorization:"Bot "+token},signal:AbortSignal.timeout(8000)});
+   if(!response.ok)return res.status(502).json({error:"Could not load roles for that Discord server."});
+   const roles=await response.json();
+   return res.status(200).json({roles:Array.isArray(roles)?roles.filter(x=>x&&x.id&&x.name&&!x.managed).map(x=>({id:x.id,name:x.name})):[]});
+  }
+  if(action==="SCHEDULE_CREATE"){
+   if(!rateLimit(req,res,"announcement-schedule",10,60000))return res.status(429).json({error:"Too many scheduled announcements."});
+   const title=clean(body.title,256),message=clean(body.message,4096),target=clean(body.target,40);
+   const deliveryMode=["discord","website","both"].includes(body.deliveryMode)?body.deliveryMode:"both";
+   const startsAt=Date.parse(body.startsAt||"");
+   const intervalSeconds=body.intervalSeconds===null||body.intervalSeconds===""?null:Number(body.intervalSeconds);
+   const endsAt=body.endsAt?new Date(body.endsAt).toISOString():null;
+   const timezone=clean(body.timezone||"UTC",64);
+   const roleIds=Array.isArray(body.roleIds)?[...new Set(body.roleIds.map(x=>String(x)).filter(x=>/^\d{17,20}$/.test(x)))].slice(0,25):[];
+   if(!message||!Number.isFinite(startsAt)||startsAt<Date.now()-60000)return res.status(400).json({error:"Enter a message and a future start time."});
+   if(intervalSeconds!==null&&(!Number.isInteger(intervalSeconds)||intervalSeconds<60||intervalSeconds>31536000))return res.status(400).json({error:"Repeat interval must be between one minute and one year."});
+   if(endsAt&&Date.parse(endsAt)<=startsAt)return res.status(400).json({error:"The end time must be after the start time."});
+   let guildId=null,channelId=null;
+   if(deliveryMode!=="website"){
+    if(!webhookFor(target))return res.status(400).json({error:"Choose a configured Discord destination."});
+    const destination=await resolveDestinationNames();
+    if(!destination.some(x=>x.key===target))return res.status(400).json({error:"Unknown Discord destination."});
+    guildId=/^\d{17,20}$/.test(target)?target:null;
+    channelId=clean(body.channelId,25)||null;
+    if(roleIds.length){
+     if(!guildId)return res.status(400).json({error:"Role mentions require a Discord server destination."});
+     const token=process.env.DISCORD_BOT_TOKEN||"";
+     const rr=await fetch("https://discord.com/api/v10/guilds/"+guildId+"/roles",{headers:{Authorization:"Bot "+token},signal:AbortSignal.timeout(8000)});
+     if(!rr.ok)return res.status(400).json({error:"Could not validate selected server roles."});
+     const available=new Set((await rr.json()).map(x=>String(x.id)));
+     if(roleIds.some(id=>!available.has(id)))return res.status(400).json({error:"A selected role does not belong to the destination server."});
+    }
+   }
+   const rows=await adminDb("discord_scheduled_announcements",{method:"POST",body:JSON.stringify({target,delivery_mode:deliveryMode,title,message,footer:clean(body.footer,2048),color:/^#[0-9a-fA-F]{6}$/.test(body.color||"")?body.color:"#5865F2",image_url:imageUrl(body.imageUrl)||null,attachment_path:clean(body.attachmentPath,300)||null,guild_id:guildId,channel_id:channelId,role_ids:roleIds,starts_at:new Date(startsAt).toISOString(),ends_at:endsAt,interval_seconds:intervalSeconds,timezone,next_run_at:new Date(startsAt).toISOString(),created_by:OWNER_DISCORD_ID})});
+   return res.status(200).json({ok:true,announcement:rows?.[0]||null});
+  }
+  if(action==="SCHEDULE_LIST"){
+   const rows=await adminDb("discord_scheduled_announcements?select=id,title,delivery_mode,starts_at,ends_at,interval_seconds,timezone,next_run_at,status,last_error&order=next_run_at.asc&limit=50");
+   return res.status(200).json({announcements:rows||[]});
+  }
+  if(action==="SCHEDULE_UPDATE"){
+   const id=clean(body.id,40),status=body.status==="paused"?"paused":body.status==="scheduled"?"scheduled":"cancelled";
+   if(!/^[0-9a-f-]{36}$/i.test(id))return res.status(400).json({error:"Invalid announcement ID."});
+   const rows=await adminDb("discord_scheduled_announcements?id=eq."+encodeURIComponent(id)+"&status=in.(scheduled,paused)",{method:"PATCH",body:JSON.stringify({status,lease_token:null,lease_until:null,updated_at:new Date().toISOString()})});
+   return res.status(200).json({ok:true,updated:Array.isArray(rows)&&rows.length>0});
+  }
+  if(action==="SCHEDULE_RUN"){
+   const secret=String(req.headers.authorization||"").replace(/^Bearer\s+/i,"");
+   if(!process.env.CRON_SECRET||secret!==process.env.CRON_SECRET)return res.status(401).json({error:"Unauthorized worker request."});
+   const claimed=await adminDb("rpc/claim_due_discord_announcements",{method:"POST",body:JSON.stringify({p_limit:10})});
+   let sent=0,failed=0;
+   for(const item of Array.isArray(claimed)?claimed:[]){
+    try{
+     let currentImage=item.image_url||"";
+     if(item.delivery_mode!=="website"){
+      const webhook=webhookFor(item.target);
+      if(!webhook)throw Error("Discord destination is no longer configured.");
+      const roleIds=Array.isArray(item.role_ids)?item.role_ids.filter(x=>/^\d{17,20}$/.test(String(x))):[];
+      const mentions=roleIds.map(id=>"<@&"+id+">").join(" ");
+      const content=[mentions,item.message].filter(Boolean).join("\n");
+      const embed={title:item.title||undefined,description:item.message,color:hexColor(item.color),timestamp:new Date().toISOString(),footer:{text:item.footer||"Kingshot Auto Redeem"}};
+      if(item.attachment_path){const signed=await fetch(adminBase+"/storage/v1/object/sign/announcement-attachments/"+item.attachment_path,{method:"POST",headers:{apikey:adminKey,authorization:"Bearer "+adminKey,"content-type":"application/json"},body:JSON.stringify({expiresIn:3600}),signal:AbortSignal.timeout(8000)});const signedData=await signed.json().catch(()=>({}));if(!signed.ok||!signedData.signedURL)throw Error("Could not access the scheduled image attachment.");currentImage=signedData.signedURL.startsWith("http")?signedData.signedURL:adminBase+"/storage/v1"+signedData.signedURL;}
+      if(currentImage)embed.image={url:currentImage};
+      const response=await fetch(webhook,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({content,embeds:[embed],allowed_mentions:{parse:[],roles:roleIds}}),signal:AbortSignal.timeout(12000)});
+      if(!response.ok)throw Error("Discord delivery failed ("+response.status+").");
+     }
+     if(item.delivery_mode!=="discord"){
+      const {broadcastPush}=await import("../internal/push-notifications.js");
+      await broadcastPush({title:item.title||"Message from the Kingshot team",body:item.message.slice(0,220),url:"/",image:currentImage,tag:"scheduled-announcement-"+item.id+"-"+Date.now()});
+     }
+     const next=item.interval_seconds?new Date(Date.now()+Number(item.interval_seconds)*1000).toISOString():null;
+     await adminDb("discord_scheduled_announcements?id=eq."+item.id+"&lease_token=eq."+item.lease_token,{method:"PATCH",body:JSON.stringify({last_run_at:new Date().toISOString(),next_run_at:next,status:next?"scheduled":"completed",lease_token:null,lease_until:null,last_error:null,updated_at:new Date().toISOString()})});
+     sent++;
+    }catch(error){
+     const retry=new Date(Date.now()+Math.min(3600,60*Math.pow(2,Math.min(5,Number(item.attempts)||1)))*1000).toISOString();
+     await adminDb("discord_scheduled_announcements?id=eq."+item.id+"&lease_token=eq."+item.lease_token,{method:"PATCH",body:JSON.stringify({next_run_at:retry,lease_token:null,lease_until:null,last_error:clean(error?.message,500),status:Number(item.attempts)>=5?"failed":"scheduled",updated_at:new Date().toISOString()})}).catch(()=>{});
+     failed++;
+    }
+   }
+   return res.status(200).json({ok:true,claimed:Array.isArray(claimed)?claimed.length:0,sent,failed});
+  }
   if(action!=="SEND")return res.status(400).json({error:"Invalid action."});
   const deliveryMode=body.deliveryMode==="discord"?"discord":"both";
   const target=String(body.target||"").trim(),WEBHOOK=webhookFor(target);
@@ -229,7 +342,7 @@ export default async function handler(req,res){
   const hasEveryone=/@everyone/.test(rawMessage)||explicitMentions.includes("everyone");
   const hasHere=/@here/.test(rawMessage)||explicitMentions.includes("here");
   const message=rawMessage;
-  const title=clean(body.title,256),description=clean(message.replace(/@everyone|@here/g," ").replace(/\\s{2,}/g," ").trim(),4096),footer=clean(body.footer,2048),image=imageUrl(body.imageUrl);
+  const title=clean(body.title,256),description=clean(message.replace(/@everyone|@here/g," ").replace(/\s{2,}/g," ").trim(),4096),footer=clean(body.footer,2048),image=imageUrl(body.imageUrl);
   const embed={title,description,color:hexColor(body.color),timestamp:new Date().toISOString(),fields:[],footer:{text:footer||"Kingshot Auto Redeem"}};
   if(image)embed.image={url:image};
   if(!title)delete embed.title;

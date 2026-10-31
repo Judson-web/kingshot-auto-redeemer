@@ -1,0 +1,33 @@
+name: Scheduled announcements worker
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scheduled-announcement-worker
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Wake durable announcement worker
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET is not configured."
+            exit 1
+          fi
+          curl --fail-with-body --silent --show-error \
+            --max-time 90 \
+            -X POST "https://ks-rewards.com/api/custom-message" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            --data '{"action":"SCHEDULE_RUN"}'
