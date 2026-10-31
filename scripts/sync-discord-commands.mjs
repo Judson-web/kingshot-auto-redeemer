@@ -34,6 +34,15 @@ const commands = [
     }]
   },
   {
+    name: "alliance",
+    description: "Browse alliances and player rosters in a kingdom",
+    type: 1,
+    options: [
+      { type: 4, name: "kingdom", description: "Kingshot kingdom number", required: true },
+      { type: 3, name: "search", description: "Optional alliance name or tag filter", required: false }
+    ]
+  },
+  {
     name: "register",
     description: "Register a Kingshot player for auto-redeem",
     type: 1,

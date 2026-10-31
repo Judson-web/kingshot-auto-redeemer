@@ -1,31 +1,35 @@
 # Discord bot
 
-The Discord integration is intentionally lightweight because the bot is not currently in active use. This repository keeps its existing application identity and interaction endpoint, with a branded response layer ready for future activation.
+The Kingshot Auto Redeemer Discord integration uses Discord's signed HTTP Interactions API on Vercel. It does not require a persistent Gateway connection, message-content intent, prefix commands, a separate bot host, or a duplicate database.
 
-## Brand and interface
+## Native Discord interface
 
-- Product identity: **Kingshot Auto Redeemer**
-- Visual direction: restrained gold accent, concise copy, consistent author and footer treatment.
-- Player lookup: structured profile card with governor, kingdom, power, Town Center, VIP, alliance, kills, coordinates and online state.
-- Registration: public, compact success, already-enrolled, or failure response.
-- Player profiles include an interactive alliance-roster button when the player response contains a verified alliance tag. The roster is fetched live from MightPulse, validated, paginated in groups of 25, and lets members open another player profile without registering them.
-- No message-content intent, prefix commands, persistent Gateway connection, or always-on worker is required for the current HTTP-interaction model.
-- Optional DISCORD_BRAND_ICON_URL sets the small brand icon used in response cards. Use a stable HTTPS image URL.
+- Player lookup uses a native Discord embed with structured governor, kingdom, alliance, power, Town Center, VIP, kills, coordinates, and status fields.
+- Player embeds provide interactive **Refresh profile** and **Register for auto-redeem** buttons, plus a dashboard link.
+- `/alliance kingdom:<number> search:<optional name or tag>` searches the kingdom alliance rankings and opens a native select menu.
+- Selecting an alliance opens its roster, with a governor selector, roster summary, and previous/next pagination.
+- Selecting a governor opens the same player profile view with a **Back to roster** button. **Back to alliances** returns to the kingdom's alliance selector.
+- Roster pages contain up to 25 members, matching Discord's select-menu option limit. No roster member is registered by browsing.
+- Refresh updates the existing message rather than posting another card.
+- Registration from a player profile uses an ephemeral confirmation and removes the registration action after a successful new registration.
+- The `/register` command also returns a private ephemeral confirmation.
+- No generated player PNG, image-conversion API, hosted card URL, or player-card rendering endpoint is used.
+- Player avatars may appear as a small native Discord embed thumbnail when the upstream URL matches the allow-list.
 
-## Existing commands
+## Commands
 
-- /player id:<Kingshot Player ID>
-- /register player_id:<Kingshot Player ID>
+- `/player id:<Kingshot Player ID>`
+- `/register player_id:<Kingshot Player ID>`
 
-The allow-list sync script in scripts/sync-discord-commands.mjs can reconcile global commands. It replaces only the global command scope; guild-scoped commands remain separate.
+The allow-list sync script in `scripts/sync-discord-commands.mjs` reconciles global commands. It replaces only the global command scope; guild-scoped commands remain separate.
 
 ## Runtime configuration
 
 The interaction endpoint requires the existing server-side Vercel variables:
 
-- DISCORD_BOT_TOKEN
-- DISCORD_PUBLIC_KEY (or DISCORD_APPLICATION_PUBLIC_KEY)
+- `DISCORD_BOT_TOKEN`
+- `DISCORD_PUBLIC_KEY` (or `DISCORD_APPLICATION_PUBLIC_KEY`)
 
-Do not expose either variable to browser code or use a NEXT_PUBLIC_ prefix. The optional DISCORD_BRAND_ICON_URL is a non-secret HTTPS image URL.
+The application ID may be supplied as `DISCORD_APPLICATION_ID`; otherwise it is resolved from the authenticated bot session. Optional `DISCORD_BRAND_ICON_URL` sets the small brand icon used in embeds. Keep all credentials server-side and never expose them to browser code.
 
-There is deliberately no separate Discord database, telemetry store, bot worker, or duplicate player-registration system in this scope. Player registration continues to use the existing Kingshot backend and its established validation and safeguards.
+Player registration continues to use the existing Kingshot backend and its established validation and safeguards. No second registration system or Discord-specific player database is introduced.
