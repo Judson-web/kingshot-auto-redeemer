@@ -1,23 +1,27 @@
 #!/usr/bin/env node
 /**
- * Reconcile Discord application commands with the commands implemented by
- * lib/discord-interactions.js. Requires DISCORD_BOT_TOKEN and
- * DISCORD_APPLICATION_ID. Set DISCORD_GUILD_ID to reconcile one guild scope
- * instead of the global scope.
+ * Safely reconcile this application's three Kingshot slash commands.
  *
- * This is intentionally an allow-list sync: commands absent from this file
- * are removed from the selected scope. It never edits other guild scopes.
+ * Uses Discord's per-command POST upsert endpoint, not bulk overwrite. This
+ * preserves commands owned by other integrations in the same scope.
+ *
+ * Required: DISCORD_BOT_TOKEN, DISCORD_APPLICATION_ID.
+ * Optional: DISCORD_GUILD_ID (guild scope; otherwise global scope).
  */
-const token = process.env.DISCORD_BOT_TOKEN;
-const applicationId = process.env.DISCORD_APPLICATION_ID;
-const guildId = process.env.DISCORD_GUILD_ID;
+const token = String(process.env.DISCORD_BOT_TOKEN || "").trim();
+const applicationId = String(process.env.DISCORD_APPLICATION_ID || "").trim();
+const guildId = String(process.env.DISCORD_GUILD_ID || "").trim();
 
-if (!token || !applicationId) {
-  console.error("Set DISCORD_BOT_TOKEN and DISCORD_APPLICATION_ID.");
+if (!token) {
+  console.error("Missing DISCORD_BOT_TOKEN. Add it as a GitHub Actions secret.");
   process.exit(1);
 }
-if (!/^\d{5,25}$/.test(applicationId) || (guildId && !/^\d{5,25}$/.test(guildId))) {
-  console.error("Discord application and guild IDs must be numeric snowflakes.");
+if (!/^\d{5,25}$/.test(applicationId)) {
+  console.error("DISCORD_APPLICATION_ID must be the Discord application's numeric ID.");
+  process.exit(1);
+}
+if (guildId && !/^\d{5,25}$/.test(guildId)) {
+  console.error("DISCORD_GUILD_ID must be the Discord server's numeric ID.");
   process.exit(1);
 }
 
@@ -60,38 +64,118 @@ const scope = guildId
   : "commands";
 const endpoint = `https://discord.com/api/v10/applications/${applicationId}/${scope}`;
 
-async function request(method, body) {
-  const response = await fetch(endpoint, {
-    method,
-    headers: {
-      Authorization: "Bot " + token,
-      "Content-Type": "application/json"
-    },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-    signal: AbortSignal.timeout(15000)
-  });
-  const text = await response.text();
-  let data;
-  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
-  if (!response.ok) {
-    throw new Error(`Discord API ${method} failed (${response.status}): ${JSON.stringify(data).slice(0, 500)}`);
+async function request(method, path = "", body) {
+  const url = endpoint + path;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const response = await fetch(url, {
+      method,
+      headers: {
+        Authorization: "Bot " + token,
+        "Content-Type": "application/json"
+      },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      signal: AbortSignal.timeout(15000)
+    });
+    const raw = await response.text();
+    let data = null;
+    try { data = raw ? JSON.parse(raw) : null; } catch { data = raw; }
+
+    if (response.status === 429 && attempt < 3) {
+      const headerDelay = Number(response.headers.get("retry-after"));
+      const bodyDelay = Number(data?.retry_after);
+      const delaySeconds = Number.isFinite(headerDelay) && headerDelay > 0
+        ? headerDelay
+        : Number.isFinite(bodyDelay) && bodyDelay > 0 ? bodyDelay : 1;
+      await new Promise(resolve => setTimeout(resolve, Math.min(delaySeconds * 1000, 10000)));
+      continue;
+    }
+
+    if (!response.ok) {
+      const detail = typeof data === "string" ? data : JSON.stringify(data);
+      throw new Error(`Discord API ${method} ${url.replace(token, "[redacted]")} failed (${response.status}): ${String(detail || "").slice(0, 700)}`);
+    }
+    return data;
   }
-  return data;
+  throw new Error("Discord API rate limit retries were exhausted.");
+}
+
+function commandMatches(actual, expected) {
+  if (!actual || actual.name !== expected.name || Number(actual.type || 1) !== expected.type) return false;
+  const actualOptions = Array.isArray(actual.options) ? actual.options : [];
+  const expectedOptions = expected.options || [];
+  if (actualOptions.length !== expectedOptions.length) return false;
+  return expectedOptions.every(expectedOption => {
+    const found = actualOptions.find(option => option.name === expectedOption.name);
+    return Boolean(found)
+      && Number(found.type) === expectedOption.type
+      && Boolean(found.required) === Boolean(expectedOption.required);
+  });
 }
 
 try {
-  const before = await request("GET");
-  const after = await request("PUT", commands);
+  // Prove the credentials work before attempting writes.
+  const bot = await fetch("https://discord.com/api/v10/users/@me", {
+    headers: { Authorization: "Bot " + token },
+    signal: AbortSignal.timeout(15000)
+  });
+  const botBody = await bot.json().catch(() => ({}));
+  if (!bot.ok) {
+    throw new Error(`Discord bot authentication failed (${bot.status}): ${JSON.stringify(botBody).slice(0, 500)}`);
+  }
+  console.log(`Authenticated as Discord bot ${botBody.username || "unknown"} (${botBody.id || "ID unavailable"}).`);
+
+  // Guild commands are the recommended fast path for testing and update
+  // immediately. This preflight catches a wrong server ID or missing bot access.
+  if (guildId) {
+    const guildResponse = await fetch(`https://discord.com/api/v10/guilds/${guildId}`, {
+      headers: { Authorization: "Bot " + token },
+      signal: AbortSignal.timeout(15000)
+    });
+    const guildBody = await guildResponse.json().catch(() => ({}));
+    if (!guildResponse.ok) {
+      throw new Error(`Bot cannot access target Discord server ${guildId} (${guildResponse.status}): ${JSON.stringify(guildBody).slice(0, 500)}. Check the server ID and that this bot is a member.`);
+    }
+    console.log(`Verified access to Discord server ${guildBody.name || guildId} (${guildId}).`);
+  }
+
+  // POST is an idempotent upsert for an existing command name/type. Unlike
+  // PUT bulk overwrite, it leaves unrelated commands untouched.
+  const upserted = [];
+  for (const command of commands) {
+    const result = await request("POST", "", command);
+    if (!result?.id || result.name !== command.name) {
+      throw new Error(`Discord accepted an unexpected response while registering /${command.name}.`);
+    }
+    upserted.push({ name: result.name, id: result.id, version: result.version || null });
+    console.log(`Registered /${result.name} (${result.id}).`);
+  }
+
+  // Read the scope back from Discord and verify the options, not just HTTP 2xx.
+  const registered = await request("GET");
+  if (!Array.isArray(registered)) {
+    throw new Error("Discord returned an invalid command list during verification.");
+  }
+  const failures = commands.filter(expected => {
+    const actual = registered.find(command => command.name === expected.name && Number(command.type || 1) === expected.type);
+    return !commandMatches(actual, expected);
+  });
+  if (failures.length) {
+    throw new Error("Discord read-back verification failed for: " + failures.map(item => "/" + item.name).join(", "));
+  }
+
   console.log(JSON.stringify({
-    scope: guildId ? "guild:" + guildId : "global",
-    removedOrReplaced: Math.max(0, (Array.isArray(before) ? before.length : 0) - commands.length),
-    commands: (Array.isArray(after) ? after : []).map(command => ({
-      name: command.name,
-      id: command.id,
-      version: command.version
-    }))
+    status: "verified",
+    scope: guildId ? "guild" : "global",
+    guildId: guildId || null,
+    applicationId,
+    bot: { id: botBody.id, username: botBody.username },
+    verifiedCommands: commands.map(command => {
+      const actual = registered.find(item => item.name === command.name && Number(item.type || 1) === command.type);
+      return { name: actual.name, id: actual.id, options: (actual.options || []).map(option => option.name) };
+    }),
+    unrelatedCommandsPreserved: true
   }, null, 2));
 } catch (error) {
-  console.error(error instanceof Error ? error.message : "Command sync failed.");
+  console.error(error instanceof Error ? error.message : "Discord command synchronization failed.");
   process.exit(1);
 }
