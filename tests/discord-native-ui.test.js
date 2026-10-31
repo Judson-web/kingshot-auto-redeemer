@@ -71,13 +71,10 @@ test("alliance browsing is read-only and uses the existing alliance lookup API",
 
 test("deferred Discord commands update the original loading response and bound player lookup", () => {
   const commandStart = interactions.indexOf("async function handleCommand(req, interaction, res) {");
-  const commandEnd = interactions.indexOf("
-async function handleComponent", commandStart);
+  const commandEnd = interactions.indexOf("\nasync function handleComponent", commandStart);
   const commandHandler = interactions.slice(commandStart, commandEnd);
   const componentStart = interactions.indexOf('if (action === "register")');
-  const componentEnd = interactions.indexOf("
-  }
-  return acknowledge", componentStart) + 4;
+  const componentEnd = interactions.indexOf("\n  }\n  return acknowledge", componentStart) + 4;
   const registerComponent = interactions.slice(componentStart, componentEnd);
 
   assert.ok(interactions.includes("async function completeDeferred(token, body, label)"));
