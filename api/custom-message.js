@@ -1,3 +1,4 @@
+export const config = { api: { bodyParser: { sizeLimit: "5mb" } } };
 import { isDiscordOwner } from "../lib/discord-identity.js";
 import crypto from"node:crypto";
 import {rateLimit}from"../lib/request-rate-limit.js";
