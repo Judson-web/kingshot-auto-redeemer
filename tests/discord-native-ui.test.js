@@ -38,9 +38,15 @@ test("PNG player-card endpoint and renderer are retired", () => {
   assert.ok(!route.includes("discord-player-card"));
 });
 
-test("registration responses preserve the authoritative backend and keep profile-button confirmations private", () => {
+test("registration responses are public and preserve the authoritative backend", () => {
   assert.ok(interactions.includes("acknowledge(res, { type: 5, data: {} });"));
-  assert.ok(interactions.includes("flags: 64"));
+  const buttonStart = interactions.indexOf('if (action === "register")');
+  const buttonEnd = interactions.indexOf("\n  }", buttonStart);
+  assert.ok(!interactions.slice(buttonStart, buttonEnd).includes("flags: 64"));
+  assert.ok(interactions.includes('alliance-registration.html?kingdomId='));
+  assert.ok(interactions.includes('label: "Register alliance"'));
+  assert.ok(interactions.includes('field("ALLIANCE", data.alliance || "—")'));
+  assert.ok(interactions.includes('return details.tag ? "[" + details.tag + "] " + (details.name || "Alliance")'));
   assert.ok(interactions.includes("Already enrolled"));
   assert.ok(interactions.includes("Player registered successfully"));
   assert.ok(interactions.includes("/api/kingshot-register"));
