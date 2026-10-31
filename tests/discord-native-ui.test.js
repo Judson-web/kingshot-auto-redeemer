@@ -193,3 +193,14 @@ test("announcement confirmation claims a pending send exactly once", () => {
   assert.ok(interactions.includes('status: "publishing"'));
   assert.ok(interactions.includes("if (!Array.isArray(claimed) || !claimed.length)"));
 });
+
+
+test("Discord alliance cards show authoritative registration status and player cards expose alliance navigation", () => {
+  assert.ok(interactions.includes("fetchAllianceRegistrationStatus(kingdomId, tag)"));
+  assert.ok(interactions.includes('field("REGISTRATION", registrationStatus)'));
+  assert.ok(interactions.includes("alliance_sync_config?kingdom_id=eq."));
+  assert.ok(interactions.includes('custom_id: "ks:player-alliance:" + id'));
+  assert.ok(interactions.includes('action === "player-alliance"'));
+  assert.ok(interactions.includes('action === "player-return"'));
+  assert.ok(interactions.includes("Back to player profile"));
+});
