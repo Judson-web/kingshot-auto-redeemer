@@ -8,7 +8,6 @@ function endpointFromRequest(req) {
  const raw = req.query?.path;
  const candidate = Array.isArray(raw) ? raw.join("/") : String(raw || "");
  if (["avatar", "user", "interactions"].includes(candidate)) return candidate;
-
  let pathname = "";
  try { pathname = new URL(req.url || "/", "http://localhost").pathname; } catch {}
  const aliases = {
@@ -17,11 +16,13 @@ function endpointFromRequest(req) {
   "/api/discord-avatar": "avatar",
   "/api/discord-tools/avatar": "avatar",
   "/api/discord-interactions": "interactions",
-  "/api/discord-tools/interactions": "interactions",
+  "/api/discord-tools/interactions": "interactions"
  };
  if (aliases[pathname]) return aliases[pathname];
- const match = pathname.match(/\\/discord-tools\\/(avatar|user|interactions)\\/?$/);
- return match?.[1] || "";
+ for (const endpoint of ["avatar", "user", "interactions"]) {
+  if (pathname.endsWith("/discord-tools/" + endpoint)) return endpoint;
+ }
+ return "";
 }
 
 export default async function handler(req, res) {
