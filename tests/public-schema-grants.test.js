@@ -22,9 +22,11 @@ test("new public tables have explicit ACL decisions and RLS enabled", () => {
       const schema = (match[1] || "public").toLowerCase();
       if (schema !== "public") continue;
       const table = match[2];
-      const hasAclDecision = sql.split(";").some(statement =>
-        /^(grant|revoke)\b/i.test(statement.trim()) && statement.toLowerCase().includes(table.toLowerCase())
-      );
+      const hasAclDecision = sql.split(";").some(statement => {
+        const normalized = statement.trim().toLowerCase();
+        return (normalized.startsWith("grant ") || normalized.startsWith("revoke "))
+          && normalized.includes(table.toLowerCase());
+      });
       if (!hasAclDecision) {
         violations.push(`${file}: public.${table} has no explicit GRANT/REVOKE decision`);
       }

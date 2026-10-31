@@ -205,6 +205,21 @@ test("Discord alliance cards show authoritative registration status and player c
   assert.ok(interactions.includes("Back to player profile"));
   assert.ok(interactions.includes("fetchPlayerRegistrationStatus(playerId)"));
   assert.ok(interactions.includes('field("AUTO-REDEEM", data.registrationStatus || "Status unavailable", true)') || interactions.includes('field("AUTO-REDEEM", data.registrationStatus || "Status unavailable")'));
-  assert.ok(interactions.includes("status === \"unregistered\""));
-  assert.ok(interactions.includes("name === \"bot-info\""));
+  assert.ok(interactions.includes('status === "unregistered"'));
+  assert.ok(interactions.includes('name === "bot-info"'));
+});
+
+ 
+test("scheduled website announcements use durable claims, validated roles, and private image storage", async () => {
+  const api = await readFile(new URL("../api/custom-message.js", import.meta.url), "utf8");
+  const ui = await readFile(new URL("../src/CustomMessageApp.jsx", import.meta.url), "utf8");
+  const migration = await readFile(new URL("../supabase/migrations/20261101170000_durable_discord_announcements.sql", import.meta.url), "utf8");
+  const workflow = await readFile(new URL("../.github/workflows/announcement-scheduler.yml", import.meta.url), "utf8");
+  for (const expected of ["SCHEDULE_CREATE","SCHEDULE_LIST","SCHEDULE_UPDATE","SCHEDULE_RUN","ANNOUNCEMENT_ROLES","ANNOUNCEMENT_ATTACHMENT_UPLOAD","claim_due_discord_announcements","allowed_mentions:{parse:[],roles:roleIds}","lease_token","interval_seconds","attachment_path"]) {
+    assert.ok(api.includes(expected) || migration.includes(expected), "missing scheduler backend feature: "+expected);
+  }
+  for (const expected of ["datetime-local","repeatMinutes","roleIdsInput","SCHEDULE_CREATE","Pause","Resume","Cancel",'type="file"']) assert.ok(ui.includes(expected), "missing scheduler UI feature: "+expected);
+  for (const expected of ["create table if not exists public.discord_scheduled_announcements","for update skip locked","lease_until","enable row level security","revoke all","claim_due_discord_announcements","announcement-attachments"]) assert.ok(migration.includes(expected), "missing durable migration feature: "+expected);
+  assert.ok(workflow.includes('cron: "*/5 * * * *"'));
+  assert.ok(workflow.includes("CRON_SECRET"));
 });
