@@ -277,6 +277,10 @@ async function handleAllianceLookup(req: RequestLike, res: ResponseLike): Promis
  const kingdomId = param("kingdomId").slice(0, 10);
  const tag = param("tag").slice(0, 20);
  const mode = param("mode");
+ const discordFastPath = param("discordFastPath") === "1";
+ const allianceRequestOptions = discordFastPath
+  ? { timeoutMs: 10_000, fastPath: true, maxAttempts: 2, totalTimeoutMs: 18_000 }
+  : { timeoutMs: 20_000 };
  if (mode === "registration-status") {
   const rawIds = param("ids").split(",").map(value => value.trim()).filter(Boolean);
   const ids = [...new Set(rawIds)].filter(id => /^\d{5,20}$/.test(id)).slice(0, 200);
@@ -316,7 +320,7 @@ async function handleAllianceLookup(req: RequestLike, res: ResponseLike): Promis
  try {
   if (mode === "search") {
    const upstreamUrl = "https://api.mightpulse.com/v1/kingdoms/" + encodeURIComponent(kingdomId) + "/ranks?board=alliance_power&limit=100";
-   const upstream = await fetchMightPulse(upstreamUrl, { headers: { Accept: "application/json" } }, { timeoutMs: 20_000 });
+   const upstream = await fetchMightPulse(upstreamUrl, { headers: { Accept: "application/json" } }, allianceRequestOptions);
    const body = await upstream.json().catch(() => ({})) as Record<string, any>;
    if (!upstream.ok) {
     if (upstream.status === 404) {
@@ -373,7 +377,7 @@ async function handleAllianceLookup(req: RequestLike, res: ResponseLike): Promis
    return;
   }
   const upstreamUrl = "https://api.mightpulse.com/v1/alliances/" + encodeURIComponent(kingdomId) + "/" + encodeURIComponent(tag) + "?include=info,roster";
-  const upstream = await fetchMightPulse(upstreamUrl, { headers: { Accept: "application/json" } }, { timeoutMs: 20_000 });
+  const upstream = await fetchMightPulse(upstreamUrl, { headers: { Accept: "application/json" } }, allianceRequestOptions);
   const body = await upstream.json().catch(() => ({})) as Record<string, any>;
   if (!upstream.ok) {
    if (upstream.status === 404) {
