@@ -187,3 +187,9 @@ test("Discord server Administrator is distinct from project-owner bypass", () =>
   assert.ok(commands.includes('name: "set-gift-code-alert-channel"'));
   assert.ok(commands.includes('name: "announce"'));
 });
+
+ 
+test("announcement confirmation claims a pending send exactly once", () => {
+  assert.ok(interactions.includes('status: "publishing"'));
+  assert.ok(interactions.includes("if (!Array.isArray(claimed) || !claimed.length)"));
+});

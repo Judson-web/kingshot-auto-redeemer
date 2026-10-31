@@ -12,7 +12,7 @@ create table if not exists public.discord_pending_announcements (
  title text not null check (length(title) between 1 and 256),
  message text not null check (length(message) between 1 and 3500),
  created_by_discord_id text not null check (created_by_discord_id ~ '^[0-9]{5,25}$'),
- status text not null default 'pending' check (status in ('pending','sent','cancelled')),
+ status text not null default 'pending' check (status in ('pending','publishing','sent','cancelled')),
  discord_message_id text,
  expires_at timestamptz not null,
  sent_at timestamptz,
