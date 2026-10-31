@@ -118,6 +118,20 @@ export async function runAllianceSyncAsAdmin(configId:string, adminUserId:string
  if(!Array.isArray(claimed)||!claimed.length)throw Object.assign(new Error('A sync is already running for this alliance.'),{status:409,code:'sync_in_progress'});
  return await performSync(claimed[0],adminUserId,true,lease);
 }
+
+export async function registerAllianceFromDiscord(kingdomId:string, allianceTag:string, discordUserId:string){
+ if(!validKingdom(kingdomId)||!validTag(allianceTag)||!/^\d{5,25}$/.test(discordUserId)) throw Object.assign(new Error('Invalid alliance or Discord identity.'),{status:400,code:'invalid_alliance'});
+ const roster=await readAlliance(kingdomId,allianceTag);
+ const isOwner=discordUserId==='871756466900598815';
+ const created=await callRpc('register_alliance_sync_config_from_discord',{p_owner_user_id:randomUUID(),p_kingdom_id:kingdomId,p_alliance_tag:roster.tag,p_alliance_name:roster.name,p_roster_count:roster.members.length,p_discord_user_id:discordUserId,p_owner_bypass:isOwner});
+ const config=Array.isArray(created)?created[0]:created;
+ if(!config?.id) throw new Error('Supabase did not confirm alliance registration.');
+ const lease=randomUUID();
+ const claimed=await patchRows('alliance_sync_config','id=eq.'+enc(config.id)+'&enabled=eq.true&or=(lease_token.is.null,lease_expires_at.lt.'+enc(new Date().toISOString())+')',{lease_token:lease,lease_expires_at:new Date(Date.now()+4*60000).toISOString(),last_status:'running',updated_at:new Date().toISOString()});
+ if(!Array.isArray(claimed)||!claimed.length) return {config,validatedRosterCount:roster.members.length,scheduled:true,ownerBypass:isOwner};
+ const initialSync=await performSync(claimed[0],String(config.owner_user_id),true,lease);
+ return {config,validatedRosterCount:roster.members.length,initialSync,ownerBypass:isOwner};
+}
 export default async function handler(req:Req,res:Res){
  res.setHeader('Cache-Control','private, no-store');
  if(req.method!=='GET'&&req.method!=='POST'){res.setHeader('Allow','GET, POST');return fail(res,405,'method_not_allowed','Method not allowed.');}

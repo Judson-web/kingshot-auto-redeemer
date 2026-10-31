@@ -11,7 +11,7 @@ The Kingshot Auto Redeemer Discord integration uses Discord's signed HTTP Intera
 - Selecting a governor opens the same player profile view with a **Back to roster** button. **Back to alliances** returns to the kingdom's alliance selector.
 - Roster pages contain up to 10 members, matching Discord's select-menu option limit. No roster member is registered by browsing.
 - Refresh updates the existing message rather than posting another card.
-- Registration from a player profile uses an ephemeral confirmation and removes the registration action after a successful new registration.
+- Registration from a player profile posts a public confirmation and removes the registration action after a successful new registration.
 - The `/register` command returns a public confirmation embed with the player avatar when the upstream provides an allow-listed image URL.
 - No generated player PNG, image-conversion API, hosted card URL, or player-card rendering endpoint is used.
 - Player avatars may appear as a small native Discord embed thumbnail when the upstream URL matches the allow-list.
@@ -24,7 +24,7 @@ The Kingshot Auto Redeemer Discord integration uses Discord's signed HTTP Intera
 
 `/codes` lists only active, unsuppressed codes with `validation_status=verified`, excludes expired codes, and shows successful redemption counts from the last seven days. It is read from the primary Supabase gift-code and redemption tables; it does not treat scraper discovery alone as verification.
 
-`/register` posts a public result by default. Registration button interactions from a player profile remain private confirmations.
+`/register` and player-profile registration buttons post public results, including public error and already-registered responses. Alliance names are consistently rendered as `[TAG] Alliance Name`.\n\nAlliance roster pages include a **Register alliance** link. It opens the existing Alliance Registration page with the kingdom and exact alliance tag preselected. The user completes the existing authenticated registration flow there, including its kingdom cap and daily sync safeguards. Browsing the roster never registers members automatically.
 
 The allow-list sync script in `scripts/sync-discord-commands.mjs` reconciles global commands. It replaces only the global command scope; guild-scoped commands remain separate.
 
