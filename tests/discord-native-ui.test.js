@@ -38,7 +38,7 @@ test("PNG player-card endpoint and renderer are retired", () => {
   assert.ok(!route.includes("discord-player-card"));
 });
 
-test("registration responses are private and preserve the authoritative backend", () => {
+test("registration responses preserve the authoritative backend and keep profile-button confirmations private", () => {
   assert.ok(interactions.includes("acknowledge(res, { type: 5, data: {} });"));
   assert.ok(interactions.includes("flags: 64"));
   assert.ok(interactions.includes("Already enrolled"));
