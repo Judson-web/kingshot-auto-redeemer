@@ -19,7 +19,12 @@ The Kingshot Auto Redeemer Discord integration uses Discord's signed HTTP Intera
 ## Commands
 
 - `/player id:<Kingshot Player ID>`
-- `/register player_id:<Kingshot Player ID>`\n- `/codes`\n\n`/codes` lists only active, unsuppressed codes with `validation_status=verified`, excludes expired codes, and shows successful redemption counts from the last seven days. It is read from the primary Supabase gift-code and redemption tables; it does not treat scraper discovery alone as verification.\n\n`/register` posts a public result by default. Registration button interactions from a player profile remain private confirmations.
+- `/register player_id:<Kingshot Player ID>`
+- `/codes`
+
+`/codes` lists only active, unsuppressed codes with `validation_status=verified`, excludes expired codes, and shows successful redemption counts from the last seven days. It is read from the primary Supabase gift-code and redemption tables; it does not treat scraper discovery alone as verification.
+
+`/register` posts a public result by default. Registration button interactions from a player profile remain private confirmations.
 
 The allow-list sync script in `scripts/sync-discord-commands.mjs` reconciles global commands. It replaces only the global command scope; guild-scoped commands remain separate.
 
