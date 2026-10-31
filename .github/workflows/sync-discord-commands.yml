@@ -1,11 +1,17 @@
 name: Sync Discord Application Commands
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/sync-discord-commands.mjs"
+      - ".github/workflows/sync-discord-commands.yml"
   workflow_dispatch:
     inputs:
       guild_id:
-        description: "Optional Discord server ID for fast guild-only sync. Leave blank for global commands."
+        description: "Discord server ID. Defaults to the Kingshot community server."
         required: false
+        default: "1494360495694549134"
         type: string
 
 permissions:
@@ -17,7 +23,7 @@ concurrency:
 
 jobs:
   sync:
-    name: Register /player and /register
+    name: Register and verify /player, /alliance, and /register
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -29,18 +35,18 @@ jobs:
         with:
           node-version: 24
 
-      - name: Validate required secret
+      - name: Validate required configuration
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
         run: |
           if [ -z "$DISCORD_BOT_TOKEN" ]; then
-            echo "::error::Add the DISCORD_BOT_TOKEN repository secret before running this workflow."
+            echo "::error::Add DISCORD_BOT_TOKEN as a repository Actions secret."
             exit 1
           fi
 
-      - name: Sync Discord commands
+      - name: Upsert commands and verify Discord read-back
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_APPLICATION_ID: "1559989049505226812"
-          DISCORD_GUILD_ID: ${{ inputs.guild_id }}
+          DISCORD_GUILD_ID: ${{ inputs.guild_id || '1494360495694549134' }}
         run: node scripts/sync-discord-commands.mjs
