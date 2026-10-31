@@ -22,11 +22,10 @@ test("new public tables have explicit ACL decisions and RLS enabled", () => {
       const schema = (match[1] || "public").toLowerCase();
       if (schema !== "public") continue;
       const table = match[2];
-      const aclPattern = new RegExp(
-        String.raw`(?:grant|revoke)\s+[\s\S]*?\s+on\s+(?:table\s+)?(?:public\s*\.\s*)?${table}\b`,
-        "i"
+      const hasAclDecision = sql.split(";").some(statement =>
+        /^(grant|revoke)\\b/i.test(statement.trim()) && statement.toLowerCase().includes(table.toLowerCase())
       );
-      if (!aclPattern.test(sql)) {
+      if (!hasAclDecision) {
         violations.push(`${file}: public.${table} has no explicit GRANT/REVOKE decision`);
       }
       const rlsPattern = new RegExp(
