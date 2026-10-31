@@ -67,3 +67,21 @@ test("alliance browsing is read-only and uses the existing alliance lookup API",
   assert.ok(interactions.includes("Back to roster"));
   assert.ok(interactions.includes("registerPlayer(req, id, player)"));
 });
+
+test("deferred Discord commands update the original loading response and bound player lookup", () => {
+  const commandStart = interactions.indexOf("async function handleCommand(req, interaction, res) {");
+  const commandEnd = interactions.indexOf("\nasync function handleComponent", commandStart);
+  const commandHandler = interactions.slice(commandStart, commandEnd);
+  const componentStart = interactions.indexOf('if (action === "register")');
+  const componentEnd = interactions.indexOf("\n  }\n  return acknowledge", componentStart) + 4;
+  const registerComponent = interactions.slice(componentStart, componentEnd);
+
+  assert.ok(interactions.includes("async function completeDeferred(token, body, label)"));
+  assert.ok(interactions.includes('method: "PATCH"'));
+  assert.ok(interactions.includes('/messages/@original'));
+  assert.ok(commandHandler.includes("completeDeferred(interaction.token"));
+  assert.ok(!commandHandler.includes("followup(interaction.token"), "deferred slash commands must edit the original response");
+  assert.ok(registerComponent.includes("completeDeferred(interaction.token"));
+  assert.ok(!registerComponent.includes("followup(interaction.token"), "deferred registration buttons must edit their ephemeral original response");
+  assert.ok(interactions.includes("maxAttempts: 2, totalTimeoutMs: 18_000"));
+});
