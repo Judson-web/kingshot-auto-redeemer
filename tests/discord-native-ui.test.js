@@ -93,3 +93,18 @@ test("Discord alliance lookup uses a bounded quota-safe fast path", async () => 
   assert.ok(playerApi.includes("fastPath: true, maxAttempts: 2, totalTimeoutMs: 18_000"));
   assert.ok(playerApi.includes("allianceRequestOptions"));
 });
+
+
+test("Discord command sync uses safe per-command upserts and verifies read-back", async () => {
+  const workflow = await readFile(new URL("../.github/workflows/sync-discord-commands.yml", import.meta.url), "utf8");
+
+  assert.ok(commands.includes('request("POST", "", command)'), "each expected command must be upserted individually");
+  assert.ok(commands.includes('request("GET")'), "registered commands must be fetched back");
+  assert.ok(commands.includes("commandMatches(actual, expected)"), "command options must be verified");
+  assert.ok(commands.includes("unrelatedCommandsPreserved: true"));
+  assert.ok(!commands.includes('request("PUT"'), "bulk overwrite must not delete unrelated application commands");
+  assert.ok(commands.includes('"alliance"'));
+  assert.ok(workflow.includes('default: "1494360495694549134"'));
+  assert.ok(workflow.includes("push:"), "command changes must trigger an automatic sync");
+  assert.ok(workflow.includes("Register and verify /player, /alliance, and /register"));
+});
