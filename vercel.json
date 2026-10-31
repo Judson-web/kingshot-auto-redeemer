@@ -224,6 +224,9 @@
     },
     "api/admin-tools/[...path].js": {
       "maxDuration": 300
+    },
+    "api/discord-tools/[...path].js": {
+      "maxDuration": 300
     }
   }
 }
