@@ -78,8 +78,9 @@ const KINGDOM_AUTO_CHECK_ENABLED=String(process.env.KINGDOM_AUTO_CHECK_ENABLED??
 const MANUAL_KINGDOM_VALIDATION_CONCURRENCY=2;
 const WORKER_MAX_RUNTIME_MS=3*60*1000;
 const DISCORD_WEBHOOK_URL=process.env.DISCORD_KINGSHOT_WEBHOOK_URL||process.env.DISCORD_SCRAPER_WEBHOOK_URL;
+const DISCORD_BOT_TOKEN=process.env.DISCORD_BOT_TOKEN;
 async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
- if(!DISCORD_WEBHOOK_URL)return;
+
  const payload={username:"Kingshot Auto Redeem",allowed_mentions:{parse:[]},embeds:[{
   title:String(title||"Kingshot Auto Redeem").slice(0,256),
   description:description?String(description).slice(0,4096):undefined,
@@ -88,6 +89,24 @@ async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
   timestamp:new Date().toISOString(),
   footer:{text:"Kingshot Redeemer"}
  }]};
+ if(DISCORD_BOT_TOKEN){
+  try {
+   const settings=await fetch(SUPABASE_URL+"/rest/v1/discord_guild_settings?select=gift_code_alert_channel_id&gift_code_alert_channel_id=not.is.null",{headers:{apikey:SUPABASE_KEY,authorization:"Bearer "+SUPABASE_KEY,accept:"application/json"},signal:AbortSignal.timeout(5000)});
+   if(settings.ok){
+    const rows=await settings.json();
+    const channels=[...new Set((Array.isArray(rows)?rows:[]).map(row=>String(row.gift_code_alert_channel_id||"")).filter(id=>/^\\d{5,25}$/.test(id)))];
+    if(channels.length){
+     let delivered=false;
+     for(const channelId of channels){
+      try { const sent=await fetch("https://discord.com/api/v10/channels/"+channelId+"/messages",{method:"POST",headers:{authorization:"Bot "+DISCORD_BOT_TOKEN,"content-type":"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(8000)}); if(sent.ok)delivered=true; else console.warn("Configured Discord alert channel rejected:",sent.status); }
+      catch(error){console.warn("Configured Discord alert delivery failed:",String(error?.message||error).slice(0,120));}
+     }
+     return delivered;
+    }
+   }
+  } catch(error){console.warn("Discord alert-channel lookup failed:",String(error?.message||error).slice(0,120));}
+ }
+ if(!DISCORD_WEBHOOK_URL)return false;
  for(let attempt=0;attempt<3;attempt++){
   try{
    const response=await fetch(DISCORD_WEBHOOK_URL,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(8000)});

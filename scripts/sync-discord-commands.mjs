@@ -26,6 +26,8 @@ if (guildId && !/^\d{5,25}$/.test(guildId)) {
 }
 
 const commands = [
+  { name: "set-gift-code-alert-channel", description: "Choose this server’s verified gift-code alert channel", type: 1, default_member_permissions: "8", dm_permission: false, options: [{ type: 7, name: "channel", description: "Text channel for gift-code alerts", required: true, channel_types: [0, 5] }] },
+  { name: "announce", description: "Preview and publish a server announcement", type: 1, default_member_permissions: "8", dm_permission: false, options: [{ type: 7, name: "channel", description: "Where to publish the announcement", required: true, channel_types: [0, 5] }, { type: 3, name: "title", description: "Announcement title", required: true, max_length: 256 }, { type: 3, name: "message", description: "Announcement message", required: true, max_length: 3500 }] },
   { name: "codes", description: "List active verified gift codes and recent redemption results", type: 1 },
   {
     name: "player",

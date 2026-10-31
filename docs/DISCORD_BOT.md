@@ -7,7 +7,7 @@ The Kingshot Auto Redeemer Discord integration uses Discord's signed HTTP Intera
 - Player lookup uses a native Discord embed with structured governor, kingdom, alliance, power, Town Center, VIP, kills, coordinates, and status fields.
 - Player embeds provide interactive **Refresh profile** and **Register for auto-redeem** buttons, plus a dashboard link.
 - `/alliance kingdom:<number> search:<optional name or tag>` searches the kingdom alliance rankings and opens a native select menu.
-- Selecting an alliance opens its roster, with a governor selector, roster summary, and previous/next pagination.
+- Selecting an alliance opens the detailed alliance/server information embed. The roster is kept out of the message text and is navigated separately through a governor selector and previous/next pagination.
 - Selecting a governor opens the same player profile view with a **Back to roster** button. **Back to alliances** returns to the kingdom's alliance selector.
 - Roster pages contain up to 10 members, matching Discord's select-menu option limit. No roster member is registered by browsing.
 - Refresh updates the existing message rather than posting another card.
@@ -20,13 +20,19 @@ The Kingshot Auto Redeemer Discord integration uses Discord's signed HTTP Intera
 
 - `/player id:<Kingshot Player ID>`
 - `/register player_id:<Kingshot Player ID>`
-- `/codes`
+- `/codes`\n- `/set-gift-code-alert-channel channel:<text channel>` (Discord server Administrator)\n- `/announce channel:<text channel> title:<text> message:<text>` (Discord server Administrator)
 
 `/codes` lists only active, unsuppressed codes with `validation_status=verified`, excludes expired codes, and shows successful redemption counts from the last seven days. It is read from the primary Supabase gift-code and redemption tables; it does not treat scraper discovery alone as verification.
 
 `/register` and player-profile registration buttons post public results, including public error and already-registered responses. Alliance names are consistently rendered as `[TAG] Alliance Name`.\n\nAlliance roster pages include a **Register alliance** link. It opens the existing Alliance Registration page with the kingdom and exact alliance tag preselected. The user completes the existing authenticated registration flow there, including its kingdom cap and daily sync safeguards. Browsing the roster never registers members automatically.
 
 The allow-list sync script in `scripts/sync-discord-commands.mjs` reconciles global commands. It replaces only the global command scope; guild-scoped commands remain separate.
+
+## Server administration and announcements
+
+Discord server **Administrator** permission is not the same as the website/project Admin role or the verified project-owner account. `/set-gift-code-alert-channel` and `/announce` use the native Administrator permission bit (`8`) in the signed interaction payload and repeat authorization when a confirmation button is used. Commands are registered with `default_member_permissions: "8"` and disabled in DMs. Server Administrators can configure gift-code alert destinations and publish announcements, but gain no website Admin privileges or alliance-cap bypass.
+
+The alert destination is stored per Discord server in Supabase. Automatic gift-code events use configured server channels; the legacy webhook remains a fallback when no server has configured a channel. Announcements are previewed privately, require explicit confirmation, expire after 15 minutes, and disable automatic mention parsing.
 
 ## Runtime configuration
 
