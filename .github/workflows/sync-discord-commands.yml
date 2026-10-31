@@ -48,5 +48,5 @@ jobs:
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_APPLICATION_ID: "1559989049505226812"
-          DISCORD_GUILD_ID: ${{ inputs.guild_id || '1494360495694549134' }}
+          DISCORD_GUILD_ID: ${{ github.event.inputs.guild_id || '1494360495694549134' }}
         run: node scripts/sync-discord-commands.mjs
