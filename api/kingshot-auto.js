@@ -94,11 +94,11 @@ async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
    const settings=await fetch(SUPABASE_URL+"/rest/v1/discord_guild_settings?select=gift_code_alert_channel_id&gift_code_alert_channel_id=not.is.null",{headers:{apikey:SUPABASE_KEY,authorization:"Bearer "+SUPABASE_KEY,accept:"application/json"},signal:AbortSignal.timeout(5000)});
    if(settings.ok){
     const rows=await settings.json();
-    const channels=[...new Set((Array.isArray(rows)?rows:[]).map(row=>String(row.gift_code_alert_channel_id||"")).filter(id=>/^\\d{5,25}$/.test(id)))];
+    const channels=[...new Set((Array.isArray(rows)?rows:[]).map(row=>String(row.gift_code_alert_channel_id||"")).filter(id=>/^\d{5,25}$/.test(id)))];
     if(channels.length){
      let delivered=false;
      for(const channelId of channels){
-      try { const sent=await fetch("https://discord.com/api/v10/channels/"+channelId+"/messages",{method:"POST",headers:{authorization:"Bot "+DISCORD_BOT_TOKEN,"content-type":"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(8000)}); if(sent.ok)delivered=true; else console.warn("Configured Discord alert channel rejected:",sent.status); }
+      try { const sent=await fetch("https://discord.com/api/v10/channels/"+channelId+"/messages",{method:"POST",headers:{authorization:"Bot "+DISCORD_BOT_TOKEN,"content-type":"application/json"},body:JSON.stringify({embeds:payload.embeds,allowed_mentions:payload.allowed_mentions}),signal:AbortSignal.timeout(8000)}); if(sent.ok)delivered=true; else console.warn("Configured Discord alert channel rejected:",sent.status); }
       catch(error){console.warn("Configured Discord alert delivery failed:",String(error?.message||error).slice(0,120));}
      }
      return delivered;
