@@ -5,7 +5,7 @@ The Kingshot Auto Redeemer Discord integration uses Discord's signed HTTP Intera
 ## Native Discord interface
 
 - Player lookup uses a native Discord embed with structured governor, kingdom, alliance, power, Town Center, VIP, kills, coordinates, and status fields.
-- Player embeds provide interactive **Refresh profile** and **Register for auto-redeem** buttons, plus a dashboard link.
+- Player embeds provide interactive **Refresh profile** and **Register for auto-redeem** buttons, plus a dashboard link.\n- `/alliance kingdom:<number> search:<optional name or tag>` searches the kingdom alliance rankings and opens a native select menu.\n- Selecting an alliance opens its roster, with a governor selector, roster summary, and previous/next pagination.\n- Selecting a governor opens the same player profile view with a **Back to roster** button. **Back to alliances** returns to the kingdom's alliance selector.\n- Roster pages contain up to 25 members, matching Discord's select-menu option limit. No roster member is registered by browsing.
 - Refresh updates the existing message rather than posting another card.
 - Registration from a player profile uses an ephemeral confirmation and removes the registration action after a successful new registration.
 - The `/register` command also returns a private ephemeral confirmation.
