@@ -14,6 +14,16 @@ test("player and registration commands defer through the HTTP interaction respon
   assert.match(interactions, /if \(res\.headersSent\) return;/);
 });
 
+test("Discord player lookups use a quota-reserved fast path and short-lived cache", async () => {
+  const pool = await readFile(new URL("../lib/mightpulse-key-pool.js", import.meta.url), "utf8");
+  assert.match(interactions, /PLAYER_CACHE_TTL_MS = 45_000/);
+  assert.match(interactions, /playerInFlight\.has\(id\)/);
+  assert.match(interactions, /timeoutMs: 8000, fastPath: true/);
+  assert.match(pool, /options\.fastPath\s*\?\s*\[null\]/);
+  assert.match(pool, /if \(!options\.fastPath && key !== firstUsableKey\) await refreshUsage\(key\)/);
+  assert.match(pool, /claim_mightpulse_api_key_request/);
+});
+
 test("player command sends a generated PNG image card instead of a native field embed", () => {
   assert.match(interactions, /image: \{ url: playerCardUrl\(data\) \}/);
   assert.match(interactions, /\/api\/discord-player-card\?data=/);
