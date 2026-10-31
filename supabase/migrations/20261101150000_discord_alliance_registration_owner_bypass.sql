@@ -15,7 +15,7 @@ begin
  perform pg_advisory_xact_lock(hashtextextended(p_kingdom_id,0));
  if exists(select 1 from public.alliance_sync_config c where c.kingdom_id=p_kingdom_id and c.alliance_tag=p_alliance_tag) then raise exception 'alliance_already_managed' using errcode='23505'; end if;
  select count(*)::integer into v_total from public.alliance_sync_config c where c.kingdom_id=p_kingdom_id;
- if not p_owner_bypass and v_total >= 4 then raise exception 'kingdom_alliance_limit' using errcode='23514'; end if;
+ if p_owner_bypass is distinct from true and v_total >= 4 then raise exception 'kingdom_alliance_limit' using errcode='23514'; end if;
  insert into public.alliance_sync_config(owner_user_id,owner_discord_id,kingdom_id,alliance_tag,alliance_name,interval_hours,enabled,next_run_at,last_status,last_roster_count)
  values(p_owner_user_id,p_discord_user_id,p_kingdom_id,p_alliance_tag,left(coalesce(p_alliance_name,p_alliance_tag),80),24,true,now(),'pending',p_roster_count)
  returning * into v_created;
