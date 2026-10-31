@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 const interactions = await readFile(new URL("../lib/discord-interactions.js", import.meta.url), "utf8");
 const route = await readFile(new URL("../api/discord-tools/[...path].js", import.meta.url), "utf8");
 const pool = await readFile(new URL("../lib/mightpulse-key-pool.js", import.meta.url), "utf8");
+const commands = await readFile(new URL("../scripts/sync-discord-commands.mjs", import.meta.url), "utf8");
 
 test("player and registration commands defer before slow work", () => {
   assert.ok(interactions.includes("async function handleCommand(req, interaction, res)"));
@@ -27,7 +28,7 @@ test("player profiles use native Discord embeds and interactive components", () 
   ]) assert.ok(interactions.includes(expected), "missing native UI feature: " + expected);
   assert.ok(interactions.includes("async function handleComponent"));
   assert.ok(interactions.includes("interaction.type === 3"));
-  assert.ok(interactions.includes("editOriginal(interaction.token"));
+  assert.ok(interactions.includes("editSourceMessage(interaction"));
   assert.ok(!interactions.includes("playerImageUrl"));
   assert.ok(!interactions.includes("image: { url:"));
 });
@@ -52,7 +53,7 @@ test("alliance explorer exposes search, roster selection, pagination, and back n
     "ks:page:", "ks:back:", "ks:alliances:", "Back to roster",
     "Back to alliances", "Previous", "Next", "fetchAllianceApi"
   ]) {
-    assert.ok(interactions.includes(expected), "missing alliance explorer feature: " + expected);
+    assert.ok((expected === 'name: "alliance"' ? commands : interactions).includes(expected), "missing alliance explorer feature: " + expected);
   }
   assert.ok(interactions.includes("max_values: 1"));
   assert.ok(interactions.includes("slice(start, start + 25)"));
