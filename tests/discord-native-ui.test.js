@@ -44,3 +44,25 @@ test("registration responses are private and preserve the authoritative backend"
   assert.ok(interactions.includes("Player registered successfully"));
   assert.ok(interactions.includes("/api/kingshot-register"));
 });
+
+test("alliance explorer exposes search, roster selection, pagination, and back navigation", () => {
+  for (const expected of [
+    'name: "alliance"', 'mode: "search"', "allianceSearchComponents",
+    "rosterComponents", "rosterEmbed", "ks:alliance:", "ks:member:",
+    "ks:page:", "ks:back:", "ks:alliances:", "Back to roster",
+    "Back to alliances", "Previous", "Next", "fetchAllianceApi"
+  ]) {
+    assert.ok(interactions.includes(expected), "missing alliance explorer feature: " + expected);
+  }
+  assert.ok(interactions.includes("max_values: 1"));
+  assert.ok(interactions.includes("slice(start, start + 25)"));
+  assert.ok(interactions.includes("interaction.data?.values?.[0]"));
+});
+
+test("alliance browsing is read-only and uses the existing alliance lookup API", () => {
+  assert.ok(interactions.includes("developer=alliance-lookup"));
+  assert.ok(interactions.includes('mode: "search"'));
+  assert.ok(interactions.includes('fetchAllianceApi(req, { kingdomId, tag })'));
+  assert.ok(interactions.includes("Back to roster"));
+  assert.ok(interactions.includes("registerPlayer(req, id, player)"));
+});
