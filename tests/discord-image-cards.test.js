@@ -7,22 +7,25 @@ const interactions = await readFile(new URL("../lib/discord-interactions.js", im
 const pool = await readFile(new URL("../lib/mightpulse-key-pool.js", import.meta.url), "utf8");
 
 test("player and registration commands defer before slow work", () => {
-  assert.match(interactions, /async function handleCommand\\(req, interaction, res\\)/);
-  assert.match(interactions, /res\\.status\\(200\\)\\.json\\(\\{ type: 5, data: \\{\\} \\}\\);[\\s\\S]*?const player = await fetchPlayer\\(id\\)/);
-  assert.match(interactions, /res\\.status\\(200\\)\\.json\\(\\{ type: 5, data: \\{\\} \\}\\);[\\s\\S]*?let player = null/);
+  assert.ok(interactions.includes("async function handleCommand(req, interaction, res)"));
+  assert.ok(interactions.includes("res.status(200).json({ type: 5, data: {} });"));
+  assert.ok(interactions.includes("const player = await fetchPlayer(id)"));
+  assert.ok(interactions.includes("let player = null"));
 });
 
 test("Discord player lookups keep the quota-reserved fast path and cache", () => {
-  assert.match(interactions, /PLAYER_CACHE_TTL_MS = 45_000/);
-  assert.match(interactions, /playerInFlight\\.has\\(id\\)/);
-  assert.match(interactions, /timeoutMs: 8000, fastPath: true/);
-  assert.match(pool, /claim_mightpulse_api_key_request/);
+  assert.ok(interactions.includes("PLAYER_CACHE_TTL_MS = 45_000"));
+  assert.ok(interactions.includes("playerInFlight.has(id)"));
+  assert.ok(interactions.includes("timeoutMs: 8000, fastPath: true"));
+  assert.ok(pool.includes("claim_mightpulse_api_key_request"));
 });
 
 test("player card uses a hosted external PNG URL and sends no roster controls", () => {
-  assert.match(interactions, /image: \\{ url: playerImageUrl\\(data\\) \\}/);
-  assert.doesNotMatch(interactions, /View alliance roster|fetchAllianceRoster|rosterComponents|handleComponent/);
-  assert.match(interactions, /interaction\\.type !== 2/);
+  assert.ok(interactions.includes("image: { url: playerImageUrl(data) }"));
+  for (const retired of ["View alliance roster", "fetchAllianceRoster", "rosterComponents", "handleComponent"]) {
+    assert.ok(!interactions.includes(retired), "unexpected roster feature: " + retired);
+  }
+  assert.ok(interactions.includes("interaction.type !== 2"));
 });
 
 test("external image URL carries only compact display fields", () => {
@@ -42,8 +45,8 @@ test("external image URL carries only compact display fields", () => {
 });
 
 test("registration result remains public and optional lookup cannot block registration", () => {
-  assert.match(interactions, /registrationEmbed/);
-  assert.match(interactions, /Already enrolled/);
-  assert.match(interactions, /Player registered successfully/);
-  assert.match(interactions, /try \\{ player = await fetchPlayer\\(id\\); \\} catch/);
+  assert.ok(interactions.includes("registrationEmbed"));
+  assert.ok(interactions.includes("Already enrolled"));
+  assert.ok(interactions.includes("Player registered successfully"));
+  assert.ok(interactions.includes("try { player = await fetchPlayer(id); } catch"));
 });
