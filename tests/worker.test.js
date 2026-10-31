@@ -87,3 +87,9 @@ test("zero-attempt cycles explain when verified codes are already handled or una
   assert.match(healthSource, /noWorkReason/);
   assert.match(healthSource, /coordinatorRows/);
 });
+
+
+test("redemption concurrency is capped at one request per shard while upstream throttling is investigated", () => {
+  assert.match(workerSource, /safeConcurrency = Math\\.min\\(1/);
+  assert.match(workerSource, /runWithConcurrency\\(assigned, player => redeemForPlayer\\(player, codes\\), safeConcurrency/);
+});
