@@ -15,7 +15,7 @@ export interface RedeemKingshotResult {
   upstreamHeaders?: Record<string, string>;
 }
 
-const clean=s=>String(s??"").replace(/[^\\x20-\\x7E]/g,"").trim();
+const clean=s=>String(s??"").replace(/[^\x20-\x7E]/g,"").trim();
 const errorCategories={SUCCESS:"SUCCESS",RECEIVED:"ALREADY_REDEEMED", "SAME TYPE EXCHANGE":"ALREADY_REDEEMED",TIME_ERROR:"EXPIRED",CDK_NOT_FOUND:"INVALID_CODE",USAGE_LIMIT:"USAGE_LIMIT",ROLE_NOT_EXIST:"PLAYER_NOT_FOUND",STATE_MISMATCH:"KINGDOM_MISMATCH",SIGN_ERROR:"UPSTREAM_AUTH",TIMEOUT_RETRY:"RATE_LIMIT",LOGIN_EXPIRED_MID_PROCESS:"UPSTREAM_AUTH"};
 const labels={
  SUCCESS:["Redeemed successfully.","Your gift rewards should be available in-game."],
