@@ -7,6 +7,13 @@ const renderer = await readFile(new URL("../lib/discord-player-card-png.js", imp
 const endpoint = await readFile(new URL("../lib/discord-player-card.js", import.meta.url), "utf8");
 const router = await readFile(new URL("../api/discord-tools/[...path].js", import.meta.url), "utf8");
 
+test("player and registration commands defer through the HTTP interaction response before slow work", () => {
+  assert.match(interactions, /async function handleCommand\(req, interaction, res\)/);
+  assert.match(interactions, /res\.status\(200\)\.json\(\{ type: 5, data: \{\} \}\);[\s\S]*?const player = await fetchPlayer\(id\)/);
+  assert.match(interactions, /res\.status\(200\)\.json\(\{ type: 5, data: \{\} \}\);[\s\S]*?let player = null/);
+  assert.match(interactions, /if \(res\.headersSent\) return;/);
+});
+
 test("player command sends a generated PNG image card instead of a native field embed", () => {
   assert.match(interactions, /image: \{ url: playerCardUrl\(data\) \}/);
   assert.match(interactions, /\/api\/discord-player-card\?data=/);
