@@ -540,6 +540,7 @@ export default async function handler(req,res){
   });
   // One canary per cycle. The real endpoint can consume the reward on this player.
   const apiCandidateKeys=new Set(apiCodes.map(item=>String(item.code||"").trim().toUpperCase()));
+  const pageCandidateKeys=new Set(kingshotPageCodes.map(item=>String(item.code||"").trim().toUpperCase()));
 
   const pendingCandidates=persistedCodeRows
    .filter(r=>r&&r.validation_status==="pending"&&r.suppressed!==true)
