@@ -150,6 +150,64 @@ try {
     console.log(`Registered /${result.name} (${result.id}).`);
   }
 
+  // This bot is intentionally guild-scoped for the Kingshot community.
+  // Remove only matching global commands from this same application, which
+  // otherwise appear beside the guild commands as duplicate slash entries.
+  // Unrelated global commands are left untouched.
+  if (guildId) {
+    const globalEndpoint = `https://discord.com/api/v10/applications/${applicationId}/commands`;
+    async function globalRequest(method, path = "") {
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        const response = await fetch(globalEndpoint + path, {
+          method,
+          headers: { Authorization: "Bot " + token, "Content-Type": "application/json" },
+          signal: AbortSignal.timeout(15000)
+        });
+        const raw = await response.text();
+        let data = null;
+        try { data = raw ? JSON.parse(raw) : null; } catch { data = raw; }
+        if (response.status === 429 && attempt < 3) {
+          const headerDelay = Number(response.headers.get("retry-after"));
+          const bodyDelay = Number(data?.retry_after);
+          const delaySeconds = Number.isFinite(headerDelay) && headerDelay > 0
+            ? headerDelay
+            : Number.isFinite(bodyDelay) && bodyDelay > 0 ? bodyDelay : 1;
+          await new Promise(resolve => setTimeout(resolve, Math.min(delaySeconds * 1000, 10000)));
+          continue;
+        }
+        if (!response.ok) {
+          throw new Error(`Discord global command API ${method} failed (${response.status}): ${String(typeof data === "string" ? data : JSON.stringify(data)).slice(0, 500)}`);
+        }
+        return data;
+      }
+      throw new Error("Discord global command cleanup rate limit retries were exhausted.");
+    }
+
+    const globalBefore = await globalRequest("GET");
+    if (!Array.isArray(globalBefore)) throw new Error("Discord returned an invalid global command list.");
+    const duplicateGlobals = globalBefore.filter(globalCommand =>
+      commands.some(expected =>
+        globalCommand.name === expected.name &&
+        Number(globalCommand.type || 1) === expected.type
+      )
+    );
+    for (const duplicate of duplicateGlobals) {
+      await globalRequest("DELETE", `/${encodeURIComponent(duplicate.id)}`);
+      console.log(`Removed duplicate global command /${duplicate.name} (${duplicate.id}); guild command remains.`);
+    }
+    const globalAfter = await globalRequest("GET");
+    const remainingDuplicates = globalAfter.filter(globalCommand =>
+      commands.some(expected =>
+        globalCommand.name === expected.name &&
+        Number(globalCommand.type || 1) === expected.type
+      )
+    );
+    if (remainingDuplicates.length) {
+      throw new Error("Duplicate global commands remain: " + remainingDuplicates.map(item => "/" + item.name).join(", "));
+    }
+    console.log(`Global duplicate cleanup verified. Removed ${duplicateGlobals.length} duplicate command(s).`);
+  }
+
   // Read the scope back from Discord and verify the options, not just HTTP 2xx.
   const registered = await request("GET");
   if (!Array.isArray(registered)) {
@@ -173,7 +231,8 @@ try {
       const actual = registered.find(item => item.name === command.name && Number(item.type || 1) === command.type);
       return { name: actual.name, id: actual.id, options: (actual.options || []).map(option => option.name) };
     }),
-    unrelatedCommandsPreserved: true
+    unrelatedCommandsPreserved: true,
+    duplicateGlobalCommandsRemoved: Boolean(guildId)
   }, null, 2));
 } catch (error) {
   console.error(error instanceof Error ? error.message : "Discord command synchronization failed.");
