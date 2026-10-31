@@ -228,6 +228,7 @@ export default async function handler(req,res){
    if(!response.ok)throw Error(data?.message||"Announcement database request failed ("+response.status+").");
    return data;
   };
+  if(["ANNOUNCEMENT_ATTACHMENT_UPLOAD","ANNOUNCEMENT_ROLES","SCHEDULE_CREATE","SCHEDULE_LIST","SCHEDULE_UPDATE"].includes(action)&&!(await validSession(req)))return res.status(401).json({error:"Unauthorized. Sign in to the private console first."});
   if(action==="ANNOUNCEMENT_ATTACHMENT_UPLOAD"){
    const encoded=String(body.fileBase64||"");
    const mime=clean(body.mimeType,80).toLowerCase();
@@ -305,6 +306,7 @@ export default async function handler(req,res){
    for(const item of Array.isArray(claimed)?claimed:[]){
     try{
      let currentImage=item.image_url||"";
+     if(item.attachment_path){const signed=await fetch(adminBase+"/storage/v1/object/sign/announcement-attachments/"+item.attachment_path,{method:"POST",headers:{apikey:adminKey,authorization:"Bearer "+adminKey,"content-type":"application/json"},body:JSON.stringify({expiresIn:3600}),signal:AbortSignal.timeout(8000)});const signedData=await signed.json().catch(()=>({}));if(!signed.ok||!signedData.signedURL)throw Error("Could not access the scheduled image attachment.");currentImage=signedData.signedURL.startsWith("http")?signedData.signedURL:adminBase+"/storage/v1"+signedData.signedURL;}
      if(item.delivery_mode!=="website"){
       const webhook=webhookFor(item.target);
       if(!webhook)throw Error("Discord destination is no longer configured.");
@@ -312,7 +314,6 @@ export default async function handler(req,res){
       const mentions=roleIds.map(id=>"<@&"+id+">").join(" ");
       const content=[mentions,item.message].filter(Boolean).join("\n");
       const embed={title:item.title||undefined,description:item.message,color:hexColor(item.color),timestamp:new Date().toISOString(),footer:{text:item.footer||"Kingshot Auto Redeem"}};
-      if(item.attachment_path){const signed=await fetch(adminBase+"/storage/v1/object/sign/announcement-attachments/"+item.attachment_path,{method:"POST",headers:{apikey:adminKey,authorization:"Bearer "+adminKey,"content-type":"application/json"},body:JSON.stringify({expiresIn:3600}),signal:AbortSignal.timeout(8000)});const signedData=await signed.json().catch(()=>({}));if(!signed.ok||!signedData.signedURL)throw Error("Could not access the scheduled image attachment.");currentImage=signedData.signedURL.startsWith("http")?signedData.signedURL:adminBase+"/storage/v1"+signedData.signedURL;}
       if(currentImage)embed.image={url:currentImage};
       const response=await fetch(webhook,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({content,embeds:[embed],allowed_mentions:{parse:[],roles:roleIds}}),signal:AbortSignal.timeout(12000)});
       if(!response.ok)throw Error("Discord delivery failed ("+response.status+").");
@@ -321,7 +322,8 @@ export default async function handler(req,res){
       const {broadcastPush}=await import("../internal/push-notifications.js");
       await broadcastPush({title:item.title||"Message from the Kingshot team",body:item.message.slice(0,220),url:"/",image:currentImage,tag:"scheduled-announcement-"+item.id+"-"+Date.now()});
      }
-     const next=item.interval_seconds?new Date(Date.now()+Number(item.interval_seconds)*1000).toISOString():null;
+     const candidateNext=item.interval_seconds?new Date(Date.now()+Number(item.interval_seconds)*1000):null;
+     const next=candidateNext&&(!item.ends_at||candidateNext.getTime()<=Date.parse(item.ends_at))?candidateNext.toISOString():null;
      await adminDb("discord_scheduled_announcements?id=eq."+item.id+"&lease_token=eq."+item.lease_token,{method:"PATCH",body:JSON.stringify({last_run_at:new Date().toISOString(),next_run_at:next,status:next?"scheduled":"completed",lease_token:null,lease_until:null,last_error:null,updated_at:new Date().toISOString()})});
      sent++;
     }catch(error){
