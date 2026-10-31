@@ -168,7 +168,8 @@ assertCheck(
 assertCheck(
  "Worker pool preserves bounded per-shard concurrency",
  auto.includes("const PLAYER_CONCURRENCY=2;") &&
- workerCode.includes("runWithConcurrency(assigned, player => redeemForPlayer(player, codes), options.concurrency, { deadline })") &&
+ workerCode.includes("const safeConcurrency = Math.min(1") &&
+ workerCode.includes("runWithConcurrency(assigned, player => redeemForPlayer(player, codes), safeConcurrency, { deadline })") &&
  auto.includes("WORKER_MAX_RUNTIME_MS=3*60*1000")
 );
 assertCheck(
