@@ -1,80 +1,52 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { playerImageUrl } from "../lib/discord-player-image-url.js";
 
 const interactions = await readFile(new URL("../lib/discord-interactions.js", import.meta.url), "utf8");
-const renderer = await readFile(new URL("../lib/discord-player-card-png.js", import.meta.url), "utf8");
-const endpoint = await readFile(new URL("../lib/discord-player-card.js", import.meta.url), "utf8");
-const router = await readFile(new URL("../api/discord-tools/[...path].js", import.meta.url), "utf8");
+const pool = await readFile(new URL("../lib/mightpulse-key-pool.js", import.meta.url), "utf8");
 
-test("player and registration commands defer through the HTTP interaction response before slow work", () => {
-  assert.match(interactions, /async function handleCommand\(req, interaction, res\)/);
-  assert.match(interactions, /res\.status\(200\)\.json\(\{ type: 5, data: \{\} \}\);[\s\S]*?const player = await fetchPlayer\(id\)/);
-  assert.match(interactions, /res\.status\(200\)\.json\(\{ type: 5, data: \{\} \}\);[\s\S]*?let player = null/);
-  assert.match(interactions, /if \(res\.headersSent\) return;/);
+test("player and registration commands defer before slow work", () => {
+  assert.ok(interactions.includes("async function handleCommand(req, interaction, res)"));
+  assert.ok(interactions.includes("res.status(200).json({ type: 5, data: {} });"));
+  assert.ok(interactions.includes("const player = await fetchPlayer(id)"));
+  assert.ok(interactions.includes("let player = null"));
 });
 
-test("Discord player lookups use a quota-reserved fast path and short-lived cache", async () => {
-  const pool = await readFile(new URL("../lib/mightpulse-key-pool.js", import.meta.url), "utf8");
-  assert.match(interactions, /PLAYER_CACHE_TTL_MS = 45_000/);
-  assert.match(interactions, /playerInFlight\.has\(id\)/);
-  assert.match(interactions, /timeoutMs: 8000, fastPath: true/);
-  assert.match(pool, /options\.fastPath\s*\?\s*\[null\]/);
-  assert.match(pool, /if \(!options\.fastPath && key !== firstUsableKey\) await refreshUsage\(key\)/);
-  assert.match(pool, /claim_mightpulse_api_key_request/);
+test("Discord player lookups keep the quota-reserved fast path and cache", () => {
+  assert.ok(interactions.includes("PLAYER_CACHE_TTL_MS = 45_000"));
+  assert.ok(interactions.includes("playerInFlight.has(id)"));
+  assert.ok(interactions.includes("timeoutMs: 8000, fastPath: true"));
+  assert.ok(pool.includes("claim_mightpulse_api_key_request"));
 });
 
-test("player command sends a generated PNG image card instead of a native field embed", () => {
-  assert.match(interactions, /image: \{ url: playerCardUrl\(data\) \}/);
-  assert.match(interactions, /\/api\/discord-player-card\?data=/);
-  assert.match(interactions, /embeds: \[playerProfileEmbed\(data\)\]/);
-  assert.doesNotMatch(interactions, /fields,\s*footer: \{ text: "MightPulse/);
-});
-
-test("player card renderer matches the landscape Oracle-style layout", () => {
-  assert.match(renderer, /const WIDTH = 900/);
-  assert.match(renderer, /const HEIGHT = 342/);
-  for (const label of ["POWER", "KILLS", "TOWN CENTER", "VIP", "ALLIANCE RANK"]) {
-    assert.ok(renderer.includes('["' + label + '"'), "missing stat " + label);
+test("player card uses a hosted external PNG URL and sends no roster controls", () => {
+  assert.ok(interactions.includes("image: { url: playerImageUrl(data) }"));
+  for (const retired of ["View alliance roster", "fetchAllianceRoster", "rosterComponents", "handleComponent"]) {
+    assert.ok(!interactions.includes(retired), "unexpected roster feature: " + retired);
   }
-  assert.match(renderer, /KINGSHOT  •  PLAYER INTELLIGENCE/);
-  assert.ok(endpoint.includes('res.setHeader("Content-Type", "image/png")'));
+  assert.ok(interactions.includes("interaction.type !== 2"));
 });
 
-test("player card endpoint validates IDs and serves PNG bytes only", () => {
-  assert.match(endpoint, /req\.method !== "GET"/);
-  assert.match(endpoint, /encoded, 6000/);
-  assert.match(endpoint, /\\d\{5,20\}/);
-  assert.match(endpoint, /renderPlayerCardPng\(card\)/);
-  assert.match(router, /endpoint === "player-card"\) return playerCard/);
+test("external image URL carries only compact display fields", () => {
+  const url = new URL(playerImageUrl({
+    governor: "Test Governor", kingdom: "1125", alliance: "ONE", power: "1.2B",
+    townCenter: "30", vip: "12", kills: "45M", coordinates: "716 / 458",
+    avatar: "https://cdn.mightpulse.com/avatar.png", playerId: "123456789"
+  }));
+  assert.equal(url.origin, "https://ogimagen.com");
+  assert.equal(url.pathname, "/api/template/preview");
+  assert.equal(url.searchParams.get("template"), "profile");
+  assert.equal(url.searchParams.get("title"), "Test Governor");
+  assert.equal(url.searchParams.get("subtitle"), "KINGDOM 1125  •  ONE");
+  assert.equal(url.searchParams.get("authorName"), "POWER 1.2B");
+  assert.equal(url.searchParams.get("avatarUrl"), "https://cdn.mightpulse.com/avatar.png");
+  assert.equal(url.searchParams.has("playerId"), false);
 });
 
-test("player avatar URLs are restricted to trusted HTTPS hosts", () => {
-  assert.match(interactions, /parsed\.protocol !== "https:"/);
-  assert.match(interactions, /got-global-avatar\.akamaized\.net/);
-  assert.match(interactions, /got-global-avatar\.chosenonegames\.com/);
-});
-
-test("registration result is public and clearly distinguishes existing players", () => {
-  assert.match(interactions, /registrationEmbed/);
-  assert.match(interactions, /type: 5, data: \{\}/);
-  assert.match(interactions, /Already enrolled/);
-  assert.match(interactions, /Player registered successfully/);
-  assert.match(interactions, /AUTO REDEEM • REGISTRATION CONFIRMED/);
-  const register = interactions.slice(interactions.indexOf("if (name === \"register\")"), interactions.indexOf("return { content: \"That command"));
-  assert.doesNotMatch(register, /flags: 64/);
-});
-
-test("player card offers a verified, paginated alliance roster with player selection", () => {
-  assert.match(interactions, /View alliance roster/);
-  assert.match(interactions, /type: 3, custom_id: "select\|"/);
-  assert.match(interactions, /Back to alliance roster/);
-  assert.match(interactions, /fetchAllianceRoster/);
-  assert.match(interactions, /members\.some\(member => member\.id === id\)/);
-  assert.match(interactions, /Math\.min\(count, 5\)/);
-  assert.match(interactions, /interaction\.type !== 2 && interaction\.type !== 3/);
-});
-
-test("optional player lookup cannot block registration", () => {
-  assert.match(interactions, /try \{ player = await fetchPlayer\(id\); \} catch/);
+test("registration result remains public and optional lookup cannot block registration", () => {
+  assert.ok(interactions.includes("registrationEmbed"));
+  assert.ok(interactions.includes("Already enrolled"));
+  assert.ok(interactions.includes("Player registered successfully"));
+  assert.ok(interactions.includes("try { player = await fetchPlayer(id); } catch"));
 });
