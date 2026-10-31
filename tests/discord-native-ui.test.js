@@ -108,3 +108,18 @@ test("Discord command sync uses safe per-command upserts and verifies read-back"
   assert.ok(workflow.includes("push:"), "command changes must trigger an automatic sync");
   assert.ok(workflow.includes("Register and verify /player, /alliance, and /register"));
 });
+
+
+test("Discord deferred commands and components stay alive with Vercel waitUntil", () => {
+  assert.ok(interactions.includes('import { waitUntil } from "@vercel/functions";'));
+  assert.ok(interactions.includes("function retainAfterAcknowledgement(promise, interaction, label)"));
+  assert.ok(interactions.includes("waitUntil(task)"));
+
+  const handlerStart = interactions.indexOf("export default async function handler(req, res)");
+  const handler = interactions.slice(handlerStart);
+  assert.ok(handler.includes("const commandTask = handleCommand(req, interaction, res)"));
+  assert.ok(handler.includes("retainAfterAcknowledgement(commandTask, interaction, \"slash-command\")"));
+  assert.ok(handler.includes("const componentTask = handleComponent(req, interaction, res)"));
+  assert.ok(handler.includes("retainAfterAcknowledgement(componentTask, interaction, \"message-component\")"));
+  assert.ok(handler.includes("if (res.headersSent)"));
+});
