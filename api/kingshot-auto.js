@@ -216,6 +216,16 @@ const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
   return {attempted:0,success:0,alreadyHandled:codes.length,skipped:0,kingdomCheck,kingdomChanged,handledCodeCounts};
  }
 
+ // Reserve a globally shared request slot before touching the upstream API.
+ // The database serializes all four shards and refuses new work during a
+ // provider-wide HTTP cooldown. Reservations are spaced to avoid burst traffic.
+ const reservation=await rpcClient("kingshot_reserve_redemption_request",{p_source_url:"https://kingshot-giftcode.centurygame.com/api/gift_code",p_spacing_ms:500});
+ if(!reservation)return {attempted:0,success:0,alreadyHandled:0,skipped:1,kingdomCheck,kingdomChanged,upstreamCooldown:true};
+ const reservationTime=Date.parse(String(reservation));
+ if(Number.isFinite(reservationTime)){
+  const waitMs=Math.max(0,Math.min(10000,reservationTime-Date.now()));
+  if(waitMs)await new Promise(resolve=>setTimeout(resolve,waitMs));
+ }
  const neonIntentId=await journalStart(player.player_id,item.code);
  let claimed;
  try{claimed=await rpcClient("claim_kingshot_redemption",{p_player_id:player.player_id,p_code:item.code});}catch(error){await journalCancel(player.player_id,item.code,"Supabase claim unavailable: "+String(error?.message||error).slice(0,180));throw error;}
@@ -235,6 +245,10 @@ const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
   throw error;
  }
  const completedAt=Date.now();
+ if(d?.errorCategory==="HTTP_RATE_LIMIT"){
+  const cooldownSeconds=Math.min(3600,Math.max(30,Number(d?.retryAfterSeconds)||60));
+  await rpcClient("kingshot_set_source_cooldown",{p_source_url:"https://kingshot-giftcode.centurygame.com/api/gift_code",p_cooldown_seconds:cooldownSeconds,p_http_status:Number(d?.upstreamHttpStatus)||429}).catch(error=>console.error("Could not persist Kingshot redemption cooldown:",String(error?.message||error).slice(0,180)));
+ }
  const status=String(d?.status||"ERROR").toUpperCase();
  const message=d?.message||d?.error||"";
  const persistencePayload={p_player_id:String(player.player_id),p_code:item.code,p_status:status,p_err_code:d?.errCode??null,p_message:(d?.errorCategory?"["+d.errorCategory+"] ":"")+message};
