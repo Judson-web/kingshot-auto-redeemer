@@ -5,7 +5,8 @@ The Kingshot Auto Redeemer Discord integration uses Discord's signed HTTP Intera
 ## Native Discord interface
 
 - Player lookup uses a native Discord embed with structured governor, kingdom, alliance, power, Town Center, VIP, kills, coordinates, and status fields.
-- Player embeds provide interactive **Refresh profile**, **Register for auto-redeem**, and **View alliance** buttons, plus a dashboard link. **View alliance** opens the player's current alliance overview and roster, with a return-to-profile control.
+- Player embeds show **AUTO-REDEEM** enrollment status by default, sourced from the existing Supabase player registration row. They provide **Refresh profile**, **Register for auto-redeem** (only while not enrolled), and **View alliance** buttons, plus a dashboard link.
+- `/bot-info` displays a compact bot feature summary with **Invite bot** and **Open website** links. **View alliance** opens the player's current alliance overview and roster, with a return-to-profile control.
 - Alliance overview embeds query the authoritative `alliance_sync_config` table and show whether the alliance is not registered, active, paused, syncing, or needs attention. A temporary database lookup failure is shown as unavailable rather than incorrectly reporting the alliance as unregistered.
 - `/alliance kingdom:<number> search:<optional name or tag>` searches the kingdom alliance rankings and opens a native select menu.
 - Selecting an alliance opens the detailed alliance/server information embed. The roster is kept out of the message text and is navigated separately through a governor selector and previous/next pagination.
@@ -30,6 +31,10 @@ The Kingshot Auto Redeemer Discord integration uses Discord's signed HTTP Intera
 The allow-list sync script in `scripts/sync-discord-commands.mjs` reconciles global commands. It replaces only the global command scope; guild-scoped commands remain separate.
 
 ## Server administration and announcements
+
+The private website message console supports per-message delivery selection: Discord webhook only, website push only, or both. The combined option is the default. Discord server Administrator checks remain separate from the verified website project-owner session used by the private console.
+
+
 
 Discord server **Administrator** permission is not the same as the website/project Admin role or the verified project-owner account. `/set-gift-code-alert-channel` and `/announce` use the native Administrator permission bit (`8`) in the signed interaction payload and repeat authorization when a confirmation button is used. Commands are registered with `default_member_permissions: "8"` and disabled in DMs. Server Administrators can configure gift-code alert destinations and publish announcements, but gain no website Admin privileges or alliance-cap bypass.
 

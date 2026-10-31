@@ -219,6 +219,7 @@ export default async function handler(req,res){
    return res.status(400).json({error:"Invalid gift-code action."});
   }
   if(action!=="SEND")return res.status(400).json({error:"Invalid action."});
+  const deliveryMode=body.deliveryMode==="discord"?"discord":"both";
   const target=String(body.target||"").trim(),WEBHOOK=webhookFor(target);
   if(!WEBHOOK)return res.status(503).json({error:"That custom-message destination is not configured."});
   if(!rateLimit(req,res,"custom-message-send",10,60*1000))return res.status(429).json({error:"Too many messages. Please wait a moment."});
@@ -241,7 +242,9 @@ export default async function handler(req,res){
    const retryAfter=Number(wr.headers.get("retry-after")||"0"),detail=await wr.text().catch(()=>"");
    return res.status(502).json({error:"Discord rejected the message ("+wr.status+")."+(retryAfter?" Retry after "+Math.ceil(retryAfter)+"s.":"")+(detail?" "+detail.slice(0,180):"")});
   }
-  try { await broadcastPush({title:title||"Message from the Kingshot team",body:description||"Open Kingshot Auto Redeemer to read the latest message.",url:"/",image,tag:"developer-message-"+crypto.randomUUID()}); } catch(error) { console.error("Developer push notification failed:",error instanceof Error?error.message:error); }
+  if(deliveryMode==="both"){
+   try { await broadcastPush({title:title||"Message from the Kingshot team",body:description||"Open Kingshot Auto Redeemer to read the latest message.",url:"/",image,tag:"developer-message-"+crypto.randomUUID()}); } catch(error) { console.error("Developer push notification failed:",error instanceof Error?error.message:error); }
+  }
   return res.status(200).json({ok:true});
  }catch(e){return res.status(502).json({error:e?.message||"Custom message service unavailable."})}
 }
