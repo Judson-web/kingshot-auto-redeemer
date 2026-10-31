@@ -27,7 +27,7 @@ jobs:
           fi
           curl --fail-with-body --silent --show-error \
             --max-time 90 \
-            -X POST "https://ks-rewards.com/api/custom-message" \
+            -X POST "https://kingshot-autoredeemer.vercel.app/api/custom-message" \
             -H "Authorization: Bearer $CRON_SECRET" \
             -H "Content-Type: application/json" \
             --data '{"action":"SCHEDULE_RUN"}'
