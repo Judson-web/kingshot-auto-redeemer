@@ -48,3 +48,12 @@ test("MightPulse provider circuit breaker uses RLS-protected state and service-r
     assert.ok(!migration.includes("grant execute on function public." + rpc + "() to anon;"), "RPC must not grant anon: " + rpc);
   }
 });
+
+test("MightPulse request attempts share an overall deadline", async () => {
+  const source = await readFile(new URL("../lib/mightpulse-key-pool.js", import.meta.url), "utf8");
+  assert.match(source, /totalTimeoutMs = Math\.max\(1_000, Math\.min\(60_000/);
+  assert.match(source, /options\.fastPath \? Math\.min\(2, keys\.length\)/);
+  assert.match(source, /const deadline = Date\.now\(\) \+ totalTimeoutMs/);
+  assert.match(source, /deadline - Date\.now\(\)/);
+  assert.match(source, /MightPulse lookup exceeded its overall time budget/);
+});
