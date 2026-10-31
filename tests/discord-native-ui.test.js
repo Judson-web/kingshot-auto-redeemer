@@ -38,8 +38,8 @@ test("PNG player-card endpoint and renderer are retired", () => {
   assert.ok(!route.includes("discord-player-card"));
 });
 
-test("registration responses are private and preserve the authoritative backend", () => {
-  assert.ok(interactions.includes("data: { flags: 64 }"));
+test("registration responses preserve the authoritative backend and keep profile-button confirmations private", () => {
+  assert.ok(interactions.includes("acknowledge(res, { type: 5, data: {} });"));
   assert.ok(interactions.includes("flags: 64"));
   assert.ok(interactions.includes("Already enrolled"));
   assert.ok(interactions.includes("Player registered successfully"));
@@ -56,7 +56,8 @@ test("alliance explorer exposes search, roster selection, pagination, and back n
     assert.ok((expected === 'name: "alliance"' ? commands : interactions).includes(expected), "missing alliance explorer feature: " + expected);
   }
   assert.ok(interactions.includes("max_values: 1"));
-  assert.ok(interactions.includes("slice(start, start + 25)"));
+  assert.ok(interactions.includes("slice(start, start + pageSize)"));
+  assert.ok(interactions.includes("const pageSize = 10;"));
   assert.ok(interactions.includes("interaction.data?.values?.[0]"));
 });
 
@@ -122,4 +123,26 @@ test("Discord deferred commands and components stay alive with Vercel waitUntil"
   assert.ok(handler.includes("const componentTask = handleComponent(req, interaction, res)"));
   assert.ok(handler.includes("retainAfterAcknowledgement(componentTask, interaction, \"message-component\")"));
   assert.ok(handler.includes("if (res.headersSent)"));
+});
+
+
+test("verified gift-code command calls the restricted summary RPC", async () => {
+  const migration = await readFile(new URL("../supabase/migrations/20261031180000_discord_verified_gift_codes.sql", import.meta.url), "utf8");
+  assert.ok(interactions.includes("discord_list_verified_gift_codes"));
+  assert.ok(interactions.includes("recentSuccesses"));
+  assert.ok(interactions.includes("giftCodesEmbed"));
+  assert.ok(interactions.includes("ks:codes-page:"));
+  for (const expected of ["g.active = true", "g.suppressed = false", "g.validation_status = 'verified'", "r.status = 'SUCCESS'", "r.attempted_at >=", "g.expires_at > now()", "grant execute"]) {
+    assert.ok(migration.includes(expected), "missing verified gift-code SQL predicate: " + expected);
+  }
+  assert.ok(commands.includes('name: "codes"'));
+});
+
+test("Discord registration command is public on valid registration and cards can show avatars", () => {
+  const start = interactions.indexOf('if (name === "register")');
+  const end = interactions.indexOf('if (customId.startsWith("ks:"))', start);
+  const block = interactions.slice(start, end);
+  assert.ok(block.includes("acknowledge(res, { type: 5, data: {} })"));
+  assert.ok(interactions.includes("const avatar = safeAvatar(data.avatar)"));
+  assert.ok(interactions.includes("thumbnail: avatar"));
 });
