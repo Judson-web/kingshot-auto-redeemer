@@ -167,3 +167,23 @@ test("Discord alliance registration uses signed identity and owner-only database
  assert.ok(migration.includes("p_owner_bypass is distinct from true and v_total >= 4"));
  assert.ok(migration.includes("grant execute on function public.register_alliance_sync_config_from_discord"));
 });
+
+
+test("alliance information is a detailed embed and roster names stay in the selector", () => {
+  assert.ok(interactions.includes("embeds: [allianceEmbed(data)]"));
+  assert.ok(interactions.includes("fields: []"));
+  assert.ok(interactions.includes("SERVER DETAILS"));
+  assert.ok(interactions.includes("Choose a governor from the selector below"));
+});
+
+test("Discord server Administrator is distinct from project-owner bypass", () => {
+  assert.ok(interactions.includes("function isGuildAdministrator(interaction)"));
+  assert.ok(interactions.includes("& 8n"));
+  assert.ok(interactions.includes('name === "set-gift-code-alert-channel"'));
+  assert.ok(interactions.includes('name === "announce"'));
+  assert.ok(interactions.includes("announce-confirm"));
+  assert.ok(interactions.includes("announce-cancel"));
+  assert.ok(commands.includes('default_member_permissions: "8"'));
+  assert.ok(commands.includes('name: "set-gift-code-alert-channel"'));
+  assert.ok(commands.includes('name: "announce"'));
+});
