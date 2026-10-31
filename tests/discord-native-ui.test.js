@@ -24,7 +24,7 @@ test("Discord player lookups keep the quota-reserved fast path and cache", () =>
 test("player profiles use native Discord embeds and interactive components", () => {
   for (const expected of [
     "playerProfileEmbed", "playerComponents", "Refresh profile",
-    "Register for auto-redeem", "Open dashboard", "ks:refresh:", "ks:register:"
+    "label: \"Register\"", "Open dashboard", "ks:refresh:", "ks:register:"
   ]) assert.ok(interactions.includes(expected), "missing native UI feature: " + expected);
   assert.ok(interactions.includes("async function handleComponent"));
   assert.ok(interactions.includes("interaction.type === 3"));
