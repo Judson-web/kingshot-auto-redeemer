@@ -126,17 +126,23 @@ test("Discord deferred commands and components stay alive with Vercel waitUntil"
 });
 
 
-test("verified gift-code command is backed by active validation and recent successful redemptions", () => {
-  for (const expected of ["fetchVerifiedGiftCodes", "validation_status=eq.verified", "active=eq.true", "suppressed=eq.false", "kingshot_redemptions", "status=eq.SUCCESS", "7 * 24 * 60 * 60 * 1000", "recentSuccesses", "giftCodesEmbed", "ks:codes-page:"]) assert.ok(interactions.includes(expected), "missing verified gift-code behavior: " + expected);
+test("verified gift-code command calls the restricted summary RPC", async () => {
+  const migration = await readFile(new URL("../supabase/migrations/20261031180000_discord_verified_gift_codes.sql", import.meta.url), "utf8");
+  assert.ok(interactions.includes("discord_list_verified_gift_codes"));
+  assert.ok(interactions.includes("recentSuccesses"));
+  assert.ok(interactions.includes("giftCodesEmbed"));
+  assert.ok(interactions.includes("ks:codes-page:"));
+  for (const expected of ["g.active = true", "g.suppressed = false", "g.validation_status = 'verified'", "r.status = 'SUCCESS'", "r.attempted_at >=", "g.expires_at > now()", "grant execute"]) {
+    assert.ok(migration.includes(expected), "missing verified gift-code SQL predicate: " + expected);
+  }
   assert.ok(commands.includes('name: "codes"'));
 });
 
-test("Discord registration command is public and registration cards can show player avatars", () => {
+test("Discord registration command is public on valid registration and cards can show avatars", () => {
   const start = interactions.indexOf('if (name === "register")');
-  const end = interactions.indexOf('return { content: "That command', start);
+  const end = interactions.indexOf('if (customId.startsWith("ks:"))', start);
   const block = interactions.slice(start, end);
   assert.ok(block.includes("acknowledge(res, { type: 5, data: {} })"));
-  assert.ok(!block.includes("flags: 64"));
   assert.ok(interactions.includes("const avatar = safeAvatar(data.avatar)"));
   assert.ok(interactions.includes("thumbnail: avatar"));
 });
