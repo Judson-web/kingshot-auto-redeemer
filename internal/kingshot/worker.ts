@@ -173,7 +173,10 @@ export async function runWorkerShard(
   try {
     const assigned = (Array.isArray(players) ? players : []).filter(player => workerBucket(player?.player_id, options.workerCount) === slot);
     const deadline = Date.now() + options.maxRuntimeMs;
-    // Keep aggregate pressure conservative while upstream throttling is investigated.\n    // Four shards therefore issue at most four concurrent redemption requests.\n    const safeConcurrency = Math.min(1, Math.max(1, Math.floor(options.concurrency || 1)));\n    const results = await runWithConcurrency(assigned, player => redeemForPlayer(player, codes), safeConcurrency, { deadline });
+    // Keep aggregate pressure conservative while upstream throttling is investigated.
+    // Four shards therefore issue at most four concurrent redemption requests.
+    const safeConcurrency = Math.min(1, Math.max(1, Math.floor(options.concurrency || 1)));
+    const results = await runWithConcurrency(assigned, player => redeemForPlayer(player, codes), safeConcurrency, { deadline });
     const totals: Omit<WorkerSummary, "slot" | "players" | "deadlineSkipped"> & { deadlineSkipped: number } = {
       ...summarizeWorkerResults(results),
       deadlineSkipped: 0
