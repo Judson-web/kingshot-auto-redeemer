@@ -164,6 +164,6 @@ test("Discord alliance registration uses signed identity and owner-only database
  assert.ok(handler.includes("discordUserId==='871756466900598815'"));
  assert.ok(handler.includes("p_owner_bypass:isOwner"));
  assert.ok(migration.includes("p_owner_bypass boolean"));
- assert.ok(migration.includes("if not p_owner_bypass and v_total >= 4"));
+ assert.ok(migration.includes("p_owner_bypass is distinct from true and v_total >= 4"));
  assert.ok(migration.includes("grant execute on function public.register_alliance_sync_config_from_discord"));
 });
