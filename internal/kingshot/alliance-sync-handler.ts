@@ -120,14 +120,14 @@ export async function runAllianceSyncAsAdmin(configId:string, adminUserId:string
 }
 
 export async function previewAllianceRegistrationFromDiscord(kingdomId:string, allianceTag:string, discordUserId:string){
- if(!validKingdom(kingdomId)||!validTag(allianceTag)||!/^\\d{5,25}$/.test(discordUserId)) throw Object.assign(new Error('Invalid alliance or Discord identity.'),{status:400,code:'invalid_alliance'});
+ if(!validKingdom(kingdomId)||!validTag(allianceTag)||!/^\d{5,25}$/.test(discordUserId)) throw Object.assign(new Error('Invalid alliance or Discord identity.'),{status:400,code:'invalid_alliance'});
  const roster=await readAlliance(kingdomId,allianceTag);
  const ids=roster.members.map((member:any)=>member.id);
  const [alreadyRegisteredIds,bannedIds,configs]=await Promise.all([
   getRegisteredPlayerIds(ids),getBannedPlayerIds(ids),
   selectRows('alliance_sync_config',`kingdom_id=eq.${enc(kingdomId)}&select=id,alliance_tag,enabled,last_status`)
  ]);
- const existing=Array.isArray(configs)?configs.find((row:any)=>String(row.alliance_tag)===roster.tag):null;
+ const existing=Array.isArray(configs)?configs.find((row:any)=>String(row.alliance_tag||'').trim().toUpperCase()===roster.tag.trim().toUpperCase()):null;
  const isOwner=discordUserId==='871756466900598815';
  const registeredCount=ids.filter((id:string)=>alreadyRegisteredIds.has(id)).length;
  const bannedCount=ids.filter((id:string)=>bannedIds.has(id)).length;
@@ -145,14 +145,32 @@ export async function registerAllianceFromDiscord(kingdomId:string, allianceTag:
  if(!validKingdom(kingdomId)||!validTag(allianceTag)||!/^\d{5,25}$/.test(discordUserId)) throw Object.assign(new Error('Invalid alliance or Discord identity.'),{status:400,code:'invalid_alliance'});
  const roster=await readAlliance(kingdomId,allianceTag);
  const isOwner=discordUserId==='871756466900598815';
- const created=await callRpc('register_alliance_sync_config_from_discord',{p_owner_user_id:randomUUID(),p_kingdom_id:kingdomId,p_alliance_tag:roster.tag,p_alliance_name:roster.name,p_roster_count:roster.members.length,p_discord_user_id:discordUserId,p_owner_bypass:isOwner});
+ const existingRows=await selectRows('alliance_sync_config',`kingdom_id=eq.${enc(kingdomId)}&select=id,kingdom_id,alliance_tag,alliance_name,owner_user_id,enabled,last_status&limit=100`);
+ const existing=Array.isArray(existingRows)?existingRows.find((row:any)=>String(row.alliance_tag||'').trim().toUpperCase()===roster.tag.trim().toUpperCase()):null;
+ if(existing)return {config:existing,alreadyRegistered:true,validatedRosterCount:roster.members.length,ownerBypass:isOwner};
+ let created:any;
+ try{
+  created=await callRpc('register_alliance_sync_config_from_discord',{p_owner_user_id:randomUUID(),p_kingdom_id:kingdomId,p_alliance_tag:roster.tag,p_alliance_name:roster.name,p_roster_count:roster.members.length,p_discord_user_id:discordUserId,p_owner_bypass:isOwner});
+ }catch(error){
+  // A concurrent confirmation may have won the unique-config race. Re-read before reporting failure.
+  const racedRows=await selectRows('alliance_sync_config',`kingdom_id=eq.${enc(kingdomId)}&select=id,kingdom_id,alliance_tag,alliance_name,owner_user_id,enabled,last_status&limit=100`).catch(()=>[]);
+  const raced=Array.isArray(racedRows)?racedRows.find((row:any)=>String(row.alliance_tag||'').trim().toUpperCase()===roster.tag.trim().toUpperCase()):null;
+  if(raced)return {config:raced,alreadyRegistered:true,validatedRosterCount:roster.members.length,ownerBypass:isOwner};
+  throw error;
+ }
  const config=Array.isArray(created)?created[0]:created;
  if(!config?.id) throw new Error('Supabase did not confirm alliance registration.');
  const lease=randomUUID();
  const claimed=await patchRows('alliance_sync_config','id=eq.'+enc(config.id)+'&enabled=eq.true&or=(lease_token.is.null,lease_expires_at.lt.'+enc(new Date().toISOString())+')',{lease_token:lease,lease_expires_at:new Date(Date.now()+4*60000).toISOString(),last_status:'running',updated_at:new Date().toISOString()});
  if(!Array.isArray(claimed)||!claimed.length) return {config,validatedRosterCount:roster.members.length,scheduled:true,ownerBypass:isOwner};
- const initialSync=await performSync(claimed[0],String(config.owner_user_id),true,lease);
- return {config,validatedRosterCount:roster.members.length,initialSync,ownerBypass:isOwner};
+ try{
+  const initialSync=await performSync(claimed[0],String(config.owner_user_id),true,lease);
+  return {config,validatedRosterCount:roster.members.length,initialSync,ownerBypass:isOwner};
+ }catch(error){
+  // Configuration creation is durable. A failed eager sync is retried by the existing 5-minute worker schedule.
+  console.error('Discord alliance initial sync deferred after registration was saved:',String((error as Error)?.message||error).slice(0,240));
+  return {config,validatedRosterCount:roster.members.length,scheduled:true,syncPending:true,ownerBypass:isOwner};
+ }
 }
 export default async function handler(req:Req,res:Res){
  res.setHeader('Cache-Control','private, no-store');
