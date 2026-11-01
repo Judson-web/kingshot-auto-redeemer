@@ -13,7 +13,7 @@ test('scheduled and manual sync reconcile departures only after validating a fre
 });
 
 test('a departed member who rejoins becomes eligible for reconciliation again', () => {
-  assert.match(worker, /prior==='departed'\?'pending'/);
+  assert.match(worker, /priorById.get\(member.id\)==='departed'\?'pending'/);
   assert.match(handler, /prior==='departed'\?'pending'/);
 });
 
@@ -43,7 +43,7 @@ test('automatic roster sync resumes bounded batches and schedules completed alli
   assert.match(worker, /function nextDailySyncAt\(\)/);
   assert.match(worker, /next\.setUTCHours\(11,0,0,0\)/);
   assert.match(worker, /p_next_run_at:nextRunAt/);
-  assert.match(worker, /next_run_at:nextDailySyncAt\(\)/);
+  assert.match(worker, /:nextDailySyncAt\(\)/);\n  assert.match(worker, /continuation\?new Date\(Date.now\(\)\+5\*60000\)/);
   assert.match(worker, /registerWithRetry\(input\)/);
   assert.match(worker, /registration_status:'departed'/);
 });
