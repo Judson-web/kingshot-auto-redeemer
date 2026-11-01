@@ -1046,5 +1046,12 @@ export default {
   "developer.webhookDisableConfirm":"이 웹훅 구독을 비활성화할까요? 새 이벤트 전송이 중지됩니다.",
   "developer.webhookDisabled":"웹훅 구독을 비활성화했습니다.",
   "developer.webhookDisableFailed":"웹훅 구독을 비활성화하지 못했습니다."
+  "nav.groupRedeem":"교환",
+  "nav.groupKingshot":"킹샷",
+  "nav.groupResources":"자료",
+  "nav.groupAccount":"계정 및 지원",
+  "nav.playerProfiles":"플레이어 프로필",
+  "nav.playerProfilesDescription":"상세한 총독 프로필을 확인하세요",
+  "nav.drawerSubtitle":"킹샷에 필요한 도구를 한곳에서 이용하세요."
 
 };
