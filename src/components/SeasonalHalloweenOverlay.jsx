@@ -41,10 +41,8 @@ export default function SeasonalHalloweenOverlay(){
   const timer=window.setInterval(()=>{const value=Date.now();setNow(value);if(value>=SEASON_END){window.clearInterval(timer);cleanup()}},1000);
   return()=>{window.clearInterval(timer);cleanup()};
  },[]);
- const remaining=Math.max(0,SEASON_END-now);
- const seconds=Math.floor(remaining/1000);
- const parts=useMemo(()=>({days:Math.floor(seconds/86400),hours:Math.floor(seconds%86400/3600),minutes:Math.floor(seconds%3600/60),seconds:seconds%60}),[seconds]);
- if(typeof document==="undefined")return null;\n const halloweenActive=now<SEASON_END;
+ if(typeof document==="undefined")return null;
+ const halloweenActive=now<SEASON_END;
  return createPortal(<><MilestoneBoard/>{halloweenActive&&<div className="ks-halloween-overlay" aria-label="Halloween seasonal decorations">
   <div className="ks-halloween-atmosphere" aria-hidden="true"/>
 
