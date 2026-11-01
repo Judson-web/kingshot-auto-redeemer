@@ -46,6 +46,7 @@ function makePng(route="auto",overrideCard=null){
  info:[[10,11,9],[17,18,15],[51,52,45],[181,156,106],[230,211,163]],
  developer:[[10,11,9],[17,18,15],[51,52,45],[192,166,111],[238,219,171]],
  profile:[[10,11,9],[17,18,15],[48,48,40],[181,156,106],[230,211,163]],
+ player:[[8,9,14],[18,19,28],[55,49,67],[201,170,105],[242,222,173]],
  support:[[10,11,9],[17,18,15],[51,52,45],[192,166,111],[238,219,171]],
  message:[[10,11,9],[17,18,15],[51,52,45],[192,166,111],[238,219,171]],
  push:[[10,11,9],[17,18,15],[51,52,45],[181,156,106],[230,211,163]],
@@ -186,13 +187,14 @@ async function handlePlayerPage(req,res,requestUrl){
  if(!/^\d{5,20}$/.test(id)){res.status(400).end("Invalid Kingshot Governor ID");return}
  const origin=deploymentOrigin(),canonical=origin+"/user/"+encodeURIComponent(id);
  const player=await getPreviewPlayer(id);
- const name=safeCardText(player?.nick_name||"Kingshot Player",40);
+ const displayName=String(player?.nick_name||"Kingshot Player").slice(0,80);
+ const name=safeCardText(displayName,40);
  const kingdom=player?.kid==null?"Unknown":String(player.kid);
  const power=player?.power==null?"Not available":compactCardPower(player.power);
  const alliance=player?.alliance?.abbr?(" ["+safeCardText(player.alliance.abbr,12)+"]"):"";
  const title=(player?.nick_name?String(player.nick_name).slice(0,60):"Kingshot Player")+" · Kingdom "+kingdom+" | Kingshot Profile";
  const description=player
-  ?name+" · Kingdom "+kingdom+" · Power "+power+alliance+". View public Kingshot player stats, arena defence, equipment, alliance standing and kingdom context."
+  ?displayName+" · Kingdom "+kingdom+" · Power "+power+alliance+". View public Kingshot player stats, arena defence, equipment, alliance standing and kingdom context."
   :"View the public Kingshot player profile for Governor ID "+id+". Player stats, arena defence, equipment and rankings are shown when available.";
  const imageUrl=origin+"/api/og?route=player&id="+encodeURIComponent(id)+"&v=1";
  let html="";
@@ -221,7 +223,7 @@ async function handlePlayerPage(req,res,requestUrl){
   ["property","og:image:width","1200"],
   ["property","og:image:height","630"],
   ["property","og:image:type","image/png"],
-  ["property","og:image:alt","Kingshot player profile for "+name],
+  ["property","og:image:alt","Kingshot player profile for "+displayName],
   ["name","twitter:card","summary_large_image"],
   ["name","twitter:title",title],
   ["name","twitter:description",description],
@@ -242,7 +244,8 @@ async function handlePlayerPage(req,res,requestUrl){
 async function handlePlayerImage(req,res,requestUrl){
  const id=requestUrl.searchParams.get("id")||"";
  const player=await getPreviewPlayer(id);
- const name=safeCardText(player?.nick_name||"PLAYER "+id,13);
+ const safeName=safeCardText(player?.nick_name,13);
+ const name=safeName==="PLAYER PROFILE"?safeCardText("PLAYER "+id,13):safeName;
  const kingdom=player?.kid==null?"UNKNOWN":String(player.kid);
  const power=player?.power==null?"UNKNOWN":compactCardPower(player.power);
  const line3=safeCardText("KINGDOM "+kingdom+" POWER "+power,26);
