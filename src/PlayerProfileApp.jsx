@@ -1,5 +1,5 @@
 import React,{useEffect,useState}from"react";
-import{Activity,ArrowLeft,Award,Copy,Crown,ExternalLink,Gem,Globe2,MapPin,RefreshCw,Share2,Shield,ShieldCheck,Star,Swords,Trophy,Users,Zap,ChevronDown,Search}from"lucide-react";
+import{Activity,ArrowLeft,ArrowRight,Award,Copy,Crown,ExternalLink,Gem,Globe2,MapPin,RefreshCw,Share2,Shield,ShieldCheck,Star,Swords,Trophy,Users,Zap,ChevronDown,Search}from"lucide-react";
 import KingshotAvatar from"./components/KingshotAvatar.tsx";
 import PublicSiteHeader from"./components/PublicSiteHeader.jsx";
 import"./player-profile.css";
