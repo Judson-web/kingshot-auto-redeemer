@@ -2,7 +2,8 @@ import React,{useEffect,useMemo,useState}from"react";
 import{createPortal}from"react-dom";
 import"./SeasonalHalloweenOverlay.css";
 
-const SEASON_END=new Date("2026-11-03T00:00:00+05:30").getTime();
+const SEASON_END=Date.parse("2026-11-02T18:30:00Z");
+const LOCAL_END_LABEL=new Intl.DateTimeFormat(undefined,{dateStyle:"medium",timeStyle:"short"}).format(SEASON_END);
 const HALLOWEEN_MARK='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="n" x2="0" y2="1"><stop stop-color="#ffd98a"/><stop offset="1" stop-color="#e87532"/></linearGradient><radialGradient id="g"><stop stop-color="#9a54c8"/><stop offset="1" stop-color="#20102e"/></radialGradient></defs><rect width="64" height="64" rx="16" fill="url(#g)"/><path d="M32 10c-3 6-12 8-15 18-4 13 4 25 15 25s19-12 15-25c-3-10-12-12-15-18Z" fill="url(#n)" stroke="#ffe2a6" stroke-width="1.5"/><path d="M31 12c-1-5 3-8 8-9-1 5-3 8-8 9Z" fill="#79a56b"/><path d="m22 29 7 4-7 3Zm20 0-7 4 7 3Z" fill="#25142c"/><path d="M27 43q5 5 10 0" fill="none" stroke="#25142c" stroke-width="2.5" stroke-linecap="round"/><path d="M9 12 13 8m38 4 4-4M7 48l5-2m40 2 5 2" stroke="#f6b85c" stroke-width="2" stroke-linecap="round"/></svg>';
 const HALLOWEEN_ICON="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(HALLOWEEN_MARK);
 
@@ -51,7 +52,7 @@ export default function SeasonalHalloweenOverlay(){
    <div className="ks-halloween-countdown-top"><span className="ks-halloween-star">✦</span><span>THE VEIL CLOSES IN</span><span className="ks-halloween-star">✦</span></div>
    <div className="ks-halloween-countdown-title">A NIGHT TO REMEMBER</div>
    <div className="ks-halloween-countdown-units"><CountdownUnit value={parts.days} label="DAYS"/><i>:</i><CountdownUnit value={parts.hours} label="HRS"/><i>:</i><CountdownUnit value={parts.minutes} label="MIN"/><i>:</i><CountdownUnit value={parts.seconds} label="SEC"/></div>
-   <div className="ks-halloween-countdown-foot"><span/> HALLOWEEN SEASON · UNTIL MIDNIGHT <span/></div>
+   <div className="ks-halloween-countdown-foot"><span/> ENDS {LOCAL_END_LABEL} · YOUR LOCAL TIME <span/></div>
   </div>
   <Pumpkin className="ks-halloween-corner-pumpkin ks-halloween-corner-pumpkin-left"/><Pumpkin className="ks-halloween-corner-pumpkin ks-halloween-corner-pumpkin-right"/>
  </div>,document.body);
