@@ -110,7 +110,7 @@ export default async function handler(req:any,res:any){
     // completed outcomes; only departed players re-enter the pending queue.
     const idFilter='in.'+enc('('+rosterIds.join(',')+')');
     const existingRows=await selectRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=${idFilter}&select=player_id,registration_status`);
-    const priorById=new Map<string,string>((Array.isArray(existingRows)?existingRows:[]).map((row:any)=>[String(row.player_id),String(row.registration_status||'')]));
+    const priorById=new Map<string,string>((Array.isArray(existingRows)?existingRows:[]).map((row:any)=>[String(row.player_id),String(row.registration_status||'')] as [string,string]));
     await sb('alliance_sync_seen_players?on_conflict=config_id,player_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(roster.members.map((member:any)=>({config_id:config.id,player_id:member.id,last_seen_at:new Date().toISOString(),registration_status:priorById.get(member.id)==='departed'?'pending':(priorById.get(member.id)||'pending')})))});
 
     const patchPlayers=async(ids:string[],body:any)=>{
