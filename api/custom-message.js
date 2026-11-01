@@ -322,7 +322,9 @@ export default async function handler(req,res){
       await broadcastPush({title:item.title||"Message from the Kingshot team",body:item.message.slice(0,220),url:"/",image:currentImage,tag:"scheduled-announcement-"+item.id+"-"+Date.now()});
      }
      const next=item.interval_seconds?new Date(Date.now()+Number(item.interval_seconds)*1000).toISOString():null;
-     await adminDb("discord_scheduled_announcements?id=eq."+item.id+"&lease_token=eq."+item.lease_token,{method:"PATCH",body:JSON.stringify({last_run_at:new Date().toISOString(),next_run_at:next,status:next?"scheduled":"completed",lease_token:null,lease_until:null,last_error:null,updated_at:new Date().toISOString()})});
+     // next_run_at is NOT NULL in the database. Keep the original due time for
+     // one-shot announcements while marking them completed; recurring items get a new due time.
+     await adminDb("discord_scheduled_announcements?id=eq."+item.id+"&lease_token=eq."+item.lease_token,{method:"PATCH",body:JSON.stringify({last_run_at:new Date().toISOString(),next_run_at:next||item.next_run_at||item.starts_at||new Date().toISOString(),status:next?"scheduled":"completed",lease_token:null,lease_until:null,last_error:null,updated_at:new Date().toISOString()})});
      sent++;
     }catch(error){
      const retry=new Date(Date.now()+Math.min(3600,60*Math.pow(2,Math.min(5,Number(item.attempts)||1)))*1000).toISOString();
