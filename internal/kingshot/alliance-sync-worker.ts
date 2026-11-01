@@ -5,7 +5,8 @@ import { getRegisteredPlayerIds, getBannedPlayerIds } from "./registered-player-
 import { fetchMightPulse } from "../../lib/mightpulse-key-pool.js";
 
 const JOB_SECRETS=[process.env.ALLIANCE_SYNC_CRON_SECRET,process.env.CRON_SECRET].filter((value):value is string=>Boolean(value));
-const MAX_AUTOMATIC_SYNC_MEMBERS_PER_INVOCATION=15;
+const MAX_AUTOMATIC_SYNC_MEMBERS_PER_INVOCATION=10;
+const MAX_CONCURRENT_AUTOMATIC_REGISTRATIONS=3;
 function nextDailySyncAt(){const next=new Date();next.setUTCHours(11,0,0,0);if(next.getTime()<=Date.now())next.setUTCDate(next.getUTCDate()+1);return next.toISOString();}
 const wait=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms));
 async function registerWithRetry(input:any){let last:unknown;for(let attempt=0;attempt<3;attempt++){try{return await registerPlayer(input)}catch(error){last=error;if(attempt<2)await wait(400*(attempt+1));}}throw last instanceof Error?last:new Error("Registration failed after retries.");}
@@ -140,16 +141,25 @@ export default async function handler(req:any,res:any){
     const continuation=eligible.length>batch.length;
     let registered=0,failed=0;const failures:string[]=[];
     const skipped=roster.members.length-eligible.length;
-    for(const member of batch){
+    for(let offset=0;offset<batch.length;offset+=MAX_CONCURRENT_AUTOMATIC_REGISTRATIONS){
+     const group=batch.slice(offset,offset+MAX_CONCURRENT_AUTOMATIC_REGISTRATIONS);
      const heartbeat=await patchRows('alliance_sync_config',`id=eq.${enc(config.id)}&lease_token=eq.${enc(lease)}&enabled=eq.true`,{lease_expires_at:new Date(Date.now()+4*60000).toISOString()});
      if(!Array.isArray(heartbeat)||!heartbeat.length)throw new Error('Sync lease lost or configuration paused.');
-     try{
-      const input=normalizeRegistrationInput({playerId:member.id,kingdomId:String(config.kingdom_id),playerName:member.name,avatarUrl:member.avatarUrl});
-      const result=await registerWithRetry(input);if(result?.stale===true)throw new Error('Player record is stale.');
-      await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}`,{registration_status:result?.alreadyRegistered?'already_registered':'registered',registered_at:new Date().toISOString(),last_seen_at:new Date().toISOString(),last_error_code:null});registered++;
-     }catch(e){
-      const message=String((e as Error)?.message||'Registration failed.').slice(0,250);
-      await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}`,{registration_status:'error',last_seen_at:new Date().toISOString(),last_error_code:'registration_failed'});failed++;failures.push(member.id+': '+message);
+     const outcomes=await Promise.all(group.map(async(member:any)=>{
+      try{
+       const input=normalizeRegistrationInput({playerId:member.id,kingdomId:String(config.kingdom_id),playerName:member.name,avatarUrl:member.avatarUrl});
+       const result=await registerWithRetry(input);if(result?.stale===true)throw new Error('Player record is stale.');
+       await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}`,{registration_status:result?.alreadyRegistered?'already_registered':'registered',registered_at:new Date().toISOString(),last_seen_at:new Date().toISOString(),last_error_code:null});
+       return {playerId:member.id,ok:true};
+      }catch(e){
+       const message=String((e as Error)?.message||'Registration failed.').slice(0,250);
+       await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}`,{registration_status:'error',last_seen_at:new Date().toISOString(),last_error_code:'registration_failed'});
+       return {playerId:member.id,ok:false,message};
+      }
+     }));
+     for(const outcome of outcomes){
+      if(outcome.ok)registered++;
+      else{failed++;failures.push(outcome.playerId+': '+outcome.message);}
      }
     }
 
