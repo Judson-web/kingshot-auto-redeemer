@@ -119,6 +119,28 @@ export async function runAllianceSyncAsAdmin(configId:string, adminUserId:string
  return await performSync(claimed[0],adminUserId,true,lease);
 }
 
+export async function previewAllianceRegistrationFromDiscord(kingdomId:string, allianceTag:string, discordUserId:string){
+ if(!validKingdom(kingdomId)||!validTag(allianceTag)||!/^\\d{5,25}$/.test(discordUserId)) throw Object.assign(new Error('Invalid alliance or Discord identity.'),{status:400,code:'invalid_alliance'});
+ const roster=await readAlliance(kingdomId,allianceTag);
+ const ids=roster.members.map((member:any)=>member.id);
+ const [alreadyRegisteredIds,bannedIds,configs]=await Promise.all([
+  getRegisteredPlayerIds(ids),getBannedPlayerIds(ids),
+  selectRows('alliance_sync_config',`kingdom_id=eq.${enc(kingdomId)}&select=id,alliance_tag,enabled,last_status`)
+ ]);
+ const existing=Array.isArray(configs)?configs.find((row:any)=>String(row.alliance_tag)===roster.tag):null;
+ const isOwner=discordUserId==='871756466900598815';
+ const registeredCount=ids.filter((id:string)=>alreadyRegisteredIds.has(id)).length;
+ const bannedCount=ids.filter((id:string)=>bannedIds.has(id)).length;
+ return {
+  alliance:{name:roster.name,tag:roster.tag,kingdomId,rosterCount:ids.length},
+  registeredCount,bannedCount,eligibleCount:Math.max(0,ids.length-registeredCount-bannedCount),
+  kingdomAllianceCount:Array.isArray(configs)?configs.length:0,kingdomAllianceLimit:4,
+  ownerBypass:isOwner,alreadyRegistered:Boolean(existing),
+  existingStatus:existing?String(existing.last_status|| (existing.enabled?'active':'paused')):null,
+  canRegister:!existing&&(isOwner||!Array.isArray(configs)||configs.length<4)
+ };
+}
+
 export async function registerAllianceFromDiscord(kingdomId:string, allianceTag:string, discordUserId:string){
  if(!validKingdom(kingdomId)||!validTag(allianceTag)||!/^\d{5,25}$/.test(discordUserId)) throw Object.assign(new Error('Invalid alliance or Discord identity.'),{status:400,code:'invalid_alliance'});
  const roster=await readAlliance(kingdomId,allianceTag);
