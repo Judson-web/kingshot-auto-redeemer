@@ -47,4 +47,6 @@ test("automatic sync is resumable and bounded per scheduled invocation",()=>{
  assert.match(worker,/localeCompare\(String\(priorLastSeenById/);
  assert.match(worker,/MAX_CONCURRENT_AUTOMATIC_REGISTRATIONS=3/);
  assert.match(worker,/Promise\.all\(group\.map/);
+ assert.match(worker,/const status=failed\?'partial':'success'/);
+ assert.match(worker,/const errorCode=failed\?'registration_failed':null/);
 });
