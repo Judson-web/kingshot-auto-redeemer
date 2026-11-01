@@ -1,4 +1,5 @@
 import zlib from "node:zlib";
+import { fetchMightPulse } from "../lib/mightpulse-key-pool.js";
 
 const W=1200,H=630;
 const rgb=(r,g,b)=>[r,g,b];
@@ -11,7 +12,7 @@ function pngChunk(type,data){
  buf.writeUInt32BE((crc^0xffffffff)>>>0,8+d.length);
  return buf;
 }
-function makePng(route="auto"){
+function makePng(route="auto",overrideCard=null){
  const pixels=new Uint8Array(W*H*3);
  const set=(x,y,c)=>{if(x<0||y<0||x>=W||y>=H)return;const i=(y*W+x)*3;pixels[i]=c[0];pixels[i+1]=c[1];pixels[i+2]=c[2]};
  const rect=(x,y,w,h,c)=>{for(let yy=Math.max(0,y);yy<Math.min(H,y+h);yy++)for(let xx=Math.max(0,x);xx<Math.min(W,x+w);xx++)set(xx,yy,c)};
@@ -103,7 +104,7 @@ function makePng(route="auto"){
  terms:["TERMS OF","SERVICE","RESPONSIBLE USE AND SERVICE RULES"],
  privacy:["YOUR","PRIVACY","DATA HANDLING EXPLAINED"]
 };
- const card=cards[String(route)]||cards.auto;
+ const card=Array.isArray(overrideCard)?overrideCard:(cards[String(route)]||cards.auto);
  // Typography is deliberately oversized and left-aligned for legibility in Discord, WhatsApp and X.
  rect(462,120,7,12,light);rect(476,120,7,12,accent);
  text("KINGSHOT",462,151,5,muted);
@@ -136,9 +137,127 @@ function makePng(route="auto"){
  const header=Buffer.alloc(13);header.writeUInt32BE(W,0);header.writeUInt32BE(H,4);header[8]=8;header[9]=2;header[10]=0;header[11]=0;header[12]=0;
  return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),pngChunk("IHDR",header),pngChunk("IDAT",zlib.deflateSync(raw,{level:9})),pngChunk("IEND",[])]);
 }
-export default function handler(req,res){
+
+const previewPlayerCache=new Map();
+async function getPreviewPlayer(playerId){
+ if(!/^\d{5,20}$/.test(playerId))return null;
+ const cached=previewPlayerCache.get(playerId);
+ if(cached&&cached.expiresAt>Date.now())return cached.player;
+ try{
+  const url="https://api.mightpulse.com/v1/players/"+encodeURIComponent(playerId)+"?include=base";
+  const response=await fetchMightPulse(url,{headers:{Accept:"application/json"}},{timeoutMs:6000,totalTimeoutMs:8500,fastPath:true,maxAttempts:1});
+  if(!response.ok)return null;
+  const body=await response.json().catch(()=>({}));
+  const player=body.player&&typeof body.player==="object"?body.player:null;
+  if(!player||String(player.governor_id??player.fid??"")!==playerId)return null;
+  previewPlayerCache.set(playerId,{player,expiresAt:Date.now()+5*60_000});
+  return player;
+ }catch{return null}
+}
+function escapeHtml(value){
+ return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+}
+function safeCardText(value,max=24){
+ return String(value??"").normalize("NFKD").toUpperCase().replace(/[^A-Z0-9 ]/g," ").replace(/\s+/g," ").trim().slice(0,max)||"PLAYER PROFILE";
+}
+function compactCardPower(value){
+ const n=Number(value);if(!Number.isFinite(n))return"UNKNOWN";
+ if(n>=1e9)return Math.round(n/1e9)+"B";
+ if(n>=1e6)return Math.round(n/1e6)+"M";
+ if(n>=1e3)return Math.round(n/1e3)+"K";
+ return String(Math.round(n));
+}
+function deploymentOrigin(){
+ const host=process.env.VERCEL_ENV==="production"&&process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ?process.env.VERCEL_PROJECT_PRODUCTION_URL
+  :process.env.VERCEL_URL||"kingshot-autoredeemer.vercel.app";
+ return "https://"+String(host).replace(/^https?:\/\//i,"").replace(/\/.*$/,"");
+}
+function removeMeta(html,attribute,value){
+ const needle=('<meta '+attribute+'="'+value+'"').toLowerCase();
+ const index=html.toLowerCase().indexOf(needle);
+ if(index<0)return html;
+ const end=html.indexOf(">",index);
+ return end<0?html:html.slice(0,index)+html.slice(end+1);
+}
+async function handlePlayerPage(req,res,requestUrl){
+ if(req.method&&req.method.toUpperCase()!=="GET"){res.setHeader("Allow","GET");res.status(405).end("Method not allowed");return}
+ const id=requestUrl.searchParams.get("id")||"";
+ if(!/^\d{5,20}$/.test(id)){res.status(400).end("Invalid Kingshot Governor ID");return}
+ const origin=deploymentOrigin(),canonical=origin+"/user/"+encodeURIComponent(id);
+ const player=await getPreviewPlayer(id);
+ const name=safeCardText(player?.nick_name||"Kingshot Player",40);
+ const kingdom=player?.kid==null?"Unknown":String(player.kid);
+ const power=player?.power==null?"Not available":compactCardPower(player.power);
+ const alliance=player?.alliance?.abbr?(" ["+safeCardText(player.alliance.abbr,12)+"]"):"";
+ const title=(player?.nick_name?String(player.nick_name).slice(0,60):"Kingshot Player")+" · Kingdom "+kingdom+" | Kingshot Profile";
+ const description=player
+  ?name+" · Kingdom "+kingdom+" · Power "+power+alliance+". View public Kingshot player stats, arena defence, equipment, alliance standing and kingdom context."
+  :"View the public Kingshot player profile for Governor ID "+id+". Player stats, arena defence, equipment and rankings are shown when available.";
+ const imageUrl=origin+"/api/og?route=player&id="+encodeURIComponent(id)+"&v=1";
+ let html="";
+ try{
+  const template=await fetch(origin+"/index.html",{headers:{Accept:"text/html"},signal:AbortSignal.timeout(5000)});
+  if(!template.ok)throw new Error("Could not load the application shell.");
+  html=await template.text();
+  if(html.length>500_000)throw new Error("Application shell is unexpectedly large.");
+ }catch{
+  res.setHeader("Cache-Control","no-store");
+  res.status(503).end("Player profile is temporarily unavailable.");
+  return;
+ }
+ html=html.replace(/<title>[\s\S]*?<\/title>/i,"<title>"+escapeHtml(title)+"</title>");
+ html=html.replace(/<link\s+rel=["']canonical["'][^>]*>/i,"");
+ const metas=[
+  ["name","description",description],
+  ["name","robots","index,follow"],
+  ["property","og:type","profile"],
+  ["property","og:url",canonical],
+  ["property","og:title",title],
+  ["property","og:description",description],
+  ["property","og:site_name","Kingshot Auto Redeem"],
+  ["property","og:image",imageUrl],
+  ["property","og:image:secure_url",imageUrl],
+  ["property","og:image:width","1200"],
+  ["property","og:image:height","630"],
+  ["property","og:image:type","image/png"],
+  ["property","og:image:alt","Kingshot player profile for "+name],
+  ["name","twitter:card","summary_large_image"],
+  ["name","twitter:title",title],
+  ["name","twitter:description",description],
+  ["name","twitter:image",imageUrl],
+  ["name","twitter:image:alt","Kingshot player profile for "+name]
+ ];
+ for(const [attr,key] of metas)html=removeMeta(html,attr,key);
+ const metaHtml=metas.map(([attr,key,value])=>'<meta '+attr+'="'+escapeHtml(key)+'" content="'+escapeHtml(value)+'"/>').join("");
+ const canonicalHtml='<link rel="canonical" href="'+escapeHtml(canonical)+'"/>';
+ const schema={"@context":"https://schema.org","@type":"ProfilePage","name":title,"url":canonical,"description":description,"mainEntity":{"@type":"Person","name":player?.nick_name||"Kingshot Player","identifier":id}};
+ html=html.replace("</head>",metaHtml+canonicalHtml+'<script type="application/ld+json">'+JSON.stringify(schema).replace(/</g,"\\\\u003c")+"</script></head>");
+ res.setHeader("Content-Type","text/html; charset=utf-8");
+ res.setHeader("Cache-Control","public, max-age=60, s-maxage=300, stale-while-revalidate=600");
+ res.setHeader("X-Content-Type-Options","nosniff");
+ res.setHeader("Referrer-Policy","strict-origin-when-cross-origin");
+ res.status(200).end(html);
+}
+async function handlePlayerImage(req,res,requestUrl){
+ const id=requestUrl.searchParams.get("id")||"";
+ const player=await getPreviewPlayer(id);
+ const name=safeCardText(player?.nick_name||"PLAYER "+id,13);
+ const kingdom=player?.kid==null?"UNKNOWN":String(player.kid);
+ const power=player?.power==null?"UNKNOWN":compactCardPower(player.power);
+ const line3=safeCardText("KINGDOM "+kingdom+" POWER "+power,26);
+ res.setHeader("Content-Type","image/png");
+ res.setHeader("Cache-Control","public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800");
+ res.setHeader("X-Content-Type-Options","nosniff");
+ res.status(200).end(makePng("player",["KINGSHOT PLAYER",name,line3]));
+}
+
+export default async function handler(req,res){
+ const requestUrl=new URL(req.url||"/","http://localhost");
+ const route=requestUrl.searchParams.get("route")||"auto";
+ if(route==="player-page"){await handlePlayerPage(req,res,requestUrl);return}
+ if(route==="player"){await handlePlayerImage(req,res,requestUrl);return}
  res.setHeader("Content-Type","image/png");res.setHeader("Cache-Control","public, max-age=86400, s-maxage=2592000, stale-while-revalidate=604800");
  res.setHeader("X-Content-Type-Options","nosniff");
- const route=new URL(req.url,"http://localhost").searchParams.get("route")||"auto";
  res.status(200).end(makePng(route));
 }
