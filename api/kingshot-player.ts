@@ -437,6 +437,93 @@ async function handleAllianceLookup(req: RequestLike, res: ResponseLike): Promis
  }
 }
 
+
+const detailedProfileCache = new Map<string, { value: Record<string, any>; expiresAt: number }>();
+const detailedProfileInFlight = new Map<string, Promise<Record<string, any>>>();
+const DETAILED_PROFILE_CACHE_MS = 2 * 60_000;
+
+async function loadDetailedPlayerProfile(playerId: string): Promise<Record<string, any>> {
+ const cached = detailedProfileCache.get(playerId);
+ if (cached && cached.expiresAt > Date.now()) return cached.value;
+ const active = detailedProfileInFlight.get(playerId);
+ if (active) return active;
+ const request = (async () => {
+  const endpoint = "https://api.mightpulse.com/v1/players/" + encodeURIComponent(playerId) + "?include=base,heroes,ranks,gov_gear";
+  const upstream = await fetchMightPulse(endpoint, { headers: { Accept: "application/json" } }, {
+   timeoutMs: 95_000,
+   totalTimeoutMs: 110_000,
+   maxAttempts: 3
+  });
+  const body = await upstream.json().catch(() => ({})) as Record<string, any>;
+  if (!upstream.ok) {
+   const error = new Error("MightPulse player profile request failed.");
+   (error as any).status = upstream.status;
+   throw error;
+  }
+  const player = body.player && typeof body.player === "object" ? body.player : null;
+  if (!player || String(player.governor_id ?? player.fid ?? "") !== playerId) {
+   const error = new Error("MightPulse returned an unexpected player profile.");
+   (error as any).status = 502;
+   throw error;
+  }
+  const result = {
+   ok: true,
+   player,
+   heroes: Array.isArray(body.heroes) ? body.heroes : [],
+   ranks: body.ranks && typeof body.ranks === "object" ? body.ranks : null,
+   gov_gear: body.gov_gear && typeof body.gov_gear === "object" ? body.gov_gear : null,
+   fresh: typeof body.fresh === "boolean" ? body.fresh : null,
+   cached_at: typeof body.cached_at === "string" ? body.cached_at : null,
+   age_seconds: Number.isFinite(Number(body.age_seconds)) ? Number(body.age_seconds) : null,
+   include: Array.isArray(body.include) ? body.include : ["base", "heroes", "ranks", "gov_gear"],
+   source: "mightpulse"
+  };
+  detailedProfileCache.set(playerId, { value: result, expiresAt: Date.now() + DETAILED_PROFILE_CACHE_MS });
+  return result;
+ })();
+ detailedProfileInFlight.set(playerId, request);
+ try { return await request; }
+ finally { detailedProfileInFlight.delete(playerId); }
+}
+
+async function handleDetailedPlayerProfile(req: RequestLike, res: ResponseLike, requestUrl: URL, requestId: string): Promise<void> {
+ if (req.method && req.method.toUpperCase() !== "GET") {
+  res.setHeader("Allow", "GET");
+  sendError(res, 405, "method_not_allowed", "Method not allowed.", requestId);
+  return;
+ }
+ if (!rateLimit(req, res, "detailed-player-profile", 12, 60_000)) {
+  sendError(res, 429, "rate_limit_exceeded", "Too many detailed profile lookups. Please wait before trying again.", requestId);
+  return;
+ }
+ const playerId = normalizePlayerId(requestUrl.searchParams.get("id"));
+ if (!isValidPlayerId(playerId)) {
+  sendError(res, 400, "invalid_player_id", "Player ID must contain 5–20 digits.", requestId);
+  return;
+ }
+ try {
+  const profile = await loadDetailedPlayerProfile(playerId);
+  res.setHeader("Cache-Control", "public, max-age=60, s-maxage=120, stale-while-revalidate=300");
+  res.setHeader("X-Request-Id", requestId);
+  res.status(200).json({ ...profile, meta: { requestId, timestamp: new Date().toISOString() } });
+ } catch (error) {
+  const status = Number((error as any)?.status) || 502;
+  if (status === 404) {
+   sendError(res, 404, "player_not_found", "No Kingshot player was found for this ID.", requestId);
+   return;
+  }
+  if (status === 429) {
+   sendError(res, 429, "provider_rate_limited", "The game data provider is busy. Please wait a moment and try again.", requestId);
+   return;
+  }
+  if (status === 504 || /timed out|deadline|abort/i.test(String((error as any)?.message || ""))) {
+   sendError(res, 504, "upstream_timeout", "The detailed player profile took too long to refresh. Please try again shortly.", requestId);
+   return;
+  }
+  sendError(res, status === 503 ? 503 : 502, "profile_unavailable", "Detailed player data is temporarily unavailable.", requestId);
+ }
+}
+
 export default async function handler(req: RequestLike, res: ResponseLike): Promise<void> {
  const requestId = globalThis.crypto?.randomUUID?.() || `req-${Date.now().toString(36)}`;
  res.setHeader("X-Request-Id", requestId);
@@ -451,6 +538,7 @@ export default async function handler(req: RequestLike, res: ResponseLike): Prom
  if (developerPath.startsWith("v3-")) return developerApiV3(req, res, developerPath.slice(3));
  if (developerPath.startsWith("v4-")) return developerApiV4(req, res, developerPath.slice(3));
  if (developerPath) return developerApi(req, res, developerPath);
+ if (requestUrl.searchParams.get("profile") === "detail") return handleDetailedPlayerProfile(req, res, requestUrl, requestId);
  if (requestUrl.searchParams.has("frame")) return handleMightPulseFrameRequest(req, res, requestUrl, requestId);
  if (req.method !== "GET") { res.setHeader("Allow", "GET"); return void sendError(res, 405, "method_not_allowed", "Method not allowed.", requestId); }
  if (!rateLimit(req, res, "player-lookup", 30, 60000)) return void sendError(res, 429, "rate_limit_exceeded", "Too many player lookups. Retry after the indicated delay.", requestId);

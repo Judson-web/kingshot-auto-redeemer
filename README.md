@@ -267,3 +267,9 @@ AGPL-3.0 includes source-sharing obligations for modified versions made availabl
 
 The `ui-regression` verification job runs the built frontend with deterministic API fixtures. It checks accessibility rules, mobile and desktop overflow and overlay geometry, and committed screenshots for key application pages. See [the UI regression guide](docs/ui-regression.md) for local setup and intentional baseline updates.
 \n\n### Scheduled announcements\n\nThe private website announcement console can send immediately or schedule a one-time or recurring announcement. Schedules persist in Supabase, support pause/resume/cancel, optional end times, a local timezone label, Discord-only / website-push-only / combined delivery, private image uploads, and validated Discord role mentions. A GitHub Actions worker wakes every five minutes using `CRON_SECRET`; delivery claims are atomic and leased, retries are bounded, and one-time schedules complete after delivery. Configure the repository Actions secret `CRON_SECRET` to match the production environment variable.\n
+
+## Public Kingshot player profiles
+
+Open `/user/{playerId}` for a detailed public Kingshot player profile. The page reuses the existing `/api/kingshot-player` handler and shared MightPulse API-key/quota pool. It does not add a serverless function or expose provider credentials to the browser.
+
+The profile includes public base stats, alliance context, the recorded arena-defence lineup and its gear, exclusive hero gear, governor gear (including an explicit hidden state), and available kingdom rankings. Arena defence is not the player's complete owned-hero collection. Provider freshness and cached age are displayed where available. Live online and last-active indicators are omitted because the game no longer supplies reliable activity updates. Missing or hidden sections are labelled rather than represented as zero or empty inventory.
