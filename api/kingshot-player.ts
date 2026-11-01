@@ -471,7 +471,7 @@ async function loadPlayerContext(player: Record<string, any>): Promise<Record<st
       return;
      }
      const nestedName = String(value.board ?? value.board_name ?? value.type ?? value.label ?? value.name ?? value.key ?? boardName);
-     for (const [key, nested] of Object.entries(value)) visitBoards(nested, Array.isArray(nested) ? key : nestedName, depth + 1);
+     for (const [key, nested] of Object.entries(value)) visitBoards(nested, Array.isArray(nested) ? (nestedName || key) : nestedName, depth + 1);
     };
     visitBoards(body.boards ?? body.data?.boards ?? data.boards ?? body.leaderboards ?? body.data?.leaderboards ?? []);
     const uniqueBoardRanks = [...new Map(boardRanks.map(item => [item.board.toLowerCase(), item])).values()].slice(0, 30);
