@@ -37,7 +37,7 @@ jobs:
         run: |
           set -euo pipefail
           curl --fail-with-body --silent --show-error \
-            --max-time 310 \
+            --max-time 270 \
             --request POST \
             --header "Authorization: Bearer ${SYNC_SECRET}" \
             --header "Accept: application/json" \
