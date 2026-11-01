@@ -1045,7 +1045,7 @@ export default {
   "developer.webhookCreateFailed":"웹훅 구독을 만들지 못했습니다.",
   "developer.webhookDisableConfirm":"이 웹훅 구독을 비활성화할까요? 새 이벤트 전송이 중지됩니다.",
   "developer.webhookDisabled":"웹훅 구독을 비활성화했습니다.",
-  "developer.webhookDisableFailed":"웹훅 구독을 비활성화하지 못했습니다."
+  "developer.webhookDisableFailed":"웹훅 구독을 비활성화하지 못했습니다.",
   "nav.groupRedeem":"교환",
   "nav.groupKingshot":"킹샷",
   "nav.groupResources":"자료",
