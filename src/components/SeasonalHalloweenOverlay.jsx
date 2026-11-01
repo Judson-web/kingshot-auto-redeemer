@@ -20,6 +20,12 @@ function applyBrand(){
  const theme=document.querySelector('meta[name="theme-color"]');if(theme){if(theme.dataset.ksSeasonalOriginal===undefined)theme.dataset.ksSeasonalOriginal=theme.content;theme.content="#1b1024"}
  return()=>{observer.disconnect();restoreBrand()};
 }
+function MilestoneBoard(){
+ const [count,setCount]=useState(null);
+ useEffect(()=>{let alive=true;const load=()=>fetch("/api/kingshot-player?milestone=count",{headers:{Accept:"application/json"},cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(alive&&Number.isFinite(Number(d?.registeredIds)))setCount(Number(d.registeredIds))}).catch(()=>{});load();const timer=window.setInterval(load,60000);return()=>{alive=false;window.clearInterval(timer)}},[]);
+ const remaining=count===null?null:Math.max(0,1000-count);
+ return <div className="ks-milestone-stage" aria-label="Community registration milestone"><div className="ks-milestone-cable ks-milestone-cable-left"/><div className="ks-milestone-cable ks-milestone-cable-right"/><section className="ks-milestone-board"><div className="ks-milestone-eyebrow"><i/> COMMUNITY MILESTONE <i/></div><strong className="ks-milestone-count">{count===null?"—":count.toLocaleString()}</strong><span className="ks-milestone-caption">REGISTERED PLAYER IDS</span><div className="ks-milestone-progress"><span style={{width:count===null?"0%":Math.min(100,count/10)+"%"}}/></div><div className="ks-milestone-foot">{count===null?"COUNT LOADING":remaining===0?"1,000 MILESTONE REACHED":remaining.toLocaleString()+" TO THE 1,000 MILESTONE"}</div></section></div>
+}
 function CountdownUnit({value,label}){return <div className="ks-halloween-time-unit"><b>{String(value).padStart(2,"0")}</b><span>{label}</span></div>}
 function Bat({className=""}){return <svg className={className} viewBox="0 0 100 48" aria-hidden="true"><path d="M50 21C43 8 34 4 26 2c3 7 3 12-2 17C17 11 9 10 2 11c7 7 9 14 6 24 11-7 20-6 28 5 3-7 8-10 14-11 6 1 11 4 14 11 8-11 17-12 28-5-3-10-1-17 6-24-7-1-15 0-22 8-5-5-5-10-2-17-8 2-17 6-24 19Z" fill="currentColor"/><circle cx="46" cy="23" r="1.6" fill="#ffdc92"/><circle cx="54" cy="23" r="1.6" fill="#ffdc92"/></svg>}
 function Pumpkin({className=""}){return <svg className={className} viewBox="0 0 100 88" aria-hidden="true"><path d="M50 16c-8-11-2-16 9-14-1 7-3 11-9 14Z" fill="#78935b"/><path d="M50 17C35 5 12 19 10 43 7 68 24 82 50 80c26 2 43-12 40-37C88 19 65 5 50 17Z" fill="#e77d32" stroke="#ffbd68" stroke-width="2"/><path d="M50 18c-8 9-10 24-9 37 1 14 4 22 9 25 5-3 8-11 9-25 1-13-1-28-9-37Z" fill="#c65c2e" opacity=".6"/><path d="m25 39 16 7-16 6Zm50 0-16 7 16 6Z" fill="#2a1730"/><path d="M39 62q11 12 22 0l-4 10H43Z" fill="#2a1730"/><path d="M16 34q4-12 14-15M84 34q-4-12-14-15" fill="none" stroke="#ffc47a" stroke-width="2" stroke-linecap="round" opacity=".8"/></svg>}
@@ -36,8 +42,8 @@ export default function SeasonalHalloweenOverlay(){
  const remaining=Math.max(0,SEASON_END-now);
  const seconds=Math.floor(remaining/1000);
  const parts=useMemo(()=>({days:Math.floor(seconds/86400),hours:Math.floor(seconds%86400/3600),minutes:Math.floor(seconds%3600/60),seconds:seconds%60}),[seconds]);
- if(typeof document==="undefined"||now>=SEASON_END)return null;
- return createPortal(<div className="ks-halloween-overlay" aria-label="Halloween seasonal decorations">
+ if(typeof document==="undefined")return null;\n const halloweenActive=now<SEASON_END;
+ return createPortal(<><MilestoneBoard/>{halloweenActive&&<div className="ks-halloween-overlay" aria-label="Halloween seasonal decorations">
   <div className="ks-halloween-atmosphere" aria-hidden="true"/>
   <Web side="left"/><Web side="right"/>
   <div className="ks-halloween-moon" aria-hidden="true"><i/></div>
@@ -55,5 +61,5 @@ export default function SeasonalHalloweenOverlay(){
    <div className="ks-halloween-countdown-foot"><span/> ENDS {LOCAL_END_LABEL} · YOUR LOCAL TIME <span/></div>
   </div>
   <Pumpkin className="ks-halloween-corner-pumpkin ks-halloween-corner-pumpkin-left"/><Pumpkin className="ks-halloween-corner-pumpkin ks-halloween-corner-pumpkin-right"/>
- </div>,document.body);
+ </div>}</>,document.body);
 }
