@@ -1045,6 +1045,13 @@ export default {
   "developer.webhookCreateFailed":"Could not create webhook subscription.",
   "developer.webhookDisableConfirm":"Disable this webhook subscription? It will stop receiving new events.",
   "developer.webhookDisabled":"Webhook subscription disabled.",
-  "developer.webhookDisableFailed":"Could not disable webhook subscription."
+  "developer.webhookDisableFailed":"Could not disable webhook subscription.",
+  "nav.groupRedeem":"REDEEM",
+  "nav.groupKingshot":"KINGSHOT",
+  "nav.groupResources":"RESOURCES",
+  "nav.groupAccount":"ACCOUNT & SUPPORT",
+  "nav.playerProfiles":"Player Profiles",
+  "nav.playerProfilesDescription":"Explore detailed governor profiles",
+  "nav.drawerSubtitle":"Your Kingshot tools, together in one place."
 
 };

@@ -1,8 +1,12 @@
 {
   "rewrites": [
     {
-      "source": "/user/:playerId",
+      "source": "/user",
       "destination": "/index.html"
+    },
+    {
+      "source": "/user/:playerId",
+      "destination": "/api/og?route=player-page&id=:playerId"
     },
     {
       "source": "/api/kingshot-v4-webhook-worker",

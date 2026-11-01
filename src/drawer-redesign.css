@@ -401,3 +401,10 @@
     transition: none !important;
   }
 }
+
+/* Navigation drawer hierarchy: visually separate tasks, game tools, resources and account actions. */
+.ks-nav-drawer-groups{display:grid!important;gap:16px!important}
+.ks-nav-drawer-group{display:grid!important;gap:7px!important;min-width:0!important}
+.ks-nav-drawer-group>h3{margin:0 2px 2px!important;color:#85877d!important;font-size:8px!important;font-weight:850!important;letter-spacing:.16em!important;line-height:1.4!important}
+.ks-nav-drawer-group .ks-nav-drawer-link,.ks-nav-drawer-group .ks-nav-drawer-support{margin:0!important}
+@media(max-height:760px){.ks-nav-drawer-groups{gap:10px!important}.ks-nav-drawer-group{gap:5px!important}.ks-nav-drawer-group>h3{font-size:7px!important}}

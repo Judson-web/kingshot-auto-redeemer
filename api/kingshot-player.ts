@@ -438,6 +438,79 @@ async function handleAllianceLookup(req: RequestLike, res: ResponseLike): Promis
 }
 
 
+
+async function loadPlayerContext(player: Record<string, any>): Promise<Record<string, any>> {
+ const kid = String(player.kid ?? "").trim();
+ const allianceTag = String(player.alliance?.abbr ?? "").trim();
+ const kingdomRequest = /^\d{1,10}$/.test(kid)
+  ? fetchMightPulse("https://api.mightpulse.com/v1/kingdoms/" + encodeURIComponent(kid) + "?include=boards&limit=100", { headers: { Accept: "application/json" } }, { timeoutMs: 7000, totalTimeoutMs: 10000, fastPath: true, maxAttempts: 1 }).then(async response => {
+    const body = await response.json().catch(() => ({})) as Record<string, any>;
+    if (!response.ok) throw Object.assign(new Error("Kingdom context unavailable."), { status: response.status });
+    const data = body.kingdom && typeof body.kingdom === "object" ? body.kingdom
+     : body.data?.kingdom && typeof body.data.kingdom === "object" ? body.data.kingdom
+     : body.data && typeof body.data === "object" ? body.data : body;
+    const playerIds = new Set([String(player.governor_id ?? player.fid ?? ""), String(player.uid ?? "")].filter(Boolean));
+    const boardRanks: Array<{ board: string; rank: number | null; score: number | null }> = [];
+    const visitBoards = (value: any, boardName = "", depth = 0): void => {
+     if (!value || typeof value !== "object" || depth > 7) return;
+     if (Array.isArray(value)) {
+      value.forEach((row: any, index: number) => {
+       if (row && typeof row === "object") {
+        const id = String(row.governor_id ?? row.fid ?? row.uid ?? "");
+        if (playerIds.has(id)) {
+         const scoreRaw = row.score ?? row.value ?? row.power;
+         const rankRaw = row.rank ?? row.kingdom_rank ?? row.position ?? index + 1;
+         boardRanks.push({
+          board: String(row.board ?? row.board_name ?? row.type ?? row.label ?? boardName ?? "Kingdom leaderboard").slice(0, 60),
+          rank: Number.isFinite(Number(rankRaw)) ? Number(rankRaw) : null,
+          score: scoreRaw == null || !Number.isFinite(Number(scoreRaw)) ? null : Number(scoreRaw)
+         });
+        } else visitBoards(row, String(row.name ?? row.key ?? boardName), depth + 1);
+       }
+      });
+      return;
+     }
+     const nestedName = String(value.board ?? value.board_name ?? value.type ?? value.label ?? value.name ?? value.key ?? boardName);
+     for (const [key, nested] of Object.entries(value)) visitBoards(nested, Array.isArray(nested) ? (nestedName || key) : nestedName, depth + 1);
+    };
+    visitBoards(body.boards ?? body.data?.boards ?? data.boards ?? body.leaderboards ?? body.data?.leaderboards ?? []);
+    const uniqueBoardRanks = [...new Map(boardRanks.map(item => [item.board.toLowerCase(), item])).values()].slice(0, 30);
+    return { data, board_ranks: uniqueBoardRanks, fresh: typeof body.fresh === "boolean" ? body.fresh : null, age_seconds: Number.isFinite(Number(body.age_seconds)) ? Number(body.age_seconds) : null, cached_at: typeof body.cached_at === "string" ? body.cached_at : null };
+   })
+  : Promise.resolve(null);
+ const allianceRequest = /^\d{1,10}$/.test(kid) && /^[A-Za-z0-9_-]{1,20}$/.test(allianceTag)
+  ? fetchMightPulse("https://api.mightpulse.com/v1/alliances/" + encodeURIComponent(kid) + "/" + encodeURIComponent(allianceTag) + "?include=info,roster", { headers: { Accept: "application/json" } }, { timeoutMs: 8000, totalTimeoutMs: 11000, fastPath: true, maxAttempts: 1 }).then(async response => {
+    const body = await response.json().catch(() => ({})) as Record<string, any>;
+    if (!response.ok) throw Object.assign(new Error("Alliance roster unavailable."), { status: response.status });
+    const source = body.data && typeof body.data === "object" ? body.data : body;
+    const raw = Array.isArray(source.members) ? source.members : Array.isArray(source.roster) ? source.roster : Array.isArray(source.alliance?.members) ? source.alliance.members : [];
+    const members = raw.flatMap((member: Record<string, any>) => {
+     const governorId = String(member.governor_id ?? member.fid ?? "").trim();
+     if (!/^\d{5,20}$/.test(governorId)) return [];
+     return [{
+      governor_id: governorId,
+      name: String(member.nick_name ?? member.name ?? member.nickname ?? "Kingshot Player").trim().slice(0, 80),
+      power: member.power == null || !Number.isFinite(Number(member.power)) ? null : Number(member.power),
+      town_center_level: member.town_center_level == null || !Number.isFinite(Number(member.town_center_level)) ? null : Number(member.town_center_level),
+      kills: member.kills == null || !Number.isFinite(Number(member.kills)) ? null : Number(member.kills),
+      alliance_rank: String(member.alliance_rank_label ?? member.alliance_rank ?? "").trim().slice(0, 30),
+      avatar_url: /^https:\/\//i.test(String(member.avatar_url ?? "")) ? String(member.avatar_url) : ""
+     }];
+    });
+    members.sort((a: any,b: any) => (b.power ?? -1) - (a.power ?? -1));
+    const position = members.findIndex((member: any) => member.governor_id === String(player.governor_id ?? player.fid ?? ""));
+    return { members: members.slice(0, 8), total: raw.length, player_power_rank: position < 0 ? null : position + 1, fresh: typeof body.fresh === "boolean" ? body.fresh : null, age_seconds: Number.isFinite(Number(body.age_seconds)) ? Number(body.age_seconds) : null, cached_at: typeof body.cached_at === "string" ? body.cached_at : null };
+   })
+  : Promise.resolve(null);
+ const [kingdomResult, allianceResult] = await Promise.allSettled([kingdomRequest, allianceRequest]);
+ return {
+  kingdom: kingdomResult.status === "fulfilled" ? kingdomResult.value?.data ?? null : null,
+  kingdom_board_ranks: kingdomResult.status === "fulfilled" ? kingdomResult.value?.board_ranks ?? [] : [],
+  kingdom_meta: kingdomResult.status === "fulfilled" && kingdomResult.value ? { fresh: kingdomResult.value.fresh, age_seconds: kingdomResult.value.age_seconds, cached_at: kingdomResult.value.cached_at } : null,
+  alliance_roster: allianceResult.status === "fulfilled" ? allianceResult.value : null
+ };
+}
+
 const detailedProfileCache = new Map<string, { value: Record<string, any>; expiresAt: number }>();
 const detailedProfileInFlight = new Map<string, Promise<Record<string, any>>>();
 const DETAILED_PROFILE_CACHE_MS = 2 * 60_000;
@@ -466,9 +539,11 @@ async function loadDetailedPlayerProfile(playerId: string): Promise<Record<strin
    (error as any).status = 502;
    throw error;
   }
+  const context = await loadPlayerContext(player);
   const result = {
    ok: true,
    player,
+   ...context,
    heroes: Array.isArray(body.heroes) ? body.heroes : [],
    ranks: body.ranks && typeof body.ranks === "object" ? body.ranks : null,
    gov_gear: body.gov_gear && typeof body.gov_gear === "object" ? body.gov_gear : null,
