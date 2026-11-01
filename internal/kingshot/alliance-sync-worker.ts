@@ -187,4 +187,3 @@ export default async function handler(req:any,res:any){
   return res.status(200).json({ok:true,processed:results.length,results});
  }catch(e){console.error('Supabase automatic alliance sync failed',String((e as Error)?.message||e));return res.status(500).json({error:'Worker failed safely.'});}
 }
-}
