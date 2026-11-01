@@ -43,7 +43,7 @@ export default function SeasonalHalloweenOverlay(){
  },[]);
  if(typeof document==="undefined")return null;
  const halloweenActive=now<SEASON_END;
- return createPortal(<><MilestoneBoard/>{halloweenActive&&<div className="ks-halloween-overlay" aria-label="Halloween seasonal decorations">
+ return createPortal(<><MilestoneBoard/>{halloweenActive&&<div className="ks-halloween-overlay" aria-hidden="true">
   <div className="ks-halloween-atmosphere" aria-hidden="true"/>
 
   <div className="ks-halloween-moon" aria-hidden="true"><i/></div>
