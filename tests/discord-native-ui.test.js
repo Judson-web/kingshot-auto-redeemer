@@ -171,9 +171,10 @@ test("Discord alliance registration uses signed identity and owner-only database
 
 test("alliance information is a detailed embed and roster names stay in the selector", () => {
   assert.ok(interactions.includes("allianceEmbed(data, registrationStatus)"));
-  assert.ok(interactions.includes("fields: []"));
+  assert.ok(interactions.includes("fields: ["));
+  assert.ok(interactions.includes('field("REGISTRATION", registrationStatus)'));
   assert.ok(interactions.includes("SERVER DETAILS"));
-  assert.ok(interactions.includes("Choose a governor from the selector below"));
+  assert.ok(interactions.includes("Select a governor to open their profile."));
 });
 
 test("Discord server Administrator is distinct from project-owner bypass", () => {
@@ -222,4 +223,31 @@ test("scheduled website announcements use durable claims, validated roles, and p
   for (const expected of ["create table if not exists public.discord_scheduled_announcements","for update skip locked","lease_until","enable row level security","revoke all","claim_due_discord_announcements","announcement-attachments"]) assert.ok(migration.includes(expected), "missing durable migration feature: "+expected);
   assert.ok(workflow.includes('cron: "*/5 * * * *"'));
   assert.ok(workflow.includes("CRON_SECRET"));
+});
+
+test("gift-code alerts use bot channels without replacing the worker logs webhook", async () => {
+  const worker = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
+  assert.ok(worker.includes("async function sendDiscordEvent({title,description,fields=[],color=0x5865F2},{botAlert=false}={})"));
+  assert.ok(worker.includes("if(botAlert&&DISCORD_BOT_TOKEN)"));
+  assert.ok(worker.includes("if(!DISCORD_WEBHOOK_URL)return false;"));
+  assert.ok(worker.includes('sendDiscordEvent(buildNewGiftCodeAlert(item),{botAlert:true})'));
+  assert.ok(worker.includes('}),{botAlert:true});'), "gift-code verification alerts must opt into bot delivery");
+  assert.ok(worker.includes('sendDiscordEvent({title:"📊 Auto-redeem cycle"'), "worker cycle summaries must still be sent");
+  assert.ok(worker.includes('sendDiscordEvent({title:"🚨 Auto-redeem anomaly detected"'), "worker anomalies must still be sent");
+  assert.ok(worker.includes("const DISCORD_WEBHOOK_URL=process.env.DISCORD_KINGSHOT_WEBHOOK_URL||process.env.DISCORD_SCRAPER_WEBHOOK_URL"));
+  assert.ok(worker.includes("existing webhook below"));
+});
+
+test("alliance registration preview is private, confirmed by its initiating user, and preserves safeguards", async () => {
+  const handler = await readFile(new URL("../internal/kingshot/alliance-sync-handler.ts", import.meta.url), "utf8");
+  assert.ok(interactions.includes("previewAllianceRegistrationFromDiscord"));
+  assert.ok(interactions.includes('custom_id: "ks:confirm-alliance:"'));
+  assert.ok(interactions.includes('custom_id: "ks:cancel-alliance:"'));
+  assert.ok(interactions.includes("Only the person who opened this registration preview can confirm it."));
+  assert.ok(interactions.includes("allianceRegistrationPreviewEmbed"));
+  assert.ok(handler.includes("getRegisteredPlayerIds(ids)"));
+  assert.ok(handler.includes("getBannedPlayerIds(ids)"));
+  assert.ok(handler.includes("kingdomAllianceLimit:4"));
+  assert.ok(handler.includes("ownerBypass:isOwner"));
+  assert.ok(handler.includes("Automatic roster sync") === false);
 });

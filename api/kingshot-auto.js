@@ -79,7 +79,7 @@ const MANUAL_KINGDOM_VALIDATION_CONCURRENCY=2;
 const WORKER_MAX_RUNTIME_MS=3*60*1000;
 const DISCORD_WEBHOOK_URL=process.env.DISCORD_KINGSHOT_WEBHOOK_URL||process.env.DISCORD_SCRAPER_WEBHOOK_URL;
 const DISCORD_BOT_TOKEN=process.env.DISCORD_BOT_TOKEN;
-async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
+async function sendDiscordEvent({title,description,fields=[],color=0x5865F2},{botAlert=false}={}){
 
  const payload={username:"Kingshot Auto Redeem",allowed_mentions:{parse:[]},embeds:[{
   title:String(title||"Kingshot Auto Redeem").slice(0,256),
@@ -89,22 +89,25 @@ async function sendDiscordEvent({title,description,fields=[],color=0x5865F2}){
   timestamp:new Date().toISOString(),
   footer:{text:"Kingshot Redeemer"}
  }]};
- if(DISCORD_BOT_TOKEN){
+ // Only gift-code notifications opt into the bot channel. Worker diagnostics,
+ // shard summaries, redemption logs and operational errors always use the
+ // existing webhook below, even when bot alert channels are configured.
+ if(botAlert&&DISCORD_BOT_TOKEN){
   try {
    const settings=await fetch(SUPABASE_URL+"/rest/v1/discord_guild_settings?select=gift_code_alert_channel_id&gift_code_alert_channel_id=not.is.null",{headers:{apikey:SUPABASE_KEY,authorization:"Bearer "+SUPABASE_KEY,accept:"application/json"},signal:AbortSignal.timeout(5000)});
    if(settings.ok){
     const rows=await settings.json();
-    const channels=[...new Set((Array.isArray(rows)?rows:[]).map(row=>String(row.gift_code_alert_channel_id||"")).filter(id=>/^\d{5,25}$/.test(id)))];
+    const channels=[...new Set((Array.isArray(rows)?rows:[]).map(row=>String(row.gift_code_alert_channel_id||"")).filter(id=>/^\\d{5,25}$/.test(id)))];
     if(channels.length){
      let delivered=false;
      for(const channelId of channels){
-      try { const sent=await fetch("https://discord.com/api/v10/channels/"+channelId+"/messages",{method:"POST",headers:{authorization:"Bot "+DISCORD_BOT_TOKEN,"content-type":"application/json"},body:JSON.stringify({embeds:payload.embeds,allowed_mentions:payload.allowed_mentions}),signal:AbortSignal.timeout(8000)}); if(sent.ok)delivered=true; else console.warn("Configured Discord alert channel rejected:",sent.status); }
-      catch(error){console.warn("Configured Discord alert delivery failed:",String(error?.message||error).slice(0,120));}
+      try { const sent=await fetch("https://discord.com/api/v10/channels/"+channelId+"/messages",{method:"POST",headers:{authorization:"Bot "+DISCORD_BOT_TOKEN,"content-type":"application/json"},body:JSON.stringify({embeds:payload.embeds,allowed_mentions:payload.allowed_mentions}),signal:AbortSignal.timeout(8000)}); if(sent.ok)delivered=true; else console.warn("Configured Discord gift-code alert channel rejected:",sent.status); }
+      catch(error){console.warn("Configured Discord gift-code alert delivery failed:",String(error?.message||error).slice(0,120));}
      }
-     return delivered;
+     if(delivered)return true;
     }
    }
-  } catch(error){console.warn("Discord alert-channel lookup failed:",String(error?.message||error).slice(0,120));}
+  } catch(error){console.warn("Discord gift-code alert channel lookup failed:",String(error?.message||error).slice(0,120));}
  }
  if(!DISCORD_WEBHOOK_URL)return false;
  for(let attempt=0;attempt<3;attempt++){
@@ -509,7 +512,7 @@ export default async function handler(req,res){
    remaining:activeCodes.map(x=>x.code)
   });
   const newCodes=activeCodes.filter(item=>!knownCodes.has(String(item.code).toUpperCase()));
-  for(const item of newCodes.filter(isCredibleGiftCodeCandidate))await sendDiscordEvent(buildNewGiftCodeAlert(item));
+  for(const item of newCodes.filter(isCredibleGiftCodeCandidate))await sendDiscordEvent(buildNewGiftCodeAlert(item),{botAlert:true});
   const players=await rpc("list_kingshot_autoredeem_players",{});
   const list=Array.isArray(players)?players:[];
   // The reset can make every account due at once. Validate a small rotating
@@ -613,8 +616,8 @@ export default async function handler(req,res){
      let validationStatus="pending";if(["SUCCESS","RECEIVED","SAME TYPE EXCHANGE","RECHARGE_MONEY ERROR"].includes(status))validationStatus="verified";else if(status==="CDK_NOT_FOUND")validationStatus="invalid";else if(status==="TIME_ERROR")validationStatus="expired";else if(status==="USAGE_LIMIT")validationStatus="usage_limit";
      await rpc("set_kingshot_gift_code_validation",{p_code:canaryCandidate.code,p_status:validationStatus,p_player_id:String(player.player_id),p_message:message||status});
      verificationAttempt={code:canaryCandidate.code,status,validationStatus,playerId:String(player.player_id)};
-     await sendDiscordEvent(buildGiftCodeValidationAlert({code:canaryCandidate.code,status,validationStatus,message:message||"",errorCategory:result?.errorCategory||null}));break;
-    }catch(error){const errorMessage=String(error?.message||error).slice(0,240);const errorCategory=classifyScraperError(error);console.error("Gift-code verification attempt failed:",canaryCandidate.code,errorMessage);verificationAttempt={code:canaryCandidate.code,status:"VERIFICATION_ERROR",validationStatus:"pending",errorCategory};await sendDiscordEvent(buildGiftCodeVerificationErrorAlert({code:canaryCandidate.code,errorCategory,message:errorMessage}));break;}
+     await sendDiscordEvent(buildGiftCodeValidationAlert({code:canaryCandidate.code,status,validationStatus,message:message||"",errorCategory:result?.errorCategory||null}),{botAlert:true});break;
+    }catch(error){const errorMessage=String(error?.message||error).slice(0,240);const errorCategory=classifyScraperError(error);console.error("Gift-code verification attempt failed:",canaryCandidate.code,errorMessage);verificationAttempt={code:canaryCandidate.code,status:"VERIFICATION_ERROR",validationStatus:"pending",errorCategory};await sendDiscordEvent(buildGiftCodeVerificationErrorAlert({code:canaryCandidate.code,errorCategory,message:errorMessage}),{botAlert:true});break;}
    }
   }
   currentStage="gift-code-validation-gate";
