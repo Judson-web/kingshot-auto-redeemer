@@ -443,13 +443,39 @@ async function loadPlayerContext(player: Record<string, any>): Promise<Record<st
  const kid = String(player.kid ?? "").trim();
  const allianceTag = String(player.alliance?.abbr ?? "").trim();
  const kingdomRequest = /^\d{1,10}$/.test(kid)
-  ? fetchMightPulse("https://api.mightpulse.com/v1/kingdoms/" + encodeURIComponent(kid), { headers: { Accept: "application/json" } }, { timeoutMs: 7000, totalTimeoutMs: 10000, fastPath: true, maxAttempts: 1 }).then(async response => {
+  ? fetchMightPulse("https://api.mightpulse.com/v1/kingdoms/" + encodeURIComponent(kid) + "?include=boards&limit=100", { headers: { Accept: "application/json" } }, { timeoutMs: 7000, totalTimeoutMs: 10000, fastPath: true, maxAttempts: 1 }).then(async response => {
     const body = await response.json().catch(() => ({})) as Record<string, any>;
     if (!response.ok) throw Object.assign(new Error("Kingdom context unavailable."), { status: response.status });
     const data = body.kingdom && typeof body.kingdom === "object" ? body.kingdom
      : body.data?.kingdom && typeof body.data.kingdom === "object" ? body.data.kingdom
      : body.data && typeof body.data === "object" ? body.data : body;
-    return { data, fresh: typeof body.fresh === "boolean" ? body.fresh : null, age_seconds: Number.isFinite(Number(body.age_seconds)) ? Number(body.age_seconds) : null, cached_at: typeof body.cached_at === "string" ? body.cached_at : null };
+    const playerIds = new Set([String(player.governor_id ?? player.fid ?? ""), String(player.uid ?? "")].filter(Boolean));
+    const boardRanks: Array<{ board: string; rank: number | null; score: number | null }> = [];
+    const visitBoards = (value: any, boardName = "", depth = 0): void => {
+     if (!value || typeof value !== "object" || depth > 7) return;
+     if (Array.isArray(value)) {
+      value.forEach((row: any, index: number) => {
+       if (row && typeof row === "object") {
+        const id = String(row.governor_id ?? row.fid ?? row.uid ?? "");
+        if (playerIds.has(id)) {
+         const scoreRaw = row.score ?? row.value ?? row.power;
+         const rankRaw = row.rank ?? row.kingdom_rank ?? row.position ?? index + 1;
+         boardRanks.push({
+          board: String(row.board ?? row.board_name ?? row.type ?? row.label ?? boardName ?? "Kingdom leaderboard").slice(0, 60),
+          rank: Number.isFinite(Number(rankRaw)) ? Number(rankRaw) : null,
+          score: scoreRaw == null || !Number.isFinite(Number(scoreRaw)) ? null : Number(scoreRaw)
+         });
+        } else visitBoards(row, String(row.name ?? row.key ?? boardName), depth + 1);
+       }
+      });
+      return;
+     }
+     const nestedName = String(value.board ?? value.board_name ?? value.type ?? value.label ?? value.name ?? value.key ?? boardName);
+     for (const [key, nested] of Object.entries(value)) visitBoards(nested, Array.isArray(nested) ? key : nestedName, depth + 1);
+    };
+    visitBoards(body.boards ?? body.data?.boards ?? data.boards ?? body.leaderboards ?? body.data?.leaderboards ?? []);
+    const uniqueBoardRanks = [...new Map(boardRanks.map(item => [item.board.toLowerCase(), item])).values()].slice(0, 30);
+    return { data, board_ranks: uniqueBoardRanks, fresh: typeof body.fresh === "boolean" ? body.fresh : null, age_seconds: Number.isFinite(Number(body.age_seconds)) ? Number(body.age_seconds) : null, cached_at: typeof body.cached_at === "string" ? body.cached_at : null };
    })
   : Promise.resolve(null);
  const allianceRequest = /^\d{1,10}$/.test(kid) && /^[A-Za-z0-9_-]{1,20}$/.test(allianceTag)
@@ -479,6 +505,7 @@ async function loadPlayerContext(player: Record<string, any>): Promise<Record<st
  const [kingdomResult, allianceResult] = await Promise.allSettled([kingdomRequest, allianceRequest]);
  return {
   kingdom: kingdomResult.status === "fulfilled" ? kingdomResult.value?.data ?? null : null,
+  kingdom_board_ranks: kingdomResult.status === "fulfilled" ? kingdomResult.value?.board_ranks ?? [] : [],
   kingdom_meta: kingdomResult.status === "fulfilled" && kingdomResult.value ? { fresh: kingdomResult.value.fresh, age_seconds: kingdomResult.value.age_seconds, cached_at: kingdomResult.value.cached_at } : null,
   alliance_roster: allianceResult.status === "fulfilled" ? allianceResult.value : null
  };
