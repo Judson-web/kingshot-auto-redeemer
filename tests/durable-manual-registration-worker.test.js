@@ -43,4 +43,6 @@ test("automatic sync is resumable and bounded per scheduled invocation",()=>{
  assert.match(worker,/continuation\?new Date\(Date\.now\(\)\+5\*60000\)/);
  assert.match(worker,/registration_status:priorById\.get\(member\.id\)==='departed'\?'pending'/);
  assert.match(worker,/if\(!continuation\)[\s\S]*?fresh roster can mark departures/);
+ assert.match(worker,/priorLastSeenById/);
+ assert.match(worker,/localeCompare\(String\(priorLastSeenById/);
 });
