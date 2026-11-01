@@ -1,3 +1,4 @@
+// Reviewed layout: reserve header flow space for the suspended milestone board; seasonal overlay remains decorative.
 import React,{useEffect,useState}from"react";
 import{createPortal}from"react-dom";
 import"./SeasonalHalloweenOverlay.css";
