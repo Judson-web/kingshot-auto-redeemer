@@ -150,7 +150,7 @@ export default async function handler(req:any,res:any){
        const input=normalizeRegistrationInput({playerId:member.id,kingdomId:String(config.kingdom_id),playerName:member.name,avatarUrl:member.avatarUrl});
        const result=await registerWithRetry(input);if(result?.stale===true)throw new Error('Player record is stale.');
        await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}`,{registration_status:result?.alreadyRegistered?'already_registered':'registered',registered_at:new Date().toISOString(),last_seen_at:new Date().toISOString(),last_error_code:null});
-       return {playerId:member.id,ok:true};
+       return {playerId:member.id,ok:true,message:''};
       }catch(e){
        const message=String((e as Error)?.message||'Registration failed.').slice(0,250);
        await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}`,{registration_status:'error',last_seen_at:new Date().toISOString(),last_error_code:'registration_failed'});
