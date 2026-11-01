@@ -11,7 +11,7 @@ test('live automatic alliance sync no longer connects to Neon', () => {
  assert.match(worker,/claim_due_alliance_sync_config/); assert.match(handler,/register_alliance_sync_config/); assert.match(handler,/finish_alliance_sync_run/); assert.match(store,/SUPABASE_SERVICE_ROLE_KEY/);
 });
 test('single-owner and four-per-kingdom constraints remain transactional', () => { assert.match(rpcMigration,/pg_advisory_xact_lock/); assert.match(rpcMigration,/if v_total >= 4 then/); assert.match(rpcMigration,/alliance_already_managed/); });
-test('worker uses fenced leases and retains departed-member history', () => { assert.match(worker,/lease_token=eq/); assert.match(worker,/registration_status:'departed'/); assert.match(handler,/registration_status:'departed'/); assert.match(worker,/Global Supabase registrations are untouched/); });
+test('worker uses fenced leases and retains departed-member history', () => { assert.match(worker,/lease_token=eq/); assert.match(worker,/registration_status:'departed'/); assert.match(handler,/registration_status:'departed'/); assert.match(worker,/Global player\s+registrations are never removed/); });
 test('admin unregister disables configuration without deleting sync history', () => { assert.match(admin,/Preserve sync history and seen-player audit rows/); assert.match(admin,/last_status:\"unregistered\"/); assert.doesNotMatch(admin,/sql\.query\(\"delete from public\.alliance_sync_/i); });
 
 test('admin alliance registration accepts canonical provider governor IDs and scopes them to the kingdom', () => { assert.ok(admin.includes('m?.governor_id??m?.fid??m?.player_id')); assert.ok(admin.includes('m?.kid??m?.kingdom_id??kingdom')); assert.ok(admin.includes('authorization:\"Bearer \"+SUPABASE_KEY')); });

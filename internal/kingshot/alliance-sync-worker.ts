@@ -4,7 +4,9 @@ import { normalizeRegistrationInput, registerPlayer } from "./register.js";
 import { getRegisteredPlayerIds, getBannedPlayerIds } from "./registered-player-ids.js";
 import { fetchMightPulse } from "../../lib/mightpulse-key-pool.js";
 
-const JOB_SECRET=process.env.ALLIANCE_SYNC_CRON_SECRET||process.env.CRON_SECRET||"";
+const JOB_SECRETS=[process.env.ALLIANCE_SYNC_CRON_SECRET,process.env.CRON_SECRET].filter((value):value is string=>Boolean(value));
+const MAX_AUTOMATIC_SYNC_MEMBERS_PER_INVOCATION=10;
+const MAX_CONCURRENT_AUTOMATIC_REGISTRATIONS=3;
 function nextDailySyncAt(){const next=new Date();next.setUTCHours(11,0,0,0);if(next.getTime()<=Date.now())next.setUTCDate(next.getUTCDate()+1);return next.toISOString();}
 const wait=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms));
 async function registerWithRetry(input:any){let last:unknown;for(let attempt=0;attempt<3;attempt++){try{return await registerPlayer(input)}catch(error){last=error;if(attempt<2)await wait(400*(attempt+1));}}throw last instanceof Error?last:new Error("Registration failed after retries.");}
@@ -86,22 +88,15 @@ async function processManualRegistrationJobs(){
 export default async function handler(req:any,res:any){
  res.setHeader("Cache-Control","no-store");
  if(req.method!=="GET"&&req.method!=="POST"){res.setHeader("Allow","GET, POST");return res.status(405).json({error:"Method not allowed"});}
- if(!JOB_SECRET||req.headers.authorization!=="Bearer "+JOB_SECRET)return res.status(401).json({error:"Unauthorized"});
+ const authorization=Array.isArray(req.headers.authorization)?req.headers.authorization[0]:String(req.headers.authorization||"");
+ if(!JOB_SECRETS.some(secret=>authorization==="Bearer "+secret))return res.status(401).json({error:"Unauthorized"});
  const requestUrl=new URL(req.url||"/","http://localhost");
  if(requestUrl.searchParams.get("mode")==="manual-registration"){try{const jobs=await processManualRegistrationJobs();return res.status(200).json({ok:true,processedJobs:jobs.length,jobs});}catch(e){console.error("Supabase manual registration queue failed",String((e as Error)?.message||e));return res.status(500).json({error:"Manual registration queue processing failed safely."});}}
  const results:any[]=[];
  try {
-  // Reconcile abandoned run records only after the lease has expired or a newer success exists.
-  const staleConfigs=await selectRows('alliance_sync_config','select=id,lease_token,lease_expires_at,last_success_at');
-  for(const c of (Array.isArray(staleConfigs)?staleConfigs:[])) {
-   const staleRuns=await selectRows('alliance_sync_runs',`config_id=eq.${enc(c.id)}&status=eq.running&started_at=lt.${enc(new Date(Date.now()-10*60000).toISOString())}&select=id,started_at`);
-   for(const run of (Array.isArray(staleRuns)?staleRuns:[])) {
-    const expired=!c.lease_token||!c.lease_expires_at||new Date(c.lease_expires_at).getTime()<Date.now();
-    if(expired||(c.last_success_at&&new Date(c.last_success_at).getTime()>new Date(run.started_at).getTime()))
-     await patchRows('alliance_sync_runs',`id=eq.${enc(run.id)}&status=eq.running`,{finished_at:new Date().toISOString(),status:'error',error_code:'stale_run_reconciled',error_message:'This run was reconciled after its lease expired or a newer run succeeded.'});
-   }
-  }
-  for(let attempt=0;attempt<10;attempt++){
+  // Keep each Vercel invocation bounded. Player outcomes are persisted in
+  // alliance_sync_seen_players, so the next five-minute wake-up resumes safely.
+  for(let attempt=0;attempt<1;attempt++){
    const lease=randomUUID();
    const claims=await callRpc('claim_due_alliance_sync_config',{p_lease_token:lease});
    if(!Array.isArray(claims)||!claims.length)break;
@@ -111,43 +106,82 @@ export default async function handler(req:any,res:any){
     const roster=await loadRoster(String(config.kingdom_id),String(config.alliance_tag));
     const rosterIds=roster.members.map((m:any)=>m.id);
     const [alreadyRegisteredIds,bannedIds]=await Promise.all([getRegisteredPlayerIds(rosterIds),getBannedPlayerIds(rosterIds)]);
-    let registered=0,skipped=0,banned=0,failed=0;const failures:string[]=[];
-    for(const member of roster.members){
+
+    // Read the existing per-player cursor before a bulk upsert. Preserve all
+    // completed outcomes; only departed players re-enter the pending queue.
+    const idFilter='in.'+enc('('+rosterIds.join(',')+')');
+    const existingRows=await selectRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=${idFilter}&select=player_id,registration_status,last_seen_at`);
+    const priorById=new Map<string,string>((Array.isArray(existingRows)?existingRows:[]).map((row:any)=>[String(row.player_id),String(row.registration_status||'')] as [string,string]));
+    const priorLastSeenById=new Map<string,string>((Array.isArray(existingRows)?existingRows:[]).map((row:any)=>[String(row.player_id),String(row.last_seen_at||'')] as [string,string]));
+    const rosterObservedAt=new Date().toISOString();
+    await sb('alliance_sync_seen_players?on_conflict=config_id,player_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(roster.members.map((member:any)=>({config_id:config.id,player_id:member.id,last_seen_at:priorById.get(member.id)==='error'?(priorLastSeenById.get(member.id)||rosterObservedAt):rosterObservedAt,registration_status:priorById.get(member.id)==='departed'?'pending':(priorById.get(member.id)||'pending')})))});
+
+    const patchPlayers=async(ids:string[],body:any)=>{
+     if(!ids.length)return;
+     await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=in.${enc('('+ids.join(',')+')')}`,body);
+    };
+    const bannedMembers=roster.members.filter((member:any)=>bannedIds.has(member.id));
+    const registeredMembers=roster.members.filter((member:any)=>!bannedIds.has(member.id)&&alreadyRegisteredIds.has(member.id));
+    await patchPlayers(bannedMembers.map((member:any)=>member.id),{registration_status:'banned',registered_at:null,last_error_code:'player_banned'});
+    await patchPlayers(registeredMembers.map((member:any)=>member.id),{registration_status:'already_registered',registered_at:new Date().toISOString(),last_error_code:null});
+
+    // Pending/new members go first. Previously failed members are retried only
+    // after the fresh roster has been fully traversed, avoiding starvation.
+    const eligible=roster.members.filter((member:any)=>{
+     if(bannedIds.has(member.id)||alreadyRegisteredIds.has(member.id))return false;
+     const prior=priorById.get(member.id)||'pending';
+     return ['pending','error','departed'].includes(prior);
+    }).sort((a:any,b:any)=>{
+     const aError=priorById.get(a.id)==='error',bError=priorById.get(b.id)==='error';
+     if(aError!==bError)return Number(aError)-Number(bError);
+     if(aError)return String(priorLastSeenById.get(a.id)||'').localeCompare(String(priorLastSeenById.get(b.id)||''));
+     return 0;
+    });
+    const batch=eligible.slice(0,MAX_AUTOMATIC_SYNC_MEMBERS_PER_INVOCATION);
+    const continuation=eligible.length>batch.length;
+    let registered=0,failed=0;const failures:string[]=[];
+    const skipped=roster.members.length-eligible.length;
+    for(let offset=0;offset<batch.length;offset+=MAX_CONCURRENT_AUTOMATIC_REGISTRATIONS){
+     const group=batch.slice(offset,offset+MAX_CONCURRENT_AUTOMATIC_REGISTRATIONS);
      const heartbeat=await patchRows('alliance_sync_config',`id=eq.${enc(config.id)}&lease_token=eq.${enc(lease)}&enabled=eq.true`,{lease_expires_at:new Date(Date.now()+4*60000).toISOString()});
      if(!Array.isArray(heartbeat)||!heartbeat.length)throw new Error('Sync lease lost or configuration paused.');
-     const priorRows=await selectRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}&select=registration_status`);
-     const prior=Array.isArray(priorRows)&&priorRows.length?String(priorRows[0].registration_status):'';
-     await sb('alliance_sync_seen_players?on_conflict=config_id,player_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify({config_id:config.id,player_id:member.id,last_seen_at:new Date().toISOString(),registration_status:prior==='departed'?'pending':(prior||'pending')})});
-     if(bannedIds.has(member.id)){
-      await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}`,{registration_status:'banned',registered_at:null,last_error_code:'player_banned'});banned++;skipped++;continue;
-     }
-     if(prior&& !['pending','error','departed'].includes(prior)){skipped++;continue;}
-     if(alreadyRegisteredIds.has(member.id)){
-      await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}`,{registration_status:'already_registered',registered_at:new Date().toISOString(),last_error_code:null});skipped++;continue;
-     }
-     try{
-      const input=normalizeRegistrationInput({playerId:member.id,kingdomId:String(config.kingdom_id),playerName:member.name,avatarUrl:member.avatarUrl});
-      const result=await registerWithRetry(input);if(result?.stale===true)throw new Error('Player record is stale.');
-      await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}`,{registration_status:result?.alreadyRegistered?'already_registered':'registered',registered_at:new Date().toISOString(),last_error_code:null});registered++;
-     }catch(e){
-      const message=String((e as Error)?.message||'Registration failed.').slice(0,250);
-      await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}`,{registration_status:'error',last_error_code:'registration_failed'});failed++;failures.push(member.id+': '+message);
+     const outcomes=await Promise.all(group.map(async(member:any)=>{
+      try{
+       const input=normalizeRegistrationInput({playerId:member.id,kingdomId:String(config.kingdom_id),playerName:member.name,avatarUrl:member.avatarUrl});
+       const result=await registerWithRetry(input);if(result?.stale===true)throw new Error('Player record is stale.');
+       await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}`,{registration_status:result?.alreadyRegistered?'already_registered':'registered',registered_at:new Date().toISOString(),last_seen_at:new Date().toISOString(),last_error_code:null});
+       return {playerId:member.id,ok:true,message:''};
+      }catch(e){
+       const message=String((e as Error)?.message||'Registration failed.').slice(0,250);
+       await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}`,{registration_status:'error',last_seen_at:new Date().toISOString(),last_error_code:'registration_failed'});
+       return {playerId:member.id,ok:false,message};
+      }
+     }));
+     for(const outcome of outcomes){
+      if(outcome.ok)registered++;
+      else{failed++;failures.push(outcome.playerId+': '+outcome.message);}
      }
     }
-    // A fresh validated roster is authoritative for membership. Departures remain history; Global Supabase registrations are untouched and stay eligible for the normal auto-redemption cycle.
-    const currentIds=new Set(roster.members.map((m:any)=>m.id));
-    const priorSeen=await selectRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&registration_status=neq.departed&select=player_id`);
+
     let departedCount=0;
-    for(const row of (Array.isArray(priorSeen)?priorSeen:[]))if(!currentIds.has(String(row.player_id))){await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(row.player_id)}`,{registration_status:'departed',last_error_code:null});departedCount++;}
-    const status=failed?'partial':'success';const nextRunAt=nextDailySyncAt();
-    const finished=await callRpc('finish_alliance_sync_run',{p_config_id:config.id,p_lease_token:lease,p_run_id:runId,p_status:status,p_roster_count:roster.members.length,p_added_count:registered,p_skipped_count:skipped,p_departed_count:departedCount,p_error_code:failed?'registration_failed':null,p_error_message:failures.slice(0,5).join('; ').slice(0,500)||null,p_next_run_at:nextRunAt,p_alliance_name:roster.name});
-    if(finished!==true && !(Array.isArray(finished)&&finished[0]===true))throw new Error('Sync lease was lost before completion.');
-    results.push({configId:config.id,status,rosterCount:roster.members.length,registered,skipped,banned,failed,nextRunAt});
+    if(!continuation){
+     // Only a fully traversed, fresh roster can mark departures; Global player registrations are never removed by this reconciliation.
+     const currentIds=new Set(rosterIds);
+     const priorSeen=await selectRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&registration_status=neq.departed&select=player_id`);
+     for(const row of (Array.isArray(priorSeen)?priorSeen:[]))if(!currentIds.has(String(row.player_id))){await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(row.player_id)}`,{registration_status:'departed',last_error_code:null});departedCount++;}
+    }
+    const status=continuation||failed?'partial':'success';
+    const nextRunAt=continuation?new Date(Date.now()+5*60000).toISOString():nextDailySyncAt();
+    const errorCode=continuation?'batch_continues':failed?'registration_failed':null;
+    const errorMessage=continuation?'Sync continues in the next scheduled worker invocation.':failures.slice(0,5).join('; ').slice(0,500)||null;
+    const finished=await callRpc('finish_alliance_sync_run',{p_config_id:config.id,p_lease_token:lease,p_run_id:runId,p_status:status,p_roster_count:roster.members.length,p_added_count:registered,p_skipped_count:skipped,p_departed_count:departedCount,p_error_code:errorCode,p_error_message:errorMessage,p_next_run_at:nextRunAt,p_alliance_name:roster.name});
+    if(finished!==true&&!(Array.isArray(finished)&&finished[0]===true))throw new Error('Sync lease was lost before completion.');
+    results.push({configId:config.id,status,rosterCount:roster.members.length,registered,skipped,banned:bannedMembers.length,failed,departed:departedCount,nextRunAt,continuation});
    }catch(e){
     const message=String((e as Error)?.message||'Sync failed.').slice(0,400);
-    await patchRows('alliance_sync_config',`id=eq.${enc(config.id)}&lease_token=eq.${enc(lease)}`,{lease_token:null,lease_expires_at:null,consecutive_failures:Number(config.consecutive_failures||0)+1,last_status:config.enabled?'error':'paused',last_error_code:'sync_failed',last_error_message:message,next_run_at:nextDailySyncAt(),updated_at:new Date().toISOString()});
+    await patchRows('alliance_sync_config',`id=eq.${enc(config.id)}&lease_token=eq.${enc(lease)}`,{lease_token:null,lease_expires_at:null,consecutive_failures:Number(config.consecutive_failures||0)+1,last_status:config.enabled?'error':'paused',last_error_code:'sync_failed',last_error_message:message,next_run_at:new Date(Date.now()+5*60000).toISOString(),updated_at:new Date().toISOString()});
     await patchRows('alliance_sync_runs',`id=eq.${enc(runId)}`,{finished_at:new Date().toISOString(),status:'error',error_code:'sync_failed',error_message:message});
-    results.push({configId:config.id,status:'error',message});
+    results.push({configId:config.id,status:'error',message,retryScheduled:true});
    }
   }
   return res.status(200).json({ok:true,processed:results.length,results});

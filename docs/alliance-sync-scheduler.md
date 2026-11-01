@@ -6,7 +6,7 @@ Alliance sync configurations, run history, leases, and seen-player state are sto
 
 Vercel Hobby cron is limited to daily schedules, which is too infrequent for five-minute retry/backoff. The GitHub Actions workflow `.github/workflows/alliance-sync-scheduler.yml` wakes the existing server-side worker every five minutes for due alliance syncs and drains the durable manual-registration queue. It does not perform roster validation or registration in GitHub; all processing remains in the existing server-side worker.
 
-The existing Supabase daily cron remains as a backup wake-up. Both paths use the same database lease RPC, so an alliance cannot be processed concurrently by overlapping invocations. A successful sync advances its next run, so the five-minute wake-up does not cause repeated daily syncs.
+The existing Supabase daily cron remains as a backup wake-up. Both paths use the same database lease RPC, so an alliance cannot be processed concurrently by overlapping invocations. The GitHub worker processes one alliance configuration and at most 10 not-yet-completed roster members (with up to three registrations in parallel) per invocation. Player outcomes are persisted in `alliance_sync_seen_players`; if more members remain, the configuration is released with a five-minute continuation time and the next wake-up resumes from those outcomes. Departure reconciliation runs only after the entire fresh roster has been traversed. A completed sync advances its next run by 24 hours.
 
 ## One-time secret configuration
 
@@ -15,7 +15,7 @@ In GitHub, open **Settings → Secrets and variables → Actions → New reposit
 - Name: `ALLIANCE_SYNC_CRON_SECRET`
 - Value: the same secret configured on the Vercel production project as `ALLIANCE_SYNC_CRON_SECRET` or `CRON_SECRET`.
 
-The workflow supports either GitHub secret name, `ALLIANCE_SYNC_CRON_SECRET` or `CRON_SECRET`. Keep the value private and do not commit it to the repository. The worker rejects requests without the matching bearer token.
+The workflow supports either GitHub secret name, `ALLIANCE_SYNC_CRON_SECRET` or `CRON_SECRET`. The production worker accepts a bearer token matching either configured Vercel variable, `ALLIANCE_SYNC_CRON_SECRET` or `CRON_SECRET`, so projects using both aliases do not accidentally authenticate against only the first one. Keep both values private and do not commit them to the repository. The worker rejects requests without a matching bearer token.
 
 ## Verify
 

@@ -13,12 +13,12 @@ test('scheduled and manual sync reconcile departures only after validating a fre
 });
 
 test('a departed member who rejoins becomes eligible for reconciliation again', () => {
-  assert.match(worker, /prior==='departed'\?'pending'/);
+  assert.match(worker, /priorById.get\(member.id\)==='departed'\?'pending'/);
   assert.match(handler, /prior==='departed'\?'pending'/);
 });
 
 test('departed status is retained as history and never deletes global player registrations', () => {
-  assert.match(worker, /normal auto-redemption cycle/i);
+  assert.match(worker, /Global player\s+registrations are never removed/);
   assert.doesNotMatch(worker + handler, /delete\s+from\s+public\.kingshot_autoredeem/i);
   assert.match(migration, /'departed'::text/);
   assert.match(migration, /alliance_sync_seen_players_registration_status_check/);
@@ -39,11 +39,12 @@ test('invalid provider member counts fail closed in scheduled and manual sync', 
 });
 
 
-test('automatic roster sync schedules each alliance for the next daily 11:00 UTC run', () => {
+test('automatic roster sync resumes bounded batches and schedules completed alliances for daily 11:00 UTC', () => {
   assert.match(worker, /function nextDailySyncAt\(\)/);
   assert.match(worker, /next\.setUTCHours\(11,0,0,0\)/);
   assert.match(worker, /p_next_run_at:nextRunAt/);
-  assert.match(worker, /next_run_at:nextDailySyncAt\(\)/);
+  assert.match(worker, /:nextDailySyncAt\(\)/);
+  assert.match(worker, /continuation\?new Date\(Date.now\(\)\+5\*60000\)/);
   assert.match(worker, /registerWithRetry\(input\)/);
   assert.match(worker, /registration_status:'departed'/);
 });

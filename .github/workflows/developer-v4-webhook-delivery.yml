@@ -11,25 +11,47 @@ concurrency:
 jobs:
   deliver:
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 3
     steps:
-      - name: Validate worker secret
+      - name: Validate worker secrets
         env:
-          WORKER_SECRET: ${{ secrets.V4_WEBHOOK_WORKER_SECRET || secrets.CRON_SECRET }}
+          WORKER_SECRET_PRIMARY: ${{ secrets.V4_WEBHOOK_WORKER_SECRET }}
+          WORKER_SECRET_FALLBACK: ${{ secrets.CRON_SECRET }}
         shell: bash
         run: |
-          if [ -z "${WORKER_SECRET}" ]; then
-            echo "::error::Configure V4_WEBHOOK_WORKER_SECRET (or CRON_SECRET) in GitHub Actions and Vercel."
+          if [ -z "${WORKER_SECRET_PRIMARY}" ] && [ -z "${WORKER_SECRET_FALLBACK}" ]; then
+            echo "::error::Configure V4_WEBHOOK_WORKER_SECRET or CRON_SECRET in GitHub Actions and the matching Vercel production environment."
             exit 1
           fi
       - name: Drain webhook delivery queue
         env:
-          WORKER_SECRET: ${{ secrets.V4_WEBHOOK_WORKER_SECRET || secrets.CRON_SECRET }}
+          WORKER_SECRET_PRIMARY: ${{ secrets.V4_WEBHOOK_WORKER_SECRET }}
+          WORKER_SECRET_FALLBACK: ${{ secrets.CRON_SECRET }}
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail-with-body --silent --show-error --max-time 70 \
-            --request POST \
-            --header "Authorization: Bearer ${WORKER_SECRET}" \
-            --header "Accept: application/json" \
-            "https://kingshot-autoredeemer.vercel.app/api/kingshot-v4-webhook-worker"
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+          for candidate in "${WORKER_SECRET_PRIMARY}" "${WORKER_SECRET_FALLBACK}"; do
+            [ -n "$candidate" ] || continue
+            if ! http_code="$(curl --silent --show-error --output "$response_file" --write-out "%{http_code}" --max-time 70 \
+              --request POST \
+              --header "Authorization: Bearer ${candidate}" \
+              --header "Accept: application/json" \
+              "https://kingshot-autoredeemer.vercel.app/api/kingshot-v4-webhook-worker")"; then
+              cat "$response_file"
+              exit 1
+            fi
+            if [ "$http_code" = "200" ]; then
+              cat "$response_file"
+              exit 0
+            fi
+            if [ "$http_code" != "401" ]; then
+              cat "$response_file"
+              echo "::error::Webhook worker returned HTTP $http_code."
+              exit 1
+            fi
+          done
+          cat "$response_file"
+          echo "::error::Neither configured GitHub Actions secret was accepted by the production webhook worker."
+          exit 1
