@@ -408,3 +408,16 @@
 .ks-nav-drawer-group>h3{margin:0 2px 2px!important;color:#85877d!important;font-size:8px!important;font-weight:850!important;letter-spacing:.16em!important;line-height:1.4!important}
 .ks-nav-drawer-group .ks-nav-drawer-link,.ks-nav-drawer-group .ks-nav-drawer-support{margin:0!important}
 @media(max-height:760px){.ks-nav-drawer-groups{gap:10px!important}.ks-nav-drawer-group{gap:5px!important}.ks-nav-drawer-group>h3{font-size:7px!important}}
+
+/* Compact drawer: primary destinations first, supporting links kept quiet. */
+.ks-nav-drawer-groups{gap:12px!important}
+.ks-nav-drawer-group{gap:5px!important}
+.ks-nav-drawer-group>h3{margin:0 3px 3px!important;font-size:8px!important;letter-spacing:.17em!important}
+.ks-nav-drawer .ks-nav-drawer-link{grid-template-columns:36px minmax(0,1fr) 14px!important;min-height:48px!important;padding:7px 9px!important;border-radius:11px!important}
+.ks-nav-drawer .ks-nav-drawer-icon{width:34px!important;height:34px!important}
+.ks-nav-drawer .ks-nav-drawer-copy b{font-size:12px!important;font-weight:650!important}
+.ks-nav-drawer .ks-nav-drawer-copy small{display:none!important}
+.ks-nav-drawer .ks-nav-drawer-support{grid-template-columns:36px minmax(0,1fr) 14px!important;min-height:46px!important;padding:7px 9px!important}
+.ks-nav-drawer .ks-nav-drawer-support-copy small{display:none!important}
+.ks-nav-drawer-footer{margin-top:12px!important;padding-top:10px!important;font-size:9px!important}
+@media(max-height:760px){.ks-nav-drawer-groups{gap:9px!important}.ks-nav-drawer .ks-nav-drawer-link{min-height:43px!important}}
