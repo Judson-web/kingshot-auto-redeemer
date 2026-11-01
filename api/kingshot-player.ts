@@ -439,11 +439,11 @@ async function handleAllianceLookup(req: RequestLike, res: ResponseLike): Promis
 
 
 
-async function loadPlayerContext(player: Record<string, any>): Promise<Record<string, any>> {
+async function loadPlayerContext(player: Record<string, any>, fast = false): Promise<Record<string, any>> {
  const kid = String(player.kid ?? "").trim();
  const allianceTag = String(player.alliance?.abbr ?? "").trim();
  const kingdomRequest = /^\d{1,10}$/.test(kid)
-  ? fetchMightPulse("https://api.mightpulse.com/v1/kingdoms/" + encodeURIComponent(kid) + "?include=boards&limit=100", { headers: { Accept: "application/json" } }, { timeoutMs: 7000, totalTimeoutMs: 10000, fastPath: true, maxAttempts: 1 }).then(async response => {
+  ? fetchMightPulse("https://api.mightpulse.com/v1/kingdoms/" + encodeURIComponent(kid) + "?include=boards&limit=100", { headers: { Accept: "application/json" } }, { timeoutMs: fast ? 3000 : 7000, totalTimeoutMs: fast ? 4000 : 10000, fastPath: true, maxAttempts: 1 }).then(async response => {
     const body = await response.json().catch(() => ({})) as Record<string, any>;
     if (!response.ok) throw Object.assign(new Error("Kingdom context unavailable."), { status: response.status });
     const data = body.kingdom && typeof body.kingdom === "object" ? body.kingdom
@@ -479,7 +479,7 @@ async function loadPlayerContext(player: Record<string, any>): Promise<Record<st
    })
   : Promise.resolve(null);
  const allianceRequest = /^\d{1,10}$/.test(kid) && /^[A-Za-z0-9_-]{1,20}$/.test(allianceTag)
-  ? fetchMightPulse("https://api.mightpulse.com/v1/alliances/" + encodeURIComponent(kid) + "/" + encodeURIComponent(allianceTag) + "?include=info,roster", { headers: { Accept: "application/json" } }, { timeoutMs: 8000, totalTimeoutMs: 11000, fastPath: true, maxAttempts: 1 }).then(async response => {
+  ? fetchMightPulse("https://api.mightpulse.com/v1/alliances/" + encodeURIComponent(kid) + "/" + encodeURIComponent(allianceTag) + "?include=info,roster", { headers: { Accept: "application/json" } }, { timeoutMs: fast ? 3500 : 8000, totalTimeoutMs: fast ? 4500 : 11000, fastPath: true, maxAttempts: 1 }).then(async response => {
     const body = await response.json().catch(() => ({})) as Record<string, any>;
     if (!response.ok) throw Object.assign(new Error("Alliance roster unavailable."), { status: response.status });
     const source = body.data && typeof body.data === "object" ? body.data : body;
@@ -515,31 +515,32 @@ const detailedProfileCache = new Map<string, { value: Record<string, any>; expir
 const detailedProfileInFlight = new Map<string, Promise<Record<string, any>>>();
 const DETAILED_PROFILE_CACHE_MS = 2 * 60_000;
 
-async function loadDetailedPlayerProfile(playerId: string): Promise<Record<string, any>> {
+async function loadDetailedPlayerProfile(playerId: string, player: Record<string, any>): Promise<Record<string, any>> {
  const cached = detailedProfileCache.get(playerId);
  if (cached && cached.expiresAt > Date.now()) return cached.value;
  const active = detailedProfileInFlight.get(playerId);
  if (active) return active;
  const request = (async () => {
-  const endpoint = "https://api.mightpulse.com/v1/players/" + encodeURIComponent(playerId) + "?include=base,heroes,ranks,gov_gear";
-  const upstream = await fetchMightPulse(endpoint, { headers: { Accept: "application/json" } }, {
-   timeoutMs: 95_000,
-   totalTimeoutMs: 110_000,
-   maxAttempts: 3
-  });
-  const body = await upstream.json().catch(() => ({})) as Record<string, any>;
-  if (!upstream.ok) {
-   const error = new Error("MightPulse player profile request failed.");
-   (error as any).status = upstream.status;
-   throw error;
-  }
-  const player = body.player && typeof body.player === "object" ? body.player : null;
-  if (!player || String(player.governor_id ?? player.fid ?? "") !== playerId) {
-   const error = new Error("MightPulse returned an unexpected player profile.");
-   (error as any).status = 502;
-   throw error;
-  }
-  const context = await loadPlayerContext(player);
+  // The base profile is already available. Treat heroes, gear and kingdom context
+  // as optional enrichments and cap their wait so a slow refresh cannot blank the page.
+  const endpoint = "https://api.mightpulse.com/v1/players/" + encodeURIComponent(playerId) + "?include=heroes,ranks,gov_gear";
+  const [detailsResult, contextResult] = await Promise.allSettled([
+   fetchMightPulse(endpoint, { headers: { Accept: "application/json" } }, {
+    timeoutMs: 6500, totalTimeoutMs: 8000, fastPath: true, maxAttempts: 1
+   }).then(async upstream => {
+    const body = await upstream.json().catch(() => ({})) as Record<string, any>;
+    if (!upstream.ok) throw Object.assign(new Error("Optional player details are unavailable."), { status: upstream.status });
+    if (body.player && String(body.player.governor_id ?? body.player.fid ?? "") !== playerId) {
+     throw Object.assign(new Error("MightPulse returned a mismatched player profile."), { status: 502 });
+    }
+    return body;
+   }),
+   loadPlayerContext(player, true)
+  ]);
+  const body = detailsResult.status === "fulfilled" ? detailsResult.value : {};
+  const context = contextResult.status === "fulfilled" ? contextResult.value : {
+   kingdom: null, kingdom_board_ranks: [], kingdom_meta: null, alliance_roster: null
+  };
   const result = {
    ok: true,
    player,
@@ -550,8 +551,10 @@ async function loadDetailedPlayerProfile(playerId: string): Promise<Record<strin
    fresh: typeof body.fresh === "boolean" ? body.fresh : null,
    cached_at: typeof body.cached_at === "string" ? body.cached_at : null,
    age_seconds: Number.isFinite(Number(body.age_seconds)) ? Number(body.age_seconds) : null,
-   include: Array.isArray(body.include) ? body.include : ["base", "heroes", "ranks", "gov_gear"],
-   source: "mightpulse"
+   include: Array.isArray(body.include) ? body.include : ["heroes", "ranks", "gov_gear"],
+   source: "mightpulse",
+   extras_available: detailsResult.status === "fulfilled",
+   extras_error: detailsResult.status === "rejected" ? "Some extended player details could not be refreshed. The public profile is still available." : null
   };
   detailedProfileCache.set(playerId, { value: result, expiresAt: Date.now() + DETAILED_PROFILE_CACHE_MS });
   return result;
@@ -577,8 +580,13 @@ async function handleDetailedPlayerProfile(req: RequestLike, res: ResponseLike, 
   return;
  }
  try {
-  const profile = await loadDetailedPlayerProfile(playerId);
-  res.setHeader("Cache-Control", "public, max-age=60, s-maxage=120, stale-while-revalidate=300");
+  const player = await lookupPlayer(playerId);
+  if (String(player.governor_id ?? player.fid ?? "") !== playerId) {
+   sendError(res, 502, "profile_mismatch", "The provider returned a different player ID.", requestId);
+   return;
+  }
+  const profile = await loadDetailedPlayerProfile(playerId, player);
+  res.setHeader("Cache-Control", "public, max-age=30, s-maxage=60, stale-while-revalidate=180");
   res.setHeader("X-Request-Id", requestId);
   res.status(200).json({ ...profile, meta: { requestId, timestamp: new Date().toISOString() } });
  } catch (error) {
@@ -592,10 +600,10 @@ async function handleDetailedPlayerProfile(req: RequestLike, res: ResponseLike, 
    return;
   }
   if (status === 504 || /timed out|deadline|abort/i.test(String((error as any)?.message || ""))) {
-   sendError(res, 504, "upstream_timeout", "The detailed player profile took too long to refresh. Please try again shortly.", requestId);
+   sendError(res, 504, "upstream_timeout", "The basic player lookup timed out. Please retry in a moment.", requestId);
    return;
   }
-  sendError(res, status === 503 ? 503 : 502, "profile_unavailable", "Detailed player data is temporarily unavailable.", requestId);
+  sendError(res, status === 503 ? 503 : 502, "profile_unavailable", "The basic player lookup is temporarily unavailable.", requestId);
  }
 }
 
