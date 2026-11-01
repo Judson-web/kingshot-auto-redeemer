@@ -613,7 +613,7 @@ export default async function handler(req: RequestLike, res: ResponseLike): Prom
  const requestUrl = new URL(req.url || "/", "http://localhost");
  if (requestUrl.searchParams.get("milestone") === "count") {
   if (req.method && req.method.toUpperCase() !== "GET") { res.setHeader("Allow", "GET"); return void res.status(405).json({ error: "Method not allowed." }); }
-  const base = String(process.env.SUPABASE_URL || "https://wocxvtptqapietlteshr.supabase.co").replace(/\\/$/, "");
+  const base = String(process.env.SUPABASE_URL || "https://wocxvtptqapietlteshr.supabase.co").replace(/\/$/, "");
   try {
    const response = await fetch(base + "/rest/v1/rpc/kingshot_public_registration_count", { method: "POST", headers: { apikey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || "", authorization: "Bearer " + (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || ""), "content-type": "application/json" }, body: "{}", signal: AbortSignal.timeout(5000) });
    if (!response.ok) throw Error("Count unavailable");
