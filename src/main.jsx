@@ -15,6 +15,7 @@ import { useServiceStatus } from "./shared/service-status.js";
 import KingshotAvatar from"./components/KingshotAvatar.tsx";
 import AllianceRegistration from "./AllianceRegistration.tsx";
 import PlayerProfileApp from "./PlayerProfileApp.jsx";
+import SeasonalHalloweenOverlay from "./components/SeasonalHalloweenOverlay.jsx";
 
 const LegalApp=React.lazy(()=>import("./LegalApp.jsx"));
 const InfoApp=React.lazy(()=>import("./InfoApp.jsx"));
@@ -365,4 +366,4 @@ const isPrivateWorkspace=privateWorkspacePaths.has(location.pathname);
 const showNotificationPrompt=!isPrivateWorkspace;
 const showPublicSupport=!isPrivateWorkspace;
 const maintenanceAdminAccess=location.pathname==="/admin/maintenance"||(location.pathname==="/profile"&&new URLSearchParams(location.search).get("returnTo")==="/admin/maintenance");
-createRoot(document.getElementById("root")).render(<><React.Suspense fallback={<div role="status" aria-live="polite" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,minHeight:"45vh",padding:24,color:"#d4bd88",fontSize:13}}><LoaderCircle size={18}/> {translate(getSiteLanguage(),"common.loadingWorkspace","Loading workspace…")}</div>}>{maintenanceAdminAccess?publicPage:<MaintenanceGate>{isPrivateWorkspace?publicPage:<PublicAnnouncements>{publicPage}</PublicAnnouncements>}{!isPrivateWorkspace&&<InstallAppPrompt/>}{showNotificationPrompt&&<PushNotifications/>}{showPublicSupport&&<SupportWidget/>}</MaintenanceGate>}</React.Suspense><CopyToastHost/></>);
+createRoot(document.getElementById("root")).render(<><React.Suspense fallback={<div role="status" aria-live="polite" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,minHeight:"45vh",padding:24,color:"#d4bd88",fontSize:13}}><LoaderCircle size={18}/> {translate(getSiteLanguage(),"common.loadingWorkspace","Loading workspace…")}</div>}>{maintenanceAdminAccess?publicPage:<MaintenanceGate>{isPrivateWorkspace?publicPage:<PublicAnnouncements>{publicPage}</PublicAnnouncements>}{!isPrivateWorkspace&&<InstallAppPrompt/>}{showNotificationPrompt&&<PushNotifications/>}{showPublicSupport&&<SupportWidget/>}</MaintenanceGate>}</React.Suspense>{!isPrivateWorkspace&&<SeasonalHalloweenOverlay/>}<CopyToastHost/></>);
