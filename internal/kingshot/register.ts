@@ -21,7 +21,7 @@ async function announceRegistrationMilestone(): Promise<void> {
   const webhook = String(process.env.DISCORD_KINGSHOT_WEBHOOK_URL || process.env.DISCORD_SCRAPER_WEBHOOK_URL || "").trim();
   if (webhook) {
    const parsed = new URL(webhook);
-   if (parsed.protocol !== "https:" || !/discord(?:app)?\\.com$/i.test(parsed.hostname)) throw Error("Configured Kingshot Discord webhook is invalid.");
+   if (parsed.protocol !== "https:" || !/discord(?:app)?\.com$/i.test(parsed.hostname)) throw Error("Configured Kingshot Discord webhook is invalid.");
    const response = await fetch(parsed.toString(), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ embeds: [{ title: "🏆 1,000 REGISTERED PLAYER IDS", description: message, color: 0xD6B56D, footer: { text: "Kingshot Auto Redeemer • Community milestone" }, timestamp: new Date().toISOString() }], allowed_mentions: { parse: [] } }), signal: AbortSignal.timeout(8000) });
    if (!response.ok) throw Error("Discord milestone delivery failed (" + response.status + ").");
   }
