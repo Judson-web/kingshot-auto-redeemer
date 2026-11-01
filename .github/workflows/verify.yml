@@ -136,7 +136,7 @@ jobs:
             exit 0
           fi
           git commit -m "test: refresh visual baselines from CI"
-          git push origin HEAD:"$GITHUB_REF_NAME"
+          git push origin HEAD:"refs/heads/${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
 
       - name: Upload visual diffs and accessibility reports
         if: always()
