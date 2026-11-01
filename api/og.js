@@ -186,7 +186,21 @@ async function handlePlayerPage(req,res,requestUrl){
  const id=requestUrl.searchParams.get("id")||"";
  if(!/^\d{5,20}$/.test(id)){res.status(400).end("Invalid Kingshot Governor ID");return}
  const origin=deploymentOrigin(),canonical=origin+"/user/"+encodeURIComponent(id);
- const player=await getPreviewPlayer(id);
+ let player=null,html="";
+ try{
+  const [loadedPlayer,template]=await Promise.all([
+   getPreviewPlayer(id),
+   fetch(origin+"/index.html",{headers:{Accept:"text/html"},signal:AbortSignal.timeout(5000)})
+  ]);
+  player=loadedPlayer;
+  if(!template.ok)throw new Error("Could not load the application shell.");
+  html=await template.text();
+  if(html.length>500_000)throw new Error("Application shell is unexpectedly large.");
+ }catch{
+  res.setHeader("Cache-Control","no-store");
+  res.status(503).end("Player profile is temporarily unavailable.");
+  return;
+ }
  const displayName=String(player?.nick_name||"Kingshot Player").slice(0,80);
  const name=safeCardText(displayName,40);
  const kingdom=player?.kid==null?"Unknown":String(player.kid);
@@ -197,17 +211,6 @@ async function handlePlayerPage(req,res,requestUrl){
   ?displayName+" · Kingdom "+kingdom+" · Power "+power+alliance+". View public Kingshot player stats, arena defence, equipment, alliance standing and kingdom context."
   :"View the public Kingshot player profile for Governor ID "+id+". Player stats, arena defence, equipment and rankings are shown when available.";
  const imageUrl=origin+"/api/og?route=player&id="+encodeURIComponent(id)+"&v=1";
- let html="";
- try{
-  const template=await fetch(origin+"/index.html",{headers:{Accept:"text/html"},signal:AbortSignal.timeout(5000)});
-  if(!template.ok)throw new Error("Could not load the application shell.");
-  html=await template.text();
-  if(html.length>500_000)throw new Error("Application shell is unexpectedly large.");
- }catch{
-  res.setHeader("Cache-Control","no-store");
-  res.status(503).end("Player profile is temporarily unavailable.");
-  return;
- }
  html=html.replace(/<title>[\s\S]*?<\/title>/i,"<title>"+escapeHtml(title)+"</title>");
  html=html.replace(/<link\s+rel=["']canonical["'][^>]*>/i,"");
  const metas=[
