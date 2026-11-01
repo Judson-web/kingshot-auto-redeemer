@@ -17,6 +17,8 @@ test("player profile discovery is present in the grouped navigation drawer", asy
 
 test("player profile has a discovery landing page and share actions", async () => {
   const page = await read("src/PlayerProfileApp.jsx");
+  const router = await read("src/main.jsx");
+  assert.match(router, /location\.pathname==="\\/user"\|\|location\.pathname\.startsWith\("\\/user\/"\)/);
   assert.match(page, /!playerId&&<section className="kp-discover"/);
   assert.match(page, /Share profile/);
   assert.match(page, /Copy link/);
