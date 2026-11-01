@@ -12,8 +12,8 @@
   "orientation": "portrait-primary",
   "lang": "en",
   "dir": "ltr",
-  "background_color": "#08090c",
-  "theme_color": "#08090c",
+  "background_color": "#09090f",
+  "theme_color": "#17101f",
   "categories": [
     "utilities",
     "games"
