@@ -37,12 +37,12 @@ test("admin queue reads and writes Supabase while normal alliance sync stays sep
 });
 
 test("automatic sync is resumable and bounded per scheduled invocation",()=>{
- assert.match(worker,/MAX_AUTOMATIC_SYNC_MEMBERS_PER_INVOCATION=15/);
+ assert.match(worker,/MAX_AUTOMATIC_SYNC_MEMBERS_PER_INVOCATION=10/);
  assert.match(worker,/for\(let attempt=0;attempt<1;attempt\+\+\)/);
  assert.match(worker,/eligible\.slice\(0,MAX_AUTOMATIC_SYNC_MEMBERS_PER_INVOCATION\)/);
  assert.match(worker,/continuation\?new Date\(Date\.now\(\)\+5\*60000\)/);
  assert.match(worker,/registration_status:priorById\.get\(member\.id\)==='departed'\?'pending'/);
  assert.match(worker,/if\(!continuation\)[\s\S]*?fresh roster can mark departures/);
  assert.match(worker,/priorLastSeenById/);
- assert.match(worker,/localeCompare\(String\(priorLastSeenById/);
+ assert.match(worker,/localeCompare\(String\(priorLastSeenById/);\n assert.match(worker,/MAX_CONCURRENT_AUTOMATIC_REGISTRATIONS=3/);\n assert.match(worker,/Promise\.all\(group\.map/);
 });
