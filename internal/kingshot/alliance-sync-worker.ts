@@ -165,8 +165,7 @@ export default async function handler(req:any,res:any){
 
     let departedCount=0;
     if(!continuation){
-     // Only a fully traversed, fresh roster can mark departures. Global player
-     // registrations are never removed by this reconciliation.
+     // Only a fully traversed, fresh roster can mark departures; Global player registrations are never removed by this reconciliation.
      const currentIds=new Set(rosterIds);
      const priorSeen=await selectRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&registration_status=neq.departed&select=player_id`);
      for(const row of (Array.isArray(priorSeen)?priorSeen:[]))if(!currentIds.has(String(row.player_id))){await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(row.player_id)}`,{registration_status:'departed',last_error_code:null});departedCount++;}
