@@ -18,7 +18,7 @@ test('a departed member who rejoins becomes eligible for reconciliation again', 
 });
 
 test('departed status is retained as history and never deletes global player registrations', () => {
-  assert.match(worker, /Global player registrations are never removed/);
+  assert.match(worker, /Global player\\s+registrations are never removed/);
   assert.doesNotMatch(worker + handler, /delete\s+from\s+public\.kingshot_autoredeem/i);
   assert.match(migration, /'departed'::text/);
   assert.match(migration, /alliance_sync_seen_players_registration_status_check/);
