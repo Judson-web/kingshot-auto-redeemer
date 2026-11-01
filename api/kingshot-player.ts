@@ -611,6 +611,19 @@ export default async function handler(req: RequestLike, res: ResponseLike): Prom
  const requestId = globalThis.crypto?.randomUUID?.() || `req-${Date.now().toString(36)}`;
  res.setHeader("X-Request-Id", requestId);
  const requestUrl = new URL(req.url || "/", "http://localhost");
+ if (requestUrl.searchParams.get("milestone") === "count") {
+  if (req.method && req.method.toUpperCase() !== "GET") { res.setHeader("Allow", "GET"); return void res.status(405).json({ error: "Method not allowed." }); }
+  const base = String(process.env.SUPABASE_URL || "https://wocxvtptqapietlteshr.supabase.co").replace(/\/$/, "");
+  try {
+   const response = await fetch(base + "/rest/v1/rpc/kingshot_public_registration_count", { method: "POST", headers: { apikey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || "", authorization: "Bearer " + (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || ""), "content-type": "application/json" }, body: "{}", signal: AbortSignal.timeout(5000) });
+   if (!response.ok) throw Error("Count unavailable");
+   const value = Number(await response.json());
+   if (!Number.isSafeInteger(value) || value < 0) throw Error("Invalid count");
+   res.setHeader("Cache-Control", "public, max-age=30, s-maxage=30, stale-while-revalidate=60");
+   return void res.status(200).json({ registeredIds: value, milestone: 1000, remaining: Math.max(0, 1000 - value) });
+  } catch { res.setHeader("Cache-Control", "no-store"); return void res.status(503).json({ error: "Registration count is temporarily unavailable." }); }
+ }
+
  const developerPath = String(req.query?.developerPath || requestUrl.searchParams.get("developerPath") || req.query?.developer || requestUrl.searchParams.get("developer") || "").replace(/^\/+|\/+$/g, "");
  if (developerPath === "alliance-sync") { await allianceSyncHandler(req as any, res as any); return; }
  if (developerPath === "alliance-sync-worker") return allianceSyncWorker(req as any, res as any);

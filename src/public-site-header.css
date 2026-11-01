@@ -274,3 +274,10 @@
 .public-site-header .ks-language-option-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:2px}.public-site-header .ks-language-option-copy b{font-size:12px;font-weight:600}.public-site-header .ks-language-option-copy small{color:#a5a5a0;font-size:10px}.public-site-header .ks-language-check{color:#dfca95;font-size:13px}
 .public-site-header .ks-language button:focus-visible{outline:2px solid #d4bd88;outline-offset:3px}
 @media(max-width:360px){.public-site-header .ks-language-trigger{min-width:50px;padding-inline:6px}}
+
+/* Subtle suspended hardware detail for the public header. */
+.public-site-header{transform-origin:50% 0;animation:ks-public-header-sway 11s ease-in-out infinite;will-change:transform}
+.public-site-header:before,.public-site-header:after{content:"";position:absolute;top:-9px;width:1px;height:9px;background:linear-gradient(#9a8b70,#4b453a);opacity:.65;pointer-events:none}
+.public-site-header:before{left:22%}.public-site-header:after{right:22%}
+@keyframes ks-public-header-sway{0%,100%{transform:rotate(-.12deg)}50%{transform:rotate(.12deg)}}
+@media(prefers-reduced-motion:reduce){.public-site-header{animation:none!important}}

@@ -10,6 +10,29 @@ const SUPABASE_URL = process.env.SUPABASE_URL || "https://wocxvtptqapietlteshr.s
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
 if (!SUPABASE_KEY) throw Error("Supabase service key is not configured on the server.");
 
+async function announceRegistrationMilestone(): Promise<void> {
+ try {
+  const claimed = await rpc("claim_kingshot_registration_milestone", { p_milestone: 1000 });
+  if (claimed !== true) return;
+ } catch (error) { console.error("[registration-milestone] claim failed", error); return; }
+ const title = "A thousand strong. And counting.";
+ const message = "The Kingshot Auto Redeemer community has reached 1,000 registered Player IDs. Thank you for building this with us. This milestone belongs to every player who joined the journey.";
+ try {
+  const announcement = await fetch(SUPABASE_URL + "/rest/v1/kingshot_announcements", { method: "POST", headers: { apikey: SUPABASE_KEY, authorization: "Bearer " + SUPABASE_KEY, "content-type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ title, message, type: "success", link_url: "/", link_label: "Explore the community", active: true, published_at: new Date().toISOString() }), signal: AbortSignal.timeout(8000) });
+  if (!announcement.ok) throw Error("Could not publish the milestone announcement (" + announcement.status + ").");
+ } catch (error) { console.error("[registration-milestone] website announcement failed", error); }
+ const webhook = String(process.env.DISCORD_KINGSHOT_WEBHOOK_URL || process.env.DISCORD_SCRAPER_WEBHOOK_URL || "").trim();
+ if (webhook) {
+  try {
+   const parsed = new URL(webhook);
+   if (parsed.protocol !== "https:" || !/discord(?:app)?\.com$/i.test(parsed.hostname)) throw Error("Configured Kingshot Discord webhook is invalid.");
+   const response = await fetch(parsed.toString(), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ embeds: [{ title: "🏆 1,000 REGISTERED PLAYER IDS", description: message, color: 0xD6B56D, footer: { text: "Kingshot Auto Redeemer • Community milestone" }, timestamp: new Date().toISOString() }], allowed_mentions: { parse: [] } }), signal: AbortSignal.timeout(8000) });
+   if (!response.ok) throw Error("Discord milestone delivery failed (" + response.status + ").");
+  } catch (error) { console.error("[registration-milestone] Discord delivery failed", error); }
+ } else console.warn("[registration-milestone] Discord webhook is not configured.");
+ try { const { broadcastPush } = await import("../push-notifications.js"); await broadcastPush({ title: "🏆 1,000 players. One community.", body: "We reached 1,000 registered Player IDs. Thank you for being part of the journey!", url: "/", tag: "kingshot-registration-milestone-1000" }); } catch (error) { console.error("[registration-milestone] push delivery failed", error); }
+}
+
 async function rpc(name: string, body: Record<string, unknown>): Promise<any> {
  const r = await fetch(SUPABASE_URL + "/rest/v1/rpc/" + name, { method: "POST", headers: { apikey: SUPABASE_KEY, authorization: "Bearer " + SUPABASE_KEY, "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000) });
  const d = await r.json().catch(() => null);
@@ -29,6 +52,7 @@ export async function registerPlayer(input: ReturnType<typeof normalizeRegistrat
  const d = await r.json().catch(() => null);
  if (!r.ok) throw Error(d?.message || d?.hint || "Could not register this player.");
  const result = Array.isArray(d) ? d[0] : d;
+ if (!Boolean(result?.already_registered)) await announceRegistrationMilestone();
  try {
   const verified: KingdomVerification = await verifyKingdom(input.playerId);
   if (verified.notFound) {

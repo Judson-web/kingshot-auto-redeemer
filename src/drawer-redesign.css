@@ -421,3 +421,9 @@
 .ks-nav-drawer .ks-nav-drawer-support-copy small{display:none!important}
 .ks-nav-drawer-footer{margin-top:12px!important;padding-top:10px!important;font-size:9px!important}
 @media(max-height:760px){.ks-nav-drawer-groups{gap:9px!important}.ks-nav-drawer .ks-nav-drawer-link{min-height:43px!important}}
+
+/* The drawer settles with a restrained hanging-board motion, without affecting layout. */
+.ks-nav-drawer{transform-origin:top left;animation:ks-drawer-settle .55s cubic-bezier(.2,.75,.25,1) both}
+.ks-nav-drawer:before{content:"";position:absolute;top:-8px;left:28px;width:1px;height:8px;background:linear-gradient(#9a8b70,#4b453a);opacity:.65;pointer-events:none}
+@keyframes ks-drawer-settle{0%{transform:translateY(-7px) rotate(-.7deg)}55%{transform:translateY(1px) rotate(.25deg)}100%{transform:translateY(0) rotate(0)}}
+@media(prefers-reduced-motion:reduce){.ks-nav-drawer{animation:none!important}}
