@@ -43,7 +43,8 @@ test('automatic roster sync resumes bounded batches and schedules completed alli
   assert.match(worker, /function nextDailySyncAt\(\)/);
   assert.match(worker, /next\.setUTCHours\(11,0,0,0\)/);
   assert.match(worker, /p_next_run_at:nextRunAt/);
-  assert.match(worker, /:nextDailySyncAt\(\)/);\n  assert.match(worker, /continuation\?new Date\(Date.now\(\)\+5\*60000\)/);
+  assert.match(worker, /:nextDailySyncAt\(\)/);
+  assert.match(worker, /continuation\?new Date\(Date.now\(\)\+5\*60000\)/);
   assert.match(worker, /registerWithRetry\(input\)/);
   assert.match(worker, /registration_status:'departed'/);
 });
