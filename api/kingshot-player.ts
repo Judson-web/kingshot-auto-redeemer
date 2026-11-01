@@ -442,8 +442,7 @@ async function handleAllianceLookup(req: RequestLike, res: ResponseLike): Promis
 async function loadPlayerContext(player: Record<string, any>): Promise<Record<string, any>> {
  const kid = String(player.kid ?? "").trim();
  const allianceTag = String(player.alliance?.abbr ?? "").trim();
- const requests: Promise<any>[] = [];
- const kingdomRequest = /^\\d{1,10}$/.test(kid)
+ const kingdomRequest = /^\d{1,10}$/.test(kid)
   ? fetchMightPulse("https://api.mightpulse.com/v1/kingdoms/" + encodeURIComponent(kid), { headers: { Accept: "application/json" } }, { timeoutMs: 7000, totalTimeoutMs: 10000, fastPath: true, maxAttempts: 1 }).then(async response => {
     const body = await response.json().catch(() => ({})) as Record<string, any>;
     if (!response.ok) throw Object.assign(new Error("Kingdom context unavailable."), { status: response.status });
@@ -453,7 +452,7 @@ async function loadPlayerContext(player: Record<string, any>): Promise<Record<st
     return { data, fresh: typeof body.fresh === "boolean" ? body.fresh : null, age_seconds: Number.isFinite(Number(body.age_seconds)) ? Number(body.age_seconds) : null, cached_at: typeof body.cached_at === "string" ? body.cached_at : null };
    })
   : Promise.resolve(null);
- const allianceRequest = /^\\d{1,10}$/.test(kid) && /^[A-Za-z0-9_-]{1,20}$/.test(allianceTag)
+ const allianceRequest = /^\d{1,10}$/.test(kid) && /^[A-Za-z0-9_-]{1,20}$/.test(allianceTag)
   ? fetchMightPulse("https://api.mightpulse.com/v1/alliances/" + encodeURIComponent(kid) + "/" + encodeURIComponent(allianceTag) + "?include=info,roster", { headers: { Accept: "application/json" } }, { timeoutMs: 8000, totalTimeoutMs: 11000, fastPath: true, maxAttempts: 1 }).then(async response => {
     const body = await response.json().catch(() => ({})) as Record<string, any>;
     if (!response.ok) throw Object.assign(new Error("Alliance roster unavailable."), { status: response.status });
@@ -461,7 +460,7 @@ async function loadPlayerContext(player: Record<string, any>): Promise<Record<st
     const raw = Array.isArray(source.members) ? source.members : Array.isArray(source.roster) ? source.roster : Array.isArray(source.alliance?.members) ? source.alliance.members : [];
     const members = raw.flatMap((member: Record<string, any>) => {
      const governorId = String(member.governor_id ?? member.fid ?? "").trim();
-     if (!/^\\d{5,20}$/.test(governorId)) return [];
+     if (!/^\d{5,20}$/.test(governorId)) return [];
      return [{
       governor_id: governorId,
       name: String(member.nick_name ?? member.name ?? member.nickname ?? "Kingshot Player").trim().slice(0, 80),
@@ -469,7 +468,7 @@ async function loadPlayerContext(player: Record<string, any>): Promise<Record<st
       town_center_level: member.town_center_level == null || !Number.isFinite(Number(member.town_center_level)) ? null : Number(member.town_center_level),
       kills: member.kills == null || !Number.isFinite(Number(member.kills)) ? null : Number(member.kills),
       alliance_rank: String(member.alliance_rank_label ?? member.alliance_rank ?? "").trim().slice(0, 30),
-      avatar_url: /^https:\\/\\//i.test(String(member.avatar_url ?? "")) ? String(member.avatar_url) : ""
+      avatar_url: /^https:\/\//i.test(String(member.avatar_url ?? "")) ? String(member.avatar_url) : ""
      }];
     });
     members.sort((a: any,b: any) => (b.power ?? -1) - (a.power ?? -1));
