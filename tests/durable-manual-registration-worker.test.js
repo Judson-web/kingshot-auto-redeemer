@@ -8,7 +8,7 @@ const ui=await readFile(new URL("../src/AdminAllianceSyncApp.tsx",import.meta.ur
 const migration=await readFile(new URL("../supabase/migrations/20261029150000_move_manual_alliance_registration_queue_to_supabase.sql",import.meta.url),"utf8");
 
 test("durable queue runs through the existing cron-authenticated worker route",()=>{
- assert.match(worker,/JOB_SECRET=process.env.ALLIANCE_SYNC_CRON_SECRET/);
+ assert.match(worker,/JOB_SECRETS=\[process\.env\.ALLIANCE_SYNC_CRON_SECRET,process\.env\.CRON_SECRET\]/);
  assert.match(worker,/processManualRegistrationJobs/);
  assert.match(scheduler,/kingshot-alliance-sync-worker\?mode=manual-registration/);
  assert.match(scheduler,/Drain durable manual registration queue/);
@@ -34,4 +34,13 @@ test("admin queue reads and writes Supabase while normal alliance sync stays sep
  assert.match(ui,/ADMIN_REGISTER_ALLIANCE_MEMBERS/);
  assert.match(ui,/Browser-driven: registers selected players one at a time/);
  assert.match(ui,/scheduled worker continues when this page is closed/);
+});
+
+test("automatic sync is resumable and bounded per scheduled invocation",()=>{
+ assert.match(worker,/MAX_AUTOMATIC_SYNC_MEMBERS_PER_INVOCATION=15/);
+ assert.match(worker,/for\(let attempt=0;attempt<1;attempt\+\+\)/);
+ assert.match(worker,/eligible\.slice\(0,MAX_AUTOMATIC_SYNC_MEMBERS_PER_INVOCATION\)/);
+ assert.match(worker,/continuation\?new Date\(Date\.now\(\)\+5\*60000\)/);
+ assert.match(worker,/registration_status:priorById\.get\(member\.id\)==='departed'\?'pending'/);
+ assert.match(worker,/if\(!continuation\)[\s\S]*?fresh roster can mark departures/);
 });
