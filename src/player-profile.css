@@ -44,3 +44,10 @@
 .kp-roster-note{display:block;margin-top:10px;color:#777b88;font-size:8px;line-height:1.5}
 @media(max-width:760px){.kp-kingdom-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.kp-section-subhead{align-items:flex-start;flex-direction:column;gap:4px}}
 @media(max-width:480px){.kp-discover{margin:4vh auto 8vh;padding:20px 16px}.kp-discover form>div{flex-wrap:wrap}.kp-discover input{flex:1 1 150px}.kp-discover form button{width:100%}.kp-profile-actions{justify-content:flex-start}.kp-kingdom-stat{padding:10px}.kp-kingdom-stat b{font-size:13px}.kp-roster-summary{gap:13px}.kp-roster-row{gap:6px;padding:7px}.kp-roster-avatar{width:30px;height:30px}}
+
+.kp-board-ranks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.kp-board-ranks article{display:flex;align-items:center;gap:10px;min-width:0;padding:10px 12px;border:1px solid #302d39;border-radius:9px;background:#111218}
+.kp-board-ranks article span{flex:1;min-width:0;color:#a09aa8;font-size:10px;overflow-wrap:anywhere}
+.kp-board-ranks article b{color:#e3d0a5;font-size:11px}
+.kp-board-ranks article em{flex:none;color:#e0c38b;font-size:10px;font-style:normal;font-weight:850}
+@media(max-width:480px){.kp-board-ranks{grid-template-columns:1fr}}
