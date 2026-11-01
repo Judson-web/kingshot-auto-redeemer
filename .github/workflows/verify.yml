@@ -121,11 +121,11 @@ jobs:
       - name: Run WCAG, responsive-layout, and screenshot regressions
         env:
           UI_TEST_BASE_URL: http://127.0.0.1:4173
-          UI_UPDATE_SNAPSHOTS: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[update-visual-snapshots]') && '1' || '0' }}
+          UI_UPDATE_SNAPSHOTS: ${{ (github.event_name == 'push' && contains(github.event.head_commit.message, '[update-visual-snapshots]') || github.event_name == 'pull_request' && contains(github.event.pull_request.title, '[update-visual-snapshots]')) && '1' || '0' }}
         run: npm run test:ui
 
       - name: Commit CI-generated visual baselines only for an explicit marker commit
-        if: success() && github.event_name == 'push' && contains(github.event.head_commit.message, '[update-visual-snapshots]')
+        if: success() && (github.event_name == 'push' && contains(github.event.head_commit.message, '[update-visual-snapshots]') || github.event_name == 'pull_request' && contains(github.event.pull_request.title, '[update-visual-snapshots]'))
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
