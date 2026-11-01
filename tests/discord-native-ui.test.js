@@ -223,3 +223,30 @@ test("scheduled website announcements use durable claims, validated roles, and p
   assert.ok(workflow.includes('cron: "*/5 * * * *"'));
   assert.ok(workflow.includes("CRON_SECRET"));
 });
+
+test("gift-code alerts use bot channels without replacing the worker logs webhook", async () => {
+  const worker = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
+  assert.ok(worker.includes("async function sendDiscordEvent({title,description,fields=[],color=0x5865F2},{botAlert=false}={})"));
+  assert.ok(worker.includes("if(botAlert&&DISCORD_BOT_TOKEN)"));
+  assert.ok(worker.includes("if(!DISCORD_WEBHOOK_URL)return false;"));
+  assert.ok(worker.includes('sendDiscordEvent(buildNewGiftCodeAlert(item),{botAlert:true})'));
+  assert.ok(worker.includes('}),{botAlert:true});'), "gift-code verification alerts must opt into bot delivery");
+  assert.ok(worker.includes('sendDiscordEvent({title:"📊 Auto-redeem cycle"'), "worker cycle summaries must still be sent");
+  assert.ok(worker.includes('sendDiscordEvent({title:"🚨 Auto-redeem anomaly detected"'), "worker anomalies must still be sent");
+  assert.ok(worker.includes("const DISCORD_WEBHOOK_URL=process.env.DISCORD_KINGSHOT_WEBHOOK_URL||process.env.DISCORD_SCRAPER_WEBHOOK_URL"));
+  assert.ok(worker.includes("existing webhook below"));
+});
+
+test("alliance registration preview is private, confirmed by its initiating user, and preserves safeguards", async () => {
+  const handler = await readFile(new URL("../internal/kingshot/alliance-sync-handler.ts", import.meta.url), "utf8");
+  assert.ok(interactions.includes("previewAllianceRegistrationFromDiscord"));
+  assert.ok(interactions.includes('custom_id: "ks:confirm-alliance:"'));
+  assert.ok(interactions.includes('custom_id: "ks:cancel-alliance:"'));
+  assert.ok(interactions.includes("Only the person who opened this registration preview can confirm it."));
+  assert.ok(interactions.includes("allianceRegistrationPreviewEmbed"));
+  assert.ok(handler.includes("getRegisteredPlayerIds(ids)"));
+  assert.ok(handler.includes("getBannedPlayerIds(ids)"));
+  assert.ok(handler.includes("kingdomAllianceLimit:4"));
+  assert.ok(handler.includes("ownerBypass:isOwner"));
+  assert.ok(handler.includes("Automatic roster sync") === false);
+});
