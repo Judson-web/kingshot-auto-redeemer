@@ -255,6 +255,9 @@ test("alliance registration preview is private, confirmed by its initiating user
   assert.ok(handler.includes("syncPending:true"), "failed eager sync must not misreport durable registration");
   assert.ok(interactions.includes("result.alreadyRegistered"), "confirmation must report existing registrations");
   assert.ok(interactions.includes("result.syncPending"), "confirmation must report deferred first syncs accurately");
+  assert.ok(interactions.includes("refreshAllianceRosterMessage"), "successful registration must refresh the original roster message");
+  assert.ok(interactions.includes("sourceMessageId"), "registration preview must retain the original roster message identity");
+  assert.ok(interactions.includes("editDiscordChannelMessage"), "the bot must update its original roster message after confirmation");
   assert.ok(interactions.includes(".filter(id => /^\\\\d{5,20}$/.test(id))") === false, "roster status lookup must not double-escape digit validation");
   assert.ok(interactions.includes("toUpperCase() === String(tag || \"\").trim().toUpperCase()"), "status lookup must ignore alliance-tag casing");
   assert.ok(handler.includes("Automatic roster sync") === false);
