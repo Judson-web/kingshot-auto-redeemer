@@ -40,6 +40,8 @@ test("profile supplements player details with public kingdom and alliance contex
   const api = await read("api/kingshot-player.ts");
   const helper = api.slice(api.indexOf("async function loadPlayerContext"), api.indexOf("const detailedProfileCache"));
   assert.match(helper, /\/v1\/kingdoms\//);
+  assert.match(helper, /include=boards&limit=100/);
+  assert.match(helper, /kingdom_board_ranks/);
   assert.match(helper, /\/v1\/alliances\//);
   assert.match(helper, /include=info,roster/);
   assert.match(helper, /player_power_rank/);
