@@ -12,8 +12,8 @@ function decrypt(value:string){const key=Buffer.from(process.env.V4_WEBHOOK_ENCR
 export async function enqueueV4WebhookEvent(eventType:"redemption.completed"|"redemption.unknown",payload:Record<string,unknown>){const subs=await db("/rest/v1/kingshot_developer_webhooks?select=id,events&disabled_at=is.null&events=cs.%7B"+encodeURIComponent(eventType)+"%7D");if(!Array.isArray(subs)||!subs.length)return;const rows=subs.filter(s=>Array.isArray(s.events)&&s.events.includes(eventType)).map(s=>({webhook_id:s.id,event_type:eventType,payload}));if(rows.length)await db("/rest/v1/kingshot_developer_webhook_deliveries",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(rows)})}
 export default async function webhookWorker(req:V3Request,res:V3Response):Promise<void>{
  if(String(req.method||"GET").toUpperCase()!=="POST"){res.setHeader("Allow","POST");res.status(405).json({error:"method_not_allowed"});return}
- const expected=process.env.V4_WEBHOOK_WORKER_SECRET||process.env.CRON_SECRET,raw=req.headers.authorization,auth=Array.isArray(raw)?raw[0]:String(raw||""),supplied=auth.startsWith("Bearer ")?auth.slice(7):"";
- if(!expected||!equal(supplied,expected)){res.status(401).json({error:"unauthorized"});return}
+ const expectedSecrets=[process.env.V4_WEBHOOK_WORKER_SECRET,process.env.CRON_SECRET].filter((value):value is string=>Boolean(value)),raw=req.headers.authorization,auth=Array.isArray(raw)?raw[0]:String(raw||""),supplied=auth.startsWith("Bearer ")?auth.slice(7):"";
+ if(!expectedSecrets.some(secret=>equal(supplied,secret))){res.status(401).json({error:"unauthorized"});return}
  let delivered=0,retried=0,processed=0;
  try{const due=await db("/rest/v1/kingshot_developer_webhook_deliveries?select=id,webhook_id,event_id,event_type,payload,attempt_count&delivered_at=is.null&next_attempt_at=lte."+encodeURIComponent(new Date().toISOString())+"&order=next_attempt_at.asc&limit=20");
  for(const row of Array.isArray(due)?due:[]){processed++;try{const hs=await db("/rest/v1/kingshot_developer_webhooks?select=url,events,secret_ciphertext,disabled_at&id=eq."+encodeURIComponent(row.webhook_id)+"&limit=1"),hook=Array.isArray(hs)?hs[0]:null;
