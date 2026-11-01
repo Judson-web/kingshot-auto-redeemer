@@ -109,9 +109,11 @@ export default async function handler(req:any,res:any){
     // Read the existing per-player cursor before a bulk upsert. Preserve all
     // completed outcomes; only departed players re-enter the pending queue.
     const idFilter='in.'+enc('('+rosterIds.join(',')+')');
-    const existingRows=await selectRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=${idFilter}&select=player_id,registration_status`);
+    const existingRows=await selectRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=${idFilter}&select=player_id,registration_status,last_seen_at`);
     const priorById=new Map<string,string>((Array.isArray(existingRows)?existingRows:[]).map((row:any)=>[String(row.player_id),String(row.registration_status||'')] as [string,string]));
-    await sb('alliance_sync_seen_players?on_conflict=config_id,player_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(roster.members.map((member:any)=>({config_id:config.id,player_id:member.id,last_seen_at:new Date().toISOString(),registration_status:priorById.get(member.id)==='departed'?'pending':(priorById.get(member.id)||'pending')})))});
+    const priorLastSeenById=new Map<string,string>((Array.isArray(existingRows)?existingRows:[]).map((row:any)=>[String(row.player_id),String(row.last_seen_at||'')] as [string,string]));
+    const rosterObservedAt=new Date().toISOString();
+    await sb('alliance_sync_seen_players?on_conflict=config_id,player_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(roster.members.map((member:any)=>({config_id:config.id,player_id:member.id,last_seen_at:priorById.get(member.id)==='error'?(priorLastSeenById.get(member.id)||rosterObservedAt):rosterObservedAt,registration_status:priorById.get(member.id)==='departed'?'pending':(priorById.get(member.id)||'pending')})))});
 
     const patchPlayers=async(ids:string[],body:any)=>{
      if(!ids.length)return;
@@ -128,7 +130,12 @@ export default async function handler(req:any,res:any){
      if(bannedIds.has(member.id)||alreadyRegisteredIds.has(member.id))return false;
      const prior=priorById.get(member.id)||'pending';
      return ['pending','error','departed'].includes(prior);
-    }).sort((a:any,b:any)=>Number(priorById.get(a.id)==='error')-Number(priorById.get(b.id)==='error'));
+    }).sort((a:any,b:any)=>{
+     const aError=priorById.get(a.id)==='error',bError=priorById.get(b.id)==='error';
+     if(aError!==bError)return Number(aError)-Number(bError);
+     if(aError)return String(priorLastSeenById.get(a.id)||'').localeCompare(String(priorLastSeenById.get(b.id)||''));
+     return 0;
+    });
     const batch=eligible.slice(0,MAX_AUTOMATIC_SYNC_MEMBERS_PER_INVOCATION);
     const continuation=eligible.length>batch.length;
     let registered=0,failed=0;const failures:string[]=[];
@@ -139,10 +146,10 @@ export default async function handler(req:any,res:any){
      try{
       const input=normalizeRegistrationInput({playerId:member.id,kingdomId:String(config.kingdom_id),playerName:member.name,avatarUrl:member.avatarUrl});
       const result=await registerWithRetry(input);if(result?.stale===true)throw new Error('Player record is stale.');
-      await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}`,{registration_status:result?.alreadyRegistered?'already_registered':'registered',registered_at:new Date().toISOString(),last_error_code:null});registered++;
+      await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}`,{registration_status:result?.alreadyRegistered?'already_registered':'registered',registered_at:new Date().toISOString(),last_seen_at:new Date().toISOString(),last_error_code:null});registered++;
      }catch(e){
       const message=String((e as Error)?.message||'Registration failed.').slice(0,250);
-      await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}`,{registration_status:'error',last_error_code:'registration_failed'});failed++;failures.push(member.id+': '+message);
+      await patchRows('alliance_sync_seen_players',`config_id=eq.${enc(config.id)}&player_id=eq.${enc(member.id)}`,{registration_status:'error',last_seen_at:new Date().toISOString(),last_error_code:'registration_failed'});failed++;failures.push(member.id+': '+message);
      }
     }
 
