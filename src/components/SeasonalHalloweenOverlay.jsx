@@ -1,6 +1,6 @@
 import React,{useEffect,useState}from"react";
 import{createPortal}from"react-dom";
-import{Moon,Power}from"lucide-react";
+import{Power}from"lucide-react";
 import"./SeasonalHalloweenOverlay.css";
 
 const SEASON_END=new Date("2026-11-03T00:00:00+05:30").getTime();
@@ -35,16 +35,16 @@ export default function SeasonalHalloweenOverlay(){
   setEnabled(next);
   try{if(next)localStorage.removeItem(DISMISS_KEY);else localStorage.setItem(DISMISS_KEY,"1")}catch{}
  };
- if(!ready||!enabled||typeof document==="undefined"||Date.now()>=SEASON_END)return null;
+ if(!ready||typeof document==="undefined"||Date.now()>=SEASON_END)return null;
  return createPortal(<>
-  <div className="ks-halloween-overlay" aria-hidden="true">
+  {enabled&&<div className="ks-halloween-overlay" aria-hidden="true">
    <Web side="left"/><Web side="right"/>
    <div className="ks-halloween-spider"><span/><svg viewBox="0 0 34 34"><path d="M17 0V10" stroke="currentColor" strokeWidth="1.5"/><ellipse cx="17" cy="18" rx="6" ry="8" fill="currentColor"/><circle cx="17" cy="10" r="4" fill="currentColor"/><path d="M12 14 5 10M11 19 3 19M12 23 6 28M22 14 29 10M23 19 31 19M22 23 28 28" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg></div>
    <Bat className="ks-halloween-bat ks-halloween-bat-one"/><Bat className="ks-halloween-bat ks-halloween-bat-two"/>
    <div className="ks-halloween-ghost"><svg viewBox="0 0 42 52"><path d="M21 2C9 2 3 12 3 24v23l9-5 9 6 9-6 9 5V24C39 12 33 2 21 2Z" fill="currentColor"/><ellipse cx="15" cy="23" rx="2.2" ry="3.5" fill="#20142c"/><ellipse cx="27" cy="23" rx="2.2" ry="3.5" fill="#20142c"/><path d="M18 31q3 3 6 0" fill="none" stroke="#20142c" strokeWidth="1.5" strokeLinecap="round"/></svg></div>
    <div className="ks-halloween-embers"><i/><i/><i/><i/><i/><i/><i/><i/></div>
    <div className="ks-halloween-bottom-glow"/>
-  </div>
-  <button className="ks-halloween-toggle" type="button" onClick={toggle} aria-label="Turn off Halloween decorations" title="Turn off Halloween decorations"><span className="ks-halloween-toggle-icon">🎃</span><span>Halloween mode</span><Power size={13}/></button>
+  </div>}
+  <button className="ks-halloween-toggle" type="button" onClick={toggle} aria-label={enabled?"Turn off Halloween decorations":"Turn on Halloween decorations"} title={enabled?"Turn off Halloween decorations":"Turn on Halloween decorations"}><span className="ks-halloween-toggle-icon">🎃</span><span>{enabled?"Halloween mode":"Halloween off"}</span><Power size={13}/></button>
  </>,document.body);
 }
