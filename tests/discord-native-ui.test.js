@@ -171,7 +171,8 @@ test("Discord alliance registration uses signed identity and owner-only database
 
 test("alliance information is a detailed embed and roster names stay in the selector", () => {
   assert.ok(interactions.includes("allianceEmbed(data, registrationStatus)"));
-  assert.ok(interactions.includes("fields: []"));
+  assert.ok(interactions.includes("fields: ["));
+  assert.ok(interactions.includes('field("REGISTRATION", registrationStatus)'));
   assert.ok(interactions.includes("SERVER DETAILS"));
   assert.ok(interactions.includes("Choose a governor from the selector below"));
 });
