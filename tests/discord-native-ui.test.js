@@ -174,7 +174,7 @@ test("alliance information is a detailed embed and roster names stay in the sele
   assert.ok(interactions.includes("fields: ["));
   assert.ok(interactions.includes('field("REGISTRATION", registrationStatus)'));
   assert.ok(interactions.includes("SERVER DETAILS"));
-  assert.ok(interactions.includes("Choose a governor from the selector below"));
+  assert.ok(interactions.includes("Select a governor to open their profile."));
 });
 
 test("Discord server Administrator is distinct from project-owner bypass", () => {
