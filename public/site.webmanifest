@@ -1,19 +1,20 @@
 {
-  "name": "Kingshot Auto Redeem",
-  "short_name": "Kingshot Redeem",
-  "description": "Kingshot gift-code redemption made simple. Register a player for automatic code checks or redeem a code manually.",
+  "name": "Kingshot Auto Redeemer",
+  "short_name": "Kingshot",
+  "description": "Your Kingshot redemption and alliance workspace, built for web and installed devices.",
   "id": "/",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "display_override": [
-    "standalone"
+    "standalone",
+    "minimal-ui"
   ],
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "lang": "en",
   "dir": "ltr",
-  "background_color": "#09090f",
-  "theme_color": "#17101f",
+  "background_color": "#0b0d10",
+  "theme_color": "#0b0d10",
   "categories": [
     "utilities",
     "games"
