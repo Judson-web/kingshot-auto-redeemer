@@ -92,3 +92,16 @@
 .kp-tabs button:focus-visible,.kp-profile-actions button:focus-visible,.kp-fresh button:focus-visible,.kp-error button:focus-visible{outline:2px solid #d0ad70;outline-offset:3px}
 
 .kp-discover-compact{margin:18px auto 22px;padding:16px 20px;border-radius:16px}.kp-discover-compact h1{margin:3px 0 6px;font-size:clamp(20px,3vw,27px)}.kp-discover-compact>p{margin:0;font-size:11px}.kp-discover-compact form{margin-top:12px}.kp-discover-compact form>label{font-size:8px}.kp-discover-compact form button{padding:10px 12px}
+
+/* Personal leaderboard cards returned by the expanded MightPulse kingdom-ranks lookup. */
+.kp-board-ranks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+.kp-board-ranks article{display:flex;align-items:center;gap:12px;min-width:0;padding:12px 13px;border:1px solid #302d39;border-radius:10px;background:linear-gradient(120deg,#17151e,#101116)}
+.kp-board-ranks article span{flex:1;min-width:0;color:#aaa3b1;font-size:10px;overflow-wrap:anywhere}
+.kp-board-ranks article b{color:#e6d4ae;font-size:12px;font-variant-numeric:tabular-nums}
+.kp-board-ranks article em{flex:none;color:#d0ad70;font-size:11px;font-style:normal;font-weight:850}
+.kp-profile-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:15px}
+.kp-profile-actions button{display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #393342;border-radius:8px;background:#17151f;color:#d8c9a7;font-size:10px}
+.kp-section-subhead{margin-top:22px}
+.kp-section-subhead h3{margin:0 0 5px;font-size:13px}
+.kp-section-subhead p{margin:0;color:#85818e;font-size:10px;line-height:1.6}
+@media(max-width:560px){.kp-board-ranks{grid-template-columns:1fr}.kp-profile-actions{margin-top:12px}}
