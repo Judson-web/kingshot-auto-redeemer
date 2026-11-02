@@ -105,3 +105,15 @@
 .kp-section-subhead h3{margin:0 0 5px;font-size:13px}
 .kp-section-subhead p{margin:0;color:#85818e;font-size:10px;line-height:1.6}
 @media(max-width:560px){.kp-board-ranks{grid-template-columns:1fr}.kp-profile-actions{margin-top:12px}}
+
+/* Prefer the item artwork supplied by MightPulse, with a clear slot fallback when absent. */
+.kp-gear{position:relative;min-width:0;padding-top:12px}
+.kp-gear-art{width:48px;height:48px;display:grid;place-items:center;overflow:hidden;margin:0 0 8px;border:1px solid #4a4053;border-radius:10px;background:radial-gradient(circle at 50% 25%,#594365,#211a2b 72%);color:#d9bd89}
+.kp-gear-art img,.kp-exclusive-art img{width:100%;height:100%;object-fit:contain;padding:4px}
+.kp-gear>small{display:block;margin-bottom:4px}
+.kp-exclusive{align-items:center}
+.kp-exclusive-art{width:42px;height:42px;flex:none;display:grid;place-items:center;overflow:hidden;border:1px solid #594365;border-radius:9px;background:#2a2033;color:#d8bd8c}
+.kp-exclusive>span:nth-child(2){flex:1;min-width:0}
+.kp-gov-art{overflow:hidden}
+.kp-gov-art img{object-fit:contain;padding:3px}
+@media(max-width:480px){.kp-gear-art{width:42px;height:42px}}
