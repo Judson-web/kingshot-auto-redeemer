@@ -478,6 +478,32 @@ async function loadPlayerContext(player: Record<string, any>, fast = false): Pro
     return { data, board_ranks: uniqueBoardRanks, fresh: typeof body.fresh === "boolean" ? body.fresh : null, age_seconds: Number.isFinite(Number(body.age_seconds)) ? Number(body.age_seconds) : null, cached_at: typeof body.cached_at === "string" ? body.cached_at : null };
    })
   : Promise.resolve(null);
+ const leaderboardRequest = /^\d{1,10}$/.test(kid)
+  ? fetchMightPulse("https://api.mightpulse.com/v1/kingdoms/" + encodeURIComponent(kid) + "/ranks?limit=100", { headers: { Accept: "application/json" } }, { timeoutMs: fast ? 3500 : 7000, totalTimeoutMs: fast ? 4500 : 9000, fastPath: true, maxAttempts: 1 }).then(async response => {
+    const body = await response.json().catch(() => ({})) as Record<string, any>;
+    if (!response.ok) throw Object.assign(new Error("Kingdom leaderboards unavailable."), { status: response.status });
+    const playerIds = new Set([String(player.governor_id ?? player.fid ?? ""), String(player.uid ?? "")].filter(Boolean));
+    const rows: Array<{ board: string; rank: number | null; score: number | null }> = [];
+    const walk = (value: any, boardName = "", depth = 0): void => {
+     if (!value || typeof value !== "object" || depth > 8) return;
+     if (Array.isArray(value)) {
+      value.forEach((row: any, index: number) => {
+       if (!row || typeof row !== "object") return;
+       const id = String(row.governor_id ?? row.fid ?? row.uid ?? "");
+       if (playerIds.has(id)) {
+        const score = row.score ?? row.value ?? row.power;
+        const rank = row.kingdom_rank ?? row.rank ?? row.position ?? index + 1;
+        rows.push({ board: String(row.board ?? row.board_name ?? row.name ?? boardName ?? "Kingdom leaderboard").slice(0, 60), rank: Number.isFinite(Number(rank)) ? Number(rank) : null, score: score == null || !Number.isFinite(Number(score)) ? null : Number(score) });
+       } else if (row.items || row.ranks || row.players || row.rows || row.entries || row.results || row.board || row.leaderboard) walk(row.items ?? row.ranks ?? row.players ?? row.rows ?? row.entries ?? row.results ?? row.board ?? row.leaderboard, String(row.name ?? row.label ?? row.key ?? boardName), depth + 1);
+      });
+      return;
+     }
+     for (const [key, nested] of Object.entries(value)) walk(nested, String((value as any).name ?? (value as any).label ?? key ?? boardName), depth + 1);
+    };
+    walk(body.boards ?? body.rankings ?? body.leaderboards ?? body.ranks ?? body.items ?? body);
+    return rows;
+   })
+  : Promise.resolve([]);
  const allianceRequest = /^\d{1,10}$/.test(kid) && /^[A-Za-z0-9_-]{1,20}$/.test(allianceTag)
   ? fetchMightPulse("https://api.mightpulse.com/v1/alliances/" + encodeURIComponent(kid) + "/" + encodeURIComponent(allianceTag) + "?include=info,roster", { headers: { Accept: "application/json" } }, { timeoutMs: fast ? 3500 : 8000, totalTimeoutMs: fast ? 4500 : 11000, fastPath: true, maxAttempts: 1 }).then(async response => {
     const body = await response.json().catch(() => ({})) as Record<string, any>;
@@ -502,10 +528,10 @@ async function loadPlayerContext(player: Record<string, any>, fast = false): Pro
     return { members: members.slice(0, 8), total: raw.length, player_power_rank: position < 0 ? null : position + 1, fresh: typeof body.fresh === "boolean" ? body.fresh : null, age_seconds: Number.isFinite(Number(body.age_seconds)) ? Number(body.age_seconds) : null, cached_at: typeof body.cached_at === "string" ? body.cached_at : null };
    })
   : Promise.resolve(null);
- const [kingdomResult, allianceResult] = await Promise.allSettled([kingdomRequest, allianceRequest]);
+ const [kingdomResult, allianceResult, leaderboardResult] = await Promise.allSettled([kingdomRequest, allianceRequest, leaderboardRequest]);
  return {
   kingdom: kingdomResult.status === "fulfilled" ? kingdomResult.value?.data ?? null : null,
-  kingdom_board_ranks: kingdomResult.status === "fulfilled" ? kingdomResult.value?.board_ranks ?? [] : [],
+  kingdom_board_ranks: [...(kingdomResult.status === "fulfilled" ? kingdomResult.value?.board_ranks ?? [] : []), ...(leaderboardResult.status === "fulfilled" ? leaderboardResult.value ?? [] : [])].filter((item, index, all) => all.findIndex(other => other.board.toLowerCase() === item.board.toLowerCase()) === index).slice(0, 100),
   kingdom_meta: kingdomResult.status === "fulfilled" && kingdomResult.value ? { fresh: kingdomResult.value.fresh, age_seconds: kingdomResult.value.age_seconds, cached_at: kingdomResult.value.cached_at } : null,
   alliance_roster: allianceResult.status === "fulfilled" ? allianceResult.value : null
  };
@@ -523,7 +549,7 @@ async function loadDetailedPlayerProfile(playerId: string, player: Record<string
  const request = (async () => {
   // The base profile is already available. Treat heroes, gear and kingdom context
   // as optional enrichments and cap their wait so a slow refresh cannot blank the page.
-  const endpoint = "https://api.mightpulse.com/v1/players/" + encodeURIComponent(playerId) + "?include=heroes,ranks,gov_gear";
+  const endpoint = "https://api.mightpulse.com/v1/players/" + encodeURIComponent(playerId) + "?include=base,heroes,ranks,gov_gear";
   const [detailsResult, contextResult] = await Promise.allSettled([
    fetchMightPulse(endpoint, { headers: { Accept: "application/json" } }, {
     timeoutMs: 6500, totalTimeoutMs: 8000, fastPath: true, maxAttempts: 1
