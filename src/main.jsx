@@ -5,7 +5,7 @@ import{makeSuccessOutcome,makeFailureOutcome,summarizeRegistrationOutcomes,regis
 import { playerIdFeedback } from "./player-id-feedback.js";
 import{formatPower,playerDisplayName}from"../lib/player-display.js";
 import"./styles.css";import"./registration-outcomes.css";import"./ux-feedback.css";
-import"./manual-redesign.css";import"./auto-registration-redesign.css";import"./drawer-redesign.css";import"./maintenance-redesign.css";import"./icon-palette.css";import"./public-site-header.css";
+import"./manual-redesign.css";import"./auto-registration-redesign.css";import"./drawer-redesign.css";import"./maintenance-redesign.css";import"./icon-palette.css";import"./public-site-header.css";import"./auto-desktop-layout.css";
 import MobileNavDrawer from"./components/MobileNavDrawer.jsx";
 import PublicSiteHeader from"./components/PublicSiteHeader.jsx";
 import AllianceFeatureAnnouncement from "./components/AllianceFeatureAnnouncement.jsx";
@@ -209,7 +209,7 @@ function AutoRedeemApp(){
   }catch(failure){setError(t("auto.registrationFailed","Registration could not be completed. Please try again."))}
   finally{registrationBusyRef.current=false;setBusy(false);setCancelRequested(false);setProgress(current=>({...current,currentId:""}))}
  };
- return <div className="app ks-app ks-auto-app"><a className="skip-link" href="#auto-main-content">{t("common.skip","Skip to main content")}</a><PublicSiteHeader current="auto" /><AllianceFeatureAnnouncement/><main id="auto-main-content"><section className="ks-auto-hero"><div className="eyebrow"><span/>{t("auto.eyebrow","KINGSHOT AUTO REDEEM")}</div><h1>{t("auto.title","Automatic redemption")}</h1><p className="hero-copy">{t("auto.hero","Eligible gift codes are checked automatically for registered players.")}</p>
+ return <div className="app ks-app ks-auto-app"><a className="skip-link" href="#auto-main-content">{t("common.skip","Skip to main content")}</a><PublicSiteHeader current="auto" /><AllianceFeatureAnnouncement/><main id="auto-main-content" className="ks-auto-desktop-layout"><section className="ks-auto-hero"><div className="eyebrow"><span/>{t("auto.eyebrow","KINGSHOT AUTO REDEEM")}</div><h1>{t("auto.title","Automatic redemption")}</h1><p className="hero-copy">{t("auto.hero","Eligible gift codes are checked automatically for registered players.")}</p>
 <form className="ks-register-box ks-register-card" onSubmit={register} aria-describedby={error?"auto-register-help auto-register-error":"auto-register-help"} aria-busy={busy}>
  <div className="ks-register-card-intro">
   <div className="ks-register-card-intro-icon"><Gift size={20} aria-hidden="true"/></div>
