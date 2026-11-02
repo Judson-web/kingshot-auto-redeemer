@@ -90,3 +90,5 @@
 .kp-enrichment-status{line-height:1.55}
 .kp-enrichment-status button{flex:none;cursor:pointer}
 .kp-tabs button:focus-visible,.kp-profile-actions button:focus-visible,.kp-fresh button:focus-visible,.kp-error button:focus-visible{outline:2px solid #d0ad70;outline-offset:3px}
+
+.kp-discover-compact{margin:18px auto 22px;padding:16px 20px;border-radius:16px}.kp-discover-compact h1{margin:3px 0 6px;font-size:clamp(20px,3vw,27px)}.kp-discover-compact>p{margin:0;font-size:11px}.kp-discover-compact form{margin-top:12px}.kp-discover-compact form>label{font-size:8px}.kp-discover-compact form button{padding:10px 12px}
