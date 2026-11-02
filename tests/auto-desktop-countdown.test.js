@@ -18,6 +18,7 @@ test("Halloween seasonal decoration no longer renders an event countdown", async
 test("Auto Redeem uses a dedicated desktop layout without replacing the mobile flow", async () => {
   const entry = await read("../src/main.jsx");
   const styles = await read("../src/auto-desktop-layout.css");
+  const mobileStyles = await read("../src/auto-registration-redesign.css");
   assert.match(entry, /id=\"auto-main-content\" className=\"ks-auto-desktop-layout\"/);
   assert.match(styles, /@media \(min-width: 1024px\)/);
   assert.match(styles, /grid-template-areas/);
