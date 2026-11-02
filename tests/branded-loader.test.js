@@ -9,10 +9,25 @@ test("workspace and preflight use one permanent Kingshot 3D loader",async()=>{
  assert.ok(css.includes("preserve-3d"));assert.ok(css.includes("rotateX(68deg)"));assert.ok(css.includes("prefers-reduced-motion"));
  assert.ok(!loader.includes("isHalloweenThemeActive"));
 });
-test("Halloween event decoration remains seasonal and separate from permanent loader",async()=>{
- const overlay=await read("src/components/SeasonalHalloweenOverlay.jsx"),loader=await read("src/components/PumpkinLoader.jsx");
- assert.ok(overlay.includes("HALLOWEEN_SEASON_END"));assert.ok(overlay.includes('role="timer"'));assert.ok(overlay.includes("HALLOWEEN ENDS IN"));
+test("Halloween event timer and overlay are removed from the application",async()=>{
+ const main=await read("src/main.jsx"),loader=await read("src/components/PumpkinLoader.jsx");
+ assert.ok(!main.includes("SeasonalHalloweenOverlay"));
+ assert.ok(!main.includes("HALLOWEEN ENDS IN"));
  assert.ok(!loader.includes("PumpkinMark"));assert.ok(!loader.includes("seasonal-theme"));
+});
+test("registration milestone countdown is limited to Auto Redeem and Manual Redeem",async()=>{
+ const header=await read("src/components/PublicSiteHeader.jsx");
+ assert.ok(header.includes("function RegistrationCountdown()"));
+ assert.ok(header.includes('current==="auto"||current==="manual"'));
+ assert.ok(header.includes("{showRegistrationCountdown&&<RegistrationCountdown/>}"));
+});
+test("Auto Redeem has a distinct desktop workspace while retaining its mobile layout",async()=>{
+ const css=await read("src/auto-registration-redesign.css"),main=await read("src/main.jsx");
+ assert.ok(main.includes('className="app ks-app ks-auto-app"'));
+ assert.ok(css.includes("@media (min-width: 960px)"));
+ assert.ok(css.includes("grid-template-columns: minmax(0, .88fr) minmax(470px, 1.12fr)"));
+ assert.ok(css.includes("grid-template-columns: repeat(3, minmax(0, 1fr))"));
+ assert.ok(css.includes("@media (max-width: 640px)"));
 });
 test("profile has a separate desktop layout while preserving responsive mobile styling",async()=>{
  const css=await read("src/profile-redesign.css"),app=await read("src/ProfileApp.tsx");
