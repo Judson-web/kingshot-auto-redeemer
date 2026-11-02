@@ -365,3 +365,26 @@
   .maintenance-support-button { transition: none !important; }
   .maintenance-time, .maintenance-time b.tick { animation: none !important; }
 }
+
+/* Shared branded loader is a layered CSS 3D object, not a flat progress glyph. */
+.maintenance-preflight{background:radial-gradient(ellipse at 50% 38%,rgba(191,139,72,.13),transparent 33rem),#0b0d10!important}
+.maintenance-preflight-card{width:min(100%,470px)!important;padding:36px 30px!important;border:1px solid #34363a!important;border-radius:19px!important;background:linear-gradient(145deg,#1b1d20,#101215)!important;box-shadow:0 28px 80px rgba(0,0,0,.38),inset 0 1px rgba(255,255,255,.04)!important;text-align:center!important}
+.maintenance-preflight-card .ks-brand-loader{display:flex;justify-content:center;margin:0 auto 24px}
+.maintenance-preflight-card .maintenance-kicker{margin-bottom:10px!important;color:#c6a56b!important;font-size:9px!important;letter-spacing:.17em!important}
+.maintenance-preflight-card h1{margin:0 0 9px!important;font-size:clamp(24px,5vw,30px)!important;letter-spacing:-.045em!important}
+.maintenance-preflight-card p{max-width:34ch;margin:0 auto 20px!important;color:#aeb1b8!important;font-size:13px!important;line-height:1.7!important}
+.maintenance-preflight-progress{height:3px!important;margin:0 auto 13px!important;background:#303238!important}
+.maintenance-preflight-progress i{background:linear-gradient(90deg,#80663d,#e0c28a,#80663d)!important}
+.maintenance-preflight-card>small{color:#858b94!important;font-size:8px!important;letter-spacing:.16em!important}
+.maintenance-countdown-label{margin:24px 0 10px!important;color:#b6b2a7!important;font-size:9px!important;letter-spacing:.14em!important}
+.maintenance-countdown-label b{color:#e5c98f!important;font-size:10px!important}
+.maintenance-countdown{gap:8px!important;margin-top:0!important;perspective:900px}
+.maintenance-time{position:relative;overflow:hidden;min-height:78px;padding:13px 8px 11px!important;border:1px solid #393b40!important;border-radius:12px!important;background:linear-gradient(155deg,#22252a,#15171a 68%)!important;box-shadow:inset 0 1px rgba(255,255,255,.055),0 7px 18px rgba(0,0,0,.16)!important}
+.maintenance-time:before{content:"";position:absolute;inset:0 0 auto;height:1px;background:linear-gradient(90deg,transparent,#d9ba7b66,transparent)}
+.maintenance-time b{font-size:clamp(23px,4.5vw,29px)!important;font-weight:700!important;letter-spacing:-.05em!important;color:#f1e6cd!important;text-shadow:0 3px 15px rgba(210,174,108,.12)}
+.maintenance-time span{margin-top:7px!important;color:#999da5!important;font-size:8px!important;letter-spacing:.16em!important}
+.maintenance-time b.tick{display:block;animation:maintenance-digit-arrive .28s ease-out both}
+.maintenance-estimate-note{border-color:#393b40!important;border-radius:11px!important;background:#191b1f!important;color:#b6b7bc!important}
+@keyframes maintenance-digit-arrive{from{transform:translateY(-5px) rotateX(28deg);opacity:.5}to{transform:translateY(0) rotateX(0);opacity:1}}
+@media(max-width:520px){.maintenance-preflight{padding:17px!important}.maintenance-preflight-card{padding:28px 19px!important;border-radius:16px!important}.maintenance-countdown{gap:5px!important}.maintenance-time{min-height:68px;padding:11px 4px 9px!important}.maintenance-time b{font-size:clamp(19px,6vw,24px)!important}.maintenance-time span{font-size:7px!important}}
+@media(prefers-reduced-motion:reduce){.maintenance-time b.tick{animation:none!important}}
