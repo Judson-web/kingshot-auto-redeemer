@@ -11,12 +11,10 @@ function LanguageMenu(){
 }
 const SEASON_END=Date.parse("2026-11-02T18:30:00Z");
 function SeasonCountdown(){
- const [now,setNow]=useState(()=>Date.now());
- useEffect(()=>{const timer=window.setInterval(()=>setNow(Date.now()),1000);return()=>window.clearInterval(timer)},[]);
- const remaining=Math.max(0,SEASON_END-now);
- if(remaining<=0)return null;
- const days=Math.floor(remaining/86400000),hours=Math.floor(remaining/3600000)%24,minutes=Math.floor(remaining/60000)%60,seconds=Math.floor(remaining/1000)%60;
- return <section className="ks-season-countdown" aria-label="Halloween event countdown"><div className="ks-season-countdown-copy"><span>SEASONAL EVENT</span><b>Halloween event ends in</b></div><div className="ks-season-countdown-units" aria-live="off">{days>0&&<span><b>{String(days).padStart(2,"0")}</b><small>DAYS</small></span>}<span><b>{String(hours).padStart(2,"0")}</b><small>HRS</small></span><i>:</i><span><b>{String(minutes).padStart(2,"0")}</b><small>MIN</small></span><i>:</i><span><b>{String(seconds).padStart(2,"0")}</b><small>SEC</small></span></div></section>;
+ const [count,setCount]=useState(null);
+ useEffect(()=>{let alive=true;const load=()=>fetch("/api/kingshot-player?milestone=count",{headers:{Accept:"application/json"},cache:"no-store"}).then(r=>r.ok?r.json():null).then(data=>{if(alive&&Number.isFinite(Number(data?.registeredIds)))setCount(Number(data.registeredIds))}).catch(()=>{});load();const timer=window.setInterval(load,60000);return()=>{alive=false;window.clearInterval(timer)}},[]);
+ const remaining=count===null?null:Math.max(0,1000-count),progress=count===null?0:Math.min(100,count/10);
+ return <section className="ks-season-countdown ks-registration-countdown" aria-label="Community registration milestone countdown"><div className="ks-season-countdown-copy"><span>COMMUNITY MILESTONE</span><b>{count===null?"Loading registrations":remaining===0?"1,000 milestone reached":remaining===null?"Counting registered IDs":remaining.toLocaleString()+" IDs to go"}</b></div><div className="ks-registration-countdown-total"><strong>{count===null?"—":count.toLocaleString()}</strong><small>/ 1,000</small></div><div className="ks-registration-countdown-track" role="progressbar" aria-label="Registration progress" aria-valuemin="0" aria-valuemax="1000" aria-valuenow={count===null?0:Math.min(1000,count)}><span style={{width:progress+"%"}}/></div></section>;
 }
 export default function PublicSiteHeader({current="auto"}){
  const [menuOpen,setMenuOpen]=useState(false);const {isKorean,t}=useSiteLanguage();const wobbleTimer=useRef(null);const triggerWobble=()=>{document.body.classList.add("ks-site-wobble-active");if(wobbleTimer.current)window.clearTimeout(wobbleTimer.current);wobbleTimer.current=window.setTimeout(()=>document.body.classList.remove("ks-site-wobble-active"),60000)};useEffect(()=>{if(new URLSearchParams(location.search).has("siteWobble")){triggerWobble();history.replaceState(null,"",location.pathname+location.hash)}return()=>{if(wobbleTimer.current)window.clearTimeout(wobbleTimer.current);document.body.classList.remove("ks-site-wobble-active")}},[]);
