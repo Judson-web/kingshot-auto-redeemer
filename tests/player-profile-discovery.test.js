@@ -61,7 +61,7 @@ test("player equipment prefers artwork returned by MightPulse and falls back cle
   const page = await read("src/PlayerProfileApp.jsx");
   assert.match(page, /imageSource\(g\.icon\)/);
   assert.match(page, /g\.icon_url\|\|g\.image\|\|g\.image_url/);
-  assert.match(page, /hero\.exclusive_gear\?\.icon/);
+  assert.match(page, /hero\.exclusive_gear\.icon/);
   assert.match(page, /kp-gear-art/);
   assert.match(page, /kp-exclusive-art/);
 });
