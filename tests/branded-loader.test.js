@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 const read=path=>readFile(new URL("../"+path,import.meta.url),"utf8");
 test("workspace and preflight use one permanent Kingshot 3D loader",async()=>{
  const main=await read("src/main.jsx"),loader=await read("src/components/PumpkinLoader.jsx"),css=await read("src/components/branded-loader.css");
- assert.ok(main.includes("WorkspaceLoader"));assert.ok(!main.includes("<PumpkinLoader"));assert.ok(main.includes("Getting things ready"));
+ assert.ok(main.includes('import { WorkspaceLoader } from "./components/PumpkinLoader.jsx";'));assert.ok(main.includes("WorkspaceLoader"));assert.ok(!main.includes("<PumpkinLoader"));assert.ok(main.includes("Getting things ready"));
  assert.ok(loader.includes("export function WorkspaceLoader"));assert.ok(loader.includes("KingshotMark"));assert.ok(loader.includes("ks-brand-loader-orbit"));
  assert.ok(css.includes("preserve-3d"));assert.ok(css.includes("rotateX(68deg)"));assert.ok(css.includes("prefers-reduced-motion"));
  assert.ok(!loader.includes("isHalloweenThemeActive"));

@@ -16,7 +16,7 @@ import KingshotAvatar from"./components/KingshotAvatar.tsx";
 import AllianceRegistration from "./AllianceRegistration.tsx";
 import PlayerProfileApp from "./PlayerProfileApp.jsx";
 import SeasonalHalloweenOverlay from "./components/SeasonalHalloweenOverlay.jsx";
-import PumpkinLoader from "./components/PumpkinLoader.jsx";
+import { WorkspaceLoader } from "./components/PumpkinLoader.jsx";
 
 const LegalApp=React.lazy(()=>import("./LegalApp.jsx"));
 const InfoApp=React.lazy(()=>import("./InfoApp.jsx"));
