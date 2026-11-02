@@ -855,3 +855,42 @@
 .profile-page.profile-page-refined .profile-hero-chip{display:inline-flex;align-items:center;gap:7px;margin-top:13px;padding:7px 10px;border:1px solid #514632;border-radius:999px;background:rgba(180,145,83,.08);color:#c9b17f;font-size:8px;font-weight:750;letter-spacing:.14em}
 .profile-page.profile-page-refined .profile-hero-chip svg{color:#d6bc84}
 @media(max-width:560px){.profile-page.profile-page-refined .profile-hero-chip{margin-top:11px;font-size:7px}}
+
+/* Dedicated desktop account workspace. Mobile keeps the existing compact profile flow. */
+@media (min-width: 1024px) {
+ .profile-page.profile-desktop-layout { padding:34px 0 64px!important; background:radial-gradient(ellipse at 18% 5%,rgba(183,151,91,.09),transparent 36rem),#0b0d10!important; }
+ .profile-page.profile-desktop-layout .profile-card-premium { width:min(1180px,calc(100% - 80px))!important; display:grid; grid-template-columns:minmax(300px,.82fr) minmax(0,1.18fr); column-gap:52px; align-items:start; padding:26px 30px 20px!important; border:1px solid #292a2c!important; border-radius:18px!important; background:linear-gradient(145deg,#121416,#0f1112)!important; box-shadow:0 24px 70px #0005!important; }
+ .profile-page.profile-desktop-layout .profile-back { grid-column:1/-1; margin-bottom:24px!important; }
+ .profile-page.profile-desktop-layout .profile-hero-row { grid-column:1/-1; margin-bottom:28px!important; padding-bottom:22px; }
+ .profile-page.profile-desktop-layout .profile-hero-row h1 { font-size:36px!important; }
+ .profile-page.profile-desktop-layout .profile-user-card-modern,
+ .profile-page.profile-desktop-layout .profile-login-stack-modern { grid-column:1; align-self:start; margin:0!important; padding:22px!important; border:1px solid #30312e!important; border-radius:14px!important; background:linear-gradient(150deg,#191b1c,#121415)!important; box-shadow:0 12px 34px #0002!important; }
+ .profile-page.profile-desktop-layout .profile-user-card-modern { grid-template-columns:72px minmax(0,1fr); gap:16px!important; padding-bottom:22px!important; }
+ .profile-page.profile-desktop-layout .profile-user-frame { width:72px!important;height:72px!important;min-width:72px!important;min-height:72px!important;border-radius:17px!important; }
+ .profile-page.profile-desktop-layout .profile-user-meta b { font-size:19px!important; }
+ .profile-page.profile-desktop-layout .profile-user-badge { grid-column:2; justify-self:start; margin-top:-7px; }
+ .profile-page.profile-desktop-layout .profile-note,
+ .profile-page.profile-desktop-layout .profile-live-status,
+ .profile-page.profile-desktop-layout .profile-signout,
+ .profile-page.profile-desktop-layout .profile-message,
+ .profile-page.profile-desktop-layout .profile-success,
+ .profile-page.profile-desktop-layout .profile-error { grid-column:1; }
+ .profile-page.profile-desktop-layout .profile-note { margin-top:14px!important; padding:14px!important; border:1px solid #30312e!important; border-radius:12px!important; background:#141615!important; }
+ .profile-page.profile-desktop-layout .profile-live-status { margin-top:14px!important; }
+ .profile-page.profile-desktop-layout .profile-signout { margin-top:14px!important; }
+ .profile-page.profile-desktop-layout .profile-login-stack-modern { text-align:left!important; }
+ .profile-page.profile-desktop-layout .profile-login-stack-modern .profile-primary { width:100%; }
+ .profile-page.profile-desktop-layout .profile-login-illustration { display:grid!important; }
+ .profile-page.profile-desktop-layout .profile-links-heading { grid-column:2; grid-row:3; margin:0 0 12px!important; align-self:end; }
+ .profile-page.profile-desktop-layout .profile-links-heading h2 { font-size:19px!important; }
+ .profile-page.profile-desktop-layout .profile-quick-links { grid-column:2; grid-row:4; display:grid!important; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px!important; margin:0!important; padding:0!important; border:0!important; }
+ .profile-page.profile-desktop-layout .profile-quick-links>a { min-height:88px!important; padding:14px!important; border:1px solid #2c2e2d!important; border-radius:12px!important; background:#151718!important; }
+ .profile-page.profile-desktop-layout .profile-quick-links>a:hover { border-color:#62553b!important; background:#1a1c1b!important; }
+ .profile-page.profile-desktop-layout .profile-quick-links>a .profile-link-icon { width:38px;height:38px;border-radius:10px; }
+ .profile-page.profile-desktop-layout .profile-developer-contact { grid-column:2; grid-row:5; margin-top:14px!important; padding:16px!important; border:1px solid #30312e!important; border-radius:12px!important; background:#141615!important; }
+ .profile-page.profile-desktop-layout .profile-bottom { grid-column:1/-1; margin-top:24px!important; }
+}
+@media (min-width: 1024px) and (max-width: 1190px) {
+ .profile-page.profile-desktop-layout .profile-card-premium { column-gap:28px; padding-inline:22px!important; }
+ .profile-page.profile-desktop-layout .profile-quick-links { grid-template-columns:1fr!important; }
+}
