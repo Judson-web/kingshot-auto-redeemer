@@ -199,12 +199,25 @@ async function responsiveChecks(page, scenario) {
       const prompt = rect(document.querySelector('aside[aria-label*="notification" i]'));
       const supportTrigger = rect(document.querySelector(".support-float-trigger"));
       const panel = rect(document.querySelector(".support-float-panel"));
+      const autoHero = document.querySelector(".ks-auto-app .ks-auto-hero");
+      const autoCard = autoHero?.querySelector(".ks-register-card");
+      const autoHow = document.querySelector(".ks-auto-app .ks-auto-how .feature-grid");
+      const autoHeroRect = rect(autoHero);
+      const autoCardRect = rect(autoCard);
+      const autoDesktop = autoHero ? {
+        grid: getComputedStyle(autoHero).display === "grid",
+        heroLeft: autoHeroRect?.left ?? 0,
+        heroWidth: autoHeroRect?.width ?? 0,
+        cardLeft: autoCardRect?.left ?? 0,
+        featureGrid: autoHow ? getComputedStyle(autoHow).display : "missing",
+        featureColumns: autoHow ? getComputedStyle(autoHow).gridTemplateColumns.split(" ").length : 0
+      } : null;
       let overlayOverlap = false;
       if (prompt && supportTrigger) {
         overlayOverlap = Math.max(0, Math.min(prompt.right, supportTrigger.right) - Math.max(prompt.left, supportTrigger.left)) > 1 &&
           Math.max(0, Math.min(prompt.bottom, supportTrigger.bottom) - Math.max(prompt.top, supportTrigger.top)) > 1;
       }
-      return { viewportWidth: innerWidth, documentWidth: maxScroll, overlayOverlap, supportPanel: panel };
+      return { viewportWidth: innerWidth, documentWidth: maxScroll, overlayOverlap, supportPanel: panel, autoDesktop };
     });
     records.push(geometry);
     if (geometry.documentWidth > geometry.viewportWidth + 1) {
@@ -212,6 +225,14 @@ async function responsiveChecks(page, scenario) {
     }
     if (geometry.overlayOverlap) {
       fail(scenario.name + " notification prompt overlaps the Support launcher at " + width + "px");
+    }
+    if (scenario.path === "/" && width >= 960 && geometry.autoDesktop) {
+      const layout = geometry.autoDesktop;
+      if (!layout.grid || layout.cardLeft <= layout.heroLeft + layout.heroWidth * 0.4 || layout.featureGrid !== "grid" || layout.featureColumns !== 3) {
+        fail(scenario.name + " Auto Redeem desktop layout is not a two-column workspace with a three-column feature grid at " + width + "px");
+      } else {
+        pass("Auto Redeem desktop workspace at " + width + "px");
+      }
     }
     if (geometry.supportPanel && (
       geometry.supportPanel.left < -1 ||
