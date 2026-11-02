@@ -277,12 +277,8 @@ The profile includes public base stats, alliance context and a public alliance r
 Player profile URLs are discoverable from the navigation drawer at `/user`. Individual `/user/{playerId}` links return server-rendered Open Graph, Twitter Card and Schema.org metadata through the existing `/api/og` handler. The same handler generates a share-card image using the public base profile. No additional serverless function is introduced.
 
 
-### Shared loading and seasonal presentation
-
-The workspace fallback and the public preflight gate use the same branded 3D loader. Its center mark follows the shared seasonal theme cutoff: the pumpkin artwork is used during the Halloween window and the normal app mark returns automatically afterward. Preflight checks continue to run without exposing internal maintenance-check wording in the loading UI. The seasonal event timer is fixed to the viewport, while the maintenance ETA uses compact, accessible countdown tiles.
-
 ### Shared loading experience and PWA
 
-The app and its workspace preflight use one shared, permanently branded 3D loader. The seasonal Halloween decorations remain independent and never replace the core loader identity. The installed PWA uses the same dark brand palette, refreshes its shell cache on release, and includes the Profile route in its offline shell.
+The app and its workspace preflight use one shared, permanently branded 3D loader. The Halloween event countdown has been removed; the seasonal decorative atmosphere remains independent and does not replace the permanent loader identity. The community registration milestone countdown appears only on the Auto Redeem and Manual Redeem pages. It is part of normal page flow and remains visible after the 1,000-registration milestone is reached.
 
-The Profile route has a dedicated desktop account layout at wide breakpoints while preserving its compact mobile presentation.
+The installed PWA uses the same dark brand palette, refreshes its shell cache on release, and includes the Profile route in its offline shell. The Profile route has a dedicated desktop account layout while preserving its compact mobile presentation. Auto Redeem also has a dedicated wide-screen workspace layout, with its mobile registration flow preserved.

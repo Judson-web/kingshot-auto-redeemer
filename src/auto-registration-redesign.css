@@ -1060,3 +1060,102 @@
   font-weight: 800;
   vertical-align: -1px;
 }
+
+
+/* Dedicated wide-screen Auto Redeem workspace. Mobile keeps the compact stacked flow above. */
+@media (min-width: 960px) {
+  .ks-auto-app main {
+    width: min(1120px, calc(100% - 64px));
+    display: block;
+    padding-top: 34px;
+  }
+  .ks-auto-app .ks-auto-hero {
+    display: grid;
+    grid-template-columns: minmax(0, .88fr) minmax(470px, 1.12fr);
+    grid-template-rows: auto auto auto auto;
+    align-items: start;
+    column-gap: clamp(34px, 5vw, 72px);
+    width: 100%;
+    margin: 0;
+    padding: 48px 0 28px;
+  }
+  .ks-auto-app .ks-auto-hero > .eyebrow {
+    grid-column: 1;
+    grid-row: 1;
+    margin-bottom: 22px;
+  }
+  .ks-auto-app .ks-auto-hero > h1 {
+    grid-column: 1;
+    grid-row: 2;
+    max-width: 510px;
+    margin-bottom: 18px;
+    font-size: clamp(44px, 4.5vw, 58px);
+    line-height: 1.02;
+    letter-spacing: -.065em;
+  }
+  .ks-auto-app .ks-auto-hero > .hero-copy {
+    grid-column: 1;
+    grid-row: 3;
+    max-width: 430px;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  .ks-auto-app .ks-auto-hero > .ks-register-card {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    align-self: center;
+    width: 100%;
+    margin: 0;
+    padding: 25px;
+    border-color: #34352f;
+    border-radius: 17px;
+    background: linear-gradient(145deg, #151714, #101112 72%);
+    box-shadow: 0 22px 65px rgb(0 0 0 / 22%), inset 0 1px 0 rgb(255 255 255 / 3%);
+  }
+  .ks-auto-app .ks-auto-hero > .ks-register-progress,
+  .ks-auto-app .ks-auto-hero > .ks-error,
+  .ks-auto-app .ks-auto-hero > .ks-outcome-panel {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  .ks-auto-app .ks-auto-hero > .ks-register-progress {
+    grid-row: 4;
+  }
+  .ks-auto-app .ks-auto-hero > .ks-error {
+    grid-row: 5;
+  }
+  .ks-auto-app .ks-auto-hero > .ks-outcome-panel {
+    grid-row: 6;
+  }
+  .ks-auto-app .ks-auto-how {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin: 0;
+    padding: 28px 0 58px;
+  }
+  .ks-auto-app .ks-auto-how .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .ks-auto-app .ks-auto-how .feature-grid article {
+    grid-template-columns: 22px minmax(0, 1fr);
+    column-gap: 12px;
+    padding: 17px 16px;
+    border: 1px solid #2d2f2d;
+    border-radius: 12px;
+    background: #111315;
+  }
+  .ks-auto-app .ks-auto-how .feature-grid article:hover {
+    border-color: #484638;
+    background: #141613;
+  }
+}
+@media (min-width: 960px) and (max-width: 1100px) {
+  .ks-auto-app main {
+    width: min(1120px, calc(100% - 48px));
+  }
+  .ks-auto-app .ks-auto-hero > h1 {
+    font-size: clamp(40px, 4.2vw, 48px);
+  }
+}
