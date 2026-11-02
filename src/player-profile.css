@@ -85,3 +85,8 @@
 .kp-crumb{font-size:12px}
 @media(max-width:760px){.kp-shell{width:calc(100% - 28px)}.kp-banner{padding:18px}.kp-identity{gap:13px}.kp-power{margin-top:12px}.kp-context{gap:14px}.kp-section{margin:30px 0 38px}}
 @media(max-width:480px){.kp-shell{width:calc(100% - 22px);padding-top:12px}.kp-banner{border-radius:17px}.kp-identity .ks-avatar{width:66px!important;height:66px!important}.kp-identity h1{font-size:24px}.kp-power{margin-left:79px}.kp-power b{font-size:32px}.kp-context{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.kp-tabs{margin-inline:-2px;padding:6px}.kp-tabs button{padding:9px 11px}.kp-metrics{gap:7px}.kp-metric{min-height:100px;padding:12px}.kp-section header h2{font-size:23px}.kp-profile-actions{gap:6px}.kp-profile-actions button{padding:8px 10px}}
+
+.kp-request-id{color:#777b88;font:700 8px/1.4 ui-monospace,monospace;letter-spacing:.02em;overflow-wrap:anywhere}
+.kp-enrichment-status{line-height:1.55}
+.kp-enrichment-status button{flex:none;cursor:pointer}
+.kp-tabs button:focus-visible,.kp-profile-actions button:focus-visible,.kp-fresh button:focus-visible,.kp-error button:focus-visible{outline:2px solid #d0ad70;outline-offset:3px}
