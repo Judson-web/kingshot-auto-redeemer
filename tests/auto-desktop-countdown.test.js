@@ -22,5 +22,5 @@ test("Auto Redeem uses a dedicated desktop layout without replacing the mobile f
   assert.match(entry, /id=\"auto-main-content\" className=\"ks-auto-desktop-layout\"/);
   assert.match(styles, /@media \(min-width: 1024px\)/);
   assert.match(styles, /grid-template-areas/);
-  assert.match(styles, /@media \(max-width: 640px\)/);
+  assert.match(mobileStyles, /@media \(max-width: 640px\)/);
 });
