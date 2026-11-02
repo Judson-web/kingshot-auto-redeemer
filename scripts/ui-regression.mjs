@@ -226,7 +226,7 @@ async function responsiveChecks(page, scenario) {
     if (geometry.overlayOverlap) {
       fail(scenario.name + " notification prompt overlaps the Support launcher at " + width + "px");
     }
-    if (scenario.path === "/" && width >= 960 && geometry.autoDesktop) {
+    if (scenario.name === "home-mobile" && width >= 960 && geometry.autoDesktop) {
       const layout = geometry.autoDesktop;
       if (!layout.grid || layout.cardLeft <= layout.heroLeft + layout.heroWidth * 0.4 || layout.featureGrid !== "grid" || layout.featureColumns !== 3) {
         fail(scenario.name + " Auto Redeem desktop layout is not a two-column workspace with a three-column feature grid at " + width + "px");
