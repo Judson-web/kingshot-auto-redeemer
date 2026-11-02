@@ -2,8 +2,8 @@
 import React,{useEffect,useState}from"react";
 import{createPortal}from"react-dom";
 import"./SeasonalHalloweenOverlay.css";
+import {HALLOWEEN_HALLOWEEN_SEASON_END} from "../shared/seasonal-theme.js";
 
-const SEASON_END=Date.parse("2026-11-02T18:30:00Z");
 const HALLOWEEN_MARK='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="n" x2="0" y2="1"><stop stop-color="#ffd98a"/><stop offset="1" stop-color="#e87532"/></linearGradient><radialGradient id="g"><stop stop-color="#9a54c8"/><stop offset="1" stop-color="#20102e"/></radialGradient></defs><rect width="64" height="64" rx="16" fill="url(#g)"/><path d="M32 10c-3 6-12 8-15 18-4 13 4 25 15 25s19-12 15-25c-3-10-12-12-15-18Z" fill="url(#n)" stroke="#ffe2a6" stroke-width="1.5"/><path d="M31 12c-1-5 3-8 8-9-1 5-3 8-8 9Z" fill="#79a56b"/><path d="m22 29 7 4-7 3Zm20 0-7 4 7 3Z" fill="#25142c"/><path d="M27 43q5 5 10 0" fill="none" stroke="#25142c" stroke-width="2.5" stroke-linecap="round"/><path d="M9 12 13 8m38 4 4-4M7 48l5-2m40 2 5 2" stroke="#f6b85c" stroke-width="2" stroke-linecap="round"/><path d="M17 17 28 28 19 37 28 45 41 31 48 38" fill="none" stroke="#fff0c9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity=".78"/></svg>';
 const HALLOWEEN_ICON="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(HALLOWEEN_MARK);
 
@@ -28,13 +28,13 @@ function Pumpkin({className=""}){return <svg className={className} viewBox="0 0 
 export default function SeasonalHalloweenOverlay(){
  const[now,setNow]=useState(()=>Date.now());
  useEffect(()=>{
-  if(Date.now()>=SEASON_END){restoreBrand();return}
+  if(Date.now()>=HALLOWEEN_SEASON_END){restoreBrand();return}
   const cleanup=applyBrand();
-  const timer=window.setInterval(()=>{const value=Date.now();setNow(value);if(value>=SEASON_END){window.clearInterval(timer);cleanup()}},1000);
+  const timer=window.setInterval(()=>{const value=Date.now();setNow(value);if(value>=HALLOWEEN_SEASON_END){window.clearInterval(timer);cleanup()}},1000);
   return()=>{window.clearInterval(timer);cleanup()};
  },[]);
  if(typeof document==="undefined")return null;
- const halloweenActive=now<SEASON_END;
+ const halloweenActive=now<HALLOWEEN_SEASON_END;
  return createPortal(<>{halloweenActive&&<div className="ks-halloween-overlay" aria-hidden="true">
   <div className="ks-halloween-atmosphere" aria-hidden="true"/>
 
