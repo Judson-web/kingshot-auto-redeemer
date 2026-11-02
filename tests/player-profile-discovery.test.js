@@ -24,6 +24,8 @@ test("player profile has a discovery landing page and share actions", async () =
   assert.match(page, /Copy link/);
   assert.match(page, /KingdomContext kingdom=\{kingdom\}/);
   assert.match(page, /AllianceRoster data=\{data\.alliance_roster\}/);
+  assert.match(page, /Additional personal leaderboards/);
+  assert.match(page, /r\.leaderboards/);
 });
 
 test("profile metadata and share cards use the existing OG handler", async () => {
@@ -46,6 +48,9 @@ test("profile supplements player details with public kingdom and alliance contex
   assert.match(helper, /kingdom_board_ranks/);
   assert.match(helper, /\/v1\/alliances\//);
   assert.match(helper, /include=info,roster/);
+  assert.match(helper, /\/ranks\?limit=100/);
+  assert.match(helper, /leaderboardRequest/);
+  assert.match(helper, /kingdom_rank/);
   assert.match(helper, /player_power_rank/);
   assert.doesNotMatch(helper, /last_active_at|online/);
   assert.match(helper, /Promise\.allSettled/);
