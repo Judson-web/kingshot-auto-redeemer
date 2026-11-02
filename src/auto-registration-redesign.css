@@ -1071,10 +1071,10 @@
   }
   .ks-auto-app .ks-auto-hero {
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, .88fr) minmax(470px, 1.12fr);
     grid-template-rows: auto auto auto auto;
     align-items: start;
-    column-gap: 0;
+    column-gap: clamp(34px, 5vw, 72px);
     width: 100%;
     margin: 0;
     padding: 48px 0 28px;
