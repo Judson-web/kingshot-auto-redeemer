@@ -1,5 +1,5 @@
 // Header-anchored milestone board with hand-draggable suspension strings; seasonal overlay remains decorative.
-import React,{useEffect,useState}from"react";
+import React,{useEffect}from"react";
 import{createPortal}from"react-dom";
 import"./SeasonalHalloweenOverlay.css";
 import {HALLOWEEN_SEASON_END} from "../shared/seasonal-theme.js";
@@ -26,29 +26,12 @@ function Pumpkin({className=""}){return <svg className={className} viewBox="0 0 
 
 
 export default function SeasonalHalloweenOverlay(){
- const[now,setNow]=useState(()=>Date.now());
  useEffect(()=>{
   if(Date.now()>=HALLOWEEN_SEASON_END){restoreBrand();return}
-  const cleanup=applyBrand();
-  const timer=window.setInterval(()=>{const value=Date.now();setNow(value);if(value>=HALLOWEEN_SEASON_END){window.clearInterval(timer);cleanup()}},1000);
-  return()=>{window.clearInterval(timer);cleanup()};
+  return applyBrand();
  },[]);
  if(typeof document==="undefined")return null;
- const halloweenActive=now<HALLOWEEN_SEASON_END;
- const totalSeconds=Math.max(0,Math.ceil((HALLOWEEN_SEASON_END-now)/1000));
- const days=Math.floor(totalSeconds/86400),hours=Math.floor((totalSeconds%86400)/3600),minutes=Math.floor((totalSeconds%3600)/60),seconds=totalSeconds%60;
- return createPortal(<>{halloweenActive&&<>
-  <div className="ks-halloween-countdown" role="timer" aria-label={"Halloween event ends in "+days+" days, "+hours+" hours, "+minutes+" minutes and "+seconds+" seconds"}>
-   <div className="ks-halloween-countdown-top"><span className="ks-halloween-star">✦</span> SEASONAL EVENT <span className="ks-halloween-star">✦</span></div>
-   <div className="ks-halloween-countdown-title">HALLOWEEN ENDS IN</div>
-   <div className="ks-halloween-countdown-units">
-    <div className="ks-halloween-time-unit"><b>{String(days).padStart(2,"0")}</b><span>DAYS</span></div><i>:</i>
-    <div className="ks-halloween-time-unit"><b>{String(hours).padStart(2,"0")}</b><span>HOURS</span></div><i>:</i>
-    <div className="ks-halloween-time-unit"><b>{String(minutes).padStart(2,"0")}</b><span>MIN</span></div><i>:</i>
-    <div className="ks-halloween-time-unit"><b>{String(seconds).padStart(2,"0")}</b><span>SEC</span></div>
-   </div>
-   <div className="ks-halloween-countdown-foot"><span/> THEME TRANSITION <span/></div>
-  </div>
+ return createPortal(<>{Date.now()<HALLOWEEN_SEASON_END&&<>
   <div className="ks-halloween-overlay" aria-hidden="true">
   <div className="ks-halloween-atmosphere" aria-hidden="true"/>
 
