@@ -494,7 +494,7 @@ async function loadPlayerContext(player: Record<string, any>, fast = false): Pro
         const score = row.score ?? row.value ?? row.power;
         const rank = row.kingdom_rank ?? row.rank ?? row.position ?? index + 1;
         rows.push({ board: String(row.board ?? row.board_name ?? row.name ?? boardName ?? "Kingdom leaderboard").slice(0, 60), rank: Number.isFinite(Number(rank)) ? Number(rank) : null, score: score == null || !Number.isFinite(Number(score)) ? null : Number(score) });
-       } else if (row.items || row.ranks || row.players || row.board || row.leaderboard) walk(row.items ?? row.ranks ?? row.players ?? row.board ?? row.leaderboard, String(row.name ?? row.label ?? row.key ?? boardName), depth + 1);
+       } else if (row.items || row.ranks || row.players || row.rows || row.entries || row.results || row.board || row.leaderboard) walk(row.items ?? row.ranks ?? row.players ?? row.rows ?? row.entries ?? row.results ?? row.board ?? row.leaderboard, String(row.name ?? row.label ?? row.key ?? boardName), depth + 1);
       });
       return;
      }
