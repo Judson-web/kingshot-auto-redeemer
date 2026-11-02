@@ -504,7 +504,7 @@ async function loadPlayerContext(player: Record<string, any>, fast = false): Pro
     return rows;
    })
   : Promise.resolve([]);
- const allianceRequest = /^\\d{1,10}$/.test(kid) && /^[A-Za-z0-9_-]{1,20}$/.test(allianceTag)
+ const allianceRequest = /^\d{1,10}$/.test(kid) && /^[A-Za-z0-9_-]{1,20}$/.test(allianceTag)
   ? fetchMightPulse("https://api.mightpulse.com/v1/alliances/" + encodeURIComponent(kid) + "/" + encodeURIComponent(allianceTag) + "?include=info,roster", { headers: { Accept: "application/json" } }, { timeoutMs: fast ? 3500 : 8000, totalTimeoutMs: fast ? 4500 : 11000, fastPath: true, maxAttempts: 1 }).then(async response => {
     const body = await response.json().catch(() => ({})) as Record<string, any>;
     if (!response.ok) throw Object.assign(new Error("Alliance roster unavailable."), { status: response.status });
