@@ -55,3 +55,13 @@ test("profile supplements player details with public kingdom and alliance contex
   assert.doesNotMatch(helper, /last_active_at|online/);
   assert.match(helper, /Promise\.allSettled/);
 });
+
+
+test("player equipment prefers artwork returned by MightPulse and falls back cleanly", async () => {
+  const page = await read("src/PlayerProfileApp.jsx");
+  assert.match(page, /imageSource\(g\.icon\)/);
+  assert.match(page, /g\.icon_url\|\|g\.image\|\|g\.image_url/);
+  assert.match(page, /hero\.exclusive_gear\?\.icon/);
+  assert.match(page, /kp-gear-art/);
+  assert.match(page, /kp-exclusive-art/);
+});
