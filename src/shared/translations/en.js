@@ -648,6 +648,7 @@ export default {
   "profile.copy087": "Developer contact",
   "profile.copy088": "Secure account session",
   "profile.copy089": "Back to app",
+  "profile.copy090": "SECURE ACCOUNT CENTER",
   "profile.signInWithDiscord": "Sign in with Discord",
   "profile.adminProfile": "Admin profile",
   "profile.developerProfile": "Account profile",
