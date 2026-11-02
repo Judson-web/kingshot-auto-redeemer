@@ -1066,10 +1066,7 @@
 @media (min-width: 960px) {
   .ks-auto-app main {
     width: min(1120px, calc(100% - 64px));
-    display: grid;
-    grid-template-columns: minmax(0, .88fr) minmax(470px, 1.12fr);
-    column-gap: clamp(34px, 5vw, 72px);
-    align-items: start;
+    display: block;
     padding-top: 34px;
   }
   .ks-auto-app .ks-auto-hero {
@@ -1156,8 +1153,7 @@
 }
 @media (min-width: 960px) and (max-width: 1100px) {
   .ks-auto-app main {
-    grid-template-columns: minmax(0, .78fr) minmax(420px, 1.22fr);
-    column-gap: 28px;
+    width: min(1120px, calc(100% - 48px));
   }
   .ks-auto-app .ks-auto-hero > h1 {
     font-size: clamp(40px, 4.2vw, 48px);
