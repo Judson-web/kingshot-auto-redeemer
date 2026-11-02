@@ -15,6 +15,7 @@ import { useServiceStatus } from "./shared/service-status.js";
 import KingshotAvatar from"./components/KingshotAvatar.tsx";
 import AllianceRegistration from "./AllianceRegistration.tsx";
 import PlayerProfileApp from "./PlayerProfileApp.jsx";
+import SeasonalHalloweenOverlay from "./components/SeasonalHalloweenOverlay.jsx";
 import { WorkspaceLoader } from "./components/PumpkinLoader.jsx";
 
 const LegalApp=React.lazy(()=>import("./LegalApp.jsx"));
@@ -366,4 +367,4 @@ const isPrivateWorkspace=privateWorkspacePaths.has(location.pathname);
 const showNotificationPrompt=!isPrivateWorkspace;
 const showPublicSupport=!isPrivateWorkspace;
 const maintenanceAdminAccess=location.pathname==="/admin/maintenance"||(location.pathname==="/profile"&&new URLSearchParams(location.search).get("returnTo")==="/admin/maintenance");
-createRoot(document.getElementById("root")).render(<><React.Suspense fallback={<WorkspaceLoader title={translate(getSiteLanguage(),"common.loadingWorkspace","Loading workspace…")} description={translate(getSiteLanguage(),"common.preparingExperience","Preparing your Kingshot experience.")}/>}>{maintenanceAdminAccess?publicPage:<MaintenanceGate>{isPrivateWorkspace?publicPage:<PublicAnnouncements>{publicPage}</PublicAnnouncements>}{!isPrivateWorkspace&&<InstallAppPrompt/>}{showNotificationPrompt&&<PushNotifications/>}{showPublicSupport&&<SupportWidget/>}</MaintenanceGate>}</React.Suspense><CopyToastHost/></>);
+createRoot(document.getElementById("root")).render(<><React.Suspense fallback={<WorkspaceLoader title={translate(getSiteLanguage(),"common.loadingWorkspace","Loading workspace…")} description={translate(getSiteLanguage(),"common.preparingExperience","Preparing your Kingshot experience.")}/>}>{maintenanceAdminAccess?publicPage:<MaintenanceGate>{isPrivateWorkspace?publicPage:<PublicAnnouncements>{publicPage}</PublicAnnouncements>}{!isPrivateWorkspace&&<InstallAppPrompt/>}{showNotificationPrompt&&<PushNotifications/>}{showPublicSupport&&<SupportWidget/>}</MaintenanceGate>}</React.Suspense>{!isPrivateWorkspace&&<SeasonalHalloweenOverlay/>}<CopyToastHost/></>);
