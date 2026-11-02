@@ -1,0 +1,134 @@
+/* Dedicated desktop composition for Auto Redeem. Mobile keeps the existing single-column flow. */
+@media (min-width: 1024px) {
+  .ks-auto-app main.ks-auto-desktop-layout {
+    width: min(1160px, calc(100% - 64px));
+  }
+
+  .ks-auto-app .ks-auto-hero {
+    display: grid;
+    grid-template-columns: minmax(0, .88fr) minmax(480px, 1.12fr);
+    grid-template-areas:
+      "eyebrow form"
+      "title form"
+      "copy form"
+      "progress progress"
+      "error error"
+      "outcome outcome";
+    align-items: center;
+    column-gap: clamp(42px, 6vw, 88px);
+    row-gap: 0;
+    width: 100%;
+    margin: 0 auto;
+    padding: 66px 0 34px;
+  }
+
+  .ks-auto-app .ks-auto-hero > .eyebrow {
+    grid-area: eyebrow;
+    align-self: end;
+    margin: 0 0 18px;
+    font-size: 10px;
+    letter-spacing: .16em;
+  }
+
+  .ks-auto-app .ks-auto-hero > h1 {
+    grid-area: title;
+    align-self: start;
+    max-width: 490px;
+    margin: 0 0 16px;
+    font-size: clamp(46px, 5.1vw, 66px);
+    line-height: 1.02;
+    letter-spacing: -.065em;
+  }
+
+  .ks-auto-app .ks-auto-hero > .hero-copy {
+    grid-area: copy;
+    align-self: start;
+    max-width: 430px;
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.8;
+  }
+
+  .ks-auto-app .ks-auto-hero > .ks-register-card {
+    grid-area: form;
+    align-self: center;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: clamp(22px, 2.5vw, 30px) !important;
+    gap: 20px !important;
+    border-radius: 19px !important;
+    box-shadow: 0 22px 60px rgb(0 0 0 / 24%), inset 0 1px 0 rgb(255 255 255 / 3%) !important;
+  }
+
+  .ks-auto-app .ks-auto-hero > .ks-register-card .ks-register-card-intro-copy h2 {
+    font-size: 22px;
+  }
+
+  .ks-auto-app .ks-auto-hero > .ks-register-card .ks-register-entry {
+    min-height: 92px !important;
+    padding: 16px 17px !important;
+  }
+
+  .ks-auto-app .ks-auto-hero > .ks-register-card .ks-register-entry textarea {
+    min-height: 62px !important;
+    font-size: 15px !important;
+  }
+
+  .ks-auto-app .ks-auto-hero > .ks-register-progress {
+    grid-area: progress;
+    margin-top: 24px;
+  }
+
+  .ks-auto-app .ks-auto-hero > .ks-error {
+    grid-area: error;
+    margin-top: 18px;
+  }
+
+  .ks-auto-app .ks-auto-hero > .ks-outcome-panel {
+    grid-area: outcome;
+    margin-top: 26px;
+  }
+
+  .ks-auto-app .ks-auto-how {
+    width: 100%;
+    margin: 0 auto;
+    padding: 34px 0 76px;
+    border-top: 1px solid #252629;
+  }
+
+  .ks-auto-app .ks-auto-how .section-title {
+    margin-bottom: 20px;
+  }
+
+  .ks-auto-app .ks-auto-how .feature-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .ks-auto-app .ks-auto-how .feature-grid article {
+    min-height: 126px;
+    padding: 20px;
+    border: 1px solid #292b2d;
+    border-radius: 14px;
+    background: linear-gradient(145deg, #141512, #101110);
+  }
+
+  .ks-auto-app footer {
+    width: min(1160px, calc(100% - 64px));
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1180px) {
+  .ks-auto-app .ks-auto-hero {
+    grid-template-columns: minmax(0, .78fr) minmax(440px, 1.22fr);
+    column-gap: 36px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ks-auto-app .ks-auto-hero *,
+  .ks-auto-app .ks-auto-how * {
+    scroll-behavior: auto !important;
+  }
+}
