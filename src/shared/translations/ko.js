@@ -648,6 +648,7 @@ export default {
   "profile.copy087": "개발자 문의",
   "profile.copy088": "보안 계정 세션",
   "profile.copy089": "앱으로 돌아가기",
+  "profile.copy090": "보안 계정 센터",
   "profile.signInWithDiscord": "Discord로 로그인",
   "profile.adminProfile": "관리자 프로필",
   "profile.developerProfile": "계정 프로필",
