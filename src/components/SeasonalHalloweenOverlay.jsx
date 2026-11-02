@@ -35,7 +35,21 @@ export default function SeasonalHalloweenOverlay(){
  },[]);
  if(typeof document==="undefined")return null;
  const halloweenActive=now<HALLOWEEN_SEASON_END;
- return createPortal(<>{halloweenActive&&<div className="ks-halloween-overlay" aria-hidden="true">
+ const totalSeconds=Math.max(0,Math.ceil((HALLOWEEN_SEASON_END-now)/1000));
+ const days=Math.floor(totalSeconds/86400),hours=Math.floor((totalSeconds%86400)/3600),minutes=Math.floor((totalSeconds%3600)/60),seconds=totalSeconds%60;
+ return createPortal(<>{halloweenActive&&<>
+  <div className="ks-halloween-countdown" role="timer" aria-label={"Halloween event ends in "+days+" days, "+hours+" hours, "+minutes+" minutes and "+seconds+" seconds"}>
+   <div className="ks-halloween-countdown-top"><span className="ks-halloween-star">✦</span> SEASONAL EVENT <span className="ks-halloween-star">✦</span></div>
+   <div className="ks-halloween-countdown-title">HALLOWEEN ENDS IN</div>
+   <div className="ks-halloween-countdown-units">
+    <div className="ks-halloween-time-unit"><b>{String(days).padStart(2,"0")}</b><span>DAYS</span></div><i>:</i>
+    <div className="ks-halloween-time-unit"><b>{String(hours).padStart(2,"0")}</b><span>HOURS</span></div><i>:</i>
+    <div className="ks-halloween-time-unit"><b>{String(minutes).padStart(2,"0")}</b><span>MIN</span></div><i>:</i>
+    <div className="ks-halloween-time-unit"><b>{String(seconds).padStart(2,"0")}</b><span>SEC</span></div>
+   </div>
+   <div className="ks-halloween-countdown-foot"><span/> THEME TRANSITION <span/></div>
+  </div>
+  <div className="ks-halloween-overlay" aria-hidden="true">
   <div className="ks-halloween-atmosphere" aria-hidden="true"/>
 
   <div className="ks-halloween-moon" aria-hidden="true"><i/></div>
@@ -47,5 +61,5 @@ export default function SeasonalHalloweenOverlay(){
   <div className="ks-halloween-fireflies" aria-hidden="true">{Array.from({length:18},(_,i)=><i key={i}/>)}</div>
   <div className="ks-halloween-ground-mist" aria-hidden="true"/>
   <Pumpkin className="ks-halloween-corner-pumpkin ks-halloween-corner-pumpkin-left"/><Pumpkin className="ks-halloween-corner-pumpkin ks-halloween-corner-pumpkin-right"/>
- </div>}</>,document.body);
+ </div></>}</>,document.body);
 }
