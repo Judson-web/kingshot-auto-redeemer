@@ -44,6 +44,7 @@ try {
     child = spawn("npx", ["--yes", "wrangler@4", "dev", "--local", "--ip", "127.0.0.1", "--port", String(port), "--config", "wrangler.jsonc"], {
       stdio: ["ignore", "pipe", "pipe"],
       env: process.env,
+      detached: true,
     });
     child.stdout.on("data", chunk => { wranglerOutput += chunk.toString(); });
     child.stderr.on("data", chunk => { wranglerOutput += chunk.toString(); });
@@ -95,14 +96,18 @@ try {
   console.log(remote ? "Cloudflare deployed-preview smoke tests passed." : "Cloudflare Worker local smoke tests passed.");
 } catch (error) {
   console.error(error);
-  if (child) console.error("Wrangler output:\n" + (child.stdout ? "" : ""));
+  if (child) console.error("Wrangler output:\n" + wranglerOutput);
   process.exitCode = 1;
 } finally {
   if (child && child.exitCode === null) {
-    child.kill("SIGTERM");
-    await new Promise(resolve => {
-      const timer = setTimeout(resolve, 3000);
-      child.once("exit", () => { clearTimeout(timer); resolve(); });
-    });
+    const waitForExit = new Promise(resolve => child.once("exit", resolve));
+    try { process.kill(-child.pid, "SIGTERM"); }
+    catch { child.kill("SIGTERM"); }
+    await Promise.race([waitForExit, new Promise(resolve => setTimeout(resolve, 3000))]);
+    if (child.exitCode === null) {
+      try { process.kill(-child.pid, "SIGKILL"); }
+      catch { child.kill("SIGKILL"); }
+      await Promise.race([waitForExit, new Promise(resolve => setTimeout(resolve, 1000))]);
+    }
   }
 }
