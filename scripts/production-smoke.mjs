@@ -12,6 +12,10 @@ if(parsedBase.protocol!=="https:"&&parsedBase.hostname!=="localhost"&&parsedBase
  console.error("PRODUCTION_URL must use HTTPS, except for local development.");
  process.exit(2);
 }
+if(parsedBase.hostname==="vercel.app"||parsedBase.hostname.endsWith(".vercel.app")){
+ console.error("Production smoke tests must not target the legacy Vercel host.");
+ process.exit(2);
+}
 const base=parsedBase.href.replace(/\/$/,"");
 const checks=[];
 
