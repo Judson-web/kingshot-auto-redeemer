@@ -1,6 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import { createHash } from "node:crypto";
-import { enqueueNativeWebhookEvent } from "./webhook-delivery.js";
+import { enqueueNativeWebhookEvent } from "./webhook-delivery.ts";
 
 interface Env { SUPABASE_URL?: string; SUPABASE_SERVICE_ROLE_KEY?: string; SUPABASE_WRITE_MODE?: string; NEON_RECOVERY_DATABASE_URL?: string; V4_WEBHOOK_ENCRYPTION_KEY?: string; }
 type Result = { httpStatus:number; upstreamHttpStatus?:number; retryAfterSeconds?:number; ok?:boolean; status?:string; errorCategory?:string; statusLabel?:string; message?:string; error?:string; errCode?:unknown; cooldownPersisted?:boolean; cooldownError?:string; };
