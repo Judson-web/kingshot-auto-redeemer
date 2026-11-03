@@ -43,9 +43,23 @@ test("native account adapter trusts only Cloudflare's connecting IP for key issu
   assert.doesNotMatch(adapter, /x-vercel-forwarded-for|x-forwarded-for/i);
 });
 
-test("webhook management remains explicitly unavailable until its SSRF-safe native port is ready", async () => {
+test("native Discord account webhook management validates API-key ownership and supports list/create/disable", async () => {
   const adapter = await readFile(new URL("../cloudflare/developer-account.ts", import.meta.url), "utf8");
-  assert.match(adapter, /webhook_management_not_migrated/);
+  assert.match(adapter, /const webhookAction = url\.searchParams\.get\("action"\) === "webhooks"/);
+  assert.match(adapter, /Choose an active API key owned by this Discord account/);
+  assert.match(adapter, /kingshot_developer_webhooks/);
+  assert.match(adapter, /method === "POST"/);
+  assert.match(adapter, /method === "GET"/);
+  assert.match(adapter, /method === "DELETE"/);
+  assert.doesNotMatch(adapter, /webhook_management_not_migrated/);
+});
+
+test("account webhook mutations are write-gated and secrets are encrypted with Web Crypto", async () => {
+  const adapter = await readFile(new URL("../cloudflare/developer-account.ts", import.meta.url), "utf8");
+  assert.match(adapter, /webhookAction && method !== "GET" && !allowedWrite\(env\)/);
+  assert.match(adapter, /crypto\.subtle\.importKey\("raw", bytes, \{ name: "AES-GCM" \}/);
+  assert.match(adapter, /crypto\.subtle\.encrypt\(\{ name: "AES-GCM", iv \}/);
+  assert.match(adapter, /deliveryStatus: "paused_pending_secure_egress"/);
 });
 
 test("native logout reports server-side revocation failures after clearing browser cookies", async () => {
