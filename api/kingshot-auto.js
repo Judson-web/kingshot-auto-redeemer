@@ -665,7 +665,8 @@ export default async function handler(req,res){
   }
 
   // Phase 2: only the already-validated players enter the redemption pool.
-  const workerUrlBase=APP_ORIGIN+"/api/kingshot-auto?mode=worker&slot=";
+  const shardService=req.workerEnv?.SHARD_WORKER;
+  if(!shardService||typeof shardService.fetch!=="function")throw Error("Cloudflare shard service binding is unavailable.");
   const childHeaders={"content-type":"application/json"};
   if(cronSecret)childHeaders.authorization="Bearer "+cronSecret;
   else if(schedulerToken)childHeaders["x-kingshot-scheduler-token"]=String(schedulerToken);
@@ -679,12 +680,12 @@ export default async function handler(req,res){
   const workerRuns=await Promise.all(assignments.map(async(assigned,workerIndex)=>{
    const shardStartedAt=Date.now();
    try{
-    const response=await fetch(workerUrlBase+workerIndex,{
+    const response=await shardService.fetch(new Request("https://shard.internal/api/kingshot-auto?mode=worker&slot="+workerIndex,{
      method:"POST",
      headers:childHeaders,
      body:JSON.stringify({codes:activeCodes,players:assigned,cycleBucket}),
      signal:AbortSignal.timeout(WORKER_MAX_RUNTIME_MS+15000)
-    });
+    }));
     const payload=await response.json().catch(()=>({}));
     if(!response.ok)throw Error(payload?.error||"Worker shard returned HTTP "+response.status);
     const shardDurationMs=Date.now()-shardStartedAt;
