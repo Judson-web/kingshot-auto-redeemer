@@ -129,6 +129,11 @@ try {
     body => body?.code === "invalid_frame_asset");
 
   if (remote) {
+    const cronSecret = process.env.CRON_SECRET;
+    assert.ok(cronSecret, "CRON_SECRET must be present for the internal shard health check");
+    await checkJson("/api/ops-tools/shard-health", 200,
+      body => body?.ok === true && body?.service === "kingshot-autoredeemer-shard",
+      { headers: { authorization: "Bearer " + cronSecret } });
     const registration = await checkJson(
       "/api/kingshot-player?developerPath=alliance-lookup&mode=registration-status&ids=12345",
       200,
