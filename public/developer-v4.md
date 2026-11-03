@@ -272,7 +272,7 @@ Native V4 supports `GET` and `POST /api/v4/webhooks` to list or create subscript
 
 Creation accepts HTTPS URLs without embedded credentials, nonstandard ports, IP literals, localhost, or local/internal hostnames. This is input screening only. DNS resolution and public-IP enforcement at connection time are not yet implemented in the native runtime.
 
-**Delivery is currently paused.** Subscriptions can be listed, created, and disabled, but events are not dispatched to destination URLs yet. Do not rely on webhooks for operational alerts or automation until the secure egress and delivery worker migration is complete. The Worker deliberately does not make outbound requests to registered webhook destinations while that protection is pending.
+**Delivery is not enabled by default.** The native dispatcher now uses a Cloudflare Workers VPC egress binding and an atomic, leased Supabase delivery queue. It refuses to run unless `SUPABASE_WRITE_MODE=enabled`, `V4_WEBHOOK_WORKER_SECRET`, `V4_WEBHOOK_ENCRYPTION_KEY`, and the `EGRESS` binding are configured. The Cloudflare Gateway network policy must block private, loopback, link-local, reserved, and otherwise non-public destination ranges for Mesh-origin traffic before the dispatcher is enabled. Redirects are never followed. The dispatcher is intended to be invoked by a secured Supabase `pg_cron` job, not by clients. This repository change does not apply the Supabase migration, create Gateway policies, schedule the job, deploy the Worker, or enable delivery. Until those steps are separately validated, do not rely on webhooks for operational alerts or automation.
 
 ## Compact API usage
 
