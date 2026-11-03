@@ -4,6 +4,7 @@ interface Env {
   SUPABASE_PUBLISHABLE_KEY?: string;
   SUPABASE_ANON_KEY?: string;
   SUPABASE_WRITE_MODE?: string;
+  V4_WEBHOOK_ENCRYPTION_KEY?: string;
 }
 const DEVELOPER_COOKIE = "__Host-ks_developer_session";
 const PROFILE_COOKIE = "__Host-ks_profile_session";
@@ -66,6 +67,50 @@ async function rpc(env: Env, name: string, body: Json): Promise<any> {
   if (!response.ok) throw Object.assign(new Error(String(data?.message || "Developer account service unavailable.")), { status: response.status });
   return data;
 }
+
+async function rest(env: Env, path: string, init: RequestInit = {}): Promise<any> {
+  const base = String(env.SUPABASE_URL || "").replace(/\/$/, "");
+  const key = String(env.SUPABASE_SERVICE_ROLE_KEY || "");
+  if (!base || !key) throw new Error("Developer account service is not configured.");
+  const response = await fetch(base + path, {
+    ...init,
+    headers: { apikey: key, authorization: "Bearer " + key, "content-type": "application/json", ...(init.headers || {}) },
+    signal: init.signal || AbortSignal.timeout(8000),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw Object.assign(new Error("Webhook storage is unavailable."), { status: response.status });
+  return data;
+}
+function webhookUrl(value: string): URL | null {
+  if (value.length > 2048) return null;
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase().replace(/\.$/, "");
+    const ipv4 = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(host);
+    if (url.protocol !== "https:" || url.username || url.password || (url.port && url.port !== "443") ||
+        ipv4 || host.includes(":") || host === "localhost" || host.endsWith(".localhost") ||
+        host.endsWith(".local") || host.endsWith(".internal") || !host.includes(".") || host.length > 253) return null;
+    return url;
+  } catch { return null; }
+}
+function b64url(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+async function sealWebhookSecret(env: Env, secret: string): Promise<string> {
+  const hex = String(env.V4_WEBHOOK_ENCRYPTION_KEY || "");
+  if (!/^[0-9a-f]{64}$/i.test(hex)) throw new Error("webhook_encryption_unconfigured");
+  const bytes = new Uint8Array(hex.match(/.{2}/g)!.map(pair => parseInt(pair, 16)));
+  const key = await crypto.subtle.importKey("raw", bytes, { name: "AES-GCM" }, false, ["encrypt"]);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const combined = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(secret)));
+  return b64url(iv) + "." + b64url(combined.slice(-16)) + "." + b64url(combined.slice(0, -16));
+}
+async function newWebhookSecret(): Promise<string> {
+  return "whsec_" + b64url(crypto.getRandomValues(new Uint8Array(32)));
+}
+
 async function adminUser(env: Env, userId: string): Promise<any> {
   const base = String(env.SUPABASE_URL || "").replace(/\/$/, "");
   const key = String(env.SUPABASE_SERVICE_ROLE_KEY || "");
@@ -200,7 +245,9 @@ export async function handleNativeDeveloperAccount(request: Request, env: Env, r
   }
 
   if (!["GET", "POST", "PATCH", "DELETE"].includes(method)) return json(405, { error: "Method not allowed." }, { ...Object.fromEntries(headers), Allow: "GET, POST, PATCH, DELETE" });
-  if (url.searchParams.get("action") === "webhooks") return json(501, { error: "Webhook management is not yet available in the native account runtime.", code: "webhook_management_not_migrated" }, headers);
+  const webhookAction = url.searchParams.get("action") === "webhooks";
+  if (webhookAction && !["GET", "POST", "DELETE"].includes(method)) return json(405, { error: "Method not allowed." }, { ...Object.fromEntries(headers), Allow: "GET, POST, DELETE" });
+  if (webhookAction && method !== "GET" && !allowedWrite(env)) return json(503, { error: "writes_disabled", code: "writes_disabled" }, headers);
   const tokens = [...new Set([cookie(request, PROFILE_COOKIE), cookie(request, DEVELOPER_COOKIE)].filter(Boolean))];
   if (!tokens.length) return json(401, { error: "Sign in with Discord to manage your API keys." }, headers);
   try {
@@ -208,6 +255,57 @@ export async function handleNativeDeveloperAccount(request: Request, env: Env, r
     for (const token of tokens) { session = await sessionUser(env, token); if (session) break; }
     if (!session) return json(401, { error: "Your session is invalid. Sign in again." }, headers);
     const keys = await rpc(env, "kingshot_developer_account_list_keys", { p_session_hash: session.hash });
+    if (webhookAction) {
+      let body: Json = {};
+      if (method !== "GET") {
+        try { body = await request.json() as Json; }
+        catch { return json(400, { error: "Invalid JSON body." }, headers); }
+      }
+      const keyId = String(method === "GET" ? url.searchParams.get("key_id") || "" : body.key_id || "");
+      if (!/^[0-9a-f-]{36}$/i.test(keyId)) return json(400, { error: "Choose a valid API key." }, headers);
+      const ownedKey = Array.isArray(keys) ? keys.find((key: any) => key && key.id === keyId) : null;
+      if (!ownedKey || ownedKey.revoked_at || (ownedKey.expires_at && Date.parse(ownedKey.expires_at) <= Date.now())) {
+        return json(403, { error: "Choose an active API key owned by this Discord account." }, headers);
+      }
+      if (method === "GET") {
+        const items = await rest(env, "/rest/v1/kingshot_developer_webhooks?select=id,url,events,created_at,updated_at,disabled_at&key_id=eq." + encodeURIComponent(keyId) + "&order=created_at.desc");
+        return json(200, { items: Array.isArray(items) ? items : [] }, headers);
+      }
+      if (!limited(request, "developer-webhooks-" + method, method === "POST" ? 4 : 20, method === "POST" ? 3_600_000 : 60_000)) {
+        return json(429, { error: "Too many webhook operations. Please wait and retry." }, headers);
+      }
+      if (method === "POST") {
+        const target = typeof body.url === "string" ? webhookUrl(body.url.trim()) : null;
+        if (!target) return json(400, { error: "Provide an HTTPS endpoint without credentials, an IP literal, local hostname, or non-standard port." }, headers);
+        const allowedEvents = new Set(["redemption.completed", "redemption.unknown"]);
+        const events = Array.isArray(body.events) ? [...new Set(body.events.map(String))] : [];
+        if (!events.length || events.length > 2 || events.some(event => !allowedEvents.has(event))) {
+          return json(400, { error: "Choose redemption.completed and/or redemption.unknown." }, headers);
+        }
+        if (!/^[0-9a-f]{64}$/i.test(String(env.V4_WEBHOOK_ENCRYPTION_KEY || ""))) {
+          return json(503, { error: "Webhook secret encryption is not configured on this runtime." }, headers);
+        }
+        const existing = await rest(env, "/rest/v1/kingshot_developer_webhooks?select=id&key_id=eq." + encodeURIComponent(keyId) + "&disabled_at=is.null");
+        if (Array.isArray(existing) && existing.length >= 5) return json(409, { error: "Each API key can have at most five active webhook subscriptions." }, headers);
+        const secret = await newWebhookSecret();
+        const ciphertext = await sealWebhookSecret(env, secret);
+        const created = await rest(env, "/rest/v1/kingshot_developer_webhooks?select=id,url,events,created_at", {
+          method: "POST", headers: { Prefer: "return=representation" },
+          body: JSON.stringify({ key_id: keyId, url: target.href, events, secret_hash: await sha(secret), secret_ciphertext: ciphertext }),
+        });
+        const item = Array.isArray(created) ? created[0] : created;
+        if (!item?.id) return json(503, { error: "Webhook creation could not be confirmed. Check the subscription list before retrying." }, headers);
+        return json(201, { id: item.id, url: item.url, events: item.events, secret,
+          warning: "Store this signing secret now. It will not be shown again.",
+          deliveryStatus: "paused_pending_secure_egress" }, headers);
+      }
+      const webhookId = String(body.id || "");
+      if (!/^[0-9a-f-]{36}$/i.test(webhookId)) return json(400, { error: "Invalid webhook ID." }, headers);
+      const disabled = await rest(env, "/rest/v1/kingshot_developer_webhooks?id=eq." + encodeURIComponent(webhookId) + "&key_id=eq." + encodeURIComponent(keyId), {
+        method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ disabled_at: new Date().toISOString() }),
+      });
+      return json(200, { revoked: Array.isArray(disabled) && disabled.length > 0 }, headers);
+    }
     if (method === "GET") return json(200, { keys: Array.isArray(keys) ? keys : [] }, headers);
     if (!allowedWrite(env)) return json(503, { error: "writes_disabled", code: "writes_disabled" }, headers);
     if (!limited(request, "developer-keys-" + method, method === "POST" ? 4 : 20, method === "POST" ? 3_600_000 : 60_000)) {
