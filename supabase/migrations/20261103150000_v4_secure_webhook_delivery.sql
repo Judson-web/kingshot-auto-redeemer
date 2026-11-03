@@ -44,7 +44,8 @@ begin
   ),
   claimed as (
     update public.kingshot_developer_webhook_deliveries d
-    set lease_token = gen_random_uuid(),
+    set attempt_count = d.attempt_count + 1,
+        lease_token = gen_random_uuid(),
         locked_until = clock_timestamp() + make_interval(secs => p_lease_seconds)
     from due
     where d.id = due.id
