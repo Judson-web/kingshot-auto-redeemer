@@ -1,12 +1,144 @@
 {
   "rewrites": [
     {
+      "source": "/",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/index.html",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/auto",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/auto.html",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/alliance-registration",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/alliance-registration.html",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/developer",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/developer.html",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/profile",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/profile.html",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/info",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/info.html",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/manual",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/manual.html",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/redeem",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/redeem.html",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/terms.html",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/privacy.html",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/message",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/message.html",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/gift-codes",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/gift-codes.html",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/push",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/push/",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/push.html",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/devsupport",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/devsupport.html",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/dev",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/admin/alliance-sync",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/admin/maintenance",
+      "destination": "/maintenance.html"
+    },
+    {
+      "source": "/admin/players",
+      "destination": "/maintenance.html"
+    },
+    {
       "source": "/user",
-      "destination": "/index.html"
+      "destination": "/maintenance.html"
     },
     {
       "source": "/user/:playerId",
-      "destination": "/api/og?route=player-page&id=:playerId"
+      "destination": "/maintenance.html"
     },
     {
       "source": "/api/kingshot-v4-webhook-worker",
@@ -65,38 +197,6 @@
       "destination": "/api/kingshot-player?developer=redeem"
     },
     {
-      "source": "/auto",
-      "destination": "/auto.html"
-    },
-    {
-      "source": "/alliance-registration",
-      "destination": "/alliance-registration.html"
-    },
-    {
-      "source": "/developer",
-      "destination": "/developer.html"
-    },
-    {
-      "source": "/profile",
-      "destination": "/profile.html"
-    },
-    {
-      "source": "/dev",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/info",
-      "destination": "/info.html"
-    },
-    {
-      "source": "/manual",
-      "destination": "/manual.html"
-    },
-    {
-      "source": "/redeem",
-      "destination": "/redeem.html"
-    },
-    {
       "source": "/api/discord-avatar",
       "destination": "/api/discord-tools/avatar"
     },
@@ -127,46 +227,6 @@
     {
       "source": "/api/kingshot-support",
       "destination": "/api/ops-tools/support"
-    },
-    {
-      "source": "/terms",
-      "destination": "/terms.html"
-    },
-    {
-      "source": "/privacy",
-      "destination": "/privacy.html"
-    },
-    {
-      "source": "/message",
-      "destination": "/message.html"
-    },
-    {
-      "source": "/gift-codes",
-      "destination": "/gift-codes.html"
-    },
-    {
-      "source": "/push",
-      "destination": "/push.html"
-    },
-    {
-      "source": "/push/",
-      "destination": "/push.html"
-    },
-    {
-      "source": "/devsupport",
-      "destination": "/devsupport.html"
-    },
-    {
-      "source": "/admin/alliance-sync",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/admin/maintenance",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/admin/players",
-      "destination": "/index.html"
     }
   ],
   "headers": [
