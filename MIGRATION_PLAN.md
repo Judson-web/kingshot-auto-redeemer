@@ -55,3 +55,4 @@
 - Ambiguous timeout, non-JSON, upstream gateway, or journal persistence outcomes are quarantined as `needs_review` in both Neon and Supabase; the route never automatically replays the upstream request.
 - Preview remains read-only: `SUPABASE_WRITE_MODE` stays disabled and smoke tests assert the route refuses writes.
 - No production redemption, deployment, DNS change, or cutover was performed.
+- Latest validation includes a follow-up syntax fix for synchronized Neon/Supabase uncertainty markers; rerun the full non-deploying CI before treating this revision as green.
