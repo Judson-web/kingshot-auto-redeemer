@@ -159,67 +159,182 @@ async function authorize(request: Request, env: Env, requestId: string, h: Heade
   }
 }
 
+async function database(env: Env, path: string, init: RequestInit = {}): Promise<any> {
+  const base = String(env.SUPABASE_URL || "").replace(/\/$/, "");
+  const secret = String(env.SUPABASE_SERVICE_ROLE_KEY || "");
+  if (!base || !secret) throw new Error("database_unconfigured");
+  const result = await fetch(base + path, {
+    ...init,
+    headers: { apikey: secret, authorization: "Bearer " + secret, "content-type": "application/json", ...(init.headers || {}) },
+    signal: init.signal || AbortSignal.timeout(6000),
+  });
+  const body = await result.json().catch(() => null);
+  if (!result.ok) throw new Error("database_request_failed");
+  return body;
+}
+
+function boundedInteger(value: string | null, fallback: number, min: number, max: number): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) ? Math.max(min, Math.min(max, parsed)) : fallback;
+}
+
 export async function handleNativeV4(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const requestId = crypto.randomUUID();
-  const match = /^\/api\/v4\/players\/(\d{5,20})\/?$/.exec(url.pathname);
-  const isPlayer = Boolean(match);
+  const playerMatch = /^\/api\/v4\/players\/(\d{5,20})\/?$/.exec(url.pathname);
+  const route = playerMatch ? "player"
+    : url.pathname === "/api/v4/alliances" ? "alliances"
+    : url.pathname === "/api/v4/redemption-history" ? "redemption-history"
+    : url.pathname === "/api/v4/usage" ? "usage"
+    : url.pathname === "/api/v4/webhooks" ? "webhooks"
+    : "";
   const method = request.method.toUpperCase();
-  const methods = isPlayer ? "GET" : "GET, POST, DELETE";
-  const h = headers(methods);
+  const h = headers(route === "webhooks" ? "GET" : "GET");
 
   if (method === "OPTIONS") return new Response(null, { status: 204, headers: h });
-  if (isPlayer && method !== "GET") {
+  if (!route) return fail(501, "route_not_migrated", "This V4 route is not yet available on the native Cloudflare runtime.", requestId, {
+    migrationStatus: "pending", documentation: "/developer-v4.md",
+  }, h);
+  if (method !== "GET") {
     h.set("Allow", "GET, OPTIONS");
     return fail(405, "method_not_allowed", "This method is not supported for the requested V4 route.", requestId, {}, h);
-  }
-  if (!isPlayer) {
-    return fail(501, "route_not_migrated", "This V4 route is not yet available on the native Cloudflare runtime.", requestId, {
-      migrationStatus: "pending",
-      documentation: "/developer-v4.md",
-    }, h);
   }
 
   const auth = await authorize(request, env, requestId, h);
   if (auth instanceof Response) return auth;
-  if (!auth.scopes.includes("players:read")) {
-    return fail(403, "insufficient_scope", "This API key does not have the required scope: players:read", requestId, {}, h);
+  const requiredScope = route === "player" ? "players:read"
+    : route === "alliances" ? "alliances:read"
+    : route === "redemption-history" ? "redemptions:read"
+    : route === "usage" ? "usage:read" : "webhooks:manage";
+  if (!auth.scopes.includes(requiredScope)) {
+    return fail(403, "insufficient_scope", "This API key does not have the required scope: " + requiredScope, requestId, {}, h);
   }
 
-  const playerId = match![1];
+  if (route === "player") {
+    const playerId = playerMatch![1];
+    try {
+      const upstream = await fetchMightPulseNative(env,
+        "https://api.mightpulse.com/v1/players/" + encodeURIComponent(playerId) + "?include=base",
+        3400, { totalTimeoutMs: 8000, maxAttempts: 2 });
+      const body: any = await upstream.json().catch(() => null);
+      if (!upstream.ok) {
+        const status = upstream.status === 404 ? 404 : upstream.status === 429 ? 503 : upstream.status >= 500 ? 503 : 502;
+        const code = status === 404 ? "player_not_found" : upstream.status === 429 ? "upstream_rate_limited" : "upstream_unavailable";
+        return fail(status, code, status === 404 ? "No player was found for this ID." : "The player lookup provider is temporarily unavailable.", requestId, {}, h);
+      }
+      const source = body?.data && typeof body.data === "object" && !Array.isArray(body.data) ? body.data : body;
+      const player = source?.player && typeof source.player === "object" ? source.player : body?.player && typeof body.player === "object" ? body.player : source;
+      if (!player || typeof player !== "object" || Array.isArray(player)) {
+        return fail(502, "upstream_invalid_response", "The player lookup provider returned an invalid response.", requestId, {}, h);
+      }
+      let data: ReturnType<typeof playerData>;
+      try { data = playerData(player, playerId); }
+      catch { return fail(502, "upstream_invalid_response", "The player lookup provider returned a different player ID.", requestId, {}, h); }
+      const fetchedAt = typeof body?.cached_at === "string" && Number.isFinite(Date.parse(body.cached_at)) ? body.cached_at : null;
+      const age = Number(body?.age_seconds);
+      return response(200, data, null, requestId, {
+        fetchedAt,
+        providerFresh: typeof body?.fresh === "boolean" ? body.fresh : null,
+        providerAgeSeconds: Number.isFinite(age) && age >= 0 ? Math.floor(age) : null,
+        stale: typeof body?.fresh === "boolean" ? !body.fresh : null,
+        source: "mightpulse",
+        rateLimit: auth.rateLimit,
+      }, h);
+    } catch (error) {
+      const status = mightPulsePlayerErrorStatus(error);
+      const code = status === 429 ? "upstream_rate_limited" : status === 504 ? "upstream_timeout" : "upstream_unavailable";
+      return fail(status === 429 ? 503 : status, code,
+        status === 504 ? "The player lookup provider timed out after a bounded retry." : "The player lookup provider is temporarily unavailable.",
+        requestId, {}, h);
+    }
+  }
+
   try {
-    const upstream = await fetchMightPulseNative(env,
-      "https://api.mightpulse.com/v1/players/" + encodeURIComponent(playerId) + "?include=base",
-      3400, { totalTimeoutMs: 8000, maxAttempts: 2 });
-    const body: any = await upstream.json().catch(() => null);
-    if (!upstream.ok) {
-      const status = upstream.status === 404 ? 404 : upstream.status === 429 ? 503 : upstream.status >= 500 ? 503 : 502;
-      const code = status === 404 ? "player_not_found" : upstream.status === 429 ? "upstream_rate_limited" : "upstream_unavailable";
-      return fail(status, code, status === 404 ? "No player was found for this ID." : "The player lookup provider is temporarily unavailable.", requestId, {}, h);
+    if (route === "alliances") {
+      const kingdomId = (url.searchParams.get("kingdomId") || "").trim();
+      const tag = (url.searchParams.get("tag") || "").trim();
+      if (!/^\d{1,10}$/.test(kingdomId)) return fail(400, "invalid_kingdom_id", "kingdomId must contain 1–10 digits.", requestId, {}, h);
+      if (tag && !/^[A-Za-z0-9_-]{1,20}$/.test(tag)) return fail(400, "invalid_alliance_tag", "Invalid alliance tag.", requestId, {}, h);
+      const limit = boundedInteger(url.searchParams.get("limit"), 50, 1, 100);
+      const offset = boundedInteger(url.searchParams.get("offset"), 0, 0, 10000);
+      const endpoint = tag
+        ? "https://api.mightpulse.com/v1/alliances/" + encodeURIComponent(kingdomId) + "/" + encodeURIComponent(tag) + "?include=info,roster"
+        : "https://api.mightpulse.com/v1/kingdoms/" + encodeURIComponent(kingdomId) + "/ranks?board=alliance_power&limit=100";
+      const upstream = await fetchMightPulseNative(env, endpoint, 9000, { totalTimeoutMs: 12000, maxAttempts: 2 });
+      const body: any = await upstream.json().catch(() => null);
+      if (!upstream.ok) return fail(upstream.status === 404 ? 404 : 502,
+        upstream.status === 404 ? "alliance_not_found" : "alliance_provider_unavailable",
+        "Alliance data is temporarily unavailable.", requestId, {}, h);
+      const source = body?.data && typeof body.data === "object" ? body.data : body || {};
+      const alliance = source.alliance && typeof source.alliance === "object" ? source.alliance : source;
+      const raw = tag
+        ? (Array.isArray(source.members) ? source.members : Array.isArray(source.roster) ? source.roster : [])
+        : (Array.isArray(source.rankings) ? source.rankings : Array.isArray(source.ranks) ? source.ranks : Array.isArray(source.items) ? source.items : []);
+      const members = raw.map((member: any) => ({
+        playerId: String(member.player_id ?? member.playerId ?? member.governor_id ?? member.id ?? ""),
+        name: String(member.nick_name ?? member.name ?? member.nickname ?? "").slice(0, 80),
+        power: Number.isFinite(Number(member.power)) ? Number(member.power) : null,
+        townCenterLevel: Number.isFinite(Number(member.town_center_level ?? member.townCenterLevel)) ? Number(member.town_center_level ?? member.townCenterLevel) : null,
+        rank: String(member.alliance_rank_label ?? member.alliance_rank ?? member.rank ?? "").slice(0, 30),
+      })).filter((member: any) => /^\d{5,20}$/.test(member.playerId));
+      const fingerprint = await sha256(JSON.stringify(members));
+      const cursor = url.searchParams.get("cursor") || "";
+      return response(200, {
+        alliance: {
+          name: String(alliance.name ?? alliance.alliance_name ?? tag ?? "").slice(0, 80),
+          tag: String(alliance.abbr ?? alliance.tag ?? tag ?? "").slice(0, 20),
+          kingdomId,
+          power: Number.isFinite(Number(alliance.power)) ? Number(alliance.power) : null,
+          memberCount: members.length,
+        },
+        members: members.slice(offset, offset + limit),
+        total: members.length,
+        offset,
+        limit,
+        hasMore: offset + limit < members.length,
+        nextCursor: offset + limit < members.length ? String(offset + limit) : null,
+        changeCursor: fingerprint,
+        changed: !cursor || cursor !== fingerprint,
+        stale: body?.fresh === false || Boolean(body?.stale),
+        fetchedAt: typeof body?.cached_at === "string" ? body.cached_at : null,
+      }, null, requestId, { source: "mightpulse", rateLimit: auth.rateLimit }, h);
     }
-    const source = body?.data && typeof body.data === "object" && !Array.isArray(body.data) ? body.data : body;
-    const player = source?.player && typeof source.player === "object" ? source.player : body?.player && typeof body.player === "object" ? body.player : source;
-    if (!player || typeof player !== "object" || Array.isArray(player)) {
-      return fail(502, "upstream_invalid_response", "The player lookup provider returned an invalid response.", requestId, {}, h);
+
+    if (route === "redemption-history") {
+      const playerId = (url.searchParams.get("playerId") || "").trim();
+      if (!/^\d{5,20}$/.test(playerId)) return fail(400, "invalid_player_id", "playerId must contain 5–20 digits.", requestId, {}, h);
+      const limit = boundedInteger(url.searchParams.get("limit"), 25, 1, 100);
+      const offset = boundedInteger(url.searchParams.get("offset"), 0, 0, 10000);
+      const query = new URLSearchParams({
+        select: "player_id,gift_code,status,err_code,message,attempted_at",
+        player_id: "eq." + playerId,
+        order: "attempted_at.desc",
+        limit: String(limit),
+        offset: String(offset),
+      });
+      const rows = await database(env, "/rest/v1/kingshot_redemptions?" + query.toString());
+      return response(200, {
+        playerId,
+        items: Array.isArray(rows) ? rows : [],
+        limit,
+        offset,
+        hasMore: Array.isArray(rows) && rows.length === limit,
+      }, null, requestId, { rateLimit: auth.rateLimit }, h);
     }
-    let data: ReturnType<typeof playerData>;
-    try { data = playerData(player, playerId); }
-    catch { return fail(502, "upstream_invalid_response", "The player lookup provider returned a different player ID.", requestId, {}, h); }
-    const fetchedAt = typeof body?.cached_at === "string" && Number.isFinite(Date.parse(body.cached_at)) ? body.cached_at : null;
-    const age = Number(body?.age_seconds);
-    return response(200, data, null, requestId, {
-      fetchedAt,
-      providerFresh: typeof body?.fresh === "boolean" ? body.fresh : null,
-      providerAgeSeconds: Number.isFinite(age) && age >= 0 ? Math.floor(age) : null,
-      stale: typeof body?.fresh === "boolean" ? !body.fresh : null,
-      source: "mightpulse",
-      rateLimit: auth.rateLimit,
-    }, h);
-  } catch (error) {
-    const status = mightPulsePlayerErrorStatus(error);
-    const code = status === 429 ? "upstream_rate_limited" : status === 504 ? "upstream_timeout" : "upstream_unavailable";
-    return fail(status === 429 ? 503 : status, code,
-      status === 504 ? "The player lookup provider timed out after a bounded retry." : "The player lookup provider is temporarily unavailable.",
-      requestId, {}, h);
+
+    if (route === "usage") {
+      const usage = await database(env, "/rest/v1/rpc/kingshot_developer_get_usage", {
+        method: "POST",
+        body: JSON.stringify({ p_key_id: auth.keyId }),
+      });
+      return response(200, usage, null, requestId, { rateLimit: auth.rateLimit }, h);
+    }
+
+    const rows = await database(env,
+      "/rest/v1/kingshot_developer_webhooks?select=id,url,events,created_at,updated_at,disabled_at&key_id=eq." +
+      encodeURIComponent(auth.keyId) + "&order=created_at.desc");
+    return response(200, { items: Array.isArray(rows) ? rows : [] }, null, requestId, { rateLimit: auth.rateLimit }, h);
+  } catch {
+    return fail(503, "feature_unavailable", "The requested V4 feature is temporarily unavailable.", requestId, {}, h);
   }
 }
