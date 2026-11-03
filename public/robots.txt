@@ -4,4 +4,4 @@ Disallow: /api/
 Disallow: /ks-admin
 Disallow: /ad-admin
 
-Sitemap: https://kingshot-autoredeemer.vercel.app/sitemap.xml
+Sitemap: https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/sitemap.xml
