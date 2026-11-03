@@ -74,6 +74,24 @@ export default {
       });
 
       const headers = new Headers(upstream.headers);
+
+      // Keep redirects that target the legacy API origin on the current edge
+      // hostname. Preserve genuinely external redirects unchanged.
+      const location = headers.get("Location");
+      if (location) {
+        try {
+          const redirectTarget = new URL(location, target);
+          if (redirectTarget.origin === origin.origin) {
+            headers.set(
+              "Location",
+              redirectTarget.pathname + redirectTarget.search + redirectTarget.hash,
+            );
+          }
+        } catch {
+          // Leave malformed or non-URL Location values untouched.
+        }
+      }
+
       headers.set("Cache-Control", "no-store");
       headers.set("X-Content-Type-Options", "nosniff");
       headers.set("X-Edge-Backend", "legacy-api-bridge");
