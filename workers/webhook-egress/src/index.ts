@@ -108,7 +108,7 @@ export default {
         redirect: "manual"
       });
       const status = response.status;
-      await response.body?.cancel();
+      await response.body?.cancel().catch(() => undefined);
       return Response.json({ status }, { status: 200, headers: { "Cache-Control": "no-store" } });
     } catch {
       return Response.json({ error: "gateway_egress_failed" }, { status: 502 });
