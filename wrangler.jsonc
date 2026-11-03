@@ -7,7 +7,8 @@
   "preview_urls": true,
   "observability": { "enabled": true },
   "vars": {
-    "LEGACY_API_ORIGIN": "https://kingshot-autoredeemer.vercel.app"
+    "LEGACY_API_ORIGIN": "https://kingshot-autoredeemer.vercel.app",
+    "SUPABASE_URL": "https://wocxvtptqapietlteshr.supabase.co"
   },
   "assets": {
     "directory": "./dist",
