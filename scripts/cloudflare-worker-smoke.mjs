@@ -132,7 +132,7 @@ try {
     const cronSecret = process.env.CRON_SECRET;
     assert.ok(cronSecret, "CRON_SECRET must be present for the internal shard health check");
     await checkJson("/api/ops-tools/shard-health", 200,
-      body => body?.ok === true && body?.service === "kingshot-autoredeemer-shard",
+      body => body?.ok === true && body?.service === "kingshot-autoredeemer-shard" && body?.routeProbe?.ok === true && body?.routeProbe?.status === 401 && body?.routeProbe?.stage === "authentication_gate",
       { headers: { authorization: "Bearer " + cronSecret } });
     const registration = await checkJson(
       "/api/kingshot-player?developerPath=alliance-lookup&mode=registration-status&ids=12345",
