@@ -6,26 +6,25 @@ interface Env {
 }
 
 const API_PREFIX = "/api";
-const SITE_HOST = "kingshot-autoredeemer.vercel.app";
 const visitorBuckets = new Map<string, { count: number; resetAt: number }>();
 
 function clean(value: unknown, max = 180): string | null {
   return typeof value === "string"
-    ? value.replace(/[\\u0000-\\u001f\\u007f]/g, "").trim().slice(0, max) || null
+    ? value.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, max) || null
     : null;
 }
 
 function classifyAgent(ua: string | null) {
   const value = ua || "";
   let browser = "Other";
-  if (/Edg\\//i.test(value)) browser = "Edge";
-  else if (/OPR\\//i.test(value)) browser = "Opera";
-  else if (/SamsungBrowser\\//i.test(value)) browser = "Samsung Internet";
-  else if (/Firefox\\//i.test(value)) browser = "Firefox";
-  else if (/CriOS\\//i.test(value)) browser = "Chrome (iOS)";
-  else if (/Chrome\\//i.test(value)) browser = "Chrome";
-  else if (/FxiOS\\//i.test(value)) browser = "Firefox (iOS)";
-  else if (/Safari\\//i.test(value) && !/Chrome\\//i.test(value)) browser = "Safari";
+  if (/Edg\//i.test(value)) browser = "Edge";
+  else if (/OPR\//i.test(value)) browser = "Opera";
+  else if (/SamsungBrowser\//i.test(value)) browser = "Samsung Internet";
+  else if (/Firefox\//i.test(value)) browser = "Firefox";
+  else if (/CriOS\//i.test(value)) browser = "Chrome (iOS)";
+  else if (/Chrome\//i.test(value)) browser = "Chrome";
+  else if (/FxiOS\//i.test(value)) browser = "Firefox (iOS)";
+  else if (/Safari\//i.test(value) && !/Chrome\//i.test(value)) browser = "Safari";
   let operating_system = "Other";
   if (/Android/i.test(value)) operating_system = "Android";
   else if (/iPhone|iPad|iPod/i.test(value)) operating_system = "iOS";
@@ -110,7 +109,7 @@ async function handleVisitorTelemetry(request: Request, env: Env): Promise<Respo
     screen_class: ["small", "medium", "large", "unknown"].includes(String(body.screenClass))
       ? body.screenClass : "unknown",
   };
-  const base = String(env.SUPABASE_URL || "https://wocxvtptqapietlteshr.supabase.co").replace(/\\/$/, "");
+  const base = String(env.SUPABASE_URL || "https://wocxvtptqapietlteshr.supabase.co").replace(/\/$/, "");
   try {
     const response = await fetch(base + "/rest/v1/kingshot_visitor_events", {
       method: "POST",
