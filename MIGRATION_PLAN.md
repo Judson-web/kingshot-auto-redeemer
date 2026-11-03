@@ -76,5 +76,9 @@
 - Discord access tokens are verified against Supabase Auth before server-side sessions are created. Developer and profile sessions retain the existing two-month lifetime and use separate HttpOnly, Secure, host-only cookies.
 - Session lookup, enrollment, logout, key listing, key creation, scope/expiry updates, and key revocation use the existing account RPCs. API-key issuance hashes the trusted Cloudflare `CF-Connecting-IP`; forwarded client-IP headers are not trusted.
 - Preview account mutations are blocked before session or key RPC writes unless `SUPABASE_WRITE_MODE=enabled`. The checked-in Wrangler preview remains write-disabled.
-- Webhook subscription management deliberately remains fail-closed with an explicit `webhook_management_not_migrated` response. Its native port must preserve public-IP DNS validation and redirect-safe delivery protections rather than reusing Node DNS APIs inside Workers.
-- This is a code-only checkpoint. No OAuth provider configuration, secrets, database migrations, production writes, deployment, or DNS changes were made.
+- Native V4 webhook subscription management now supports authenticated listing, creation, and revocation using the existing Supabase webhook tables; no schema migration was required.
+- Signing secrets are generated with Workers Web Crypto, encrypted with AES-256-GCM using `V4_WEBHOOK_ENCRYPTION_KEY`, and stored in the existing compatible `iv.tag.ciphertext` format. The raw secret is returned only once; list responses never expose ciphertext or secret hashes.
+- Registration rejects non-HTTPS URLs, embedded credentials, nonstandard ports, IP literals, localhost and local/internal hostnames. This is syntax screening only, not a claim that the hostname resolves to a public IP.
+- Webhook delivery remains paused. A safe connection-time egress control is still required to prevent DNS rebinding and private-address access; the Worker does not fetch subscription destinations, follow redirects, or dispatch queued deliveries.
+- Webhook POST and DELETE check `SUPABASE_WRITE_MODE` before API-key authorization/quota RPCs. The checked-in Wrangler preview remains write-disabled.
+- This is a code-only checkpoint. No database migration, production write, deployment, or DNS change was made.

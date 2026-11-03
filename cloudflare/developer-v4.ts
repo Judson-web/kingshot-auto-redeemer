@@ -5,6 +5,7 @@ interface Env {
   SUPABASE_URL?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;
   SUPABASE_WRITE_MODE?: string;
+  V4_WEBHOOK_ENCRYPTION_KEY?: string;
   NEON_RECOVERY_DATABASE_URL?: string;
   MIGHTPULSE_API_KEY?: string;
   MIGHTPULSE_API_KEY_2?: string;
@@ -187,6 +188,45 @@ async function database(env: Env, path: string, init: RequestInit = {}): Promise
   const body = await result.json().catch(() => null);
   if (!result.ok) throw new Error("database_request_failed");
   return body;
+}
+
+
+function base64Url(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function isSafeWebhookRegistrationUrl(value: string): URL | null {
+  if (value.length > 2048) return null;
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase().replace(/\.$/, "");
+    const isIpv4 = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(host);
+    const isIpv6 = host.includes(":");
+    if (url.protocol !== "https:" || url.username || url.password ||
+        (url.port && url.port !== "443") || isIpv4 || isIpv6 ||
+        host === "localhost" || host.endsWith(".localhost") ||
+        host.endsWith(".local") || host.endsWith(".internal") ||
+        !host.includes(".") || host.length > 253) return null;
+    return url;
+  } catch { return null; }
+}
+
+async function encryptWebhookSecret(env: Env, secret: string): Promise<string> {
+  const hex = String(env.V4_WEBHOOK_ENCRYPTION_KEY || "");
+  if (!/^[0-9a-f]{64}$/i.test(hex)) throw new Error("webhook_encryption_unconfigured");
+  const keyBytes = new Uint8Array(hex.match(/.{2}/g)!.map(byte => parseInt(byte, 16)));
+  const key = await crypto.subtle.importKey("raw", keyBytes, { name: "AES-GCM" }, false, ["encrypt"]);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(secret)));
+  const tag = encrypted.slice(encrypted.length - 16);
+  const ciphertext = encrypted.slice(0, encrypted.length - 16);
+  return base64Url(iv) + "." + base64Url(tag) + "." + base64Url(ciphertext);
+}
+
+async function createWebhookSecret(): Promise<string> {
+  return "whsec_" + base64Url(crypto.getRandomValues(new Uint8Array(32)));
 }
 
 function boundedInteger(value: string | null, fallback: number, min: number, max: number): number {
@@ -382,7 +422,9 @@ export async function handleNativeV4(request: Request, env: Env): Promise<Respon
   const url = new URL(request.url);
   const requestId = crypto.randomUUID();
   const playerMatch = /^\/api\/v4\/players\/(\d{5,20})\/?$/.exec(url.pathname);
+  const webhookMatch = /^\/api\/v4\/webhooks\/([0-9a-f-]{36})\/?$/i.exec(url.pathname);
   const route = playerMatch ? "player"
+    : webhookMatch ? "webhook-item"
     : url.pathname === "/api/v4/alliances" ? "alliances"
     : url.pathname === "/api/v4/redemption-history" ? "redemption-history"
     : url.pathname === "/api/v4/usage" ? "usage"
@@ -390,19 +432,20 @@ export async function handleNativeV4(request: Request, env: Env): Promise<Respon
     : url.pathname === "/api/v4/redemptions" ? "redemptions"
     : "";
   const method = request.method.toUpperCase();
-  const h = headers(route === "redemptions" ? "POST" : "GET");
+  const h = headers(route === "redemptions" ? "POST" : route === "webhooks" ? "GET, POST" : route === "webhook-item" ? "DELETE" : "GET");
 
   if (method === "OPTIONS") return new Response(null, { status: 204, headers: h });
   if (!route) return fail(501, "route_not_migrated", "This V4 route is not yet available on the native Cloudflare runtime.", requestId, {
     migrationStatus: "pending", documentation: "/developer-v4.md",
   }, h);
-  if (route === "redemptions" ? method !== "POST" : method !== "GET") {
-    h.set("Allow", (route === "redemptions" ? "POST" : "GET") + ", OPTIONS");
+  const allowedMethods = route === "redemptions" ? ["POST"] : route === "webhooks" ? ["GET", "POST"] : route === "webhook-item" ? ["DELETE"] : ["GET"];
+  if (!allowedMethods.includes(method)) {
+    h.set("Allow", allowedMethods.join(", ") + ", OPTIONS");
     return fail(405, "method_not_allowed", "This method is not supported for the requested V4 route.", requestId, {}, h);
   }
 
-  if (route === "redemptions" && String(env.SUPABASE_WRITE_MODE || "").toLowerCase() !== "enabled") {
-    return fail(503, "writes_disabled", "V4 redemption is disabled in this environment; no authorization or idempotency writes were attempted.", requestId, {}, h);
+  if ((route === "redemptions" || (route === "webhooks" && method === "POST") || route === "webhook-item") && String(env.SUPABASE_WRITE_MODE || "").toLowerCase() !== "enabled") {
+    return fail(503, "writes_disabled", "This V4 mutation is disabled in this environment; no authorization or database writes were attempted.", requestId, {}, h);
   }
 
   const auth = await authorize(request, env, requestId, h);
@@ -416,6 +459,59 @@ export async function handleNativeV4(request: Request, env: Env): Promise<Respon
   }
 
   if (route === "redemptions") return handleV4Redemption(request, env, auth, requestId, h);
+
+  if (route === "webhooks" && method === "POST") {
+    if ((request.headers.get("content-type") || "").split(";")[0].trim().toLowerCase() !== "application/json") {
+      return fail(415, "unsupported_media_type", "Content-Type must be application/json.", requestId, {}, h);
+    }
+    let body: any;
+    try {
+      const raw = await request.clone().text();
+      if (raw.length > 8192) return fail(413, "payload_too_large", "Webhook subscription request is too large.", requestId, {}, h);
+      body = JSON.parse(raw || "{}");
+    } catch { return fail(400, "invalid_json", "Provide a valid JSON request body.", requestId, {}, h); }
+    if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).some(key => !["url", "events"].includes(key))) {
+      return fail(400, "invalid_request_body", "Provide only url and events.", requestId, {}, h);
+    }
+    const target = typeof body.url === "string" ? isSafeWebhookRegistrationUrl(body.url.trim()) : null;
+    if (!target) return fail(400, "invalid_webhook_url", "Provide an HTTPS URL with no credentials, non-standard port, IP literal, or local hostname.", requestId, {}, h);
+    const allowedEvents = new Set(["redemption.completed", "redemption.unknown"]);
+    const events = Array.isArray(body.events) ? [...new Set(body.events.map(String))] : [];
+    if (!events.length || events.length > 2 || events.some((event: string) => !allowedEvents.has(event))) {
+      return fail(400, "invalid_webhook_events", "Supported events: redemption.completed and redemption.unknown.", requestId, {}, h);
+    }
+    if (!/^[0-9a-f]{64}$/i.test(String(env.V4_WEBHOOK_ENCRYPTION_KEY || ""))) {
+      return fail(503, "webhook_encryption_unconfigured", "Webhook secret encryption is not configured on this runtime.", requestId, {}, h);
+    }
+    try {
+      const existing = await database(env, "/rest/v1/kingshot_developer_webhooks?select=id&key_id=eq." + encodeURIComponent(auth.keyId) + "&disabled_at=is.null");
+      if (Array.isArray(existing) && existing.length >= 5) return fail(409, "webhook_limit_reached", "Each API key can have at most five active subscriptions.", requestId, {}, h);
+      const secret = await createWebhookSecret();
+      const ciphertext = await encryptWebhookSecret(env, secret);
+      const created = await database(env, "/rest/v1/kingshot_developer_webhooks?select=id,url,events,created_at", {
+        method: "POST", headers: { Prefer: "return=representation" },
+        body: JSON.stringify({ key_id: auth.keyId, url: target.href, events,
+          secret_hash: await sha256(secret), secret_ciphertext: ciphertext }),
+      });
+      const item = Array.isArray(created) ? created[0] : created;
+      if (!item?.id) return fail(503, "webhook_creation_unconfirmed", "The subscription was not confirmed by storage. Check the subscription list before retrying.", requestId, {}, h);
+      return response(201, { id: item.id, url: item.url, events: item.events,
+        secret, warning: "Store this signing secret now. It will not be shown again.",
+        deliveryStatus: "paused_pending_secure_egress" }, null, requestId, { rateLimit: auth.rateLimit }, h);
+    } catch {
+      return fail(503, "webhook_creation_unavailable", "Webhook subscription storage is temporarily unavailable.", requestId, {}, h);
+    }
+  }
+
+  if (route === "webhook-item" && method === "DELETE") {
+    try {
+      const disabled = await database(env, "/rest/v1/kingshot_developer_webhooks?id=eq." + encodeURIComponent(webhookMatch![1]) + "&key_id=eq." + encodeURIComponent(auth.keyId), {
+        method: "PATCH", headers: { Prefer: "return=representation" },
+        body: JSON.stringify({ disabled_at: new Date().toISOString() }),
+      });
+      return response(200, { revoked: Array.isArray(disabled) && disabled.length > 0 }, null, requestId, { rateLimit: auth.rateLimit }, h);
+    } catch { return fail(503, "webhook_revocation_unavailable", "Webhook revocation could not be confirmed.", requestId, {}, h); }
+  }
 
   if (route === "player") {
     const playerId = playerMatch![1];

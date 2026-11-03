@@ -153,9 +153,10 @@ test("Cloudflare V4 read-only extended endpoints enforce their documented scopes
   assert.match(adapter, /fetchMightPulseNative/);
 });
 
-test("Cloudflare V4 extended mutations remain fail-closed until write parity is ported", async () => {
+test("Cloudflare V4 webhook mutations require write mode while unsupported routes remain fail-closed", async () => {
   const adapter = await readFile(new URL("../cloudflare/developer-v4.ts", import.meta.url), "utf8");
-  assert.match(adapter, /route === "redemptions" \? method !== "POST" : method !== "GET"/);
+  assert.match(adapter, /route === "redemptions" \? \["POST"\] : route === "webhooks" \? \["GET", "POST"\] : route === "webhook-item" \? \["DELETE"\]/);
+  assert.match(adapter, /SUPABASE_WRITE_MODE/);
   assert.match(adapter, /route_not_migrated/);
 });
 

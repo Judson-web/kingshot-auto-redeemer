@@ -1,7 +1,6 @@
 # Kingshot Auto Redeemer Developer API — V4
 
-Interactive documentation: https://kingshot-autoredeemer.vercel.app/developer  
-OpenAPI 3.1: https://kingshot-autoredeemer.vercel.app/openapi.json
+Set `API_BASE` to the HTTPS origin of the Cloudflare app host. The API and documentation are served from that origin.
 
 V4 is the current API for player lookup and manual gift-code redemption. It provides a consistent JSON envelope for success and errors. V3 remains available for existing integrations; V1 is deprecated.
 
@@ -9,7 +8,7 @@ V4 is the current API for player lookup and manual gift-code redemption. It prov
 
 Sign in with your shared Discord account and create an API key from the Developer API page at /developer. Send it only over HTTPS using the Bearer scheme:
 
-    curl "https://kingshot-autoredeemer.vercel.app/api/v4/players/43180889" \
+    curl "$API_BASE/api/v4/players/43180889" \
       -H "Authorization: Bearer $KINGSHOT_API_KEY"
 
 Keep the key on a trusted server. Do not put it in browser JavaScript, URLs, logs, screenshots, or public repositories. Revoked keys stop authorizing requests.
@@ -104,7 +103,7 @@ Use `meta.requestId` when reporting an error or contacting support. Do not share
 - Player ID: a string containing 5–20 digits
 - Limits: 60 requests per minute and 1,000 per day per key, plus an IP-level limit
 
-    curl "https://kingshot-autoredeemer.vercel.app/api/v4/players/43180889" \
+    curl "$API_BASE/api/v4/players/43180889" \
       -H "Authorization: Bearer $KINGSHOT_API_KEY"
 
 Player fields such as name, kingdomId, power, townCenterLevel, avatarUrl, allianceName, and allianceTag can be null when the source does not provide them. Freshness metadata tells clients whether a cached provider result was used.
@@ -117,7 +116,7 @@ Player fields such as name, kingdomId, power, townCenterLevel, avatarUrl, allian
 - Content type: application/json
 - Body: exactly playerId, code, and kid, all supplied as strings
 
-    curl -X POST "https://kingshot-autoredeemer.vercel.app/api/v4/redemptions" \
+    curl -X POST "$API_BASE/api/v4/redemptions" \
       -H "Authorization: Bearer $KINGSHOT_API_KEY" \
       -H "Content-Type: application/json" \
       -H "Idempotency-Key: redeem-43180889-example-001" \
@@ -137,7 +136,8 @@ This example uses Node.js 18+ built-in fetch. Keep the API key in a server-side 
 
     import { randomUUID } from "node:crypto";
 
-    const API_BASE = "https://kingshot-autoredeemer.vercel.app";
+    const API_BASE = process.env.KINGSHOT_API_BASE;
+    if (!API_BASE) throw new Error("KINGSHOT_API_BASE is not configured");
     const API_KEY = process.env.KINGSHOT_API_KEY;
     if (!API_KEY) throw new Error("KINGSHOT_API_KEY is not configured");
 
@@ -190,10 +190,11 @@ When catching the error, use its `retryHint` rather than retrying every failure.
     import requests
 
     api_key = os.environ["KINGSHOT_API_KEY"]
+    api_base = os.environ["KINGSHOT_API_BASE"]
     body = {"playerId": "43180889", "code": "EXAMPLECODE", "kid": "1125"}
     key = str(uuid.uuid4())  # generate once for this logical redemption
     response = requests.post(
-        "https://kingshot-autoredeemer.vercel.app/api/v4/redemptions",
+        f"{api_base}/api/v4/redemptions",
         headers={
             "Authorization": f"Bearer {api_key}",
             "Idempotency-Key": key,
@@ -267,7 +268,11 @@ Built and maintained by **Judson** (@judson00713 on Discord). For API integratio
 
 ## Webhook subscriptions
 
-Use `GET` or `POST /api/v4/webhooks` to list or create subscriptions, and `DELETE /api/v4/webhooks/{webhookId}` to disable one. Supported event names are `redemption.completed` and `redemption.unknown`; each key can have up to five HTTPS subscriptions. The signing secret is returned once. Set `V4_WEBHOOK_ENCRYPTION_KEY` to a 32-byte hexadecimal key before enabling subscription creation. Deliveries are queued durably and attempted by a scheduled worker every five minutes. Failed deliveries retry with exponential backoff for up to eight attempts. Verify `X-Kingshot-Signature` as HMAC-SHA256 over `<timestamp>.<raw request body>` using the signing secret, and deduplicate by `X-Kingshot-Event-Id`. Configure `V4_WEBHOOK_ENCRYPTION_KEY` as 32-byte hex and `V4_WEBHOOK_WORKER_SECRET` (or `CRON_SECRET`) in both Vercel and GitHub Actions.
+Native V4 supports `GET` and `POST /api/v4/webhooks` to list or create subscriptions, and `DELETE /api/v4/webhooks/{webhookId}` to disable one. Supported event names are `redemption.completed` and `redemption.unknown`; each API key can have up to five active subscriptions. The signing secret is returned once. Subscription creation requires `V4_WEBHOOK_ENCRYPTION_KEY`, a 32-byte hexadecimal secret configured as a Worker secret.
+
+Creation accepts HTTPS URLs without embedded credentials, nonstandard ports, IP literals, localhost, or local/internal hostnames. This is input screening only. DNS resolution and public-IP enforcement at connection time are not yet implemented in the native runtime.
+
+**Delivery is currently paused.** Subscriptions can be listed, created, and disabled, but events are not dispatched to destination URLs yet. Do not rely on webhooks for operational alerts or automation until the secure egress and delivery worker migration is complete. The Worker deliberately does not make outbound requests to registered webhook destinations while that protection is pending.
 
 ## Compact API usage
 
