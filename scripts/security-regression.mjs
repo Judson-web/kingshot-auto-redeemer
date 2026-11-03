@@ -148,10 +148,11 @@ assertCheck(
  auto.includes("Promise.all(assignments.map")
 );
 assertCheck(
- "Worker shard fan-out uses a deployment origin, never request host headers",
- auto.includes('const APP_ORIGIN=String(process.env.PUBLIC_APP_URL||"https://kingshot-autoredeemer-edge.sajijudsa.workers.dev").replace(/\\/+$/,"");') &&
+ "Worker shard fan-out uses a private Cloudflare service binding, never a public self-fetch",
+ auto.includes('const shardService=req.workerEnv?.SHARD_WORKER;') &&
+ auto.includes('shardService.fetch(new Request("https://shard.internal/api/kingshot-auto?mode=worker&slot="+workerIndex') &&
+ !auto.includes("workerUrlBase") &&
  !auto.includes("VERCEL_") &&
- auto.includes('const workerUrlBase=APP_ORIGIN+"/api/kingshot-auto?mode=worker&slot=";') &&
  !auto.includes('req.headers["x-forwarded-host"]') &&
  !auto.includes('req.headers.host||"kingshot-autoredeemer.vercel.app"')
 );
