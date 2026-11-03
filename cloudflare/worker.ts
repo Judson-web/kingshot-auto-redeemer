@@ -97,6 +97,35 @@ async function handleRegistrationStatus(request: Request, env: Env): Promise<Res
   }
 }
 
+
+async function handleRegistrationMilestoneCount(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "GET") return new Response(JSON.stringify({ error: "Method not allowed." }), {
+    status: 405, headers: { Allow: "GET", "Content-Type": "application/json", "Cache-Control": "no-store" },
+  });
+  if (!env.SUPABASE_SERVICE_ROLE_KEY) return jsonError(503, "registration_count_unavailable", "Registration count is temporarily unavailable.");
+  const base = String(env.SUPABASE_URL || "https://wocxvtptqapietlteshr.supabase.co").replace(/\/$/, "");
+  try {
+    const response = await fetch(base + "/rest/v1/rpc/kingshot_public_registration_count", {
+      method: "POST",
+      headers: {
+        apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+        authorization: "Bearer " + env.SUPABASE_SERVICE_ROLE_KEY,
+        "content-type": "application/json",
+      },
+      body: "{}",
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) return jsonError(503, "registration_count_unavailable", "Registration count is temporarily unavailable.");
+    const value = Number(await response.json());
+    if (!Number.isSafeInteger(value) || value < 0) return jsonError(503, "registration_count_invalid", "Registration count is temporarily unavailable.");
+    return Response.json({ registeredIds: value, milestone: 1000, remaining: Math.max(0, 1000 - value) }, {
+      headers: { "Cache-Control": "public, max-age=30, s-maxage=30, stale-while-revalidate=60", "X-Content-Type-Options": "nosniff", "X-Edge-Backend": "cloudflare-supabase" },
+    });
+  } catch {
+    return jsonError(503, "registration_count_unavailable", "Registration count is temporarily unavailable.");
+  }
+}
+
 async function handlePublicHealth(request: Request, env: Env): Promise<Response> {
   if (request.method !== "GET") return new Response(JSON.stringify({ error: "Method not allowed" }), {
     status: 405, headers: { Allow: "GET", "Content-Type": "application/json", "Cache-Control": "no-store" },
@@ -389,6 +418,10 @@ export default {
     }
 
     if (incoming.pathname === "/api/ops-tools/health") return handlePublicHealth(request, env);
+
+    if (incoming.pathname === "/api/kingshot-player" && incoming.searchParams.get("milestone") === "count") {
+      return handleRegistrationMilestoneCount(request, env);
+    }
 
     if (incoming.pathname === "/api/ops-tools/visitor") {
       if (request.method === "GET") return handleEdgeLocale(request);

@@ -37,5 +37,6 @@
 - Removed `LEGACY_API_ORIGIN` from Wrangler configuration.
 - Unported API routes return explicit `501 route_not_migrated` responses instead of silently forwarding elsewhere.
 - Existing native read-only endpoints remain available.
+- Added native `/api/kingshot-player?milestone=count` using the existing `kingshot_public_registration_count` Supabase RPC, preserving its response contract and cache policy.
 - Supabase telemetry writes are disabled by default in preview.
 - This is an intermediate migration checkpoint, not a production-ready replacement.
