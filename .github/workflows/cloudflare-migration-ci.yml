@@ -103,7 +103,7 @@ jobs:
       - name: Start disposable local Supabase services
         run: supabase start --exclude realtime,storage,functions,studio,mail,analytics,pooler
       - name: Export local Supabase endpoints and test keys
-        run: supabase status --env --output-format text >> "$GITHUB_ENV"
+        run: supabase status -o env >> "$GITHUB_ENV"
       - name: Apply isolated V4 schema to local Supabase Postgres
         run: |
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f tests/sql/native-v4-migration-fixture.sql
