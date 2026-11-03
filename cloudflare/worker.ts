@@ -146,7 +146,7 @@ async function handleDiscordAvatar(request: Request): Promise<Response> {
     ? (requestedFormat === "jpeg" ? "jpg" : requestedFormat) : "png";
   const size = Number(params.get("size") || 1024);
   const allowedSizes = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096];
-  if (!/^\\d{15,22}$/.test(id) || !/^[a-zA-Z0-9_]{20,80}$/.test(hash) || !allowedSizes.includes(size)) {
+  if (!/^\d{15,22}$/.test(id) || !/^[a-zA-Z0-9_]{20,80}$/.test(hash) || !allowedSizes.includes(size)) {
     return jsonError(400, "invalid_avatar_request", "Invalid avatar request.");
   }
   const animated = hash.startsWith("a_");
@@ -185,7 +185,7 @@ async function handleDiscordUser(request: Request, env: Env): Promise<Response> 
     });
   }
   const id = (new URL(request.url).searchParams.get("id") || "").trim();
-  if (!/^\\d{15,22}$/.test(id)) {
+  if (!/^\d{15,22}$/.test(id)) {
     return jsonError(400, "invalid_discord_user_id", "Enter a valid Discord user ID.");
   }
   if (!env.DISCORD_BOT_TOKEN) {
@@ -224,7 +224,7 @@ async function handleDiscordUser(request: Request, env: Env): Promise<Response> 
     return jsonError(502, "discord_invalid_response", "Discord returned an invalid profile.");
   }
   const avatar = typeof body.avatar === "string" && body.avatar ? body.avatar : null;
-  const userId = typeof body.id === "string" && /^\\d{15,22}$/.test(body.id) ? body.id : id;
+  const userId = typeof body.id === "string" && /^\d{15,22}$/.test(body.id) ? body.id : id;
   const animated = Boolean(avatar && avatar.startsWith("a_"));
   const defaultAvatarIndex = Number((BigInt(userId) >> 22n) % 6n);
   const format = animated ? "gif" : "png";
