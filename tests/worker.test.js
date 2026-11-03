@@ -103,3 +103,11 @@ test("Cloudflare MightPulse request budgets bound retries and allow explicit fas
   assert.deepEqual(resolveMightPulseRequestBudget(9000, { totalTimeoutMs: 15000, maxAttempts: 2 }, 6), { perAttemptMs: 9000, totalTimeoutMs: 15000, maxAttempts: 2 });
   assert.deepEqual(resolveMightPulseRequestBudget(9000, { totalTimeoutMs: 1000, maxAttempts: 99 }, 3), { perAttemptMs: 9000, totalTimeoutMs: 9000, maxAttempts: 3 });
 });
+
+test("Cloudflare MightPulse adapter caches circuit-breaker RPC outages and preserves bounded fast paths", async () => {
+  const adapter = await readFile(new URL("../cloudflare/mightpulse.ts", import.meta.url), "utf8");
+  const router = await readFile(new URL("../cloudflare/worker.ts", import.meta.url), "utf8");
+  assert.match(adapter, /circuitRpcUnavailableUntil = Date\.now\(\) \+ 30_000/);
+  assert.match(adapter, /if \(Date\.now\(\) < circuitRpcUnavailableUntil\) return null/);
+  assert.match(router, /fast\?\{totalTimeoutMs:18_000,maxAttempts:2\}:\{\}/);
+});
