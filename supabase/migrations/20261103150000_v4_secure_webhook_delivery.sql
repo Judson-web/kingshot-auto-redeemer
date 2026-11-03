@@ -80,7 +80,7 @@ begin
 
   update public.kingshot_developer_webhook_deliveries d
   set delivered_at = case
-        when p_delivered or p_terminal or d.attempt_count + 1 >= 8 then clock_timestamp()
+        when p_delivered or p_terminal or d.attempt_count >= 8 then clock_timestamp()
         else null
       end,
       last_status = p_status,
