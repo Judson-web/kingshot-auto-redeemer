@@ -1,5 +1,4 @@
 import crypto from "node:crypto";
-import https from "node:https";
 import { lookup } from "node:dns/promises";
 import { BlockList, isIP } from "node:net";
 import type { V3Request,V3Response } from "../api-v3/types.js";
@@ -45,32 +44,6 @@ export async function assertPublicWebhookUrl(value:string):Promise<void> {
  await resolvePublicAddresses(u.hostname);
 }
 
-// Pin the TCP connection to the exact address checked above. The original hostname
-// remains the TLS SNI/certificate identity and Host header. Redirects are never followed.
-export async function postPinnedWebhook(value:string,headers:Record<string,string>,body:string):Promise<number> {
- const u=safeUrl(value),records=await resolvePublicAddresses(u.hostname);
- const selected=records[0];
- return await new Promise<number>((resolve,reject)=>{
-  let settled=false;
-  const finish=(error?:Error,status?:number)=>{if(settled)return;settled=true;error?reject(error):resolve(status||0)};
-  const request=https.request({
-   protocol:"https:",hostname:u.hostname,port:443,method:"POST",
-   path:u.pathname+u.search,headers:{...headers,host:u.host,"content-length":String(Buffer.byteLength(body))},
-   servername:isIP(u.hostname)?undefined:u.hostname,
-   lookup:((_hostname:string,_options:unknown,callback:(error:NodeJS.ErrnoException|null,address:string,family:number)=>void)=>{
-    callback(null,selected.address,selected.family);
-   }) as any,
-   timeout:5000
-  },response=>{
-   response.resume();
-   response.once("end",()=>finish(undefined,response.statusCode||0));
-   response.once("error",error=>finish(error));
-  });
-  request.once("timeout",()=>request.destroy(new Error("webhook request timed out")));
-  request.once("error",error=>finish(error));
-  request.end(body);
- });
-}
 function equal(a:string,b:string){const x=Buffer.from(a),y=Buffer.from(b);return x.length===y.length&&crypto.timingSafeEqual(x,y)}
 async function db(path:string,init:RequestInit={}){if(!SERVICE)throw Error("service role missing");const r=await fetch(DB+path,{...init,signal:init.signal||AbortSignal.timeout(5000),headers:{apikey:SERVICE,authorization:"Bearer "+SERVICE,"content-type":"application/json",...(init.headers||{})}});const body=await r.json().catch(()=>null);if(!r.ok)throw Error("database request failed: "+r.status);return body}
 function decrypt(value:string){const key=Buffer.from(process.env.V4_WEBHOOK_ENCRYPTION_KEY||"","hex");if(key.length!==32)throw Error("webhook encryption key missing");const parts=value.split(".");if(parts.length!==3)throw Error("invalid ciphertext");const [iv,tag,cipher]=parts.map(x=>Buffer.from(x,"base64url"));const d=crypto.createDecipheriv("aes-256-gcm",key,iv);d.setAuthTag(tag);return Buffer.concat([d.update(cipher),d.final()]).toString("utf8")}
