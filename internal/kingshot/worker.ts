@@ -52,38 +52,8 @@ export async function runWithConcurrency<T>(
   return results;
 }
 
-export function selectWorkerShardBatch(
-  players: Player[],
-  slot: number,
-  workerCount: number,
-  cycleBucket: number,
-  batchSize = 2
-): { players: Player[]; deferredPlayers: number; batchIndex: number; batchCount: number } {
-  const assigned = (Array.isArray(players) ? players : [])
-    .filter(player => workerBucket(player?.player_id, workerCount) === slot)
-    .slice()
-    .sort((a, b) => {
-      const left = String(a?.player_id || "");
-      const right = String(b?.player_id || "");
-      return left.length - right.length || left.localeCompare(right);
-    });
-  const size = Math.max(1, Math.min(10, Math.floor(Number(batchSize) || 2)));
-  const batchCount = Math.max(1, Math.ceil(assigned.length / size));
-  const safeBucket = Number.isSafeInteger(cycleBucket) && cycleBucket >= 0 ? cycleBucket : 0;
-  const batchIndex = assigned.length ? safeBucket % batchCount : 0;
-  const selected = assigned.slice(batchIndex * size, batchIndex * size + size);
-  return { players: selected, deferredPlayers: assigned.length - selected.length, batchIndex, batchCount };
-}
-
-export function workerBucket(value: unknown, workerCount: number): number {
-  const input = String(value || "");
-  let hash = 2166136261;
-  for (let i = 0; i < input.length; i++) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0) % workerCount;
-}
+export { workerBucket, selectWorkerShardBatch } from "./worker-shard-batch.js";
+import { workerBucket } from "./worker-shard-batch.js";
 
 export function summarizeWorkerResults(results: WorkerResult[]) {
   const redemptionDiagnostics: Record<string, any> = {};
