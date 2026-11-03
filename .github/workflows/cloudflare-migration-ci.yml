@@ -7,7 +7,7 @@ on:
     paths:
       - "cloudflare/**"
       - "tests/**"
-      - "scripts/cloudflare-worker-smoke.mjs"
+      - "scripts/**"
       - "supabase/migrations/**"
       - "wrangler.jsonc"
       - "src/**"
@@ -82,3 +82,38 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261103150000_v4_secure_webhook_delivery.sql
       - name: Verify RPC behavior, leases, privileges and retry ceiling
         run: psql -v ON_ERROR_STOP=1 -f tests/sql/native-v4-migration-assertions.sql
+
+  supabase-local-stack-integration:
+    name: Test V4 through local Supabase Auth and PostgREST
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Isolate the incomplete historical migration chain
+        run: |
+          mkdir -p /tmp/kingshot-v4-migrations
+          cp supabase/migrations/20261103120000_v4_native_redemption_idempotency.sql /tmp/kingshot-v4-migrations/
+          cp supabase/migrations/20261103150000_v4_secure_webhook_delivery.sql /tmp/kingshot-v4-migrations/
+          mv supabase/migrations /tmp/kingshot-full-migrations
+          mkdir -p supabase/migrations
+      - name: Start disposable local Supabase services
+        run: supabase start --exclude realtime,storage,functions,studio,mail,analytics,pooler
+      - name: Export local Supabase endpoints and test keys
+        run: supabase status --env --output-format text >> "$GITHUB_ENV"
+      - name: Apply isolated V4 schema to local Supabase Postgres
+        run: |
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f tests/sql/native-v4-migration-fixture.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f /tmp/kingshot-v4-migrations/20261103120000_v4_native_redemption_idempotency.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f /tmp/kingshot-v4-migrations/20261103150000_v4_secure_webhook_delivery.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "insert into private.kingshot_developer_api_keys(id) values ('11111111-1111-4111-8111-111111111111') on conflict (id) do nothing"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c "notify pgrst, 'reload schema'"
+          sleep 2
+      - name: Verify Auth, PostgREST RPC authorization, idempotency and webhook leases
+        run: node scripts/supabase-local-integration.mjs
+      - name: Stop disposable Supabase services
+        if: always()
+        run: supabase stop
