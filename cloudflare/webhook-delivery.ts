@@ -173,7 +173,7 @@ async function deliverOne(env: Env, delivery: Delivery): Promise<"delivered" | "
     createdAt: delivery.created_at || createdAt,
     data: delivery.payload,
   });
-  if (body.length > 65536) {
+  if (new TextEncoder().encode(body).byteLength > 65536) {
     await finishDelivery(env, delivery, {
       delivered: false, terminal: true, status: null, error: "event payload exceeds 64 KiB", retryAt: null,
     });
