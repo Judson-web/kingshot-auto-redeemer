@@ -42,7 +42,7 @@ test("webhook registration rejects unsafe URL forms and never attempts destinati
 
 test("V4 webhook API documents that delivery remains paused pending secure egress", async () => {
   const docs = await readFile(new URL("../public/developer-v4.md", import.meta.url), "utf8");
-  assert.match(docs, /Delivery is currently paused/);
+  assert.match(docs, /Delivery is not enabled by default/);
   assert.match(docs, /connection time/);
   assert.match(docs, /V4_WEBHOOK_ENCRYPTION_KEY/);
 });
