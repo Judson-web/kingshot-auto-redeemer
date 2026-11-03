@@ -14,6 +14,7 @@ interface Env {
   V4_WEBHOOK_ENCRYPTION_KEY?: string;
   V4_WEBHOOK_WORKER_SECRET?: string;
   CRON_SECRET?: string;
+  SHARD_WORKER?: { fetch(request: Request): Promise<Response> };
   EGRESS?: Fetcher;
   NEON_RECOVERY_DATABASE_URL?: string;
   SUPABASE_URL?: string;
@@ -797,7 +798,7 @@ export default {
       if (env.SUPABASE_SERVICE_ROLE_KEY) return handleVisitorTelemetry(request, env);
     }
 
-    const adapted = await dispatchLegacyApi(request, ctx);
+    const adapted = await dispatchLegacyApi(request, { waitUntil: promise => ctx.waitUntil(promise), env });
     if (adapted) return adapted;
 
     if (incoming.pathname === API_PREFIX || incoming.pathname.startsWith(API_PREFIX + "/")) {
