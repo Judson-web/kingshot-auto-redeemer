@@ -56,7 +56,7 @@ test("Gateway relay rejects unauthenticated and private-address requests",async(
 test("Gateway relay routes only through the EGRESS binding",async()=>{
  let requestedUrl="",requestedInit;
  const env={RELAY_SECRET:"test-secret",EGRESS:{fetch:async(url,init)=>{requestedUrl=String(url);requestedInit=init;return new Response(null,{status:204})}}};
- const response=await gatewayRelay.fetch(new Request("https://relay.example/deliver",{method:"POST",headers:{authorization:"Bearer test-secret","content-type":"application/json"},body:JSON.stringify({url:"https://receiver.example/hook",headers:{"content-type":"application/json","x-kingshot-event-id":"evt-1","x-kingshot-signature":"sha256=abc","x-kingshot-timestamp":"123"},body:"{}"})}),env);
+ const response=await gatewayRelay.fetch(new Request("https://relay.example/deliver",{method:"POST",headers:{authorization:"Bearer test-secret","content-type":"application/json"},body:JSON.stringify({url:"https://receiver.example/hook",headers:{"content-type":"application/json","X-Kingshot-Event-Id":"evt-1","X-Kingshot-Signature":"sha256=abc","X-Kingshot-Timestamp":"123"},body:"{}"})}),env);
  assert.equal(response.status,200);
  assert.equal((await response.json()).status,204);
  assert.equal(requestedUrl,"https://receiver.example/hook");
