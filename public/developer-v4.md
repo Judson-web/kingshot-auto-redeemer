@@ -268,11 +268,19 @@ Built and maintained by **Judson** (@judson00713 on Discord). For API integratio
 
 ## Webhook subscriptions
 
-Native V4 supports `GET` and `POST /api/v4/webhooks` to list or create subscriptions, and `DELETE /api/v4/webhooks/{webhookId}` to disable one. Supported event names are `redemption.completed` and `redemption.unknown`; each API key can have up to five active subscriptions. The signing secret is returned once. Subscription creation requires `V4_WEBHOOK_ENCRYPTION_KEY`, a 32-byte hexadecimal secret configured as a Worker secret.
+Use `GET` or `POST /api/v4/webhooks` to list or create subscriptions, and `DELETE /api/v4/webhooks/{webhookId}` to disable one. Supported event names are `redemption.completed` and `redemption.unknown`; each API key can have up to five active subscriptions. The signing secret is returned once and encrypted at rest with AES-256-GCM.
 
-Creation accepts HTTPS URLs without embedded credentials, nonstandard ports, IP literals, localhost, or local/internal hostnames. This is input screening only. DNS resolution and public-IP enforcement at connection time are not yet implemented in the native runtime.
+Delivery is implemented by the native Worker at `POST /api/internal/v4-webhook-deliveries`. It claims queued events using atomic database leases, signs the exact JSON body with HMAC-SHA256 over `<timestamp>.<raw request body>`, sends `X-Kingshot-Event-Id` for deduplication, and retries transient failures with exponential backoff for up to eight attempts. Redirects are never followed.
 
-**Delivery is currently paused.** Subscriptions can be listed, created, and disabled, but events are not dispatched to destination URLs yet. Do not rely on webhooks for operational alerts or automation until the secure egress and delivery worker migration is complete. The Worker deliberately does not make outbound requests to registered webhook destinations while that protection is pending.
+The destination must be HTTPS, cannot contain credentials, use a nonstandard port, be an IP literal, or use a local/internal hostname. Set `WEBHOOK_BLOCKED_ZONE` to the apex of the app's Cloudflare zone; that zone and all its subdomains are rejected as webhook destinations. Outbound requests use Cloudflare's mediated HTTP egress, which enforces public-Internet destination policy rather than allowing Workers to connect directly to internal services. Redirects cannot pivot a delivery to another host.
+
+Configure these Worker secrets/variables before enabling delivery:
+- `V4_WEBHOOK_ENCRYPTION_KEY`: 32-byte hexadecimal AES-GCM key.
+- `V4_WEBHOOK_WORKER_SECRET` (or `CRON_SECRET`): bearer secret for the internal delivery endpoint.
+- `WEBHOOK_BLOCKED_ZONE`: the Cloudflare zone apex, not the PWA subdomain.
+- `SUPABASE_WRITE_MODE=enabled` only in the intended writable environment.
+
+The Supabase lease migration must be applied before dispatch. A `pg_cron` job should call the internal endpoint once per minute after the final Cloudflare app hostname is selected. That schedule is intentionally not configured yet because the custom hostname is still undecided. Wrangler preview remains write-disabled, so preview delivery cannot claim or send events.
 
 ## Compact API usage
 
