@@ -189,7 +189,7 @@ async function handleV4Redemption(
   requestId: string,
   h: Headers,
 ): Promise<Response> {
-  if (!request.headers.get("content-type")?.toLowerCase().includes("application/json")) {
+  if ((request.headers.get("content-type") || "").split(";")[0].trim().toLowerCase() !== "application/json") {
     return fail(415, "unsupported_media_type", "Content-Type must be application/json.", requestId, {}, h);
   }
 
