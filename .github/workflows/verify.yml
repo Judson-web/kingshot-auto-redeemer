@@ -54,7 +54,7 @@ jobs:
   smoke:
     name: Production smoke test
     # Production probing is opt-in and requires an explicitly configured non-legacy URL.
-    if: github.event_name == 'workflow_dispatch' && vars.PRODUCTION_SMOKE_ENABLED == 'true'
+    if: github.event_name == 'workflow_dispatch' && vars.PRODUCTION_SMOKE_ENABLED == 'true' && vars.PRODUCTION_URL != '' && !endsWith(vars.PRODUCTION_URL, '.vercel.app')
     needs: regression
     runs-on: ubuntu-latest
     timeout-minutes: 10
