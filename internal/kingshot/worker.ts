@@ -1,4 +1,6 @@
 import { classifyScraperError } from "./scraper.js";
+import { workerBucket, selectWorkerShardBatch } from "./worker-shard-batch.js";
+export { workerBucket, selectWorkerShardBatch };
 
 export interface WorkerResult {
   attempted?: number; success?: number; alreadyHandled?: number; alreadyReceived?: number; skipped?: number;
@@ -51,9 +53,6 @@ export async function runWithConcurrency<T>(
   if (deadlineSkipped) console.warn("Kingshot worker shard deadline reached; deferred players:", deadlineSkipped);
   return results;
 }
-
-export { workerBucket, selectWorkerShardBatch } from "./worker-shard-batch.js";
-import { workerBucket } from "./worker-shard-batch.js";
 
 export function summarizeWorkerResults(results: WorkerResult[]) {
   const redemptionDiagnostics: Record<string, any> = {};
