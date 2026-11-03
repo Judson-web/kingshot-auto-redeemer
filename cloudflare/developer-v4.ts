@@ -95,7 +95,7 @@ function playerData(player: Record<string, any>, requestedId: string) {
   };
 }
 
-async function authorize(request: Request, env: Env, requestId: string, h: Headers): Promise<{ keyId: string; scopes: string[] } | Response> {
+async function authorize(request: Request, env: Env, requestId: string, h: Headers): Promise<{ keyId: string; scopes: string[]; rateLimit: Record<string, unknown> } | Response> {
   const authorization = request.headers.get("Authorization") || "";
   const match = /^Bearer\s+(ks_live_[a-f0-9]{64})$/.exec(authorization.trim());
   if (!match) {
@@ -146,6 +146,13 @@ async function authorize(request: Request, env: Env, requestId: string, h: Heade
     return {
       keyId: String(body.key_id || ""),
       scopes: Array.isArray(body.scopes) ? body.scopes.map(String) : DEFAULT_SCOPES,
+      rateLimit: {
+        perMinuteLimit: Number.isFinite(limit) ? limit : 60,
+        perMinuteRemaining: Number.isFinite(remaining) ? remaining : null,
+        perDayLimit: 1000,
+        perDayRemaining: Number.isFinite(dailyRemaining) ? dailyRemaining : null,
+        ...(typeof body.reset_at === "string" ? { resetAt: body.reset_at } : {}),
+      },
     };
   } catch {
     return fail(503, "authorization_unavailable", "The developer authorization service is temporarily unavailable.", requestId, {}, h);
@@ -206,12 +213,7 @@ export async function handleNativeV4(request: Request, env: Env): Promise<Respon
       providerAgeSeconds: Number.isFinite(age) && age >= 0 ? Math.floor(age) : null,
       stale: typeof body?.fresh === "boolean" ? !body.fresh : null,
       source: "mightpulse",
-      rateLimit: {
-        perMinuteLimit: Number.isFinite(Number((auth as any).limit)) ? Number((auth as any).limit) : 60,
-        perMinuteRemaining: Number.isFinite(Number((auth as any).remaining)) ? Number((auth as any).remaining) : null,
-        perDayLimit: 1000,
-        perDayRemaining: Number.isFinite(Number((auth as any).daily_remaining)) ? Number((auth as any).daily_remaining) : null,
-      },
+      rateLimit: auth.rateLimit,
     }, h);
   } catch (error) {
     const status = mightPulsePlayerErrorStatus(error);
