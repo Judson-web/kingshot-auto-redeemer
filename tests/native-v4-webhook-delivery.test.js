@@ -33,6 +33,7 @@ test("webhook delivery rejects unsafe URL forms and bounds retries and payload s
 test("webhook delivery claims rows atomically and finalizes only matching leases", async () => {
   const migration = await readFile(new URL("../supabase/migrations/20261103150000_v4_secure_webhook_delivery.sql", import.meta.url), "utf8");
   assert.match(migration, /for update skip locked/i);
+  assert.match(migration, /attempt_count = d\.attempt_count \+ 1/);
   assert.match(migration, /lease_token = gen_random_uuid\(\)/);
   assert.match(migration, /where d\.id = p_delivery_id/);
   assert.match(migration, /and d\.lease_token = p_lease_token/);
