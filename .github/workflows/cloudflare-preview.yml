@@ -113,7 +113,7 @@ jobs:
             CUSTOM_MESSAGE_DESTINATIONS CUSTOM_MESSAGE_WEBHOOK_1494360495694549134_URL
           )
           for name in "${NAMES[@]}"; do
-            if printf '%s\\n' "$EXISTING" | grep -Fxq "$name"; then
+            if printf '%s\n' "$EXISTING" | grep -Fxq "$name"; then
               SKIPPED+=("$name")
               continue
             fi
@@ -129,12 +129,12 @@ jobs:
             echo "## Cloudflare Worker secret sync"
             echo
             echo "Existing secrets preserved: ${#SKIPPED[@]}"
-            printf 'Bound from GitHub Actions: %s\\n' "${BOUND[*]:-none}"
-            printf 'Not configured in GitHub Actions: %s\\n' "${MISSING[*]:-none}"
+            printf 'Bound from GitHub Actions: %s\n' "${BOUND[*]:-none}"
+            printf 'Not configured in GitHub Actions: %s\n' "${MISSING[*]:-none}"
             echo "Secret values were never printed. Existing Worker secrets were not overwritten."
           } >> "$GITHUB_STEP_SUMMARY"
-          printf 'Bound: %s\\n' "${BOUND[*]:-none}"
-          printf 'Missing (not modified): %s\\n' "${MISSING[*]:-none}"
+          printf 'Bound: %s\n' "${BOUND[*]:-none}"
+          printf 'Missing (not modified): %s\n' "${MISSING[*]:-none}"
 
       - name: Deploy to workers.dev only
         run: npx --yes wrangler@4 deploy --config wrangler.jsonc
