@@ -12,7 +12,7 @@
   "vars": {
     "SUPABASE_URL": "https://wocxvtptqapietlteshr.supabase.co",
     "PUBLIC_APP_URL": "https://kingshot-autoredeemer-edge.sajijudsa.workers.dev",
-    "SUPABASE_WRITE_MODE": "disabled"
+    "SUPABASE_WRITE_MODE": "enabled"
   },
   "assets": {
     "directory": "./dist",
