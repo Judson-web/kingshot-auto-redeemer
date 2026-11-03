@@ -220,7 +220,9 @@ async function encryptWebhookSecret(env: Env, secret: string): Promise<string> {
   const key = await crypto.subtle.importKey("raw", keyBytes, { name: "AES-GCM" }, false, ["encrypt"]);
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const encrypted = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(secret)));
-  return base64Url(iv) + "." + base64Url(encrypted);
+  const tag = encrypted.slice(encrypted.length - 16);
+  const ciphertext = encrypted.slice(0, encrypted.length - 16);
+  return base64Url(iv) + "." + base64Url(tag) + "." + base64Url(ciphertext);
 }
 
 async function createWebhookSecret(): Promise<string> {
