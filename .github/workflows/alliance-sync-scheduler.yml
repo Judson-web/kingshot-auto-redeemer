@@ -22,7 +22,7 @@ jobs:
         shell: bash
         run: |
           if [ -z "${SYNC_SECRET}" ]; then
-            echo "::error::Add the GitHub Actions secret ALLIANCE_SYNC_CRON_SECRET (same value as Vercel's ALLIANCE_SYNC_CRON_SECRET or CRON_SECRET)."
+            echo "::error::Add the GitHub Actions secret ALLIANCE_SYNC_CRON_SECRET (same value as the Cloudflare Worker ALLIANCE_SYNC_CRON_SECRET or CRON_SECRET)."
             exit 1
           fi
 
