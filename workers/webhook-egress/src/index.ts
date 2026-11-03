@@ -76,6 +76,9 @@ export default {
     } catch {
       return Response.json({ error: "invalid_json" }, { status: 400 });
     }
+    if (!input || typeof input !== "object" || Array.isArray(input)) {
+      return Response.json({ error: "invalid_delivery" }, { status: 400 });
+    }
     if (!validTarget(input.url) || typeof input.body !== "string" ||
         new TextEncoder().encode(input.body).byteLength > 64_000 ||
         !input.headers || typeof input.headers !== "object" || Array.isArray(input.headers)) {
