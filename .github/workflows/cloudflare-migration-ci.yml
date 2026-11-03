@@ -8,6 +8,7 @@ on:
       - "cloudflare/**"
       - "tests/**"
       - "scripts/cloudflare-worker-smoke.mjs"
+      - "supabase/migrations/**"
       - "wrangler.jsonc"
       - "src/**"
       - "public/**"
@@ -47,3 +48,37 @@ jobs:
         run: npx --yes wrangler@4 deploy --dry-run --config wrangler.jsonc
       - name: Smoke-test local Worker runtime
         run: node scripts/cloudflare-worker-smoke.mjs
+
+  postgres-migration-integration:
+    name: Test V4 migrations on disposable PostgreSQL
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: migration_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d migration_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: migration_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create disposable Supabase-compatible baseline
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/native-v4-migration-fixture.sql
+      - name: Apply V4 idempotency migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261103120000_v4_native_redemption_idempotency.sql
+      - name: Apply V4 webhook delivery migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261103150000_v4_secure_webhook_delivery.sql
+      - name: Verify RPC behavior, leases, privileges and retry ceiling
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/native-v4-migration-assertions.sql
