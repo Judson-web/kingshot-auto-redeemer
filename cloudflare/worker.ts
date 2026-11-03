@@ -120,6 +120,18 @@ const detailedProfileInFlight = new Map<string, Promise<Record<string, unknown>>
 function playerIdOf(player: Record<string, unknown>): string {
   return String(player.governor_id ?? player.fid ?? player.player_id ?? "");
 }
+function normalizeNativePlayer(player: Record<string, any>): Record<string, any> {
+  const existing = player.alliance && typeof player.alliance === "object" && !Array.isArray(player.alliance)
+    ? player.alliance : {};
+  const abbr = [existing.abbr, existing.tag, existing.abbreviation, existing.short_name, existing.shortName,
+    player.alliance_abbr, player.allianceAbbr, player.alliance_tag, player.allianceTag]
+    .map(value => typeof value === "string" ? value.trim() : "").find(Boolean) || "";
+  const name = [existing.name, existing.alliance_name, player.alliance_name, player.allianceName,
+    typeof player.alliance === "string" ? player.alliance : "", player.guild_name]
+    .map(value => typeof value === "string" ? value.trim() : "").find(Boolean) || "";
+  if (!abbr && !name) return player;
+  return { ...player, alliance: { ...existing, ...(abbr ? { abbr } : {}), ...(name ? { name } : {}) } };
+}
 function numericOrNull(value: unknown): number | null {
   if (value === null || value === undefined || String(value).trim() === "") return null;
   const number = Number(String(value).replace(/,/g, ""));
@@ -261,7 +273,10 @@ async function handleNativeDetailedPlayerProfile(request: Request, env: Env): Pr
       return jsonError(status,status===404?"player_not_found":status===429?"provider_rate_limited":"profile_unavailable",
         status===404?"No Kingshot player was found for this ID.":status===429?"The game data provider is busy. Please wait a moment and try again.":"The basic player lookup is temporarily unavailable.");
     }
-    const player=baseBody.player && typeof baseBody.player==="object"?baseBody.player:baseBody;
+    const nestedBase=baseBody.data && typeof baseBody.data==="object" && !Array.isArray(baseBody.data)?baseBody.data:null;
+    const rawPlayer=baseBody.player && typeof baseBody.player==="object"?baseBody.player
+      :nestedBase?.player && typeof nestedBase.player==="object"?nestedBase.player:nestedBase??baseBody;
+    const player=normalizeNativePlayer(rawPlayer);
     if(playerIdOf(player)!==playerId) return jsonError(502,"profile_mismatch","The provider returned a different player ID.");
     const profile=await loadNativeDetailedProfile(env,playerId,player);
     return Response.json({...profile,meta:{requestId,timestamp:new Date().toISOString()}},{
@@ -391,9 +406,12 @@ async function handleNativePlayerLookup(request: Request, env: Env): Promise<Res
           : "Player lookup provider is unavailable.");
     }
     if (!body || typeof body !== "object" || Array.isArray(body)) return jsonError(502, "invalid_provider_response", "Player lookup provider returned an invalid response.");
-    const payload = body as Record<string, unknown>;
-    const player = payload.player && typeof payload.player === "object" && !Array.isArray(payload.player)
-      ? payload.player as Record<string, unknown> : payload;
+    const payload = body as Record<string, any>;
+    const nested = payload.data && typeof payload.data === "object" && !Array.isArray(payload.data) ? payload.data : null;
+    const rawPlayer = payload.player && typeof payload.player === "object" && !Array.isArray(payload.player)
+      ? payload.player : nested?.player && typeof nested.player === "object" && !Array.isArray(nested.player)
+        ? nested.player : nested ?? payload;
+    const player = normalizeNativePlayer(rawPlayer);
     const returnedId = String(player.governor_id ?? player.fid ?? player.player_id ?? "");
     if (returnedId !== playerId) return jsonError(502, "profile_mismatch", "The provider returned a different player ID.");
     return Response.json({ player, data: { player }, meta: {

@@ -116,6 +116,9 @@ test("detailed profile enrichment handles nested provider payloads and legacy al
   const router = await readFile(new URL("../cloudflare/worker.ts", import.meta.url), "utf8");
   assert.match(router, /player\.alliance_abbr/);
   assert.match(router, /allianceObject\.abbreviation/);
+  assert.match(router, /function normalizeNativePlayer/);
+  assert.match(router, /alliance: \{ \.\.\.existing/);
+  assert.match(router, /nested\?\.player/);
   assert.match(router, /Array\.isArray\(alliance\.members\)/);
   assert.match(router, /detailSource\.heroes/);
   assert.match(router, /allianceRoster=\{name:/);
