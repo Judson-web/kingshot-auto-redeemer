@@ -201,7 +201,7 @@ async function deliverOne(env: Env, delivery: Delivery): Promise<"delivered" | "
       signal: AbortSignal.timeout(8000),
     });
   } catch (error) {
-    const attempt = Number(delivery.attempt_count || 0) + 1;
+    const attempt = Number(delivery.attempt_count || 1);
     const terminal = attempt >= 8;
     const message = String((error as Error)?.message || "destination request failed").slice(0, 300);
     await finishDelivery(env, delivery, {
