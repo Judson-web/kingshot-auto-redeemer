@@ -120,4 +120,16 @@ result = await rpc("kingshot_developer_webhook_finish_delivery", {
 });
 assert.equal(result.body, true, "matching lease token should complete the delivery");
 
+const anonymousDeliveryInsert = await request("/rest/v1/kingshot_developer_webhook_deliveries", {
+  method: "POST",
+  key: anonKey,
+  body: {
+    webhook_id: "55555555-5555-4555-8555-555555555555",
+    event_id: "66666666-6666-4666-8666-666666666666",
+    event_type: "redemption.unknown",
+    payload: { shouldBeDenied: true },
+  },
+});
+assert.ok(!anonymousDeliveryInsert.ok, "anon must not insert into the private delivery queue");
+
 console.log("Supabase local Auth + PostgREST + V4 RPC integration passed");
