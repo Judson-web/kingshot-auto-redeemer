@@ -267,6 +267,89 @@ async function handleNativeDetailedPlayerProfile(request: Request, env: Env): Pr
   }
 }
 
+function findNativeAllianceRows(value: unknown, depth = 0): Record<string, any>[] {
+  if (!value || typeof value !== "object" || depth > 5) return [];
+  if (Array.isArray(value)) {
+    const rows = value.filter((item): item is Record<string, any> => Boolean(item && typeof item === "object" &&
+      (item.abbr != null || item.tag != null) && (item.name != null || item.alliance_name != null || item.power != null || item.score != null)));
+    if (rows.length) return rows;
+    for (const item of value) { const nested = findNativeAllianceRows(item, depth + 1); if (nested.length) return nested; }
+    return [];
+  }
+  for (const nestedValue of Object.values(value as Record<string, unknown>)) {
+    const nested = findNativeAllianceRows(nestedValue, depth + 1); if (nested.length) return nested;
+  }
+  return [];
+}
+async function handleNativeAllianceLookup(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "GET") return new Response(JSON.stringify({error:"Method not allowed."}), {status:405,headers:{Allow:"GET","Content-Type":"application/json","Cache-Control":"no-store"}});
+  const url = new URL(request.url), p = url.searchParams;
+  const mode = p.get("mode") || "";
+  if (mode === "registration-status") return handleRegistrationStatus(request, env);
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown", now = Date.now();
+  const key = "alliance:" + ip;
+  let bucket = playerLookupBuckets.get(key);
+  if (!bucket || bucket.resetAt <= now) bucket = {count:0,resetAt:now+60_000};
+  bucket.count++; playerLookupBuckets.set(key,bucket);
+  if (bucket.count > 20) return jsonError(429,"rate_limit_exceeded","Too many alliance lookups. Please wait before trying again.");
+  const kid = (p.get("kingdomId") || "").trim().slice(0,10), tag = (p.get("tag") || "").trim().slice(0,20);
+  if (!/^\d{1,10}$/.test(kid)) return jsonError(400,"invalid_kingdom_id","Enter a numeric kingdom ID.");
+  const fast = p.get("discordFastPath") === "1";
+  try {
+    if (mode === "search") {
+      const endpoint = "https://api.mightpulse.com/v1/kingdoms/"+encodeURIComponent(kid)+"/ranks?board=alliance_power&limit=100";
+      const response = await fetchMightPulseNative(env,endpoint,fast?6000:12000);
+      const body = await response.json().catch(()=>({})) as Record<string,any>;
+      if (!response.ok) return jsonError(response.status===404?404:response.status===429?429:502,response.status===404?"kingdom_not_found":response.status===429?"provider_rate_limited":"provider_unavailable",
+        response.status===404?"That kingdom was not found in the alliance rankings.":response.status===429?"The game data provider is busy. Please wait a moment and try again.":"Alliance rankings are temporarily unavailable. Please try again shortly.");
+      const rows=findNativeAllianceRows(body);
+      const alliances=rows.flatMap((row,index)=>{
+        const allianceTag=String(row.abbr??row.tag??row.alliance_tag??"").trim().slice(0,20);
+        if(!/^[A-Za-z0-9_-]{1,20}$/.test(allianceTag))return [];
+        const rawFlag=row.flag_url??row.flagUrl??row.flag??row.icon_url??row.iconUrl??row.image_url??row.imageUrl??row.logo_url??row.logoUrl??row.emblem_url??row.emblemUrl??"";
+        const flag=typeof rawFlag==="string"?rawFlag.trim():String(rawFlag&&typeof rawFlag==="object"?rawFlag.url??rawFlag.src??rawFlag.image??"":"").trim();
+        let flagUrl=""; if(flag)try{const u=new URL(flag,"https://www.mightpulse.com/");if(u.protocol==="https:"&&!u.username&&!u.password)flagUrl=u.href;}catch{}
+        const num=(v:any)=>v==null||!Number.isFinite(Number(v))?null:Number(v);
+        return [{name:String(row.name??row.alliance_name??allianceTag).trim().slice(0,80)||allianceTag,tag:allianceTag,
+          kingdomId:String(row.kid??kid),power:num(row.power??row.score??row.alliance_power),
+          memberCount:num(row.member_count??row.memberCount??row.count),leaderName:String(row.leader_name??row.leaderName??"").trim().slice(0,80),
+          flagUrl,rank:num(row.rank)??index+1}];
+      });
+      const q=(p.get("q")||"").toLocaleLowerCase(), matches=q?alliances.filter(x=>(x.name+" "+x.tag).toLocaleLowerCase().includes(q)):alliances;
+      return Response.json({alliances:matches,totalReturned:alliances.length,limitedToTop:100,
+        sourceFresh:typeof body.fresh==="boolean"?body.fresh:null,cachedAt:typeof body.cached_at==="string"?body.cached_at:null,
+        ageSeconds:numericOrNull(body.age_seconds)},{headers:{"Cache-Control":"private, no-store","X-Edge-Backend":"cloudflare-mightpulse"}});
+    }
+    if(!/^[A-Za-z0-9_-]{1,20}$/.test(tag))return jsonError(400,"invalid_alliance_tag","Enter the exact alliance tag/abbreviation shown in Kingshot.");
+    const endpoint="https://api.mightpulse.com/v1/alliances/"+encodeURIComponent(kid)+"/"+encodeURIComponent(tag)+"?include=info,roster";
+    const response=await fetchMightPulseNative(env,endpoint,fast?7000:15000);
+    const body=await response.json().catch(()=>({})) as Record<string,any>;
+    if(!response.ok)return jsonError(response.status===404?404:response.status===429?429:502,response.status===404?"alliance_not_found":response.status===429?"provider_rate_limited":"provider_unavailable",
+      response.status===404?"No alliance was found for that kingdom and tag. Check both values and try again.":response.status===429?"The game data provider is busy. Please wait a moment and try again.":"Alliance data is temporarily unavailable. Please try again shortly.");
+    const source=body.data&&typeof body.data==="object"?body.data:body, alliance=source.alliance??source;
+    const raw=Array.isArray(source.members)?source.members:Array.isArray(source.roster)?source.roster:Array.isArray(alliance.members)?alliance.members:[];
+    const members=raw.flatMap((m:Record<string,any>)=>{
+      const playerId=String(m.governor_id??m.fid??"").trim();if(!/^\d{5,20}$/.test(playerId))return [];
+      const num=(v:any)=>v==null||!Number.isFinite(Number(v))?null:Number(v), avatar=String(m.avatar_url??m.avatarUrl??"").trim();
+      return [{playerId,name:String(m.nick_name??m.name??m.nickname??"Kingshot Player").trim().slice(0,80)||"Kingshot Player",
+        power:num(m.power),townCenterLevel:num(m.town_center_level),avatarUrl:/^https:\/\//i.test(avatar)?avatar:"",
+        allianceRank:String(m.alliance_rank_label??m.alliance_rank??"").trim().slice(0,30),kingdomId:String(m.kid??kid)}];
+    });
+    const num=(v:any)=>v==null||!Number.isFinite(Number(v))?null:Number(v);
+    const count=num(alliance.count)??members.length;
+    return Response.json({alliance:{name:String(alliance.name??alliance.alliance_name??tag).trim().slice(0,80)||tag,
+      tag:String(alliance.abbr??alliance.tag??tag).trim().slice(0,20)||tag,kingdomId:kid,power:num(alliance.power),count,memberCount:count,
+      leaderName:String(alliance.leader_name??"").trim().slice(0,80)},members,
+      stale:body.fresh===false||Boolean(body.stale),fresh:typeof body.fresh==="boolean"?body.fresh:null,
+      fetchedAt:typeof body.cached_at==="string"?body.cached_at:null,ageSeconds:num(body.age_seconds)},
+      headers:{"Cache-Control":"private, no-store","X-Edge-Backend":"cloudflare-mightpulse"}});
+  } catch(error) {
+    const status=mightPulsePlayerErrorStatus(error);
+    return jsonError(status===429?429:502,status===429?"provider_rate_limited":"provider_unavailable",
+      status===429?"The game data provider is busy. Please wait a moment and try again.":"Could not reach the alliance data provider. Please try again shortly.");
+  }
+}
+
 async function handleNativePlayerLookup(request: Request, env: Env): Promise<Response> {
   if (request.method !== "GET") return new Response(JSON.stringify({ error: "Method not allowed.", code: "method_not_allowed" }), {
     status: 405, headers: { Allow: "GET", "Content-Type": "application/json", "Cache-Control": "no-store" },
@@ -633,9 +716,8 @@ export default {
 
     // Preview writes are fail-closed until an isolated staging database is configured.
     if (incoming.pathname === "/api/kingshot-player" &&
-      incoming.searchParams.get("developerPath") === "alliance-lookup" &&
-      incoming.searchParams.get("mode") === "registration-status") {
-      return handleRegistrationStatus(request, env);
+      incoming.searchParams.get("developerPath") === "alliance-lookup") {
+      return handleNativeAllianceLookup(request, env);
     }
 
     if (incoming.pathname === "/api/ops-tools/health") return handlePublicHealth(request, env);
