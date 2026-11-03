@@ -16,6 +16,7 @@ test("native webhook delivery signs payloads with HMAC SHA-256 and decrypts lega
   assert.match(source, /name: "AES-GCM"/);
   assert.match(source, /tagLength: 128/);
   assert.match(source, /name: "HMAC", hash: "SHA-256"/);
+  assert.match(source, /toString\(16\)\.padStart\(2, "0"\)/);
   assert.match(source, /X-Kingshot-Signature/);
   assert.match(source, /timestamp \+ "\." \+ body/);
 });
