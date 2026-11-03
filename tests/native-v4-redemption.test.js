@@ -56,7 +56,7 @@ test("V4 idempotency SQL never expires or reopens unknown outcomes", async () =>
 
 test("write-disabled preview rejects V4 redemption before authorization or idempotency RPCs", async () => {
   const adapter = await readFile(new URL("../cloudflare/developer-v4.ts", import.meta.url), "utf8");
-  const guard = adapter.indexOf('if (route === "redemptions" && String(env.SUPABASE_WRITE_MODE || "").toLowerCase() !== "enabled")');
+  const guard = adapter.indexOf('if ((route === "redemptions" || (route === "webhooks" && method === "POST") || route === "webhook-item") && String(env.SUPABASE_WRITE_MODE || "").toLowerCase() !== "enabled")');
   const authorization = adapter.indexOf("const auth = await authorize(request, env, requestId, h)");
   assert.ok(guard >= 0 && authorization > guard, "the preview write gate must run before quota authorization");
   assert.match(adapter.slice(guard, authorization), /writes_disabled/);
