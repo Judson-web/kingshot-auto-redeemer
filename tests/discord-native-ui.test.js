@@ -119,10 +119,10 @@ test("Discord command sync uses safe per-command upserts and verifies read-back"
 });
 
 
-test("Discord deferred commands and components stay alive with Vercel waitUntil", () => {
-  assert.ok(interactions.includes('import { waitUntil } from "@vercel/functions";'));
-  assert.ok(interactions.includes("function retainAfterAcknowledgement(promise, interaction, label)"));
-  assert.ok(interactions.includes("waitUntil(task)"));
+test("Discord deferred commands and components stay alive with the Cloudflare execution context", () => {
+  assert.ok(!interactions.includes("@vercel/functions"));
+  assert.ok(interactions.includes("function retainAfterAcknowledgement(promise, interaction, label, req)"));
+  assert.ok(interactions.includes('if (typeof req?.waitUntil === "function") req.waitUntil(task);'));
 
   const handlerStart = interactions.indexOf("export default async function handler(req, res)");
   const handler = interactions.slice(handlerStart);
