@@ -1,5 +1,6 @@
 import { fetchMightPulseNative, mightPulsePlayerErrorStatus } from "./mightpulse.js";
 import { handleNativeAvatarFrame } from "./avatar-frame.js";
+import { handleNativeRegistration } from "./registration.js";
 
 interface Env {
   ASSETS: Fetcher;
@@ -713,6 +714,8 @@ export default {
     if (incoming.pathname === "/api/discord-user" || incoming.pathname === "/api/discord-tools/user") {
       return handleDiscordUser(request, env);
     }
+
+    if (incoming.pathname === "/api/kingshot-register") return handleNativeRegistration(request, env);
 
     // Preview writes are fail-closed until an isolated staging database is configured.
     if (incoming.pathname === "/api/kingshot-player" &&
