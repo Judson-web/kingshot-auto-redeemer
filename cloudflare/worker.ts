@@ -1,9 +1,17 @@
+import { fetchMightPulseNative, mightPulsePlayerErrorStatus } from "./mightpulse.js";
+
 interface Env {
   ASSETS: Fetcher;
   SUPABASE_WRITE_MODE?: string;
   SUPABASE_URL?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;
   DISCORD_BOT_TOKEN?: string;
+  MIGHTPULSE_API_KEY?: string;
+  MIGHTPULSE_API_KEY_2?: string;
+  MIGHTPULSE_API_KEY_3?: string;
+  MIGHTPULSE_API_KEY_4?: string;
+  MIGHTPULSE_API_KEY_5?: string;
+  MIGHTPULSE_API_KEY_6?: string;
 }
 
 const API_PREFIX = "/api";
@@ -97,6 +105,61 @@ async function handleRegistrationStatus(request: Request, env: Env): Promise<Res
   }
 }
 
+
+
+const playerLookupBuckets = new Map<string, { count: number; resetAt: number }>();
+
+async function handleNativePlayerLookup(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "GET") return new Response(JSON.stringify({ error: "Method not allowed.", code: "method_not_allowed" }), {
+    status: 405, headers: { Allow: "GET", "Content-Type": "application/json", "Cache-Control": "no-store" },
+  });
+  const url = new URL(request.url);
+  const playerId = (url.searchParams.get("id") || "").trim();
+  if (!/^\d{5,20}$/.test(playerId)) return jsonError(400, "invalid_player_id",
+    "Player ID must contain 5–20 digits. Copy it from Kingshot under Profile → Info; your kingdom number is different.");
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+  const now = Date.now();
+  let bucket = playerLookupBuckets.get(ip);
+  if (!bucket || bucket.resetAt <= now) bucket = { count: 0, resetAt: now + 60_000 };
+  bucket.count++;
+  playerLookupBuckets.set(ip, bucket);
+  if (playerLookupBuckets.size > 5000) {
+    for (const [key, value] of playerLookupBuckets) if (value.resetAt <= now) playerLookupBuckets.delete(key);
+  }
+  if (bucket.count > 30) return new Response(JSON.stringify({ error: "Too many player lookups. Retry after the indicated delay.", code: "rate_limit_exceeded" }), {
+    status: 429, headers: { "Content-Type": "application/json", "Cache-Control": "no-store",
+      "Retry-After": String(Math.max(1, Math.ceil((bucket.resetAt - now) / 1000))),
+      "X-RateLimit-Limit": "30", "X-RateLimit-Remaining": "0" },
+  });
+  const requestId = crypto.randomUUID();
+  try {
+    const upstream = await fetchMightPulseNative(env, "https://api.mightpulse.com/v1/players/" + encodeURIComponent(playerId) + "?include=base", 9000);
+    const body: unknown = await upstream.json().catch(() => null);
+    if (!upstream.ok) {
+      const status = upstream.status === 404 ? 404 : upstream.status === 429 ? 429 : upstream.status >= 500 ? 503 : 502;
+      return jsonError(status, status === 404 ? "player_not_found" : status === 429 ? "provider_rate_limited" : "upstream_unavailable",
+        status === 404 ? "No player was found for this ID. Check it under Kingshot Profile → Info; if the ID is correct, try again shortly."
+          : status === 429 ? "The game data provider is busy. Please wait a moment and try again."
+          : "Player lookup provider is unavailable.");
+    }
+    if (!body || typeof body !== "object" || Array.isArray(body)) return jsonError(502, "invalid_provider_response", "Player lookup provider returned an invalid response.");
+    const payload = body as Record<string, unknown>;
+    const player = payload.player && typeof payload.player === "object" && !Array.isArray(payload.player)
+      ? payload.player as Record<string, unknown> : payload;
+    const returnedId = String(player.governor_id ?? player.fid ?? player.player_id ?? "");
+    if (returnedId !== playerId) return jsonError(502, "profile_mismatch", "The provider returned a different player ID.");
+    return Response.json({ player, data: { player }, meta: {
+      requestId, timestamp: new Date().toISOString(), fetchedAt: new Date().toISOString(),
+      source: "mightpulse", stale: false,
+    } }, { headers: { "Cache-Control": "public, max-age=15, s-maxage=30, stale-while-revalidate=60",
+      "X-Request-Id": requestId, "X-Content-Type-Options": "nosniff", "X-Edge-Backend": "cloudflare-mightpulse" } });
+  } catch (error) {
+    const status = mightPulsePlayerErrorStatus(error);
+    const code = status === 429 ? "provider_rate_limited" : status === 504 ? "upstream_timeout" : "upstream_unavailable";
+    return jsonError(status, code, status === 429 ? "The game data provider is busy. Please wait a moment and try again."
+      : status === 504 ? "MightPulse request timed out." : "Player lookup provider is temporarily unavailable.");
+  }
+}
 
 async function handleRegistrationMilestoneCount(request: Request, env: Env): Promise<Response> {
   if (request.method !== "GET") return new Response(JSON.stringify({ error: "Method not allowed." }), {
@@ -418,6 +481,15 @@ export default {
     }
 
     if (incoming.pathname === "/api/ops-tools/health") return handlePublicHealth(request, env);
+
+    if (incoming.pathname === "/api/kingshot-player" &&
+      !incoming.searchParams.has("milestone") &&
+      !incoming.searchParams.has("developerPath") &&
+      !incoming.searchParams.has("developer") &&
+      incoming.searchParams.get("profile") !== "detail" &&
+      !incoming.searchParams.has("frame")) {
+      return handleNativePlayerLookup(request, env);
+    }
 
     if (incoming.pathname === "/api/kingshot-player" && incoming.searchParams.get("milestone") === "count") {
       return handleRegistrationMilestoneCount(request, env);
