@@ -3,6 +3,7 @@
   "name": "kingshot-autoredeemer-edge",
   "main": "cloudflare/worker.ts",
   "compatibility_date": "2026-11-03",
+  "compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
   "workers_dev": true,
   "preview_urls": true,
   "observability": {
@@ -10,6 +11,7 @@
   },
   "vars": {
     "SUPABASE_URL": "https://wocxvtptqapietlteshr.supabase.co",
+    "PUBLIC_APP_URL": "https://kingshot-autoredeemer-edge.sajijudsa.workers.dev",
     "SUPABASE_WRITE_MODE": "disabled"
   },
   "assets": {
