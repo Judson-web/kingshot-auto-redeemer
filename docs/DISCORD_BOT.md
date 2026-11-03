@@ -1,6 +1,6 @@
 # Discord bot
 
-The Kingshot Auto Redeemer Discord integration uses Discord's signed HTTP Interactions API on Vercel. It does not require a persistent Gateway connection, message-content intent, prefix commands, a separate bot host, or a duplicate database.
+The Kingshot Auto Redeemer Discord integration uses Discord's signed HTTP Interactions API on the native Cloudflare Worker. It does not require a persistent Gateway connection, message-content intent, prefix commands, a separate bot host, or a duplicate database.
 
 ## Native Discord interface
 
@@ -42,7 +42,7 @@ The gift-code alert destination is stored per Discord server in Supabase. New-co
 
 ## Runtime configuration
 
-The interaction endpoint requires the existing server-side Vercel variables:
+The interaction endpoint requires these server-side Cloudflare Worker secrets:
 
 - `DISCORD_BOT_TOKEN`
 - `DISCORD_PUBLIC_KEY` (or `DISCORD_APPLICATION_PUBLIC_KEY`)
@@ -50,4 +50,4 @@ The interaction endpoint requires the existing server-side Vercel variables:
 The application ID may be supplied as `DISCORD_APPLICATION_ID`; otherwise it is resolved from the authenticated bot session. Optional `DISCORD_BRAND_ICON_URL` sets the small brand icon used in embeds. Keep all credentials server-side and never expose them to browser code.
 
 Player registration continues to use the existing Kingshot backend and its established validation and safeguards. No second registration system or Discord-specific player database is introduced.
-\n## Scheduled website announcements\n\nThe private owner-only message console supports one-time and recurring schedules, optional end times, timezone labels, pause/resume/cancel, Discord-only / website-push-only / both delivery, private image attachments (PNG/JPEG/WebP/GIF up to 3 MB), and selected role IDs. Role IDs are checked against the chosen Discord server before a schedule is saved. Scheduled work is persisted in `discord_scheduled_announcements`; the worker claims due rows through an atomic Postgres function and uses leases, bounded retries, and idempotent completion updates. GitHub Actions wakes the worker every five minutes. Set the repository Actions secret `CRON_SECRET` equal to the production `CRON_SECRET`.\n
+\n## Scheduled website announcements\n\nThe private owner-only message console supports one-time and recurring schedules, optional end times, timezone labels, pause/resume/cancel, Discord-only / website-push-only / both delivery, private image attachments (PNG/JPEG/WebP/GIF up to 3 MB), and selected role IDs. Role IDs are checked against the chosen Discord server before a schedule is saved. Scheduled work is persisted in `discord_scheduled_announcements`; the worker claims due rows through an atomic Postgres function and uses leases, bounded retries, and idempotent completion updates. Supabase `pg_cron` wakes the Cloudflare Worker every five minutes using the Worker `CRON_SECRET`. The GitHub Actions workflow is manual-dispatch only and is not a second scheduler.\n
