@@ -14,6 +14,23 @@ const mightPulsePerKeyMigration = await readFile(new URL("../supabase/migrations
 const workerMigration = await readFile(new URL("../supabase/migrations/20261018121000_add_fourth_kingshot_worker_slot.sql", import.meta.url), "utf8");
 const mightPulseBudgetMigration = await readFile(new URL("../supabase/migrations/20261018130000_global_mightpulse_rate_budget.sql", import.meta.url), "utf8");
 const mightPulseUsageMigration = await readFile(new URL("../supabase/migrations/20261018140000_mightpulse_usage_headroom.sql", import.meta.url), "utf8");
+const mainWorkerSource = await readFile(new URL("../cloudflare/worker.ts", import.meta.url), "utf8");
+const shardWorkerSource = await readFile(new URL("../cloudflare/shard-worker.ts", import.meta.url), "utf8");
+const legacyAdapterSource = await readFile(new URL("../cloudflare/legacy-api-adapter.ts", import.meta.url), "utf8");
+const mainWrangler = await readFile(new URL("../wrangler.jsonc", import.meta.url), "utf8");
+const shardWrangler = await readFile(new URL("../workers/shard/wrangler.jsonc", import.meta.url), "utf8");
+
+test("auto-redemption shards use a private Cloudflare service binding instead of public self-fetch", () => {
+  assert.match(autoSource, /req\.workerEnv\?\.SHARD_WORKER/);
+  assert.doesNotMatch(autoSource, /workerUrlBase/);
+  assert.match(mainWorkerSource, /SHARD_WORKER\?:/);
+  assert.match(mainWorkerSource, /env\.SHARD_WORKER\.fetch/);
+  assert.match(legacyAdapterSource, /workerEnv: context\.env/);
+  assert.match(shardWorkerSource, /mode.*worker/);
+  assert.match(shardWorkerSource, /Unauthorized/);
+  assert.match(mainWrangler, /"service": "kingshot-autoredeemer-shard"/);
+  assert.match(shardWrangler, /"workers_dev": false/);
+});
 
 test("worker assignment uses deterministic player bucketing", () => {
   assert.match(workerBatchSource, /function workerBucket/);
