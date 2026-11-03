@@ -231,3 +231,5 @@ export default {
     return env.ASSETS.fetch(request);
   },
 } satisfies ExportedHandler<Env>;
+
+// Preview deployment refresh: bind newly configured backend secrets.
