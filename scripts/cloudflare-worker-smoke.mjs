@@ -93,6 +93,11 @@ try {
   await checkJson("/api/v4/redemptions", 405,
     body => body?.error?.code === "method_not_allowed", { method: "GET" });
   if (remote) {
+    await checkJson("/api/internal/v4/webhooks/dispatch", 503,
+      body => body?.error === "secure_egress_unconfigured",
+      { method: "POST", headers: { "content-type": "application/json", authorization: "Bearer smoke-test-not-a-secret" }, body: "{}" });
+  }
+  if (remote) {
     await checkJson("/api/v4/redemptions", 401,
       body => body?.success === false && body?.data === null && body?.error?.code === "missing_api_key",
       { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ playerId: "invalid", code: "ABCDEF", kid: "7" }) });
