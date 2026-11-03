@@ -15,6 +15,7 @@ interface Delivery {
   payload: Record<string, unknown>;
   attempt_count: number;
   lease_token: string;
+  created_at?: string;
 }
 
 interface Subscription {
@@ -78,7 +79,7 @@ async function hmac(secret: string, message: string): Promise<string> {
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), {
     name: "HMAC", hash: "SHA-256",
   }, false, ["sign"]);
-  return encodeBase64Url(new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message))));
+  return [...new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message)))].map(byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
 async function database(env: Env, path: string, init: RequestInit = {}): Promise<any> {
@@ -169,7 +170,7 @@ async function deliverOne(env: Env, delivery: Delivery): Promise<"delivered" | "
   const body = JSON.stringify({
     id: delivery.event_id,
     type: delivery.event_type,
-    createdAt,
+    createdAt: delivery.created_at || createdAt,
     data: delivery.payload,
   });
   if (body.length > 65536) {
