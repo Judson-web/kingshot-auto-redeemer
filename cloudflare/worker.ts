@@ -130,6 +130,51 @@ async function handleVisitorTelemetry(request: Request, env: Env): Promise<Respo
 }
 
 
+
+async function handleDiscordAvatar(request: Request): Promise<Response> {
+  if (request.method !== "GET") {
+    return new Response(JSON.stringify({ error: "Method not allowed." }), {
+      status: 405, headers: { Allow: "GET", "Content-Type": "application/json", "Cache-Control": "no-store" },
+    });
+  }
+  const params = new URL(request.url).searchParams;
+  const id = (params.get("id") || "").trim();
+  const hash = (params.get("hash") || "").trim();
+  const requestedFormat = (params.get("format") || "png").toLowerCase();
+  const format = ["png", "jpg", "jpeg", "webp", "gif"].includes(requestedFormat)
+    ? (requestedFormat === "jpeg" ? "jpg" : requestedFormat) : "png";
+  const size = Number(params.get("size") || 1024);
+  const allowedSizes = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096];
+  if (!/^\\d{15,22}$/.test(id) || !/^[a-zA-Z0-9_]{20,80}$/.test(hash) || !allowedSizes.includes(size)) {
+    return jsonError(400, "invalid_avatar_request", "Invalid avatar request.");
+  }
+  const animated = hash.startsWith("a_");
+  if (!(animated ? ["gif"] : ["png", "jpg", "webp"]).includes(format)) {
+    return jsonError(400, "invalid_avatar_format", animated
+      ? "Animated avatars are only available as GIF."
+      : "That format is not available for this avatar.");
+  }
+  const target = "https://cdn.discordapp.com/avatars/" + id + "/" + hash + "." + format + "?size=" + size;
+  try {
+    const upstream = await fetch(target, {
+      headers: { Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8" },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!upstream.ok) {
+      return jsonError(upstream.status === 404 ? 404 : 502, "avatar_unavailable", "Avatar image is unavailable in that format.");
+    }
+    const headers = new Headers();
+    headers.set("Content-Type", upstream.headers.get("content-type") || "image/" + format);
+    headers.set("Cache-Control", "public, max-age=86400, s-maxage=2592000, stale-while-revalidate=604800");
+    headers.set("X-Content-Type-Options", "nosniff");
+    return new Response(upstream.body, { status: 200, headers });
+  } catch (error) {
+    const timedOut = error instanceof Error && error.name === "TimeoutError";
+    return jsonError(timedOut ? 504 : 502, timedOut ? "avatar_timeout" : "avatar_fetch_failed",
+      timedOut ? "The avatar took too long to load. Please try again." : "Could not load the avatar right now.");
+  }
+}
+
 function handleEdgeLocale(request: Request): Response {
   const country = (request.cf as { country?: unknown } | undefined)?.country;
   const countryCode = typeof country === "string" && /^[A-Z]{2}$/.test(country)
@@ -164,6 +209,10 @@ function jsonError(status: number, code: string, message: string): Response {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const incoming = new URL(request.url);
+
+    if (incoming.pathname === "/api/discord-avatar" || incoming.pathname === "/api/discord-tools/avatar") {
+      return handleDiscordAvatar(request);
+    }
 
     // Visitor telemetry moves natively to Workers when the Supabase service
     // credential is provisioned. Until then, POST remains on the legacy bridge.
