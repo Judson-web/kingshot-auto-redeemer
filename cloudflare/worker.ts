@@ -7,7 +7,6 @@ interface Env {
   ASSETS: Fetcher;
   SUPABASE_WRITE_MODE?: string;
   NEON_RECOVERY_DATABASE_URL?: string;
-  KINGSHOT_API_SECRET?: string;
   SUPABASE_URL?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;
   DISCORD_BOT_TOKEN?: string;
