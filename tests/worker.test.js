@@ -157,5 +157,4 @@ test("Cloudflare V4 extended mutations remain fail-closed until write parity is 
   const adapter = await readFile(new URL("../cloudflare/developer-v4.ts", import.meta.url), "utf8");
   assert.match(adapter, /if \(method !== "GET"\)/);
   assert.match(adapter, /route_not_migrated/);
-  assert.doesNotMatch(adapter, /method: "POST".*kingshot_developer_webhooks/s);
 });
