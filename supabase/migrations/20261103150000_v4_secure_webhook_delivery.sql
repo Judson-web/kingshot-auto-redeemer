@@ -39,8 +39,8 @@ begin
       and d.next_attempt_at <= clock_timestamp()
       and (d.locked_until is null or d.locked_until < clock_timestamp())
     order by d.next_attempt_at asc, d.created_at asc
-    for update skip locked
     limit p_limit
+    for update skip locked
   ),
   claimed as (
     update public.kingshot_developer_webhook_deliveries d
@@ -90,8 +90,7 @@ begin
       locked_until = null
   where d.id = p_delivery_id
     and d.lease_token = p_lease_token
-    and d.delivered_at is null
-  returning d.id into p_delivery_id;
+    and d.delivered_at is null;
 
   return found;
 end;
