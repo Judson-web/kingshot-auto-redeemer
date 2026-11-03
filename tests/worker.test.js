@@ -155,7 +155,7 @@ test("Cloudflare V4 read-only extended endpoints enforce their documented scopes
 
 test("Cloudflare V4 extended mutations remain fail-closed until write parity is ported", async () => {
   const adapter = await readFile(new URL("../cloudflare/developer-v4.ts", import.meta.url), "utf8");
-  assert.match(adapter, /if \(method !== "GET"\)/);
+  assert.match(adapter, /route === "redemptions" \? method !== "POST" : method !== "GET"/);
   assert.match(adapter, /route_not_migrated/);
 });
 
