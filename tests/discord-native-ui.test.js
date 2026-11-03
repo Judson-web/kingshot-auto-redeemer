@@ -127,9 +127,9 @@ test("Discord deferred commands and components stay alive with the Cloudflare ex
   const handlerStart = interactions.indexOf("export default async function handler(req, res)");
   const handler = interactions.slice(handlerStart);
   assert.ok(handler.includes("const commandTask = handleCommand(req, interaction, res)"));
-  assert.ok(handler.includes("retainAfterAcknowledgement(commandTask, interaction, \"slash-command\")"));
+  assert.ok(handler.includes('retainAfterAcknowledgement(commandTask, interaction, "slash-command", req)'));
   assert.ok(handler.includes("const componentTask = handleComponent(req, interaction, res)"));
-  assert.ok(handler.includes("retainAfterAcknowledgement(componentTask, interaction, \"message-component\")"));
+  assert.ok(handler.includes('retainAfterAcknowledgement(componentTask, interaction, "message-component", req)'));
   assert.ok(handler.includes("if (res.headersSent)"));
 });
 
