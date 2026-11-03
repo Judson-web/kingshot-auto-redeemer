@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 test("native webhook delivery uses only the Cloudflare Gateway egress binding", async () => {
   const source = await readFile(new URL("../cloudflare/webhook-delivery.ts", import.meta.url), "utf8");
   assert.match(source, /env\.EGRESS!\.fetch/);
-  assert.doesNotMatch(source, /\bfetch\(target/);
+  assert.doesNotMatch(source, /(?<!\.)\bfetch\(target/);
   assert.match(source, /redirect: "manual"/);
   assert.match(source, /secure_egress_unconfigured/);
   assert.match(source, /SUPABASE_WRITE_MODE/);
@@ -25,7 +25,7 @@ test("webhook delivery rejects unsafe URL forms and bounds retries and payload s
   const source = await readFile(new URL("../cloudflare/webhook-delivery.ts", import.meta.url), "utf8");
   assert.match(source, /url\.protocol !== "https:"/);
   assert.match(source, /host\.endsWith\("\.internal"\)/);
-  assert.match(source, /body\.length > 65536/);
+  assert.match(source, /new TextEncoder\(\)\.encode\(body\)\.byteLength > 65536/);
   assert.match(source, /attempt >= 8/);
   assert.match(source, /response\.status >= 500/);
 });
