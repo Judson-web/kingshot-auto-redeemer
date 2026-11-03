@@ -73,6 +73,17 @@ try {
   await checkJson("/api/discord-avatar", 405,
     body => body?.error === "Method not allowed.", { method: "POST" });
 
+  await checkJson("/api/kingshot-register", 405,
+    body => body?.code === "method_not_allowed", { method: "GET" });
+  await checkJson("/api/kingshot-register", 400,
+    body => body?.code === "invalid_player_id", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ playerId: "invalid" }),
+    });
+  await checkJson("/api/kingshot-register", 503,
+    body => body?.code === "writes_disabled", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ playerId: "123456789" }),
+    });
+
   await checkJson("/api/discord-user?id=invalid", 400,
     body => body?.error === "Enter a valid Discord user ID.");
 
