@@ -222,7 +222,7 @@ async function deliverOne(env: Env, delivery: Delivery): Promise<"delivered" | "
     return "delivered";
   }
 
-  const attempt = Number(delivery.attempt_count || 0) + 1;
+  const attempt = Number(delivery.attempt_count || 1);
   const retryable = response.status === 408 || response.status === 425 ||
     response.status === 429 || response.status >= 500;
   const terminal = !retryable || attempt >= 8;
