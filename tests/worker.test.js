@@ -158,3 +158,19 @@ test("Cloudflare V4 extended mutations remain fail-closed until write parity is 
   assert.match(adapter, /if \(method !== "GET"\)/);
   assert.match(adapter, /route_not_migrated/);
 });
+
+
+test("Cloudflare Worker exposes the native V4 redemption route", async () => {
+  const router = await readFile(new URL("../cloudflare/worker.ts", import.meta.url), "utf8");
+  const adapter = await readFile(new URL("../cloudflare/developer-v4.ts", import.meta.url), "utf8");
+  const redemption = await readFile(new URL("../cloudflare/redemption.ts", import.meta.url), "utf8");
+  assert.match(router, /incoming\.pathname\.startsWith\("\/api\/v4\/"\)/);
+  assert.match(adapter, /url\.pathname === "\/api\/v4\/redemptions"/);
+  assert.match(adapter, /redemptions:write/);
+  assert.match(adapter, /kingshot_developer_v4_begin_redemption/);
+  assert.match(adapter, /kingshot_developer_v4_finish_redemption/);
+  assert.match(adapter, /kingshot_developer_v4_release_redemption/);
+  assert.match(adapter, /handleNativeRedemption\(request, env, \{ v4: true \}\)/);
+  assert.match(redemption, /options\.v4\?/);
+  assert.match(redemption, /!options\.v4&&limited\(req\)/);
+});
