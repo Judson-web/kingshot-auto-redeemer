@@ -3,6 +3,7 @@ interface Env {
   LEGACY_API_ORIGIN: string;
   SUPABASE_URL?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;
+  DISCORD_BOT_TOKEN?: string;
 }
 
 const API_PREFIX = "/api";
@@ -175,6 +176,73 @@ async function handleDiscordAvatar(request: Request): Promise<Response> {
   }
 }
 
+
+async function handleDiscordUser(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "GET") {
+    return new Response(JSON.stringify({ error: "Method not allowed." }), {
+      status: 405,
+      headers: { Allow: "GET", "Content-Type": "application/json", "Cache-Control": "no-store" },
+    });
+  }
+  const id = (new URL(request.url).searchParams.get("id") || "").trim();
+  if (!/^\\d{15,22}$/.test(id)) {
+    return jsonError(400, "invalid_discord_user_id", "Enter a valid Discord user ID.");
+  }
+  if (!env.DISCORD_BOT_TOKEN) {
+    return jsonError(503, "discord_api_unconfigured", "Discord API access is not configured.");
+  }
+  let upstream: Response;
+  try {
+    upstream = await fetch("https://discord.com/api/v10/users/" + id, {
+      headers: { Authorization: "Bot " + env.DISCORD_BOT_TOKEN, Accept: "application/json" },
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch (error) {
+    const timedOut = error instanceof Error && error.name === "TimeoutError";
+    return jsonError(timedOut ? 504 : 502, timedOut ? "discord_timeout" : "discord_unavailable",
+      timedOut ? "Discord took too long to respond. Please try again." : "Could not reach Discord right now.");
+  }
+  if (!upstream.ok) {
+    if (upstream.status === 404) return jsonError(404, "discord_user_not_found", "Discord user not found.");
+    if (upstream.status === 429) {
+      return new Response(JSON.stringify({ error: "Discord rate limit reached. Try again shortly." }), {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json", "Cache-Control": "no-store",
+          "Retry-After": upstream.headers.get("retry-after") || "1",
+        },
+      });
+    }
+    return jsonError(502, "discord_api_failed", "Discord API request failed.");
+  }
+  let body: Record<string, unknown>;
+  try {
+    const parsed: unknown = await upstream.json();
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("Invalid profile payload");
+    body = parsed as Record<string, unknown>;
+  } catch {
+    return jsonError(502, "discord_invalid_response", "Discord returned an invalid profile.");
+  }
+  const avatar = typeof body.avatar === "string" && body.avatar ? body.avatar : null;
+  const userId = typeof body.id === "string" && /^\\d{15,22}$/.test(body.id) ? body.id : id;
+  const animated = Boolean(avatar && avatar.startsWith("a_"));
+  const defaultAvatarIndex = Number((BigInt(userId) >> 22n) % 6n);
+  const format = animated ? "gif" : "png";
+  const avatarUrl = avatar
+    ? "https://cdn.discordapp.com/avatars/" + userId + "/" + avatar + "." + format + "?size=1024"
+    : "https://cdn.discordapp.com/embed/avatars/" + defaultAvatarIndex + ".png?size=1024";
+  return Response.json({
+    id: userId,
+    username: typeof body.username === "string" ? body.username : "",
+    globalName: typeof body.global_name === "string" && body.global_name ? body.global_name : null,
+    avatar,
+    animated,
+    format,
+    avatarUrl,
+    fetchedAt: new Date().toISOString(),
+  }, { headers: { "Cache-Control": "no-store, max-age=0", "X-Content-Type-Options": "nosniff" } });
+}
+
 function handleEdgeLocale(request: Request): Response {
   const country = (request.cf as { country?: unknown } | undefined)?.country;
   const countryCode = typeof country === "string" && /^[A-Z]{2}$/.test(country)
@@ -212,6 +280,10 @@ export default {
 
     if (incoming.pathname === "/api/discord-avatar" || incoming.pathname === "/api/discord-tools/avatar") {
       return handleDiscordAvatar(request);
+    }
+
+    if (incoming.pathname === "/api/discord-user" || incoming.pathname === "/api/discord-tools/user") {
+      return handleDiscordUser(request, env);
     }
 
     // Visitor telemetry moves natively to Workers when the Supabase service
