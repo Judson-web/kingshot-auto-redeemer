@@ -125,7 +125,7 @@ jobs:
             printf '%s' "$value" | npx --yes wrangler@4 secret put "$name" --name kingshot-autoredeemer-edge >/dev/null
             BOUND+=("$name")
           done
-          AVAILABLE="$EXISTING"$'\n'"${BOUND[*]}"
+          AVAILABLE="$(printf '%s\n' "$EXISTING"; printf '%s\n' "${BOUND[@]}")"
           REQUIRED=(SUPABASE_SERVICE_ROLE_KEY KINGSHOT_API_SECRET CRON_SECRET ALLIANCE_SYNC_CRON_SECRET)
           for name in "${REQUIRED[@]}"; do
             if ! printf '%s\n' "$AVAILABLE" | grep -Fxq "$name"; then
