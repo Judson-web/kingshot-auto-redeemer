@@ -82,8 +82,8 @@ try {
 
   await checkJson("/api/v4/redemptions", 405,
     body => body?.error?.code === "method_not_allowed", { method: "GET" });
-  await checkJson("/api/v4/redemptions", 401,
-    body => body?.success === false && body?.data === null && body?.error?.code === "missing_api_key",
+  await checkJson("/api/v4/redemptions", 503,
+    body => body?.success === false && body?.data === null && body?.error?.code === "writes_disabled",
     { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ playerId: "123456789", code: "ABCDEF", kid: "7" }) });
 
   await checkJson("/api/kingshot-register", 405,

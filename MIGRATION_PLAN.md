@@ -66,5 +66,5 @@
 - Added a separate V4 idempotency ledger and RPCs. Keys are namespaced and hashed, request bodies are fingerprinted, replay responses receive fresh request IDs, and mismatched bodies are rejected.
 - Unknown V4 idempotency outcomes never expire or reopen automatically. Stale processing claims transition to an explicit unknown state; only provably pre-submission failures may release a claim.
 - V4 idempotency is optional per the existing OpenAPI contract. Neon/Supabase redemption recovery remains the independent protection against duplicate player/code submissions.
-- Tests mock Supabase authorization and idempotency RPCs. Wrangler preview remains write-disabled, and tests assert no game-provider request is made.
+- Tests mock Supabase authorization and idempotency RPCs. Wrangler preview remains write-disabled; the V4 redemption route now checks this before quota authorization or idempotency RPCs, and Worker smoke tests assert the early rejection.
 - This checkpoint is a code change only. The new Supabase migration has not been applied to production, no live redemption has been attempted, and no deployment or DNS cutover has occurred.

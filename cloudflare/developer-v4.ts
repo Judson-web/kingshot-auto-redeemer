@@ -401,6 +401,10 @@ export async function handleNativeV4(request: Request, env: Env): Promise<Respon
     return fail(405, "method_not_allowed", "This method is not supported for the requested V4 route.", requestId, {}, h);
   }
 
+  if (route === "redemptions" && String(env.SUPABASE_WRITE_MODE || "").toLowerCase() !== "enabled") {
+    return fail(503, "writes_disabled", "V4 redemption is disabled in this environment; no authorization or idempotency writes were attempted.", requestId, {}, h);
+  }
+
   const auth = await authorize(request, env, requestId, h);
   if (auth instanceof Response) return auth;
   const requiredScope = route === "player" ? "players:read"
