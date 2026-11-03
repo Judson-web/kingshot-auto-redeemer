@@ -1,4 +1,5 @@
 import { fetchMightPulseNative, mightPulsePlayerErrorStatus } from "./mightpulse.js";
+import { handleNativeAvatarFrame } from "./avatar-frame.js";
 
 interface Env {
   ASSETS: Fetcher;
@@ -638,6 +639,10 @@ export default {
     }
 
     if (incoming.pathname === "/api/ops-tools/health") return handlePublicHealth(request, env);
+
+    if (incoming.pathname === "/api/kingshot-player" && incoming.searchParams.has("frame")) {
+      return handleNativeAvatarFrame(request, env);
+    }
 
     if (incoming.pathname === "/api/kingshot-player" && incoming.searchParams.get("profile") === "detail") {
       return handleNativeDetailedPlayerProfile(request, env);
