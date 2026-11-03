@@ -15,7 +15,7 @@ function limited(map:Map<string,{count:number;resetAt:number}>,key:string,max:nu
  const now=Date.now();let b=map.get(key);if(!b||b.resetAt<=now)b={count:0,resetAt:now+60_000};b.count++;map.set(key,b);
  if(map.size>5000)for(const [k,v] of map)if(v.resetAt<=now)map.delete(k);return b.count>max;
 }
-function safeJson(r:Response,host:string):boolean{try{const u=new URL(r.url||host);return r.ok&&u.protocol==="https:"&&u.hostname===host&&!u.port&&!u.username&&!u.password&&(r.headers.get("content-type")||"").toLowerCase().includes("application/json")&&!(Number(r.headers.get("content-length")||0)>PROFILE_MAX);}catch{return false;}}
+function safeJson(r:Response,host:string):boolean{try{const u=new URL(r.url||("https://"+host));return r.ok&&u.protocol==="https:"&&u.hostname===host&&!u.port&&!u.username&&!u.password&&(r.headers.get("content-type")||"").toLowerCase().includes("application/json")&&!(Number(r.headers.get("content-length")||0)>PROFILE_MAX);}catch{return false;}}
 async function boundedText(r:Response,max:number):Promise<string|null>{const t=await r.text();return t.length<=max?t:null;}
 function resolveUid(p:any,fid:string):string|null{
  if(!p||typeof p!=="object")return null;

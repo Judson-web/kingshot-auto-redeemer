@@ -76,6 +76,11 @@ try {
   await checkJson("/api/discord-user?id=invalid", 400,
     body => body?.error === "Enter a valid Discord user ID.");
 
+  await checkJson("/api/kingshot-player?frame=profile&id=invalid", 400,
+    body => body?.code === "invalid_player_id");
+  await checkJson("/api/kingshot-player?frame=asset&asset=invalid", 400,
+    body => body?.code === "invalid_frame_asset");
+
   if (remote) {
     const registration = await checkJson(
       "/api/kingshot-player?developerPath=alliance-lookup&mode=registration-status&ids=12345",
