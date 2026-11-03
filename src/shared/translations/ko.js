@@ -1041,7 +1041,7 @@ export default {
   "developer.webhookStatusDisabled":"비활성화됨",
   "developer.webhookStatusActive":"활성",
   "developer.webhookDisable":"비활성화",
-  "developer.webhookSecurityNote":"공개 IP로 확인되는 HTTPS URL만 허용됩니다. 수신 시 원본 요청 본문과 타임스탬프를 사용해 X-Kingshot-Signature의 HMAC-SHA256 서명을 검증하고 X-Kingshot-Event-Id로 중복 처리를 방지하세요. 전송은 비동기이며 재시도될 수 있습니다.",
+  "developer.webhookSecurityNote":"HTTPS 엔드포인트만 사용하세요. IP 주소와 로컬 호스트는 거부되며 Cloudflare 송신 프록시가 내부 대상 접근을 차단하고 리디렉션은 따르지 않습니다. 앱 자체 Cloudflare 영역도 대상에서 제외됩니다. 원본 본문과 타임스탬프를 사용해 X-Kingshot-Signature의 HMAC-SHA256 서명을 검증하고 X-Kingshot-Event-Id로 중복 처리를 방지하세요. 전송은 비동기이며 재시도될 수 있습니다.",
   "developer.webhookChooseKey":"먼저 API 키를 선택하세요.",
   "developer.webhookLoadFailed":"웹훅 구독을 불러오지 못했습니다.",
   "developer.webhookUrlRequired":"HTTPS 엔드포인트 URL을 입력하세요.",
