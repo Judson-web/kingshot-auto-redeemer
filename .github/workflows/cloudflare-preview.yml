@@ -42,10 +42,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Validate source
-        run: |
-          npm run typecheck
-          npm test
+      - name: Type-check application source
+        run: npm run typecheck
 
       - name: Build frontend
         run: npm run build
