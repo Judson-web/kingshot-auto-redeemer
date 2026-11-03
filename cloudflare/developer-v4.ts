@@ -297,6 +297,15 @@ async function handleV4Redemption(
       retryable: hasIdempotencyKey,
       retryHint: hasIdempotencyKey ? "same_idempotency_key" : "do_not_retry",
     }, requestId, { rateLimit: auth.rateLimit }, h);
+  } else if (rawResult?.errorCategory === "HTTP_RATE_LIMIT") {
+    const retryAfterSeconds = Math.max(1, Math.min(3600, Number(rawResult.retryAfterSeconds) || 60));
+    h.set("Retry-After", String(retryAfterSeconds));
+    safeToRelease = true;
+    result = fail(429, "upstream_rate_limited", "Kingshot is rate-limiting redemption requests. Retry after the supplied delay.", requestId, {
+      rateLimit: auth.rateLimit,
+      retryAfterSeconds,
+      cooldownPersisted: rawResult.cooldownPersisted ?? null,
+    }, h);
   } else if (hasGameResult) {
     result = response(200, {
       ok: rawResult.ok,
