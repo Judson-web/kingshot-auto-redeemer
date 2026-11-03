@@ -4,7 +4,7 @@ const BASE=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
 const KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
 const PUBLIC_KEY=process.env.WEB_PUSH_VAPID_PUBLIC_KEY||"";
 const PRIVATE_KEY=process.env.WEB_PUSH_VAPID_PRIVATE_KEY||"";
-const SUBJECT=process.env.WEB_PUSH_VAPID_SUBJECT||"mailto:admin@ks-rewards.com";
+const SUBJECT=process.env.WEB_PUSH_VAPID_SUBJECT||"https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/";
 const hash=value=>crypto.createHash("sha256").update(String(value||"")).digest("hex");
 async function db(path:string,init:RequestInit={}){if(!KEY)throw Error("Support push storage is not configured.");return fetch(BASE+"/rest/v1/"+path,{...init,headers:{apikey:KEY,authorization:"Bearer "+KEY,"content-type":"application/json",...(init.headers||{})},signal:AbortSignal.timeout(10000)})}
 function configure(){if(!KEY||!PUBLIC_KEY||!PRIVATE_KEY)throw Error("Support push notifications are not configured.");webpush.setVapidDetails(SUBJECT,PUBLIC_KEY,PRIVATE_KEY)}
