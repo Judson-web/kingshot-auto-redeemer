@@ -5,10 +5,12 @@ import { handleNativeRedemption } from "./redemption.js";
 import { handleNativeV4 } from "./developer-v4.js";
 import { handleNativeDeveloperAccount } from "./developer-account.js";
 import { handleWebhookDeliveryDispatch } from "./webhook-delivery.js";
+import { dispatchLegacyApi } from "./legacy-api-adapter.js";
 
 interface Env {
   ASSETS: Fetcher;
   SUPABASE_WRITE_MODE?: string;
+  PUBLIC_APP_URL?: string;
   V4_WEBHOOK_ENCRYPTION_KEY?: string;
   V4_WEBHOOK_WORKER_SECRET?: string;
   CRON_SECRET?: string;
@@ -737,7 +739,7 @@ function jsonError(status: number, code: string, message: string): Response {
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: { waitUntil(promise: Promise<unknown>): void }): Promise<Response> {
     const incoming = new URL(request.url);
 
     if (incoming.pathname === "/api/discord-avatar" || incoming.pathname === "/api/discord-tools/avatar") {
@@ -795,6 +797,9 @@ export default {
       if (env.SUPABASE_SERVICE_ROLE_KEY) return handleVisitorTelemetry(request, env);
     }
 
+    const adapted = await dispatchLegacyApi(request, ctx);
+    if (adapted) return adapted;
+
     if (incoming.pathname === API_PREFIX || incoming.pathname.startsWith(API_PREFIX + "/")) {
       return jsonError(501, "route_not_migrated", "This API route has not yet been migrated to the native Cloudflare runtime.");
     }
@@ -803,4 +808,4 @@ export default {
   },
 } satisfies ExportedHandler<Env>;
 
-// Native Cloudflare runtime. Unported routes fail closed; no legacy host fallback exists.
+// Native Cloudflare runtime. All known API handlers execute in this Worker; unknown API paths fail closed.
