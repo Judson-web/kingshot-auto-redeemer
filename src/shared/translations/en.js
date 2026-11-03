@@ -1041,7 +1041,7 @@ export default {
   "developer.webhookStatusDisabled":"Disabled",
   "developer.webhookStatusActive":"Active",
   "developer.webhookDisable":"Disable",
-  "developer.webhookSecurityNote":"Only HTTPS URLs resolving to public IP addresses are accepted. Verify X-Kingshot-Signature using HMAC-SHA256 over timestamp + \".\" + the raw request body, and deduplicate deliveries using X-Kingshot-Event-Id. Delivery is asynchronous and may be retried.",
+  "developer.webhookSecurityNote":"Use HTTPS endpoints only. IP literals and local hosts are rejected; Cloudflare outbound egress blocks internal destinations, redirects are never followed, and this app\u2019s own zone is excluded. Verify X-Kingshot-Signature with HMAC-SHA256 over timestamp + \".\" + the raw body, and deduplicate using X-Kingshot-Event-Id. Delivery is asynchronous and may be retried.",
   "developer.webhookChooseKey":"Choose an API key first.",
   "developer.webhookLoadFailed":"Could not load webhook subscriptions.",
   "developer.webhookUrlRequired":"Enter an HTTPS endpoint URL.",
