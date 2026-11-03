@@ -1,5 +1,5 @@
 import webpush from "web-push";
-const BASE=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co",KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY,PUBLIC_KEY=process.env.WEB_PUSH_VAPID_PUBLIC_KEY||"",PRIVATE_KEY=process.env.WEB_PUSH_VAPID_PRIVATE_KEY||"",SUBJECT=process.env.WEB_PUSH_VAPID_SUBJECT||"mailto:admin@kingshot-autoredeemer.vercel.app";
+const BASE=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co",KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY,PUBLIC_KEY=process.env.WEB_PUSH_VAPID_PUBLIC_KEY||"",PRIVATE_KEY=process.env.WEB_PUSH_VAPID_PRIVATE_KEY||"",SUBJECT=process.env.WEB_PUSH_VAPID_SUBJECT||"mailto:admin@ks-rewards.com";
 export function pushIsConfigured():boolean{return Boolean(KEY&&PUBLIC_KEY&&PRIVATE_KEY)}
 export function getPushPublicKey():string{return PUBLIC_KEY}
 async function db(path:string,init:RequestInit={}):Promise<Response>{if(!KEY)throw Error("Push storage is not configured.");return fetch(BASE+"/rest/v1/"+path,{...init,headers:{apikey:KEY,authorization:"Bearer "+KEY,"content-type":"application/json",...(init.headers||{})},signal:AbortSignal.timeout(10000)})}
