@@ -77,6 +77,8 @@ test("manual kingdom-check endpoint uses bounded keyset batches and counts defer
   assert.match(apiSource, /if\(result\?\.deferred\)/);
   assert.match(apiSource, /kingdomSummary\.deferred/);
   assert.match(validationSource, /deferred: true/);
+  assert.match(validationSource, /maxAttempts: 2, skipUsageRefresh: true/);
+  assert.match(keyPoolSource, /options\.skipUsageRefresh === true/);
   assert.match(validationSource, /retryAfterMs:/);
   assert.match(workflowSource, /BATCH_SIZE=20/);
   assert.match(workflowSource, /RETRY_AFTER_MS/);
@@ -174,7 +176,7 @@ test("scheduled kingdom validation skips retry windows and caps each cycle fairl
 
 test("scheduled coordinator uses bounded due-player batches and preserves unprocessed kingdom registrations", async () => {
   const apiSource = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
-  assert.match(apiSource, /KINGDOM_SCHEDULED_VALIDATION_BATCH_SIZE=6/);
+  assert.match(apiSource, /KINGDOM_SCHEDULED_VALIDATION_BATCH_SIZE=2/);
   assert.match(apiSource, /selectScheduledKingdomCheckBatch\(duePlayers/);
   assert.match(apiSource, /needsKingdomResetCheck\(player\?\.last_kingdom_check_at,validationNow\)/);
   assert.match(apiSource, /const validPlayerMap=new Map\(list/);
