@@ -99,7 +99,7 @@ export default async function handler(req:any,res:any){
  if(requestUrl.searchParams.get("mode")==="manual-registration"){try{const jobs=await processManualRegistrationJobs();return res.status(200).json({ok:true,processedJobs:jobs.length,jobs});}catch(e){console.error("Supabase manual registration queue failed",String((e as Error)?.message||e));return res.status(500).json({error:"Manual registration queue processing failed safely."});}}
  const results:any[]=[];
  try {
-  // Keep each Vercel invocation bounded. Player outcomes are persisted in
+  // Keep each Cloudflare Worker invocation bounded. Player outcomes are persisted in
   // alliance_sync_seen_players, so the next five-minute wake-up resumes safely.
   for(let attempt=0;attempt<1;attempt++){
    const lease=randomUUID();
