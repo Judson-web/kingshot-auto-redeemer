@@ -13,20 +13,20 @@ function responseRecorder() {
   };
 }
 
-test("locale lookup returns only a normalized Vercel country code", async () => {
+test("locale lookup returns only a normalized Cloudflare country code", async () => {
   const res = responseRecorder();
-  await visitorTelemetry({ method: "GET", headers: { "x-vercel-ip-country": "kr", "x-real-ip": "203.0.113.10" } }, res);
+  await visitorTelemetry({ method: "GET", headers: { "cf-ipcountry": "kr", "x-real-ip": "203.0.113.10" } }, res);
   assert.equal(res.statusCode, 200);
   assert.deepEqual(res.body, { countryCode: "KR" });
   assert.equal(res.headers["Cache-Control"], "no-store, max-age=0");
-  assert.equal(res.headers.Vary, "x-vercel-ip-country");
+  assert.equal(res.headers.Vary, "cf-ipcountry");
   assert.equal(JSON.stringify(res.body).includes("203.0.113.10"), false);
 });
 
 test("locale lookup falls back safely for missing, malformed, or non-string country metadata", async () => {
   for (const country of [undefined, "", "KOREA", "K1", ["KR", "US"], null]) {
     const res = responseRecorder();
-    await visitorTelemetry({ method: "GET", headers: { "x-vercel-ip-country": country } }, res);
+    await visitorTelemetry({ method: "GET", headers: { "cf-ipcountry": country } }, res);
     assert.equal(res.statusCode, 200);
     assert.deepEqual(res.body, { countryCode: null });
   }
