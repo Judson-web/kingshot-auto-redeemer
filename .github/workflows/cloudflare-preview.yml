@@ -11,6 +11,7 @@ on:
       - "index.html"
       - "*.html"
       - "cloudflare/**"
+      - "scripts/cloudflare-worker-smoke.mjs"
       - "wrangler.jsonc"
       - "package.json"
       - "package-lock.json"
