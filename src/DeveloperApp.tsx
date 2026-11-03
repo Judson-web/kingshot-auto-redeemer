@@ -7,7 +7,7 @@ import DeveloperAccountPanel from "./DeveloperAccountPanel";
 import { Activity, BookOpen, Check, ChevronRight, Code2, Copy, ExternalLink, Gauge, KeyRound, MessageCircle, ShieldCheck, Terminal } from "lucide-react";
 import { copyToClipboard } from "./utils/clipboard-feedback";
 
-const ORIGIN = "https://kingshot-autoredeemer.vercel.app";
+const ORIGIN = "";
 const DEVELOPER_NAME = "Judson";
 const DEVELOPER_DISCORD_USERNAME = "judson00713";
 const DEVELOPER_DISCORD_ID = "871756466900598815";
