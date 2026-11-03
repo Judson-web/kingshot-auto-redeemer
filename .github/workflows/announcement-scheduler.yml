@@ -1,8 +1,6 @@
 name: Scheduled announcements worker
 
 on:
-  schedule:
-    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -27,7 +25,7 @@ jobs:
           fi
           curl --fail-with-body --silent --show-error \
             --max-time 90 \
-            -X POST "https://kingshot-autoredeemer.vercel.app/api/custom-message" \
+            -X POST "https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/api/custom-message" \
             -H "Authorization: Bearer $CRON_SECRET" \
             -H "Content-Type: application/json" \
             --data '{"action":"SCHEDULE_RUN"}'
