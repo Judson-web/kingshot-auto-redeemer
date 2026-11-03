@@ -1,8 +1,11 @@
 import { fetchMightPulseNative, mightPulsePlayerErrorStatus } from "./mightpulse.js";
+import { handleNativeRedemption } from "./redemption.js";
 
 interface Env {
   SUPABASE_URL?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;
+  SUPABASE_WRITE_MODE?: string;
+  NEON_RECOVERY_DATABASE_URL?: string;
   MIGHTPULSE_API_KEY?: string;
   MIGHTPULSE_API_KEY_2?: string;
   MIGHTPULSE_API_KEY_3?: string;
@@ -48,16 +51,29 @@ function response(status: number, data: unknown, error: unknown, requestId: stri
   }, { status, headers: h });
 }
 
-function retryHint(status: number, code: string): { retryable: boolean; retryHint: string } {
-  if (status === 429) return { retryable: true, retryHint: "honor_retry_after" };
+function retryHint(status: number, code: string, retryAfterAvailable = false): { retryable: boolean; retryHint: string } {
+  if (code === "idempotency_in_progress") return { retryable: true, retryHint: "same_idempotency_key" };
+  if (["idempotency_key_reused", "idempotency_record_invalid", "service_not_configured", "upstream_not_configured"].includes(code)) {
+    return { retryable: false, retryHint: "do_not_retry" };
+  }
+  if (status === 429) return { retryable: true, retryHint: retryAfterAvailable ? "honor_retry_after" : "bounded_backoff" };
   if ([502, 503, 504].includes(status) && !["player_not_found", "invalid_player_id"].includes(code)) {
-    return { retryable: true, retryHint: "bounded_backoff" };
+    return { retryable: true, retryHint: code === "idempotency_unavailable" ? "same_idempotency_key" : "bounded_backoff" };
   }
   return { retryable: false, retryHint: "do_not_retry" };
 }
 
 function fail(status: number, code: string, message: string, requestId: string, meta: Record<string, unknown> = {}, h?: Headers): Response {
-  return response(status, null, { code, message, ...retryHint(status, code) }, requestId, meta, h);
+  const headerRetry = Number(h?.get("Retry-After"));
+  const metaRetry = Number(meta.retryAfterSeconds);
+  const retryAfterSeconds = Number.isFinite(headerRetry) && headerRetry > 0 ? Math.ceil(headerRetry)
+    : Number.isFinite(metaRetry) && metaRetry > 0 ? Math.ceil(metaRetry) : undefined;
+  return response(status, null, {
+    code,
+    message,
+    ...retryHint(status, code, Boolean(retryAfterSeconds || meta.resetAt)),
+    ...(retryAfterSeconds ? { retryAfterSeconds } : {}),
+  }, requestId, meta, h);
 }
 
 async function sha256(value: string): Promise<string> {
@@ -178,6 +194,190 @@ function boundedInteger(value: string | null, fallback: number, min: number, max
   return Number.isInteger(parsed) ? Math.max(min, Math.min(max, parsed)) : fallback;
 }
 
+
+async function handleV4Redemption(
+  request: Request,
+  env: Env,
+  auth: { keyId: string; scopes: string[]; rateLimit: Record<string, unknown> },
+  requestId: string,
+  h: Headers,
+): Promise<Response> {
+  if ((request.headers.get("content-type") || "").split(";")[0].trim().toLowerCase() !== "application/json") {
+    return fail(415, "unsupported_media_type", "Content-Type must be application/json.", requestId, {}, h);
+  }
+
+  let raw: string;
+  let parsed: any;
+  try {
+    raw = await request.clone().text();
+    if (raw.length > 8192) return fail(413, "payload_too_large", "Redemption request is too large.", requestId, {}, h);
+    parsed = JSON.parse(raw || "{}");
+  } catch {
+    return fail(400, "invalid_json", "Redemption request must be valid JSON.", requestId, {}, h);
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return fail(400, "invalid_request_body", "Provide a JSON object containing playerId, code, and kid.", requestId, {}, h);
+  }
+  const allowed = new Set(["playerId", "code", "kid"]);
+  if (Object.keys(parsed).some(key => !allowed.has(key))) {
+    return fail(400, "unknown_fields", "The request body contains unsupported fields.", requestId, {}, h);
+  }
+  const playerId = typeof parsed.playerId === "string" ? parsed.playerId.trim() : "";
+  const code = typeof parsed.code === "string" ? parsed.code.trim() : "";
+  const kid = typeof parsed.kid === "string" ? parsed.kid.trim() : "";
+  if (!/^\d{5,20}$/.test(playerId)) return fail(400, "invalid_player_id", "playerId must be a string containing 5–20 digits.", requestId, {}, h);
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(code)) return fail(400, "invalid_gift_code", "code must contain 1–64 letters, digits, underscores, or hyphens.", requestId, {}, h);
+  if (!/^\d{1,10}$/.test(kid)) return fail(400, "invalid_kingdom_id", "kid must be a string containing 1–10 digits.", requestId, {}, h);
+
+  const idempotencyKey = request.headers.get("Idempotency-Key") || "";
+  const hasIdempotencyKey = request.headers.has("Idempotency-Key");
+  if (hasIdempotencyKey && !/^[A-Za-z0-9._:-]{8,128}$/.test(idempotencyKey)) {
+    return fail(400, "invalid_idempotency_key", "Idempotency-Key must be 8–128 safe ASCII characters and appear only once.", requestId, {}, h);
+  }
+
+  const normalizedRequest = { playerId, code, kid };
+  const requestHash = await sha256(JSON.stringify(normalizedRequest));
+  let keyHash = "";
+  if (hasIdempotencyKey) {
+    // Match the documented V4 namespace while storing only a one-way digest.
+    keyHash = await sha256("v4_" + await sha256(idempotencyKey));
+    let claim: any;
+    try {
+      claim = await database(env, "/rest/v1/rpc/kingshot_developer_v4_begin_redemption", {
+        method: "POST",
+        body: JSON.stringify({ p_key_id: auth.keyId, p_key_hash: keyHash, p_request_hash: requestHash }),
+      });
+    } catch {
+      return fail(503, "idempotency_unavailable", "Durable redemption idempotency is temporarily unavailable. Do not submit this operation with a new key.", requestId, {}, h);
+    }
+
+    const state = String(claim?.state || "");
+    if (state === "conflict") return fail(409, "idempotency_key_reused", "This Idempotency-Key was already used with a different request body.", requestId, {}, h);
+    if (state === "in_progress") return fail(409, "idempotency_in_progress", "This keyed redemption is still processing. Retry only with the same key and identical body.", requestId, {}, h);
+    if (state === "replay" || state === "unknown") {
+      const storedStatus = Number(claim.response_status);
+      const stored = claim.response_body;
+      if (!Number.isInteger(storedStatus) || storedStatus < 100 || storedStatus > 599 ||
+          !stored || typeof stored !== "object" || Array.isArray(stored)) {
+        return fail(503, "idempotency_record_invalid", "The stored redemption outcome needs review. Do not submit another attempt.", requestId, {}, h);
+      }
+      h.set("Idempotency-Replayed", "true");
+      return response(storedStatus, stored.data ?? null, stored.error ?? null, requestId,
+        { ...(stored.meta && typeof stored.meta === "object" ? stored.meta : {}), rateLimit: auth.rateLimit }, h);
+    }
+    if (state !== "started") return fail(503, "idempotency_unavailable", "The idempotency service returned an invalid state. No redemption was submitted.", requestId, {}, h);
+  }
+
+  let upstream: Response;
+  try {
+    upstream = await handleNativeRedemption(request, env, { v4: true });
+  } catch {
+    const error = {
+      code: "redemption_outcome_unknown",
+      message: "The redemption adapter stopped unexpectedly. Do not submit another attempt.",
+      retryable: hasIdempotencyKey,
+      retryHint: hasIdempotencyKey ? "same_idempotency_key" : "do_not_retry",
+    };
+    const result = response(503, null, error, requestId, { rateLimit: auth.rateLimit }, h);
+    if (hasIdempotencyKey) {
+      try {
+        const stored = await result.clone().json();
+        await database(env, "/rest/v1/rpc/kingshot_developer_v4_finish_redemption", {
+          method: "POST",
+          body: JSON.stringify({ p_key_id: auth.keyId, p_key_hash: keyHash, p_response_status: 503, p_response_body: stored, p_outcome_unknown: true }),
+        });
+      } catch {}
+    }
+    return result;
+  }
+
+  const rawResult: any = await upstream.json().catch(() => null);
+  const hasGameResult = rawResult && typeof rawResult === "object" &&
+    typeof rawResult.status === "string" && typeof rawResult.ok === "boolean";
+  let result: Response;
+  let outcomeUnknown = false;
+  let safeToRelease = false;
+
+  if (!rawResult || typeof rawResult !== "object") {
+    outcomeUnknown = true;
+    result = response(503, null, {
+      code: "redemption_outcome_unknown",
+      message: "The redemption adapter returned no readable outcome. Do not submit another attempt.",
+      retryable: hasIdempotencyKey,
+      retryHint: hasIdempotencyKey ? "same_idempotency_key" : "do_not_retry",
+    }, requestId, { rateLimit: auth.rateLimit }, h);
+  } else if (rawResult?.errorCategory === "HTTP_RATE_LIMIT") {
+    const retryAfterSeconds = Math.max(1, Math.min(3600, Number(rawResult.retryAfterSeconds) || 60));
+    h.set("Retry-After", String(retryAfterSeconds));
+    safeToRelease = true;
+    result = fail(429, "upstream_rate_limited", "Kingshot is rate-limiting redemption requests. Retry after the supplied delay.", requestId, {
+      rateLimit: auth.rateLimit,
+      retryAfterSeconds,
+      cooldownPersisted: rawResult.cooldownPersisted ?? null,
+    }, h);
+  } else if (hasGameResult) {
+    result = response(200, {
+      ok: rawResult.ok,
+      status: rawResult.status,
+      statusLabel: rawResult.statusLabel ?? null,
+      message: rawResult.message ?? rawResult.error ?? "The redemption request completed.",
+      errorCategory: rawResult.errorCategory ?? null,
+      errCode: rawResult.errCode ?? null,
+      error: rawResult.error ?? null,
+      cooldownPersisted: rawResult.cooldownPersisted ?? null,
+    }, null, requestId, { rateLimit: auth.rateLimit, source: "kingshot" }, h);
+  } else {
+    const code = String(rawResult?.code || "redemption_unavailable");
+    const message = String(rawResult?.error || "The redemption request could not be completed.");
+    if (code === "redemption_outcome_needs_review") {
+      outcomeUnknown = true;
+      result = response(503, null, {
+        code: "redemption_outcome_unknown",
+        message: "Kingshot may have processed this redemption, but its outcome needs review. Do not submit another attempt.",
+        retryable: hasIdempotencyKey,
+        retryHint: hasIdempotencyKey ? "same_idempotency_key" : "do_not_retry",
+      }, requestId, { rateLimit: auth.rateLimit }, h);
+    } else {
+      safeToRelease = ["writes_disabled", "redemption_unavailable", "upstream_cooldown", "rate_limit_exceeded"].includes(code);
+      result = fail(upstream.status, code, message, requestId, { rateLimit: auth.rateLimit }, h);
+    }
+  }
+
+  if (hasIdempotencyKey) {
+    try {
+      if (safeToRelease) {
+        const released = await database(env, "/rest/v1/rpc/kingshot_developer_v4_release_redemption", {
+          method: "POST",
+          body: JSON.stringify({ p_key_id: auth.keyId, p_key_hash: keyHash }),
+        });
+        if (released !== true) throw new Error("idempotency claim was not released");
+      } else {
+        const stored = await result.clone().json();
+        const finished = await database(env, "/rest/v1/rpc/kingshot_developer_v4_finish_redemption", {
+          method: "POST",
+          body: JSON.stringify({
+            p_key_id: auth.keyId,
+            p_key_hash: keyHash,
+            p_response_status: result.status,
+            p_response_body: stored,
+            p_outcome_unknown: outcomeUnknown,
+          }),
+        });
+        if (finished !== true) throw new Error("idempotency outcome was not persisted");
+      }
+    } catch {
+      const error = {
+        code: "outcome_persistence_failed",
+        message: "The redemption was handled, but its idempotency outcome could not be confirmed. Retry only with the same key and identical body.",
+        retryable: true,
+        retryHint: "same_idempotency_key",
+      };
+      return response(503, null, error, requestId, { rateLimit: auth.rateLimit }, h);
+    }
+  }
+  return result;
+}
+
 export async function handleNativeV4(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const requestId = crypto.randomUUID();
@@ -187,16 +387,17 @@ export async function handleNativeV4(request: Request, env: Env): Promise<Respon
     : url.pathname === "/api/v4/redemption-history" ? "redemption-history"
     : url.pathname === "/api/v4/usage" ? "usage"
     : url.pathname === "/api/v4/webhooks" ? "webhooks"
+    : url.pathname === "/api/v4/redemptions" ? "redemptions"
     : "";
   const method = request.method.toUpperCase();
-  const h = headers(route === "webhooks" ? "GET" : "GET");
+  const h = headers(route === "redemptions" ? "POST" : "GET");
 
   if (method === "OPTIONS") return new Response(null, { status: 204, headers: h });
   if (!route) return fail(501, "route_not_migrated", "This V4 route is not yet available on the native Cloudflare runtime.", requestId, {
     migrationStatus: "pending", documentation: "/developer-v4.md",
   }, h);
-  if (method !== "GET") {
-    h.set("Allow", "GET, OPTIONS");
+  if (route === "redemptions" ? method !== "POST" : method !== "GET") {
+    h.set("Allow", (route === "redemptions" ? "POST" : "GET") + ", OPTIONS");
     return fail(405, "method_not_allowed", "This method is not supported for the requested V4 route.", requestId, {}, h);
   }
 
@@ -205,10 +406,12 @@ export async function handleNativeV4(request: Request, env: Env): Promise<Respon
   const requiredScope = route === "player" ? "players:read"
     : route === "alliances" ? "alliances:read"
     : route === "redemption-history" ? "redemptions:read"
-    : route === "usage" ? "usage:read" : "webhooks:manage";
+    : route === "usage" ? "usage:read" : route === "redemptions" ? "redemptions:write" : "webhooks:manage";
   if (!auth.scopes.includes(requiredScope)) {
     return fail(403, "insufficient_scope", "This API key does not have the required scope: " + requiredScope, requestId, {}, h);
   }
+
+  if (route === "redemptions") return handleV4Redemption(request, env, auth, requestId, h);
 
   if (route === "player") {
     const playerId = playerMatch![1];

@@ -56,3 +56,15 @@
 - Preview remains read-only: `SUPABASE_WRITE_MODE` stays disabled and smoke tests assert the route refuses writes.
 - No production redemption, deployment, DNS change, or cutover was performed.
 - Latest validation includes a follow-up syntax fix for synchronized Neon/Supabase uncertainty markers; rerun the full non-deploying CI before treating this revision as green.
+
+
+## Native V4 redemption checkpoint
+
+- Added `POST /api/v4/redemptions` to the native Worker router with the existing V4 response envelope and `redemptions:write` scope enforcement.
+- Reuses the native redemption adapter so provider pacing, Neon intent journaling, atomic Supabase claims, confirmed-result recording, and uncertain-outcome quarantine remain one shared implementation.
+- V4 accepts the documented 1–64 character gift-code format; the public manual redemption route retains its existing 6–32 character validation and per-IP limiter.
+- Added a separate V4 idempotency ledger and RPCs. Keys are namespaced and hashed, request bodies are fingerprinted, replay responses receive fresh request IDs, and mismatched bodies are rejected.
+- Unknown V4 idempotency outcomes never expire or reopen automatically. Stale processing claims transition to an explicit unknown state; only provably pre-submission failures may release a claim.
+- V4 idempotency is optional per the existing OpenAPI contract. Neon/Supabase redemption recovery remains the independent protection against duplicate player/code submissions.
+- Tests mock Supabase authorization and idempotency RPCs. Wrangler preview remains write-disabled, and tests assert no game-provider request is made.
+- This checkpoint is a code change only. The new Supabase migration has not been applied to production, no live redemption has been attempted, and no deployment or DNS cutover has occurred.
