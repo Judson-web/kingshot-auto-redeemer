@@ -51,16 +51,20 @@ function response(status: number, data: unknown, error: unknown, requestId: stri
   }, { status, headers: h });
 }
 
-function retryHint(status: number, code: string): { retryable: boolean; retryHint: string } {
-  if (status === 429) return { retryable: true, retryHint: "honor_retry_after" };
+function retryHint(status: number, code: string, retryAfterAvailable = false): { retryable: boolean; retryHint: string } {
+  if (code === "idempotency_in_progress") return { retryable: true, retryHint: "same_idempotency_key" };
+  if (["idempotency_key_reused", "idempotency_record_invalid", "service_not_configured", "upstream_not_configured"].includes(code)) {
+    return { retryable: false, retryHint: "do_not_retry" };
+  }
+  if (status === 429) return { retryable: true, retryHint: retryAfterAvailable ? "honor_retry_after" : "bounded_backoff" };
   if ([502, 503, 504].includes(status) && !["player_not_found", "invalid_player_id"].includes(code)) {
-    return { retryable: true, retryHint: "bounded_backoff" };
+    return { retryable: true, retryHint: code === "idempotency_unavailable" ? "same_idempotency_key" : "bounded_backoff" };
   }
   return { retryable: false, retryHint: "do_not_retry" };
 }
 
 function fail(status: number, code: string, message: string, requestId: string, meta: Record<string, unknown> = {}, h?: Headers): Response {
-  return response(status, null, { code, message, ...retryHint(status, code) }, requestId, meta, h);
+  return response(status, null, { code, message, ...retryHint(status, code, Boolean(h?.get("Retry-After") || meta.resetAt)) }, requestId, meta, h);
 }
 
 async function sha256(value: string): Promise<string> {
