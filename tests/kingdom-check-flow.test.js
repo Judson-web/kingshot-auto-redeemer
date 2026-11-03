@@ -137,7 +137,7 @@ test("kingdom validation does not mask credential and schema failures as quota d
 test("kingdom check response and logging guardrails stay in place", async () => {
   const apiSource = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
   const validationSource = await readFile(new URL("../internal/kingshot/kingdom-validation.ts", import.meta.url), "utf8");
-  assert.match(apiSource, /const restrictedPlayersSkipped=assignedPlayers\.length-eligiblePlayers\.length;/);
+  assert.match(apiSource, /const restrictedPlayersSkipped=assignedPlayers\.length-allEligiblePlayers\.length;/);
   assert.match(apiSource, /bannedPlayersSkipped:restrictedPlayersSkipped/);
   assert.doesNotMatch(apiSource, /bannedPlayersSkipped\s*[,}]/);
   assert.match(validationSource, /isKingdomValidationDeferred\(error\)/);
