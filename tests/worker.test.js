@@ -136,3 +136,26 @@ test("Cloudflare Worker routes V4 paths to the native adapter without a legacy h
   assert.match(adapter, /route_not_migrated/);
   assert.match(adapter, /apiVersion: "4"/);
 });
+
+
+test("Cloudflare V4 read-only extended endpoints enforce their documented scopes", async () => {
+  const adapter = await readFile(new URL("../cloudflare/developer-v4.ts", import.meta.url), "utf8");
+  for (const route of ["alliances", "redemption-history", "usage", "webhooks"]) {
+    assert.ok(adapter.includes('"/api/v4/' + route + '"'));
+  }
+  assert.match(adapter, /alliances:read/);
+  assert.match(adapter, /redemptions:read/);
+  assert.match(adapter, /usage:read/);
+  assert.match(adapter, /webhooks:manage/);
+  assert.match(adapter, /kingshot_developer_get_usage/);
+  assert.match(adapter, /kingshot_developer_webhooks/);
+  assert.match(adapter, /kingshot_redemptions/);
+  assert.match(adapter, /fetchMightPulseNative/);
+});
+
+test("Cloudflare V4 extended mutations remain fail-closed until write parity is ported", async () => {
+  const adapter = await readFile(new URL("../cloudflare/developer-v4.ts", import.meta.url), "utf8");
+  assert.match(adapter, /if \(method !== "GET"\)/);
+  assert.match(adapter, /route_not_migrated/);
+  assert.doesNotMatch(adapter, /method: "POST".*kingshot_developer_webhooks/s);
+});
