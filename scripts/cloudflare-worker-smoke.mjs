@@ -74,7 +74,7 @@ try {
     body => body?.error === "Method not allowed.", { method: "POST" });
 
   await checkJson("/api/discord-user?id=invalid", 400,
-    body => body?.code === "invalid_discord_user_id");
+    body => body?.error === "Enter a valid Discord user ID.");
 
   if (remote) {
     const registration = await checkJson(
