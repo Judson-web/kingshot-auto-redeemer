@@ -28,14 +28,20 @@ addBlockedSubnets([
  "203.0.113.0/24","224.0.0.0/4","240.0.0.0/4"
 ],"ipv4");
 addBlockedSubnets([
- "::/128","::1/128","::ffff:0:0/96","64:ff9b::/96","64:ff9b:1::/48","100::/64",
+ "::/128","::1/128","64:ff9b::/96","64:ff9b:1::/48","100::/64",
  "2001::/23","2001:db8::/32","2002::/16","fc00::/7","fe80::/10",
  "fec0::/10","ff00::/8"
 ],"ipv6");
+// Keep IPv4-mapped IPv6 in a separate list. Node treats this range as matching
+// every IPv4 address too when mixed into the main BlockList.
+const mappedIpv4=new BlockList();
+mappedIpv4.addSubnet("::ffff:0:0",96,"ipv6");
 
 export function isPublicWebhookAddress(address:string):boolean {
  const family=isIP(address);
- return family!==0&&!blocked.check(address,family===4?"ipv4":"ipv6");
+ if(family===4)return !blocked.check(address,"ipv4");
+ if(family===6)return !blocked.check(address,"ipv6")&&!mappedIpv4.check(address,"ipv6");
+ return false;
 }
 function safeUrl(value:string):URL {
  const u=new URL(value);
