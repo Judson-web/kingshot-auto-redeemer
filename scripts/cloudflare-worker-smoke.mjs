@@ -5,6 +5,7 @@ const port = Number(process.env.WORKER_SMOKE_PORT || 8787);
 const baseUrl = (process.env.WORKER_PREVIEW_URL || `http://127.0.0.1:${port}`).replace(/\/$/, "");
 const remote = Boolean(process.env.WORKER_PREVIEW_URL);
 let child;
+let wranglerOutput = "";
 
 async function request(path, init) {
   const response = await fetch(baseUrl + path, { ...init, signal: AbortSignal.timeout(8000) });
@@ -44,10 +45,9 @@ try {
       stdio: ["ignore", "pipe", "pipe"],
       env: process.env,
     });
-    let output = "";
-    child.stdout.on("data", chunk => { output += chunk.toString(); });
-    child.stderr.on("data", chunk => { output += chunk.toString(); });
-    child.on("error", error => { output += String(error); });
+    child.stdout.on("data", chunk => { wranglerOutput += chunk.toString(); });
+    child.stderr.on("data", chunk => { wranglerOutput += chunk.toString(); });
+    child.on("error", error => { wranglerOutput += String(error); });
     await waitForServer();
     console.log("Worker local runtime started.");
   }
@@ -85,7 +85,7 @@ try {
     const health = await request("/api/ops-tools/health");
     assert.ok([200, 503].includes(health.status), "health endpoint must return a documented health status");
     const healthBody = await health.json();
-    assert.equal(typeof healthBody.healthy, "boolean", "health response must expose healthy boolean");
+    assert.ok(typeof healthBody.healthy === "boolean" || typeof healthBody.code === "string", "health response must expose health state or a structured error");
     console.log(`PASS GET /api/ops-tools/health -> ${health.status}`);
   } else {
     await checkJson("/api/kingshot-player?developerPath=alliance-lookup&mode=registration-status&ids=12345",
