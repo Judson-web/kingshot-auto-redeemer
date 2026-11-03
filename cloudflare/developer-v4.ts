@@ -217,7 +217,7 @@ async function handleV4Redemption(
   if (!/^\d{1,10}$/.test(kid)) return fail(400, "invalid_kingdom_id", "kid must be a string containing 1–10 digits.", requestId, {}, h);
 
   const idempotencyKey = request.headers.get("Idempotency-Key") || "";
-  const hasIdempotencyKey = idempotencyKey.length > 0;
+  const hasIdempotencyKey = request.headers.has("Idempotency-Key");
   if (hasIdempotencyKey && !/^[A-Za-z0-9._:-]{8,128}$/.test(idempotencyKey)) {
     return fail(400, "invalid_idempotency_key", "Idempotency-Key must be 8–128 safe ASCII characters and appear only once.", requestId, {}, h);
   }
@@ -285,7 +285,15 @@ async function handleV4Redemption(
   let outcomeUnknown = false;
   let safeToRelease = false;
 
-  if (hasGameResult) {
+  if (!rawResult || typeof rawResult !== "object") {
+    outcomeUnknown = true;
+    result = response(503, null, {
+      code: "redemption_outcome_unknown",
+      message: "The redemption adapter returned no readable outcome. Do not submit another attempt.",
+      retryable: hasIdempotencyKey,
+      retryHint: hasIdempotencyKey ? "same_idempotency_key" : "do_not_retry",
+    }, requestId, { rateLimit: auth.rateLimit }, h);
+  } else if (hasGameResult) {
     result = response(200, {
       ok: rawResult.ok,
       status: rawResult.status,
