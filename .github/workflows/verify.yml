@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, "ci/verify-tests-typecheck-build", "test/archive-date-filtering"]
+    branches: [main, "ci/verify-tests-typecheck-build", "test/archive-date-filtering", "security/webhook-relay-byte-limits"]
   workflow_dispatch:
   schedule:
     - cron: "*/15 * * * *"
@@ -53,7 +53,8 @@ jobs:
 
   smoke:
     name: Production smoke test
-    if: github.event_name != 'schedule'
+    # Production probing is opt-in and requires an explicitly configured non-legacy URL.
+    if: github.event_name == 'workflow_dispatch' && vars.PRODUCTION_SMOKE_ENABLED == 'true' && vars.PRODUCTION_URL != '' && !endsWith(vars.PRODUCTION_URL, '.vercel.app')
     needs: regression
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -72,6 +73,8 @@ jobs:
         run: sleep 30
 
       - name: Smoke test production
+        env:
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
         run: node scripts/production-smoke.mjs
 
 

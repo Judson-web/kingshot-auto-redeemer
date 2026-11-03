@@ -12,6 +12,34 @@ function constantTimeEqual(left: string, right: string): boolean {
   return difference === 0;
 }
 
+async function readTextWithinLimit(request: Request, maxBytes: number): Promise<string | null> {
+  if (!request.body) return "";
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel();
+        return null;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+}
+
 function validTarget(value: unknown): value is string {
   if (typeof value !== "string" || value.length > 2048) return false;
   try {
@@ -42,20 +70,27 @@ export default {
 
     let input: { url?: unknown; headers?: unknown; body?: unknown };
     try {
-      const raw = await request.text();
-      if (raw.length > 96_000) return Response.json({ error: "payload_too_large" }, { status: 413 });
+      const raw = await readTextWithinLimit(request, 96_000);
+      if (raw === null) return Response.json({ error: "payload_too_large" }, { status: 413 });
       input = JSON.parse(raw);
     } catch {
       return Response.json({ error: "invalid_json" }, { status: 400 });
     }
-    if (!validTarget(input.url) || typeof input.body !== "string" || input.body.length > 64_000 || !input.headers || typeof input.headers !== "object") {
+    if (!input || typeof input !== "object" || Array.isArray(input)) {
+      return Response.json({ error: "invalid_delivery" }, { status: 400 });
+    }
+    if (!validTarget(input.url) || typeof input.body !== "string" ||
+        new TextEncoder().encode(input.body).byteLength > 64_000 ||
+        !input.headers || typeof input.headers !== "object" || Array.isArray(input.headers)) {
       return Response.json({ error: "invalid_delivery" }, { status: 400 });
     }
     const headers = new Headers();
     const incoming = new Map(Object.entries(input.headers as Record<string, unknown>).map(([name, value]) => [name.toLowerCase(), value]));
     for (const name of allowedHeaders) {
       const value = incoming.get(name);
-      if (typeof value === "string" && value.length <= 2048) headers.set(name, value);
+      if (typeof value === "string" && new TextEncoder().encode(value).byteLength <= 2048 &&
+          !/[\r\n]/.test(value)) headers.set(name, value);
+      else if (value !== undefined) return Response.json({ error: "invalid_delivery_headers" }, { status: 400 });
     }
     if (!headers.get("content-type")?.toLowerCase().startsWith("application/json") ||
         !headers.has("x-kingshot-event-id") || !headers.has("x-kingshot-signature") ||
@@ -72,7 +107,9 @@ export default {
         body: input.body,
         redirect: "manual"
       });
-      return Response.json({ status: response.status }, { status: 200, headers: { "Cache-Control": "no-store" } });
+      const status = response.status;
+      await response.body?.cancel().catch(() => undefined);
+      return Response.json({ status }, { status: 200, headers: { "Cache-Control": "no-store" } });
     } catch {
       return Response.json({ error: "gateway_egress_failed" }, { status: 502 });
     }

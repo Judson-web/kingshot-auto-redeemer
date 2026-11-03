@@ -1,4 +1,22 @@
-const base=(process.env.PRODUCTION_URL||"https://kingshot-autoredeemer.vercel.app").replace(/\/$/,"");
+const configuredBase=String(process.env.PRODUCTION_URL||"").trim();
+if(!configuredBase){
+ console.error("PRODUCTION_URL must be explicitly configured; refusing to probe a legacy default host.");
+ process.exit(2);
+}
+let parsedBase;
+try{parsedBase=new URL(configuredBase)}catch{
+ console.error("PRODUCTION_URL must be a valid absolute URL.");
+ process.exit(2);
+}
+if(parsedBase.protocol!=="https:"&&parsedBase.hostname!=="localhost"&&parsedBase.hostname!=="127.0.0.1"){
+ console.error("PRODUCTION_URL must use HTTPS, except for local development.");
+ process.exit(2);
+}
+if(parsedBase.hostname==="vercel.app"||parsedBase.hostname.endsWith(".vercel.app")){
+ console.error("Production smoke tests must not target the legacy Vercel host.");
+ process.exit(2);
+}
+const base=parsedBase.href.replace(/\/$/,"");
 const checks=[];
 
 async function check(name,path,expected,options={}){
