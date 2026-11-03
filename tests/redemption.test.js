@@ -20,4 +20,8 @@ test("manual redemption refuses to run without Neon recovery journal", async () 
   assert.equal(r.status,503); assert.equal((await r.json()).code,"redemption_unavailable");
 });
 
-test("Retry-After parses delta seconds and clamps past HTTP dates", () => {\n  assert.equal(parseRetryAfter("45", 0), 45);\n  assert.equal(parseRetryAfter("invalid", 0), 60);\n  assert.equal(parseRetryAfter("Thu, 01 Jan 1970 00:00:10 GMT", 15000), 0);\n});\n
+test("Retry-After parses delta seconds and clamps past HTTP dates", () => {
+  assert.equal(parseRetryAfter("45", 0), 45);
+  assert.equal(parseRetryAfter("invalid", 0), 60);
+  assert.equal(parseRetryAfter("Thu, 01 Jan 1970 00:00:10 GMT", 15000), 0);
+});
