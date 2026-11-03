@@ -7,7 +7,7 @@
 **An independent community service for discovering and redeeming eligible Kingshot gift codes.**
 
 [![Live Website Status](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/api/kingshot-health?badge=1)](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/)
-[![Live Site](https://img.shields.io/badge/Live%20Site-Open%20Service-2563EB?style=for-the-badge&logo=vercel&logoColor=white)](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/)
+[![Live Site](https://img.shields.io/badge/Live%20Site-Open%20Service-2563EB?style=for-the-badge&logo=cloudflare&logoColor=white)](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/)
 [![Verification](https://github.com/Judson-web/kingshot-auto-redeemer/actions/workflows/verify.yml/badge.svg)](https://github.com/Judson-web/kingshot-auto-redeemer/actions/workflows/verify.yml)
 [![Node.js 24](https://img.shields.io/badge/Node.js-24.x-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![React 19](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=111827)](https://react.dev/)
@@ -47,7 +47,7 @@ Kingshot Auto Redeemer helps players discover eligible public gift codes and red
 
 ## Live website
 
-The public application is available at [kingshot-autoredeemer.vercel.app](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/). Use the site's navigation for current routes and features. Administrative and developer tools may require a verified session and server-side authorization; a URL alone does not grant access.
+The public application is hosted on Cloudflare Workers at [kingshot-autoredeemer-edge.sajijudsa.workers.dev](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/). The previous Vercel address is not an application origin; it is reserved for a temporary redirect during the domain transition. Use the site's navigation for current routes and features. Administrative and developer tools may require a verified session and server-side authorization; a URL alone does not grant access.
 
 ## Alliance registration and sync
 
@@ -57,7 +57,7 @@ The normal limit is **four registered alliance configurations per kingdom**. The
 
 Discord registration records the initiating Discord account for audit, while the sync worker runs independently of that user's continued presence or permissions. Registration uses the existing player registry and skips already-registered or banned players rather than creating duplicate player records. The initial roster is validated before registration; suspiciously incomplete, stale, or malformed rosters fail closed. Successful syncs continue on the existing 24-hour schedule, with the existing per-alliance lease preventing overlapping runs. The website and Discord share the same server-side sync configuration and worker safeguards.
 
-The alliance page fetches and validates the selected roster, checks registration status, and processes eligible players in bounded batches. The admin **Sync now** action runs the same server-side reconciliation path, with a Cloudflare Worker execution limits for larger rosters. Each run validates a fresh provider roster against the alliance's reported member count and rejects suspiciously incomplete responses before changing registration state. The worker batch-checks the authoritative Supabase player registry and player-ban registry (up to 100 IDs per query), then skips already-registered and banned players before attempting registration. Per-alliance seen-player state records outcomes for audit and incremental processing; it is not the authoritative count of globally registered players. If a manual sync fails, the server records a retry due in five minutes. The GitHub Actions scheduler wakes the existing worker every five minutes to pick up due syncs and retries; Supabase's daily cron remains a backup wake-up. Both scheduler paths use the same per-alliance database lease, preventing overlapping runs for the same alliance. Successful syncs advance the next scheduled run by 24 hours. Scheduled sync adds newly discovered eligible members; it does not automatically deregister players who leave an alliance.
+The alliance page fetches and validates the selected roster, checks registration status, and processes eligible players in bounded batches. The admin **Sync now** action runs the same server-side reconciliation path, with a Cloudflare Worker execution limits for larger rosters. Each run validates a fresh provider roster against the alliance's reported member count and rejects suspiciously incomplete responses before changing registration state. The worker batch-checks the authoritative Supabase player registry and player-ban registry (up to 100 IDs per query), then skips already-registered and banned players before attempting registration. Per-alliance seen-player state records outcomes for audit and incremental processing; it is not the authoritative count of globally registered players. If a manual sync fails, the server records a retry due in five minutes. Supabase `pg_cron` wakes the Cloudflare Worker for scheduled alliance syncs and five-minute manual-registration queue retries. Both paths use the same per-alliance database lease, preventing overlapping runs for the same alliance. Successful syncs advance the next scheduled run by 24 hours. Scheduled sync adds newly discovered eligible members; it does not automatically deregister players who leave an alliance.
 
 ## Discord bot
 
@@ -152,10 +152,10 @@ The service handles information needed to provide its features. Depending on how
 | Build tooling | Vite 6 |
 | Runtime | Node.js 24.x |
 | Language | JavaScript/JSX and TypeScript |
-| Hosting | Vercel |
+| Hosting | Cloudflare Workers + Workers Assets |
 | Primary application database and alliance-registration state | Supabase PostgreSQL |
 | Redemption recovery journal | Neon PostgreSQL, accessed by server-side redemption handlers |
-| Scheduled worker trigger | GitHub Actions and Vercel server-side functions |
+| Scheduled worker trigger | Supabase `pg_cron` + `pg_net` |
 | License | GNU Affero General Public License v3.0 (AGPL-3.0) |
 
 The repository contains both JavaScript/JSX and TypeScript. Type checking is part of the available verification workflow; this does not mean every source file has been migrated to TypeScript.
@@ -266,7 +266,7 @@ AGPL-3.0 includes source-sharing obligations for modified versions made availabl
 ## Frontend accessibility and visual regression
 
 The `ui-regression` verification job runs the built frontend with deterministic API fixtures. It checks accessibility rules, mobile and desktop overflow and overlay geometry, and committed screenshots for key application pages. See [the UI regression guide](docs/ui-regression.md) for local setup and intentional baseline updates.
-\n\n### Scheduled announcements\n\nThe private website announcement console can send immediately or schedule a one-time or recurring announcement. Schedules persist in Supabase, support pause/resume/cancel, optional end times, a local timezone label, Discord-only / website-push-only / combined delivery, private image uploads, and validated Discord role mentions. A GitHub Actions worker wakes every five minutes using `CRON_SECRET`; delivery claims are atomic and leased, retries are bounded, and one-time schedules complete after delivery. Configure the repository Actions secret `CRON_SECRET` to match the production environment variable.\n
+\n\n### Scheduled announcements\n\nThe private website announcement console can send immediately or schedule a one-time or recurring announcement. Schedules persist in Supabase, support pause/resume/cancel, optional end times, a local timezone label, Discord-only / website-push-only / combined delivery, private image uploads, and validated Discord role mentions. A Supabase `pg_cron` job wakes the Cloudflare Worker every five minutes using the Worker `CRON_SECRET`; delivery claims are atomic and leased, retries are bounded, and one-time schedules complete after delivery. The GitHub Actions workflow is manual-dispatch only and is not a second scheduler.\n
 
 ## Public Kingshot player profiles
 
