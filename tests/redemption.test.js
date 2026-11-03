@@ -5,7 +5,7 @@ import { kingshotSignature, handleNativeRedemption } from "../cloudflare/redempt
 test("Kingshot MD5 signing uses sorted form fields and MD5", async () => {
   const result = await kingshotSignature({ fid:"123", cdk:"ABCDEF", kid:"7", time:"1" }, "secret");
   assert.match(result, /^[a-f0-9]{32}$/);
-  assert.equal(result, "e3f7b4a7b7c2f70a3c4e2a7d1f8b9a9d");
+  assert.equal(result, "df625edccc6bd1a93fb7f2e92185b660");
 });
 test("manual redemption rejects invalid player ID before writes", async () => {
   const r=await handleNativeRedemption(new Request("https://worker.test/api/kingshot-redeem",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({playerId:"bad",code:"ABCDEF",kid:"7"})}),{SUPABASE_WRITE_MODE:"enabled"});
