@@ -68,9 +68,11 @@ import {extractPageCodes, mergeCodes, normalizeCodes, isCredibleGiftCodeCandidat
 import { getHandledGiftCodes, selectNextOutstandingCode } from "../internal/kingshot/redemption-history.js";
 const WORKER_COUNT=4;
 // Four durable shards × two concurrent redemptions keep each shard small while bounding upstream pressure.
-const PLAYER_CONCURRENCY=2;
-const KINGDOM_VALIDATION_CONCURRENCY=3;
-const KINGDOM_SCHEDULED_VALIDATION_BATCH_SIZE=6;
+const PLAYER_CONCURRENCY=1;
+// Cloudflare Free has a strict per-invocation subrequest budget. Each shard rotates through a tiny player slice per minute.
+const MAX_PLAYERS_PER_SHARD=2;
+const KINGDOM_VALIDATION_CONCURRENCY=1;
+const KINGDOM_SCHEDULED_VALIDATION_BATCH_SIZE=2;
 // Temporary operational switch: disable background Kingdom Check without disabling redemption.
 // Manual mode=kingdom-check intentionally bypasses this flag.
 const KINGDOM_AUTO_CHECK_ENABLED=String(process.env.KINGDOM_AUTO_CHECK_ENABLED??"true").trim().toLowerCase()!=="false";
@@ -134,7 +136,7 @@ async function sendDiscordEvent({title,description,fields=[],color=0x5865F2},{bo
 }
 
 import { fetchSource, classifyScraperError } from "../internal/kingshot/scraper.js";
-import { runWithConcurrency, runWorkerShard, workerBucket } from "../internal/kingshot/worker.js";
+import { runWithConcurrency, runWorkerShard, workerBucket, selectWorkerShardBatch } from "../internal/kingshot/worker.js";
 async function recordRedemptionSafely(rpcClient,payload){
  let lastError;
  for(let attempt=1;attempt<=2;attempt++){
@@ -170,7 +172,7 @@ async function journalResult(playerId,code,status,errCode,message){
 }
 async function drainNeonRecoveryJournal(rpcClient){
  if(!neonJournal)return {disabled:true,recovered:0,failed:0};
- const rows=await neonJournal.query("select id,player_id,gift_code,status,err_code,message from public.redemption_journal where state='result_recorded' order by updated_at asc limit 50");
+ const rows=await neonJournal.query("select id,player_id,gift_code,status,err_code,message from public.redemption_journal where state='result_recorded' order by updated_at asc limit 2");
  let recovered=0,failed=0;
  for(const row of rows){
   try{
@@ -192,7 +194,7 @@ async function drainRedemptionRecoveryQueue(rpcClient){
  // retain the Neon fallback so an outage cannot hide a recorded result.
  let rows;
  try{
-  rows=await rpcClient("list_kingshot_redemption_recovery_queue",{p_limit:50});
+  rows=await rpcClient("list_kingshot_redemption_recovery_queue",{p_limit:2});
  }catch(error){
   await drainNeonRecoveryJournal(rpcClient).catch(neonError=>console.error("Neon recovery drain failed:",neonError?.message||neonError));
   throw error;
@@ -334,9 +336,13 @@ export default async function handler(req,res){
     for(const row of bansRows){const id=String(row?.player_id||"").trim();if(id)bannedIds.add(id)}
     if(bansRows.length<banPageSize)break;
    }
-   const eligiblePlayers=assignedPlayers.filter(player=>player?.enabled!==false&&!bannedIds.has(String(player?.player_id||"").trim()));
-   const restrictedPlayersSkipped=assignedPlayers.length-eligiblePlayers.length;
+   const allEligiblePlayers=assignedPlayers.filter(player=>player?.enabled!==false&&!bannedIds.has(String(player?.player_id||"").trim()));
+   const restrictedPlayersSkipped=assignedPlayers.length-allEligiblePlayers.length;
    if(restrictedPlayersSkipped)console.warn("Kingshot worker skipped disabled/restricted players:",{slot,count:restrictedPlayersSkipped});
+   const cycleBucket=Number.isSafeInteger(body?.cycleBucket)&&body.cycleBucket>=0?body.cycleBucket:Math.floor(Date.now()/60000);
+   const shardBatch=selectWorkerShardBatch(allEligiblePlayers,slot,WORKER_COUNT,cycleBucket,MAX_PLAYERS_PER_SHARD);
+   const eligiblePlayers=shardBatch.players;
+   const deferredPlayers=shardBatch.deferredPlayers;
    const playerIds=[...new Set(eligiblePlayers.map(player=>String(player?.player_id||"").trim()).filter(Boolean))];
    const historyRows=playerIds.length
     ? await rpc("list_kingshot_player_redemptions_bulk",{p_player_ids:playerIds})
@@ -357,7 +363,7 @@ export default async function handler(req,res){
     return rpc(name,body);
    };
    const result=await runWorkerShard(slot,codes,eligiblePlayers,{rpc:shardRpc,redeemForPlayer:(player,codes)=>redeemForPlayer(player,codes,shardRpc)},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
-   return res.status(200).json({ok:true,...result,restrictedPlayersSkipped,bannedPlayersSkipped:restrictedPlayersSkipped});
+   return res.status(200).json({ok:true,...result,restrictedPlayersSkipped,bannedPlayersSkipped:restrictedPlayersSkipped,deferredPlayers,shardBatchIndex:shardBatch.batchIndex,shardBatchCount:shardBatch.batchCount});
   }catch(error){
    console.error("Kingshot worker shard:",slot,error);
    return res.status(502).json({error:error?.message||"Worker shard failed.",errorCategory:classifyScraperError(error),slot});
@@ -665,6 +671,7 @@ export default async function handler(req,res){
   else if(schedulerToken)childHeaders["x-kingshot-scheduler-token"]=String(schedulerToken);
   else throw Error("No internal worker authorization is configured.");
 
+  const cycleBucket=Math.floor(cycleStartedAt/60000);
   const assignments=Array.from({length:WORKER_COUNT},()=>[]);
   for(const player of validPlayers)assignments[workerBucket(player?.player_id,WORKER_COUNT)].push(player);
   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
@@ -675,7 +682,7 @@ export default async function handler(req,res){
     const response=await fetch(workerUrlBase+workerIndex,{
      method:"POST",
      headers:childHeaders,
-     body:JSON.stringify({codes:activeCodes,players:assigned}),
+     body:JSON.stringify({codes:activeCodes,players:assigned,cycleBucket}),
      signal:AbortSignal.timeout(WORKER_MAX_RUNTIME_MS+15000)
     });
     const payload=await response.json().catch(()=>({}));
@@ -698,8 +705,8 @@ export default async function handler(req,res){
    players:Number.isFinite(result?.players)?result.players:null
   }));
   const totals=workerRuns.reduce((a,r)=>{
-   a.attempted+=(r?.attempted||0);a.success+=(r?.success||0);a.alreadyReceived+=(r?.alreadyReceived||0);a.alreadyHandled+=(r?.alreadyHandled||0);a.skipped+=(r?.skipped||0);a.errors+=(r?.errors||0)+(r?.error?1:0);a.deadlineSkipped+=(r?.deadlineSkipped||0);return a;
-  },{attempted:0,success:0,alreadyReceived:0,alreadyHandled:0,skipped:0,errors:0,stale:0,deadlineSkipped:0,kingdomChecks:kingdomSummary.checked,kingdomChanges:kingdomSummary.changed});
+   a.attempted+=(r?.attempted||0);a.deferredPlayers+=(r?.deferredPlayers||0);a.success+=(r?.success||0);a.alreadyReceived+=(r?.alreadyReceived||0);a.alreadyHandled+=(r?.alreadyHandled||0);a.skipped+=(r?.skipped||0);a.errors+=(r?.errors||0)+(r?.error?1:0);a.deadlineSkipped+=(r?.deadlineSkipped||0);return a;
+  },{attempted:0,deferredPlayers:0,success:0,alreadyReceived:0,alreadyHandled:0,skipped:0,errors:0,stale:0,deadlineSkipped:0,kingdomChecks:kingdomSummary.checked,kingdomChanges:kingdomSummary.changed});
   const topRedemptionFailures=workerRuns.flatMap(result=>Array.isArray(result?.redemptionFailures)?result.redemptionFailures:[]);
   const workerErrorDiagnostics=Object.values(workerRuns.flatMap(result=>Array.isArray(result?.workerErrors)?result.workerErrors:[])
    .reduce((map,item)=>{
