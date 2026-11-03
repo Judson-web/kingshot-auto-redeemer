@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-const apiUrl = String(process.env.API_URL || "").replace(/\\/$/, "");
+const apiUrl = String(process.env.API_URL || "").replace(/\/$/, "");
 const serviceKey = String(process.env.SERVICE_ROLE_KEY || "");
 const anonKey = String(process.env.ANON_KEY || "");
 
