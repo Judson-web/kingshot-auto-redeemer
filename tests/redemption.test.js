@@ -1,0 +1,21 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { kingshotSignature, handleNativeRedemption } from "../cloudflare/redemption.ts";
+
+test("Kingshot MD5 signing uses sorted form fields and MD5", async () => {
+  const result = await kingshotSignature({ fid:"123", cdk:"ABCDEF", kid:"7", time:"1" }, "secret");
+  assert.match(result, /^[a-f0-9]{32}$/);
+  assert.equal(result, "e3f7b4a7b7c2f70a3c4e2a7d1f8b9a9d");
+});
+test("manual redemption rejects invalid player ID before writes", async () => {
+  const r=await handleNativeRedemption(new Request("https://worker.test/api/kingshot-redeem",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({playerId:"bad",code:"ABCDEF",kid:"7"})}),{SUPABASE_WRITE_MODE:"enabled"});
+  assert.equal(r.status,400); assert.equal((await r.json()).code,"invalid_player_id");
+});
+test("manual redemption writes remain disabled in preview", async () => {
+  const r=await handleNativeRedemption(new Request("https://worker.test/api/kingshot-redeem",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({playerId:"123456789",code:"ABCDEF",kid:"7"})}),{SUPABASE_WRITE_MODE:"disabled"});
+  assert.equal(r.status,503); assert.equal((await r.json()).code,"writes_disabled");
+});
+test("manual redemption refuses to run without Neon recovery journal", async () => {
+  const r=await handleNativeRedemption(new Request("https://worker.test/api/kingshot-redeem",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({playerId:"123456789",code:"ABCDEF",kid:"7"})}),{SUPABASE_WRITE_MODE:"enabled",SUPABASE_URL:"https://db.test",SUPABASE_SERVICE_ROLE_KEY:"test",KINGSHOT_API_SECRET:"test"});
+  assert.equal(r.status,503); assert.equal((await r.json()).code,"redemption_unavailable");
+});

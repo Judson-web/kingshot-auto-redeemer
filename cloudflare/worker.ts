@@ -1,10 +1,13 @@
 import { fetchMightPulseNative, mightPulsePlayerErrorStatus } from "./mightpulse.js";
 import { handleNativeAvatarFrame } from "./avatar-frame.js";
 import { handleNativeRegistration } from "./registration.js";
+import { handleNativeRedemption } from "./redemption.js";
 
 interface Env {
   ASSETS: Fetcher;
   SUPABASE_WRITE_MODE?: string;
+  NEON_RECOVERY_DATABASE_URL?: string;
+  KINGSHOT_API_SECRET?: string;
   SUPABASE_URL?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;
   DISCORD_BOT_TOKEN?: string;
@@ -716,6 +719,7 @@ export default {
     }
 
     if (incoming.pathname === "/api/kingshot-register") return handleNativeRegistration(request, env);
+    if (incoming.pathname === "/api/kingshot-redeem") return handleNativeRedemption(request, env);
 
     // Preview writes are fail-closed until an isolated staging database is configured.
     if (incoming.pathname === "/api/kingshot-player" &&
