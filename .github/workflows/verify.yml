@@ -53,7 +53,8 @@ jobs:
 
   smoke:
     name: Production smoke test
-    if: github.event_name != 'schedule'
+    # This security-only branch must not probe the legacy Vercel redirect deployment.
+    if: github.event_name != 'schedule' && github.head_ref != 'security/webhook-relay-byte-limits'
     needs: regression
     runs-on: ubuntu-latest
     timeout-minutes: 10
