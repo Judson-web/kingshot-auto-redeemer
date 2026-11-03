@@ -192,7 +192,7 @@ export async function handleNativeDeveloperAccount(request: Request, env: Env, r
   }
 
   if (!["GET", "POST", "PATCH", "DELETE"].includes(method)) return json(405, { error: "Method not allowed." }, { ...Object.fromEntries(headers), Allow: "GET, POST, PATCH, DELETE" });
-  const tokens = [...new Set([cookie(request, PROFILE_COOKIE), cookie(request, DEVELOPER_COOKIE)].filter(Boolean))];
+  if (url.searchParams.get("action") === "webhooks") return json(501, { error: "Webhook management is not yet available in the native account runtime.", code: "webhook_management_not_migrated" }, headers);\n  const tokens = [...new Set([cookie(request, PROFILE_COOKIE), cookie(request, DEVELOPER_COOKIE)].filter(Boolean))];
   if (!tokens.length) return json(401, { error: "Sign in with Discord to manage your API keys." }, headers);
   try {
     let session: { hash: string; user: any } | null = null;
