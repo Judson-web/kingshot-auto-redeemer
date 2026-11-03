@@ -152,7 +152,8 @@ export async function handleNativeDeveloperAccount(request: Request, env: Env, r
     if (method === "DELETE") {
       const tokens = [...new Set([cookie(request, DEVELOPER_COOKIE), cookie(request, PROFILE_COOKIE)].filter(Boolean))];
       if (allowedWrite(env)) {
-        const hashes = await Promise.all(tokens.map(token => sha(token)));\n        await Promise.allSettled(hashes.map(p_token_hash => rpc(env, "kingshot_developer_account_session_delete", { p_token_hash })));
+        const hashes = await Promise.all(tokens.map(token => sha(token)));
+        await Promise.allSettled(hashes.map(p_token_hash => rpc(env, "kingshot_developer_account_session_delete", { p_token_hash })));
       }
       headers.append("Set-Cookie", cookieHeader(DEVELOPER_COOKIE, "", 0));
       headers.append("Set-Cookie", cookieHeader(PROFILE_COOKIE, "", 0));
@@ -192,7 +193,8 @@ export async function handleNativeDeveloperAccount(request: Request, env: Env, r
   }
 
   if (!["GET", "POST", "PATCH", "DELETE"].includes(method)) return json(405, { error: "Method not allowed." }, { ...Object.fromEntries(headers), Allow: "GET, POST, PATCH, DELETE" });
-  if (url.searchParams.get("action") === "webhooks") return json(501, { error: "Webhook management is not yet available in the native account runtime.", code: "webhook_management_not_migrated" }, headers);\n  const tokens = [...new Set([cookie(request, PROFILE_COOKIE), cookie(request, DEVELOPER_COOKIE)].filter(Boolean))];
+  if (url.searchParams.get("action") === "webhooks") return json(501, { error: "Webhook management is not yet available in the native account runtime.", code: "webhook_management_not_migrated" }, headers);
+  const tokens = [...new Set([cookie(request, PROFILE_COOKIE), cookie(request, DEVELOPER_COOKIE)].filter(Boolean))];
   if (!tokens.length) return json(401, { error: "Sign in with Discord to manage your API keys." }, headers);
   try {
     let session: { hash: string; user: any } | null = null;
