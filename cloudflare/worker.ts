@@ -125,8 +125,8 @@ function numericOrNull(value: unknown): number | null {
   const number = Number(String(value).replace(/,/g, ""));
   return Number.isFinite(number) ? number : null;
 }
-async function mightPulseJson(env: Env, url: string, timeoutMs: number): Promise<Record<string, any>> {
-  const response = await fetchMightPulseNative(env, url, timeoutMs);
+async function mightPulseJson(env: Env, url: string, timeoutMs: number, options: { totalTimeoutMs?: number; maxAttempts?: number } = {}): Promise<Record<string, any>> {
+  const response = await fetchMightPulseNative(env, url, timeoutMs, options);
   const body = await response.json().catch(() => ({})) as Record<string, any>;
   if (!response.ok) throw Object.assign(new Error("MightPulse enrichment unavailable."), { status: response.status });
   return body;
@@ -301,7 +301,7 @@ async function handleNativeAllianceLookup(request: Request, env: Env): Promise<R
   try {
     if (mode === "search") {
       const endpoint = "https://api.mightpulse.com/v1/kingdoms/"+encodeURIComponent(kid)+"/ranks?board=alliance_power&limit=100";
-      const response = await fetchMightPulseNative(env,endpoint,fast?6000:12000);
+      const response = await fetchMightPulseNative(env,endpoint,fast?6000:12000,fast?{totalTimeoutMs:18_000,maxAttempts:2}:{});
       const body = await response.json().catch(()=>({})) as Record<string,any>;
       if (!response.ok) return jsonError(response.status===404?404:response.status===429?429:502,response.status===404?"kingdom_not_found":response.status===429?"provider_rate_limited":"provider_unavailable",
         response.status===404?"That kingdom was not found in the alliance rankings.":response.status===429?"The game data provider is busy. Please wait a moment and try again.":"Alliance rankings are temporarily unavailable. Please try again shortly.");
@@ -325,7 +325,7 @@ async function handleNativeAllianceLookup(request: Request, env: Env): Promise<R
     }
     if(!/^[A-Za-z0-9_-]{1,20}$/.test(tag))return jsonError(400,"invalid_alliance_tag","Enter the exact alliance tag/abbreviation shown in Kingshot.");
     const endpoint="https://api.mightpulse.com/v1/alliances/"+encodeURIComponent(kid)+"/"+encodeURIComponent(tag)+"?include=info,roster";
-    const response=await fetchMightPulseNative(env,endpoint,fast?7000:15000);
+    const response=await fetchMightPulseNative(env,endpoint,fast?7000:15000,fast?{totalTimeoutMs:18_000,maxAttempts:2}:{});
     const body=await response.json().catch(()=>({})) as Record<string,any>;
     if(!response.ok)return jsonError(response.status===404?404:response.status===429?429:502,response.status===404?"alliance_not_found":response.status===429?"provider_rate_limited":"provider_unavailable",
       response.status===404?"No alliance was found for that kingdom and tag. Check both values and try again.":response.status===429?"The game data provider is busy. Please wait a moment and try again.":"Alliance data is temporarily unavailable. Please try again shortly.");
