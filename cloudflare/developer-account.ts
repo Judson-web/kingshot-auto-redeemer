@@ -90,7 +90,7 @@ function isOwner(user: any): boolean {
     identity?.identity_data?.id || identity?.identity_data?.user_id || identity?.id || "");
   return hasDiscord(user) && id === OWNER_DISCORD_ID;
 }
-async function verifiedOAuthUser(request: Request, env: Env, accessToken: string): Promise<any> {
+async function verifiedOAuthUser(env: Env, accessToken: string): Promise<any> {
   const base = String(env.SUPABASE_URL || "").replace(/\/$/, "");
   const key = String(env.SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY || "");
   if (!base || !key) throw new Error("Discord sign-in is not configured.");
@@ -152,7 +152,7 @@ export async function handleNativeDeveloperAccount(request: Request, env: Env, r
     if (method === "DELETE") {
       const tokens = [...new Set([cookie(request, DEVELOPER_COOKIE), cookie(request, PROFILE_COOKIE)].filter(Boolean))];
       if (allowedWrite(env)) {
-        await Promise.allSettled(tokens.map(token => rpc(env, "kingshot_developer_account_session_delete", { p_token_hash: await sha(token) })));
+        const hashes = await Promise.all(tokens.map(token => sha(token)));\n        await Promise.allSettled(hashes.map(p_token_hash => rpc(env, "kingshot_developer_account_session_delete", { p_token_hash })));
       }
       headers.append("Set-Cookie", cookieHeader(DEVELOPER_COOKIE, "", 0));
       headers.append("Set-Cookie", cookieHeader(PROFILE_COOKIE, "", 0));
@@ -177,7 +177,7 @@ export async function handleNativeDeveloperAccount(request: Request, env: Env, r
       } else {
         const accessToken = String(body.access_token || "");
         if (!accessToken || accessToken.length > 8192) return json(400, { error: "Missing or invalid Discord session token." }, headers);
-        user = await verifiedOAuthUser(request, env, accessToken);
+        user = await verifiedOAuthUser(env, accessToken);
       }
       const token = randomToken();
       const created = await rpc(env, "kingshot_developer_account_session_create", {
