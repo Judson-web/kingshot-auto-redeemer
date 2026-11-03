@@ -229,6 +229,28 @@ async function createWebhookSecret(): Promise<string> {
   return "whsec_" + base64Url(crypto.getRandomValues(new Uint8Array(32)));
 }
 
+
+async function enqueueNativeWebhookEvent(
+  env: Env,
+  eventType: "redemption.completed" | "redemption.unknown",
+  payload: Record<string, unknown>,
+): Promise<void> {
+  const subscriptions = await database(env,
+    "/rest/v1/kingshot_developer_webhooks?select=id,events&disabled_at=is.null&events=cs.%7B" +
+    encodeURIComponent(eventType) + "%7D",
+    { signal: AbortSignal.timeout(2500) });
+  if (!Array.isArray(subscriptions) || !subscriptions.length) return;
+  const rows = subscriptions.filter((item: any) => Array.isArray(item.events) && item.events.includes(eventType))
+    .map((item: any) => ({ webhook_id: item.id, event_type: eventType, payload }));
+  if (!rows.length) return;
+  await database(env, "/rest/v1/kingshot_developer_webhook_deliveries", {
+    method: "POST",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify(rows),
+    signal: AbortSignal.timeout(2500),
+  });
+}
+
 function boundedInteger(value: string | null, fallback: number, min: number, max: number): number {
   const parsed = Number(value);
   return Number.isInteger(parsed) ? Math.max(min, Math.min(max, parsed)) : fallback;
@@ -381,6 +403,24 @@ async function handleV4Redemption(
       safeToRelease = ["writes_disabled", "redemption_unavailable", "upstream_cooldown", "rate_limit_exceeded"].includes(code);
       result = fail(upstream.status, code, message, requestId, { rateLimit: auth.rateLimit }, h);
     }
+  }
+
+  if (outcomeUnknown || hasGameResult) {
+    const eventType = outcomeUnknown || !rawResult.ok ? "redemption.unknown" : "redemption.completed";
+    const payload: Record<string, unknown> = {
+      playerId,
+      code,
+      kingdomId: kid,
+      ...(hasGameResult ? {
+        ok: Boolean(rawResult.ok),
+        status: String(rawResult.status || "ERROR").slice(0, 40),
+        errorCategory: rawResult.errorCategory ?? null,
+        errCode: rawResult.errCode ?? null,
+      } : { reason: "outcome_unknown" }),
+    };
+    await enqueueNativeWebhookEvent(env, eventType, payload).catch(() => {
+      console.error("[v4-webhook-enqueue] delivery event could not be persisted");
+    });
   }
 
   if (hasIdempotencyKey) {
