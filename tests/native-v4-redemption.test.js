@@ -14,6 +14,7 @@ test("native V4 redemption is routed through Bearer authorization and the write-
   assert.ok(redemption.includes("journalStart(env,pid,code)"));
   assert.ok(redemption.includes("journalResult(env,pid,code,result)"));
   assert.ok(redemption.includes("journalUncertain(env,pid,code"));
+  assert.ok(redemption.includes("retryAfterSeconds:result.retryAfterSeconds??null"));
 });
 
 test("native V4 idempotency hashes namespaced keys and canonical request bodies", async () => {
