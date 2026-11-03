@@ -109,6 +109,163 @@ async function handleRegistrationStatus(request: Request, env: Env): Promise<Res
 
 const playerLookupBuckets = new Map<string, { count: number; resetAt: number }>();
 
+
+const detailedProfileCache = new Map<string, { value: Record<string, unknown>; expiresAt: number }>();
+const detailedProfileInFlight = new Map<string, Promise<Record<string, unknown>>>();
+
+function playerIdOf(player: Record<string, unknown>): string {
+  return String(player.governor_id ?? player.fid ?? player.player_id ?? "");
+}
+function numericOrNull(value: unknown): number | null {
+  if (value === null || value === undefined || String(value).trim() === "") return null;
+  const number = Number(String(value).replace(/,/g, ""));
+  return Number.isFinite(number) ? number : null;
+}
+async function mightPulseJson(env: Env, url: string, timeoutMs: number): Promise<Record<string, any>> {
+  const response = await fetchMightPulseNative(env, url, timeoutMs);
+  const body = await response.json().catch(() => ({})) as Record<string, any>;
+  if (!response.ok) throw Object.assign(new Error("MightPulse enrichment unavailable."), { status: response.status });
+  return body;
+}
+async function loadNativePlayerContext(env: Env, player: Record<string, any>): Promise<Record<string, unknown>> {
+  const kid = String(player.kid ?? player.kingdom_id ?? "").trim();
+  const allianceTag = String(player.alliance?.abbr ?? player.alliance_tag ?? player.allianceTag ?? "").trim();
+  const validKingdom = /^\d{1,10}$/.test(kid);
+  const kingdomPromise = validKingdom
+    ? mightPulseJson(env, "https://api.mightpulse.com/v1/kingdoms/" + encodeURIComponent(kid) + "?include=boards&limit=100", 4500)
+    : Promise.resolve(null);
+  const ranksPromise = validKingdom
+    ? mightPulseJson(env, "https://api.mightpulse.com/v1/kingdoms/" + encodeURIComponent(kid) + "/ranks?limit=100", 4500)
+    : Promise.resolve(null);
+  const alliancePromise = validKingdom && /^[A-Za-z0-9_-]{1,20}$/.test(allianceTag)
+    ? mightPulseJson(env, "https://api.mightpulse.com/v1/alliances/" + encodeURIComponent(kid) + "/" + encodeURIComponent(allianceTag) + "?include=info,roster", 5000)
+    : Promise.resolve(null);
+  const [kingdomResult, ranksResult, allianceResult] = await Promise.allSettled([kingdomPromise, ranksPromise, alliancePromise]);
+  const boardRanks: Array<{board:string;rank:number|null;score:number|null}> = [];
+  const ids = new Set([playerIdOf(player), String(player.uid ?? "")].filter(Boolean));
+  const visit = (value: any, label = "", depth = 0): void => {
+    if (!value || typeof value !== "object" || depth > 7) return;
+    if (Array.isArray(value)) {
+      value.forEach((row, index) => {
+        if (!row || typeof row !== "object") return;
+        const id = String(row.governor_id ?? row.fid ?? row.uid ?? "");
+        if (ids.has(id)) {
+          const score = row.score ?? row.value ?? row.power;
+          const rank = row.rank ?? row.kingdom_rank ?? row.position ?? index + 1;
+          boardRanks.push({board:String(row.board ?? row.board_name ?? row.type ?? row.label ?? label ?? "Kingdom leaderboard").slice(0,60),
+            rank:numericOrNull(rank),score:numericOrNull(score)});
+        } else visit(row, String(row.name ?? row.key ?? label), depth + 1);
+      });
+      return;
+    }
+    for (const [key, nested] of Object.entries(value)) visit(nested, String((value as any).name ?? (value as any).label ?? key ?? label), depth + 1);
+  };
+  const kingdomBody = kingdomResult.status === "fulfilled" ? kingdomResult.value : null;
+  if (kingdomBody) {
+    const data = kingdomBody.kingdom && typeof kingdomBody.kingdom === "object" ? kingdomBody.kingdom
+      : kingdomBody.data?.kingdom && typeof kingdomBody.data.kingdom === "object" ? kingdomBody.data.kingdom
+      : kingdomBody.data && typeof kingdomBody.data === "object" ? kingdomBody.data : kingdomBody;
+    visit(kingdomBody.boards ?? kingdomBody.data?.boards ?? data.boards ?? kingdomBody.leaderboards ?? kingdomBody.data?.leaderboards ?? []);
+  }
+  const rankBody = ranksResult.status === "fulfilled" ? ranksResult.value : null;
+  if (rankBody) visit(rankBody.boards ?? rankBody.rankings ?? rankBody.leaderboards ?? rankBody.ranks ?? rankBody.items ?? rankBody);
+  const uniqueRanks = [...new Map(boardRanks.map(item => [item.board.toLowerCase(), item])).values()].slice(0,100);
+  let allianceRoster: Record<string, unknown> | null = null;
+  if (allianceResult.status === "fulfilled" && allianceResult.value) {
+    const body = allianceResult.value;
+    const source = body.data && typeof body.data === "object" ? body.data : body;
+    const raw = Array.isArray(source.members) ? source.members : Array.isArray(source.roster) ? source.roster : Array.isArray(source.alliance?.members) ? source.alliance.members : [];
+    const members = raw.flatMap((member: Record<string, any>) => {
+      const governorId = String(member.governor_id ?? member.fid ?? "").trim();
+      if (!/^\d{5,20}$/.test(governorId)) return [];
+      return [{governor_id:governorId,name:String(member.nick_name ?? member.name ?? member.nickname ?? "Kingshot Player").trim().slice(0,80),
+        power:numericOrNull(member.power),town_center_level:numericOrNull(member.town_center_level),kills:numericOrNull(member.kills),
+        alliance_rank:String(member.alliance_rank_label ?? member.alliance_rank ?? "").trim().slice(0,30),
+        avatar_url:/^https:\/\//i.test(String(member.avatar_url ?? "")) ? String(member.avatar_url) : ""}];
+    });
+    members.sort((a:any,b:any)=>(b.power ?? -1)-(a.power ?? -1));
+    const position=members.findIndex((member:any)=>member.governor_id===playerIdOf(player));
+    allianceRoster={members:members.slice(0,8),total:raw.length,player_power_rank:position<0?null:position+1,
+      fresh:typeof body.fresh==="boolean"?body.fresh:null,age_seconds:numericOrNull(body.age_seconds),cached_at:typeof body.cached_at==="string"?body.cached_at:null};
+  }
+  return {
+    kingdom: kingdomBody ? (kingdomBody.kingdom && typeof kingdomBody.kingdom==="object" ? kingdomBody.kingdom
+      : kingdomBody.data?.kingdom && typeof kingdomBody.data.kingdom==="object" ? kingdomBody.data.kingdom
+      : kingdomBody.data && typeof kingdomBody.data==="object" ? kingdomBody.data : kingdomBody) : null,
+    kingdom_board_ranks:uniqueRanks,
+    kingdom_meta:kingdomBody?{fresh:typeof kingdomBody.fresh==="boolean"?kingdomBody.fresh:null,age_seconds:numericOrNull(kingdomBody.age_seconds),cached_at:typeof kingdomBody.cached_at==="string"?kingdomBody.cached_at:null}:null,
+    alliance_roster:allianceRoster
+  };
+}
+async function loadNativeDetailedProfile(env: Env, playerId: string, player: Record<string, any>): Promise<Record<string, unknown>> {
+  const cached=detailedProfileCache.get(playerId);
+  if(cached && cached.expiresAt>Date.now()) return cached.value;
+  const active=detailedProfileInFlight.get(playerId);
+  if(active) return active;
+  const request=(async()=>{
+    const endpoint="https://api.mightpulse.com/v1/players/"+encodeURIComponent(playerId)+"?include=base,heroes,ranks,gov_gear";
+    const [detailsResult,contextResult]=await Promise.allSettled([
+      mightPulseJson(env,endpoint,7000),
+      loadNativePlayerContext(env,player)
+    ]);
+    const body=detailsResult.status==="fulfilled"?detailsResult.value:{};
+    const context=contextResult.status==="fulfilled"?contextResult.value:{kingdom:null,kingdom_board_ranks:[],kingdom_meta:null,alliance_roster:null};
+    const detailPlayer=body.player && typeof body.player==="object" ? body.player : player;
+    if(playerIdOf(detailPlayer)!==playerId) throw Object.assign(new Error("MightPulse returned a mismatched player profile."),{status:502});
+    const result={
+      ok:true,player,...context,
+      heroes:Array.isArray(body.heroes)?body.heroes:[],
+      ranks:body.ranks && typeof body.ranks==="object"?body.ranks:null,
+      gov_gear:body.gov_gear && typeof body.gov_gear==="object"?body.gov_gear:null,
+      fresh:typeof body.fresh==="boolean"?body.fresh:null,
+      cached_at:typeof body.cached_at==="string"?body.cached_at:null,
+      age_seconds:numericOrNull(body.age_seconds),
+      include:Array.isArray(body.include)?body.include:["heroes","ranks","gov_gear"],
+      source:"mightpulse",extras_available:detailsResult.status==="fulfilled",
+      extras_error:detailsResult.status==="rejected"?"Some extended player details could not be refreshed. The public profile is still available.":null
+    };
+    detailedProfileCache.set(playerId,{value:result,expiresAt:Date.now()+120_000});
+    return result;
+  })();
+  detailedProfileInFlight.set(playerId,request);
+  try{return await request;}finally{detailedProfileInFlight.delete(playerId);}
+}
+async function handleNativeDetailedPlayerProfile(request: Request, env: Env): Promise<Response> {
+  if(request.method!=="GET") return new Response(JSON.stringify({error:"Method not allowed.",code:"method_not_allowed"}),{status:405,headers:{Allow:"GET","Content-Type":"application/json","Cache-Control":"no-store"}});
+  const url=new URL(request.url);
+  const playerId=(url.searchParams.get("id")||"").trim();
+  if(!/^\d{5,20}$/.test(playerId)) return jsonError(400,"invalid_player_id","Player ID must contain 5–20 digits.");
+  const ip=request.headers.get("CF-Connecting-IP")||"unknown";
+  const now=Date.now();
+  let bucket=playerLookupBuckets.get("detail:"+ip);
+  if(!bucket||bucket.resetAt<=now) bucket={count:0,resetAt:now+60_000};
+  bucket.count++;
+  playerLookupBuckets.set("detail:"+ip,bucket);
+  if(bucket.count>12) return new Response(JSON.stringify({error:"Too many detailed profile lookups. Please wait before trying again.",code:"rate_limit_exceeded"}),{
+    status:429,headers:{"Content-Type":"application/json","Cache-Control":"no-store","Retry-After":String(Math.max(1,Math.ceil((bucket.resetAt-now)/1000)))}
+  });
+  const requestId=crypto.randomUUID();
+  try{
+    const upstream=await fetchMightPulseNative(env,"https://api.mightpulse.com/v1/players/"+encodeURIComponent(playerId)+"?include=base",9000);
+    const baseBody=await upstream.json().catch(()=>({})) as Record<string,any>;
+    if(!upstream.ok){
+      const status=upstream.status===404?404:upstream.status===429?429:upstream.status>=500?503:502;
+      return jsonError(status,status===404?"player_not_found":status===429?"provider_rate_limited":"profile_unavailable",
+        status===404?"No Kingshot player was found for this ID.":status===429?"The game data provider is busy. Please wait a moment and try again.":"The basic player lookup is temporarily unavailable.");
+    }
+    const player=baseBody.player && typeof baseBody.player==="object"?baseBody.player:baseBody;
+    if(playerIdOf(player)!==playerId) return jsonError(502,"profile_mismatch","The provider returned a different player ID.");
+    const profile=await loadNativeDetailedProfile(env,playerId,player);
+    return Response.json({...profile,meta:{requestId,timestamp:new Date().toISOString()}},{
+      headers:{"Cache-Control":"public, max-age=30, s-maxage=60, stale-while-revalidate=180","X-Request-Id":requestId,"X-Content-Type-Options":"nosniff","X-Edge-Backend":"cloudflare-mightpulse"}
+    });
+  }catch(error){
+    const status=mightPulsePlayerErrorStatus(error);
+    return jsonError(status,status===429?"provider_rate_limited":status===504?"upstream_timeout":"profile_unavailable",
+      status===429?"The game data provider is busy. Please wait a moment and try again.":status===504?"The basic player lookup timed out. Please retry in a moment.":"The basic player lookup is temporarily unavailable.");
+  }
+}
+
 async function handleNativePlayerLookup(request: Request, env: Env): Promise<Response> {
   if (request.method !== "GET") return new Response(JSON.stringify({ error: "Method not allowed.", code: "method_not_allowed" }), {
     status: 405, headers: { Allow: "GET", "Content-Type": "application/json", "Cache-Control": "no-store" },
@@ -481,6 +638,10 @@ export default {
     }
 
     if (incoming.pathname === "/api/ops-tools/health") return handlePublicHealth(request, env);
+
+    if (incoming.pathname === "/api/kingshot-player" && incoming.searchParams.get("profile") === "detail") {
+      return handleNativeDetailedPlayerProfile(request, env);
+    }
 
     if (incoming.pathname === "/api/kingshot-player" &&
       !incoming.searchParams.has("milestone") &&
