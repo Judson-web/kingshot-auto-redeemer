@@ -1,27 +1,35 @@
 # Automatic Alliance Sync Scheduler
 
-Alliance sync configurations, run history, leases, and seen-player state are stored in Supabase PostgreSQL. Each enabled configuration is due when `next_run_at <= now()`. The worker claims configurations through the Supabase lease RPC, validates a fresh MightPulse roster, skips players already registered in Supabase, and schedules the next normal run 24 hours later. Failed manual runs are scheduled for retry after five minutes; the five-minute GitHub schedule wakes the worker to process them.
+Alliance sync configurations, run history, leases, and seen-player state are stored in Supabase PostgreSQL. Each enabled configuration is due when `next_run_at <= now()`. The Cloudflare Worker claims configurations through the Supabase lease RPC, validates a fresh MightPulse roster, skips players already registered in Supabase, and schedules the next normal run 24 hours later. Failed manual runs are scheduled for retry after five minutes.
 
-## Why this scheduler exists
+## Runtime and cadence
 
-Vercel Hobby cron is limited to daily schedules, which is too infrequent for five-minute retry/backoff. The GitHub Actions workflow `.github/workflows/alliance-sync-scheduler.yml` wakes the existing server-side worker every five minutes for due alliance syncs and drains the durable manual-registration queue. It does not perform roster validation or registration in GitHub; all processing remains in the existing server-side worker.
+Supabase `pg_cron` is the scheduler of record. `pg_net` sends authenticated HTTP requests to the Cloudflare Worker:
 
-The existing Supabase daily cron remains as a backup wake-up. Both paths use the same database lease RPC, so an alliance cannot be processed concurrently by overlapping invocations. The GitHub worker processes one alliance configuration and at most 10 not-yet-completed roster members (with up to three registrations in parallel) per invocation. Player outcomes are persisted in `alliance_sync_seen_players`; if more members remain, the configuration is released with a five-minute continuation time and the next wake-up resumes from those outcomes. Departure reconciliation runs only after the entire fresh roster has been traversed. A completed sync advances its next run by 24 hours.
+| Job | Schedule | Purpose |
+|---|---|---|
+| `kingshot-auto-redeem` | `* * * * *` | Auto-redemption coordinator |
+| `alliance-sync-worker` | `0 11 * * *` | Due alliance roster syncs |
+| `alliance-manual-registration-queue` | `*/5 * * * *` | Resume durable manual-registration jobs |
+| `scheduled-announcement-worker` | `*/5 * * * *` | Deliver due scheduled announcements |
+| `purge-kingshot-visitor-telemetry` | `17 3 * * *` | Database-local visitor telemetry retention cleanup |
 
-## One-time secret configuration
+The alliance worker processes bounded batches. Player outcomes are persisted in `alliance_sync_seen_players`; if more members remain, the configuration is released with a five-minute continuation time and the next wake-up resumes from those outcomes. Departure reconciliation runs only after the entire fresh roster has been traversed. A completed sync advances its next run by 24 hours.
 
-In GitHub, open **Settings → Secrets and variables → Actions → New repository secret** and add:
+The GitHub Actions workflow `.github/workflows/alliance-sync-scheduler.yml` is manual-dispatch only. It is not a scheduled trigger and does not compete with `pg_cron`. Vercel is not part of the runtime or scheduler path; the previous address is reserved for a separate temporary redirect during the domain transition.
 
-- Name: `ALLIANCE_SYNC_CRON_SECRET`
-- Value: the same secret configured on the Vercel production project as `ALLIANCE_SYNC_CRON_SECRET` or `CRON_SECRET`.
+## Secrets
 
-The workflow supports either GitHub secret name, `ALLIANCE_SYNC_CRON_SECRET` or `CRON_SECRET`. The production worker accepts a bearer token matching either configured Vercel variable, `ALLIANCE_SYNC_CRON_SECRET` or `CRON_SECRET`, so projects using both aliases do not accidentally authenticate against only the first one. Keep both values private and do not commit them to the repository. The worker rejects requests without a matching bearer token.
+The Cloudflare Worker has the private `ALLIANCE_SYNC_CRON_SECRET` and `CRON_SECRET` bindings. The corresponding values are stored in the private Supabase scheduler configuration and are never printed in logs or committed to the repository.
+
+For the optional manual GitHub Actions workflow, configure the repository Actions secret `ALLIANCE_SYNC_CRON_SECRET` to match the Worker binding. This is only needed for manual operator-triggered runs, not for the Supabase schedule.
 
 ## Verify
 
-1. Open **Actions → Alliance Sync Scheduler → Run workflow** to test the connection.
-2. A successful run returns JSON from the worker with `ok: true` and a `results` array. A run with no due configurations is healthy and expected.
-3. In the Admin Alliance Sync page, confirm each enabled alliance has a recent attempt and an updated next-run time.
-4. The workflow is serialized with a concurrency group, and the database's per-alliance lease prevents overlapping work across invocations.
+1. Inspect `cron.job` and confirm the jobs above are active and their commands target `https://kingshot-autoredeemer-edge.sajijudsa.workers.dev`.
+2. Inspect `cron.job_run_details` for recent successful scheduler invocations.
+3. Inspect `net._http_response` for the HTTP responses produced by `pg_net`; a successful cron enqueue alone does not prove the Worker returned a successful response.
+4. In the Admin Alliance Sync page, confirm each enabled alliance has a recent attempt and an updated next-run time.
+5. The database's per-alliance lease prevents overlapping work across invocations, including an optional manual dispatch.
 
-GitHub scheduled workflows are best-effort and can be delayed by GitHub. They are not a hard real-time scheduler. The existing Supabase daily cron remains a backup wake-up. No Neon `pg_cron` HTTP extension is required.
+The cutover is defined in `ops/cloudflare-pg-cron-cutover.sql`. It preserves the existing private scheduler tokens and schedules while changing the application origin. Apply it only after the Cloudflare Worker is deployed and its read-only smoke tests pass.
