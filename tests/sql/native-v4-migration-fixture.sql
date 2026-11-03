@@ -27,3 +27,9 @@ create table public.kingshot_developer_webhook_deliveries (
   last_status integer,
   last_error text
 );
+
+
+-- Mirror the intended private delivery-table access model in the disposable stack.
+alter table public.kingshot_developer_webhook_deliveries enable row level security;
+revoke all on table public.kingshot_developer_webhook_deliveries from public, anon, authenticated;
+grant all on table public.kingshot_developer_webhook_deliveries to service_role;

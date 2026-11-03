@@ -21,13 +21,14 @@ test("native webhook delivery signs payloads with HMAC SHA-256 and decrypts lega
   assert.match(source, /timestamp \+ "\." \+ body/);
 });
 
-test("webhook delivery rejects unsafe URL forms and bounds retries and payload size", async () => {
+test("webhook delivery bounds payload size and retries while URL screening lives in the shared validator", async () => {
   const source = await readFile(new URL("../cloudflare/webhook-delivery.ts", import.meta.url), "utf8");
-  assert.match(source, /url\.protocol !== "https:"/);
-  assert.match(source, /host\.endsWith\("\.internal"\)/);
+  const urlSource = await readFile(new URL("../cloudflare/webhook-url.ts", import.meta.url), "utf8");
   assert.match(source, /new TextEncoder\(\)\.encode\(body\)\.byteLength > 65536/);
   assert.match(source, /attempt >= 8/);
   assert.match(source, /response\.status >= 500/);
+  assert.match(urlSource, /BLOCKED_HOST_SUFFIXES/);
+  assert.match(urlSource, /url\.protocol !== "https:"/);
 });
 
 test("webhook delivery claims rows atomically and finalizes only matching leases", async () => {
