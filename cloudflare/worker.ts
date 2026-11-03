@@ -38,6 +38,68 @@ function classifyAgent(ua: string | null) {
   return { browser, operating_system, device_type };
 }
 
+async function handlePublicHealth(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "GET") return new Response(JSON.stringify({ error: "Method not allowed" }), {
+    status: 405, headers: { Allow: "GET", "Content-Type": "application/json", "Cache-Control": "no-store" },
+  });
+  const params = new URL(request.url).searchParams;
+  if (params.has("logs") || params.has("badge") || !env.SUPABASE_SERVICE_ROLE_KEY) {
+    return fetchLegacyApi(request, env);
+  }
+  const base = String(env.SUPABASE_URL || "https://wocxvtptqapietlteshr.supabase.co").replace(/\/$/, "");
+  const query = new URLSearchParams({ select: "last_started_at,last_finished_at,last_status,lock_until", id: "eq.true", limit: "1" });
+  try {
+    const response = await fetch(base + "/rest/v1/kingshot_worker_state?" + query.toString(), {
+      headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, authorization: "Bearer " + env.SUPABASE_SERVICE_ROLE_KEY, accept: "application/json" },
+      signal: AbortSignal.timeout(5000),
+    });
+    const rows: unknown = await response.json().catch(() => []);
+    if (!response.ok || !Array.isArray(rows) || !rows[0]) return jsonError(503, "worker_state_unavailable", "Worker state unavailable.");
+    const state = rows[0] as Record<string, unknown>;
+    const now = Date.now();
+    const started = typeof state.last_started_at === "string" ? Date.parse(state.last_started_at) : NaN;
+    const finished = typeof state.last_finished_at === "string" ? Date.parse(state.last_finished_at) : NaN;
+    const ageMs = state.last_status === "RUNNING" && Number.isFinite(started) ? now - started
+      : Number.isFinite(finished) ? now - finished : Infinity;
+    const healthy = (state.last_status === "COMPLETED" || state.last_status === "RUNNING") && ageMs <= 12 * 60 * 1000;
+    return Response.json({
+      healthy, status: String(state.last_status || "UNKNOWN"),
+      lastCompletedAt: state.last_finished_at || null,
+      runningSince: state.last_status === "RUNNING" ? state.last_started_at || null : null,
+      ageSeconds: Number.isFinite(ageMs) ? Math.max(0, Math.round(ageMs / 1000)) : null,
+      locked: Boolean(state.lock_until && Date.parse(String(state.lock_until)) > now),
+    }, { status: healthy ? 200 : 503, headers: {
+      "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "X-Edge-Backend": "cloudflare-supabase",
+    } });
+  } catch {
+    return jsonError(503, "health_check_unavailable", "Worker health check failed.");
+  }
+}
+
+async function fetchLegacyApi(request: Request, env: Env): Promise<Response> {
+  if (!env.LEGACY_API_ORIGIN) return jsonError(503, "api_upstream_unconfigured", "API service is temporarily unavailable.");
+  let origin: URL;
+  try { origin = new URL(env.LEGACY_API_ORIGIN); }
+  catch { return jsonError(503, "api_upstream_invalid", "API service is temporarily unavailable."); }
+  if (origin.protocol !== "https:" || origin.username || origin.password) return jsonError(503, "api_upstream_invalid", "API service is temporarily unavailable.");
+  const incoming = new URL(request.url);
+  const target = new URL(incoming.pathname + incoming.search, origin);
+  const upstream = await fetch(new Request(target, request), { redirect: "manual", cf: { cacheTtl: 0, cacheEverything: false } });
+  const headers = new Headers(upstream.headers);
+  const location = headers.get("Location");
+  if (location) {
+    try {
+      const redirectTarget = new URL(location, target);
+      if (redirectTarget.origin === origin.origin) headers.set("Location", redirectTarget.pathname + redirectTarget.search + redirectTarget.hash);
+    } catch { /* Preserve malformed or external redirects. */ }
+  }
+  headers.set("Cache-Control", "no-store");
+  headers.set("X-Content-Type-Options", "nosniff");
+  headers.set("X-Edge-Backend", "legacy-api-bridge");
+  headers.delete("server");
+  return new Response(upstream.body, { status: upstream.status, statusText: upstream.statusText, headers });
+}
+
 async function handleVisitorTelemetry(request: Request, env: Env): Promise<Response> {
   if (request.method === "GET") return handleEdgeLocale(request);
   if (request.method !== "POST") {
@@ -288,65 +350,15 @@ export default {
 
     // Visitor telemetry moves natively to Workers when the Supabase service
     // credential is provisioned. Until then, POST remains on the legacy bridge.
+    if (incoming.pathname === "/api/ops-tools/health") return handlePublicHealth(request, env);
+
     if (incoming.pathname === "/api/ops-tools/visitor") {
       if (request.method === "GET") return handleEdgeLocale(request);
       if (env.SUPABASE_SERVICE_ROLE_KEY) return handleVisitorTelemetry(request, env);
     }
 
     if (incoming.pathname === API_PREFIX || incoming.pathname.startsWith(API_PREFIX + "/")) {
-      if (!env.LEGACY_API_ORIGIN) {
-        return jsonError(503, "api_upstream_unconfigured", "API service is temporarily unavailable.");
-      }
-
-      let origin: URL;
-      try {
-        origin = new URL(env.LEGACY_API_ORIGIN);
-      } catch {
-        return jsonError(503, "api_upstream_invalid", "API service is temporarily unavailable.");
-      }
-
-      if (origin.protocol !== "https:" || origin.username || origin.password) {
-        return jsonError(503, "api_upstream_invalid", "API service is temporarily unavailable.");
-      }
-
-      // Transitional routing: keep the existing Vercel API contract and data
-      // services alive while the individual handlers are ported to Workers.
-      // The browser remains same-origin on the Cloudflare host.
-      const target = new URL(incoming.pathname + incoming.search, origin);
-      const upstreamRequest = new Request(target, request);
-      const upstream = await fetch(upstreamRequest, {
-        redirect: "manual",
-        cf: { cacheTtl: 0, cacheEverything: false },
-      });
-
-      const headers = new Headers(upstream.headers);
-
-      // Keep redirects that target the legacy API origin on the current edge
-      // hostname. Preserve genuinely external redirects unchanged.
-      const location = headers.get("Location");
-      if (location) {
-        try {
-          const redirectTarget = new URL(location, target);
-          if (redirectTarget.origin === origin.origin) {
-            headers.set(
-              "Location",
-              redirectTarget.pathname + redirectTarget.search + redirectTarget.hash,
-            );
-          }
-        } catch {
-          // Leave malformed or non-URL Location values untouched.
-        }
-      }
-
-      headers.set("Cache-Control", "no-store");
-      headers.set("X-Content-Type-Options", "nosniff");
-      headers.set("X-Edge-Backend", "legacy-api-bridge");
-      headers.delete("server");
-      return new Response(upstream.body, {
-        status: upstream.status,
-        statusText: upstream.statusText,
-        headers,
-      });
+      return fetchLegacyApi(request, env);
     }
 
     return env.ASSETS.fetch(request);
