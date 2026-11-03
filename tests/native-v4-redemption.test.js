@@ -38,7 +38,7 @@ test("V4 only releases an idempotency claim for known pre-submission failures", 
 
 test("native V4 supports the documented code length without weakening the manual endpoint", async () => {
   const redemption = await readFile(new URL("../cloudflare/redemption.ts", import.meta.url), "utf8");
-  assert.match(redemption, /options\.v4\?\/\^\[A-Za-z0-9_-\]\{1,64\}\//);
+  assert.match(redemption, /options\.v4\?\/\^\[A-Za-z0-9_-\]\{1,64\}\$\//);
   assert.match(redemption, /\^\[A-Za-z0-9_-\]\{6,32\}\$/);
   assert.match(redemption, /!options\.v4&&limited\(req\)/);
 });
