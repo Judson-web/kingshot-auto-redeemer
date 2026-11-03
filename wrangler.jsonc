@@ -14,6 +14,9 @@
     "PUBLIC_APP_URL": "https://kingshot-autoredeemer-edge.sajijudsa.workers.dev",
     "SUPABASE_WRITE_MODE": "enabled"
   },
+  "services": [
+    { "binding": "SHARD_WORKER", "service": "kingshot-autoredeemer-shard", "remote": true }
+  ],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
