@@ -771,6 +771,19 @@ export default {
     }
 
     if (incoming.pathname === "/api/ops-tools/health") return handlePublicHealth(request, env);
+    if (incoming.pathname === "/api/ops-tools/shard-health") {
+      if (!env.CRON_SECRET || request.headers.get("authorization") !== "Bearer " + env.CRON_SECRET) {
+        return jsonError(401, "unauthorized", "Unauthorized");
+      }
+      if (!env.SHARD_WORKER) return jsonError(503, "shard_service_unavailable", "Internal shard service is not configured.");
+      try {
+        const shardResponse = await env.SHARD_WORKER.fetch(new Request("https://shard.internal/health"));
+        const shardBody = await shardResponse.json().catch(() => ({}));
+        return Response.json(shardBody, { status: shardResponse.status, headers: { "Cache-Control": "no-store" } });
+      } catch {
+        return jsonError(503, "shard_service_unavailable", "Internal shard service health check failed.");
+      }
+    }
 
     if (incoming.pathname === "/api/kingshot-player" && incoming.searchParams.has("frame")) {
       return handleNativeAvatarFrame(request, env);
