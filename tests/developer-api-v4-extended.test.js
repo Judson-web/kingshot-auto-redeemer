@@ -9,10 +9,14 @@ test("Developer panel keeps usage inline and exposes key controls",async()=>{con
 test("Developer panel exposes session-managed webhook subscription controls",async()=>{const panel=await readFile(new URL("../src/DeveloperAccountPanel.tsx",import.meta.url),"utf8");assert.match(panel,/developer-webhooks-title/);assert.match(panel,/createWebhook/);assert.match(panel,/disableWebhook/);assert.match(panel,/webhookSecret/);});
 test("Session webhook management verifies owned active keys and webhook scope",async()=>{const s=await readFile(new URL("../lib/developer-account.ts",import.meta.url),"utf8");assert.match(s,/action==="webhooks"/);assert.match(s,/kingshot_developer_account_list_keys/);assert.match(s,/webhooks:manage/);assert.match(s,/assertPublicWebhookUrl/);assert.match(s,/createCipheriv\("aes-256-gcm"/);});
 
-test("V4 webhook scheduler retries the secondary secret only after an authentication rejection",async()=>{
- const workflow=await readFile(new URL("../.github/workflows/developer-v4-webhook-delivery.yml",import.meta.url),"utf8");
- assert.match(workflow,/WORKER_SECRET_PRIMARY: \$\{\{ secrets\.V4_WEBHOOK_WORKER_SECRET \}\}/);
- assert.match(workflow,/WORKER_SECRET_FALLBACK: \$\{\{ secrets\.CRON_SECRET \}\}/);
- assert.match(workflow,/if \[ "\$http_code" != "401" \]/);
- assert.match(workflow,/Neither configured GitHub Actions secret was accepted/);
+test("Webhook delivery is no longer scheduled by GitHub Actions and stays fail-closed",async()=>{
+ const workflowUrl=new URL("../.github/workflows/developer-v4-webhook-delivery.yml",import.meta.url);
+ await assert.rejects(readFile(workflowUrl),{code:"ENOENT"});
+ const handler=await readFile(new URL("../lib/api-v4/webhooks.ts",import.meta.url),"utf8");
+ assert.match(handler,/V4_WEBHOOK_DELIVERY_ENABLED!=="true"/);
+ assert.match(handler,/V4_WEBHOOK_EGRESS_URL/);
+ assert.match(handler,/V4_WEBHOOK_EGRESS_SECRET/);
+ const relay=await readFile(new URL("../workers/webhook-egress/src/index.ts",import.meta.url),"utf8");
+ assert.match(relay,/env\.EGRESS\.fetch/);
+ assert.match(relay,/redirect: "manual"/);
 });
