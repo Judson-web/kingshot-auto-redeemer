@@ -194,15 +194,15 @@ async function database(env: Env, path: string, init: RequestInit = {}): Promise
 function base64Url(bytes: Uint8Array): string {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\\+/g, "-").replace(/\\//g, "_").replace(/=+$/g, "");
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
 function isSafeWebhookRegistrationUrl(value: string): URL | null {
   if (value.length > 2048) return null;
   try {
     const url = new URL(value);
-    const host = url.hostname.toLowerCase().replace(/\\.$/, "");
-    const isIpv4 = /^(?:\\d{1,3}\\.){3}\\d{1,3}$/.test(host);
+    const host = url.hostname.toLowerCase().replace(/\.$/, "");
+    const isIpv4 = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(host);
     const isIpv6 = host.includes(":");
     if (url.protocol !== "https:" || url.username || url.password ||
         (url.port && url.port !== "443") || isIpv4 || isIpv6 ||
