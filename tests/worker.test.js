@@ -1,3 +1,4 @@
+import { resolveMightPulseRequestBudget } from "../cloudflare/mightpulse.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -95,4 +96,10 @@ test("redemption concurrency is bounded at two per shard behind the shared upstr
   assert.ok(workerSource.includes("safeConcurrency, { deadline }"));
   assert.ok(autoSource.includes("kingshot_reserve_redemption_request"));
   assert.ok(autoSource.includes("kingshot_set_source_cooldown"));
+});
+
+test("Cloudflare MightPulse request budgets bound retries and allow explicit fast-path limits", () => {
+  assert.deepEqual(resolveMightPulseRequestBudget(7000, {}, 6), { perAttemptMs: 7000, totalTimeoutMs: 21000, maxAttempts: 6 });
+  assert.deepEqual(resolveMightPulseRequestBudget(9000, { totalTimeoutMs: 15000, maxAttempts: 2 }, 6), { perAttemptMs: 9000, totalTimeoutMs: 15000, maxAttempts: 2 });
+  assert.deepEqual(resolveMightPulseRequestBudget(9000, { totalTimeoutMs: 1000, maxAttempts: 99 }, 3), { perAttemptMs: 9000, totalTimeoutMs: 9000, maxAttempts: 3 });
 });
