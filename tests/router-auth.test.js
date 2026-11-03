@@ -51,6 +51,7 @@ test("worker enforces bans before redemption and fails closed when ban lookup fa
   assert.match(source, /Unable to verify player bans before redemption/);
   assert.match(source, /const eligiblePlayers=assignedPlayers\.filter\(player=>player\?\.enabled!==false&&!bannedIds\.has/);
   assert.match(source, /runWorkerShard\(slot,codes,eligiblePlayers/);
+  assert.match(source, /const allEligiblePlayers=assignedPlayers\\.filter/);
   assert.match(source, /restrictedPlayersSkipped/);
   assert.match(source, /MAX_PLAYERS_PER_SHARD=2/);
   assert.match(source, /selectWorkerShardBatch/);
