@@ -92,7 +92,7 @@ function isOwner(user: any): boolean {
 }
 async function verifiedOAuthUser(env: Env, accessToken: string): Promise<any> {
   const base = String(env.SUPABASE_URL || "").replace(/\/$/, "");
-  const key = String(env.SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY || "");
+  const key = String(env.SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY || env.SUPABASE_SERVICE_ROLE_KEY || "");
   if (!base || !key) throw new Error("Discord sign-in is not configured.");
   const response = await fetch(base + "/auth/v1/user", {
     headers: { apikey: key, authorization: "Bearer " + accessToken },
