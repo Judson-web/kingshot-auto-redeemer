@@ -42,7 +42,7 @@ test("webhook registration rejects unsafe URL forms and delivery uses guarded ma
 
 test("V4 webhook API documents that delivery remains paused pending secure egress", async () => {
   const docs = await readFile(new URL("../public/developer-v4.md", import.meta.url), "utf8");
-  assert.match(docs, /Delivery is currently paused/);
+  assert.match(docs, /Delivery is implemented by the native Worker/);
   assert.match(docs, /connection time/);
   assert.match(docs, /V4_WEBHOOK_ENCRYPTION_KEY/);
 });
@@ -83,6 +83,6 @@ test("webhook delivery queue claims are atomic and completion is fenced by lease
 test("native V4 redemption outcomes enqueue webhook events without blocking the response", async () => {
   const source = await readFile(new URL("../cloudflare/developer-v4.ts", import.meta.url), "utf8");
   assert.match(source, /enqueueNativeWebhookEvent/);
-  assert.match(source, /"redemption\\.completed" : "redemption\\.unknown"/);
+  assert.match(source, /"redemption\\.unknown" : "redemption\\.completed"/);
   assert.match(source, /delivery event could not be persisted/);
 });
