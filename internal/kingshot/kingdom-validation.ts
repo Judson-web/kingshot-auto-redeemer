@@ -51,7 +51,7 @@ interface Notify {
   (event: { title: string; description?: string; fields?: Array<{ name: string; value: string; inline?: boolean }>; color?: number }): Promise<unknown>;
 }
 
-type FetchPlayer = (playerId: string) => Promise<FreshPlayer>;
+type FetchPlayer = (playerId: string, options?: { maxAttempts?: number; skipUsageRefresh?: boolean }) => Promise<FreshPlayer>;
 
 const RETRYABLE = /timeout|timed out|abort|429|rate limit|too many requests|502|503|504|temporarily unavailable/i;
 type MightPulseFetchError = Error & { status?: number; retryAfterMs?: number; localBudgetDenied?: boolean };
@@ -59,7 +59,7 @@ const RATE_LIMIT_COOLDOWN_FALLBACK_MS = 60_000;
 let mightPulseCooldownUntil = 0;
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-async function fetchCurrentPlayer(playerId: string): Promise<FreshPlayer> {
+async function fetchCurrentPlayer(playerId: string, options: { maxAttempts?: number; skipUsageRefresh?: boolean } = {}): Promise<FreshPlayer> {
   let lastError: MightPulseFetchError | null = null;
 
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -72,7 +72,7 @@ async function fetchCurrentPlayer(playerId: string): Promise<FreshPlayer> {
       const response = await fetchMightPulse(
         "https://api.mightpulse.com/v1/players/" + encodeURIComponent(playerId) + "?include=base",
         {},
-        { timeoutMs: 10_000 }
+        { timeoutMs: 10_000, totalTimeoutMs: options.maxAttempts ? 12_000 : undefined, maxAttempts: options.maxAttempts, skipUsageRefresh: options.skipUsageRefresh }
       );
       const data = await response.json().catch(() => ({})) as {
         player?: KingshotPlayer;
@@ -223,7 +223,7 @@ export async function revalidatePlayer(
 
     let fetched: FreshPlayer;
     try {
-      fetched = await fetchPlayer(player.player_id);
+      fetched = await fetchPlayer(player.player_id, manual ? {} : { maxAttempts: 2, skipUsageRefresh: true });
     } catch (error) {
       const fetchError = error as MightPulseFetchError;
       const status = Number(fetchError?.status || 0);
