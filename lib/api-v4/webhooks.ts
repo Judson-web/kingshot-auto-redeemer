@@ -75,10 +75,21 @@ function equal(a:string,b:string){const x=Buffer.from(a),y=Buffer.from(b);return
 async function db(path:string,init:RequestInit={}){if(!SERVICE)throw Error("service role missing");const r=await fetch(DB+path,{...init,signal:init.signal||AbortSignal.timeout(5000),headers:{apikey:SERVICE,authorization:"Bearer "+SERVICE,"content-type":"application/json",...(init.headers||{})}});const body=await r.json().catch(()=>null);if(!r.ok)throw Error("database request failed: "+r.status);return body}
 function decrypt(value:string){const key=Buffer.from(process.env.V4_WEBHOOK_ENCRYPTION_KEY||"","hex");if(key.length!==32)throw Error("webhook encryption key missing");const parts=value.split(".");if(parts.length!==3)throw Error("invalid ciphertext");const [iv,tag,cipher]=parts.map(x=>Buffer.from(x,"base64url"));const d=crypto.createDecipheriv("aes-256-gcm",key,iv);d.setAuthTag(tag);return Buffer.concat([d.update(cipher),d.final()]).toString("utf8")}
 export async function enqueueV4WebhookEvent(eventType:"redemption.completed"|"redemption.unknown",payload:Record<string,unknown>){const subs=await db("/rest/v1/kingshot_developer_webhooks?select=id,events&disabled_at=is.null&events=cs.%7B"+encodeURIComponent(eventType)+"%7D");if(!Array.isArray(subs)||!subs.length)return;const rows=subs.filter(s=>Array.isArray(s.events)&&s.events.includes(eventType)).map(s=>({webhook_id:s.id,event_type:eventType,payload}));if(rows.length)await db("/rest/v1/kingshot_developer_webhook_deliveries",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(rows)})}
+async function postViaGatewayRelay(relayUrl:string,relaySecret:string,targetUrl:string,headers:Record<string,string>,body:string):Promise<number>{
+ const endpoint=new URL(relayUrl);
+ if(endpoint.protocol!=="https:"||endpoint.username||endpoint.password)throw Error("invalid Gateway egress relay URL");
+ const response=await fetch(endpoint.href,{method:"POST",headers:{"authorization":"Bearer "+relaySecret,"content-type":"application/json","accept":"application/json"},body:JSON.stringify({url:targetUrl,headers,body}),redirect:"manual",signal:AbortSignal.timeout(8000)});
+ if(response.status===502||response.status===503||response.status===504)throw Object.assign(Error("Gateway egress relay unavailable"),{status:response.status});
+ if(!response.ok)throw Object.assign(Error("Gateway egress relay rejected delivery"),{status:response.status});
+ const result=await response.json().catch(()=>null) as {status?:number}|null;
+ const status=Number(result?.status||0);
+ if(!Number.isInteger(status)||status<100||status>599)throw Error("Gateway egress relay returned an invalid status");
+ return status;
+}
 export default async function webhookWorker(req:V3Request,res:V3Response):Promise<void>{
  if(String(req.method||"GET").toUpperCase()!=="POST"){res.setHeader("Allow","POST");res.status(405).json({error:"method_not_allowed"});return}
- // Fail closed until the egress proxy and its Gateway route are explicitly enabled.
- if(process.env.V4_WEBHOOK_DELIVERY_ENABLED!=="true"){res.status(503).json({ok:false,error:"webhook_delivery_disabled"});return}
+ // Fail closed until the dedicated Gateway-routed Workers VPC relay is configured.
+ if(process.env.V4_WEBHOOK_DELIVERY_ENABLED!=="true"||!process.env.V4_WEBHOOK_EGRESS_URL||!process.env.V4_WEBHOOK_EGRESS_SECRET){res.status(503).json({ok:false,error:"webhook_delivery_disabled"});return}
  const expectedSecrets=[process.env.V4_WEBHOOK_WORKER_SECRET,process.env.CRON_SECRET].filter((value):value is string=>Boolean(value)),raw=req.headers.authorization,auth=Array.isArray(raw)?raw[0]:String(raw||""),supplied=auth.startsWith("Bearer ")?auth.slice(7):"";
  if(!expectedSecrets.some(secret=>equal(supplied,secret))){res.status(401).json({error:"unauthorized"});return}
  let delivered=0,retried=0,processed=0;
@@ -90,7 +101,7 @@ export default async function webhookWorker(req:V3Request,res:V3Response):Promis
     await db("/rest/v1/kingshot_developer_webhook_deliveries?id=eq."+encodeURIComponent(row.id),{method:"PATCH",body:JSON.stringify({delivered_at:new Date().toISOString(),last_error:"subscription disabled or invalid"})});continue;
    }
    const body=JSON.stringify({id:row.event_id,type:row.event_type,createdAt:new Date().toISOString(),data:row.payload}),stamp=String(Math.floor(Date.now()/1000)),sig=crypto.createHmac("sha256",decrypt(hook.secret_ciphertext)).update(stamp+"."+body).digest("hex");
-   const status=await postPinnedWebhook(String(hook.url),{"content-type":"application/json","user-agent":"Kingshot-Auto-Redeemer-Webhooks/1.0","X-Kingshot-Event":row.event_type,"X-Kingshot-Event-Id":row.event_id,"X-Kingshot-Timestamp":stamp,"X-Kingshot-Signature":"sha256="+sig},body);
+   const status=await postViaGatewayRelay(process.env.V4_WEBHOOK_EGRESS_URL!,process.env.V4_WEBHOOK_EGRESS_SECRET!,String(hook.url),{"content-type":"application/json","user-agent":"Kingshot-Auto-Redeemer-Webhooks/1.0","X-Kingshot-Event":row.event_type,"X-Kingshot-Event-Id":row.event_id,"X-Kingshot-Timestamp":stamp,"X-Kingshot-Signature":"sha256="+sig},body);
    if(status<200||status>=300)throw Object.assign(Error("target returned "+status),{status});
    await db("/rest/v1/kingshot_developer_webhook_deliveries?id=eq."+encodeURIComponent(row.id),{method:"PATCH",body:JSON.stringify({delivered_at:new Date().toISOString(),last_status:status,attempt_count:Number(row.attempt_count||0)+1,last_error:null})});delivered++;
   }catch(e){
