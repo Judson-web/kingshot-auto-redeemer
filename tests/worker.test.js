@@ -111,3 +111,12 @@ test("Cloudflare MightPulse adapter caches circuit-breaker RPC outages and prese
   assert.match(adapter, /if \(Date\.now\(\) < circuitRpcUnavailableUntil\) return null/);
   assert.ok(router.includes("fast?{totalTimeoutMs:18_000,maxAttempts:2,fastPath:true}:{}"));
 });
+
+test("detailed profile enrichment handles nested provider payloads and legacy alliance aliases", async () => {
+  const router = await readFile(new URL("../cloudflare/worker.ts", import.meta.url), "utf8");
+  assert.match(router, /player\.alliance_abbr/);
+  assert.match(router, /allianceObject\.abbreviation/);
+  assert.match(router, /Array\.isArray\(alliance\.members\)/);
+  assert.match(router, /detailSource\.heroes/);
+  assert.match(router, /allianceRoster=\{name:/);
+});
