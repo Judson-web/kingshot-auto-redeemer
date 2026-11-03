@@ -4,10 +4,15 @@ import { handleNativeRegistration } from "./registration.js";
 import { handleNativeRedemption } from "./redemption.js";
 import { handleNativeV4 } from "./developer-v4.js";
 import { handleNativeDeveloperAccount } from "./developer-account.js";
+import { handleWebhookDeliveryDispatch } from "./webhook-delivery.js";
 
 interface Env {
   ASSETS: Fetcher;
   SUPABASE_WRITE_MODE?: string;
+  V4_WEBHOOK_ENCRYPTION_KEY?: string;
+  V4_WEBHOOK_WORKER_SECRET?: string;
+  CRON_SECRET?: string;
+  EGRESS?: Fetcher;
   NEON_RECOVERY_DATABASE_URL?: string;
   SUPABASE_URL?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;
@@ -742,6 +747,8 @@ export default {
     if (incoming.pathname === "/api/discord-user" || incoming.pathname === "/api/discord-tools/user") {
       return handleDiscordUser(request, env);
     }
+
+    if (incoming.pathname === "/api/internal/v4/webhooks/dispatch") return handleWebhookDeliveryDispatch(request, env);
 
     if (incoming.pathname.startsWith("/api/v4/")) return handleNativeV4(request, env);
 
