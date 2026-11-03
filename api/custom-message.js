@@ -202,7 +202,7 @@ export default async function handler(req,res){
     if(!rateLimit(req,res,"gift-code-trigger",3,5*60*1000))return res.status(429).json({error:"A manual run was triggered recently. Wait five minutes."});
     const cronSecret=process.env.CRON_SECRET;
     if(!cronSecret)return res.status(503).json({error:"Worker trigger is not configured (CRON_SECRET missing)."});
-    const origin=String(req.headers.origin||"").match(/^https:\/\/(?:www\.)?ks-rewards\.com$/i)?String(req.headers.origin):"https://ks-rewards.com";
+    const origin=String(process.env.PUBLIC_APP_URL||"https://kingshot-autoredeemer-edge.sajijudsa.workers.dev").replace(/\/+$/,"");
     const mode=action==="TRIGGER_KINGDOM_VALIDATION"?"kingdom-check":"worker";
     const url=mode==="worker"?origin+"/api/kingshot-auto":origin+"/api/kingshot-auto?mode=kingdom-check";
     if(mode==="worker"){
@@ -299,7 +299,14 @@ export default async function handler(req,res){
   }
   if(action==="SCHEDULE_RUN"){
    const secret=String(req.headers.authorization||"").replace(/^Bearer\s+/i,"");
-   if(!process.env.CRON_SECRET||secret!==process.env.CRON_SECRET)return res.status(401).json({error:"Unauthorized worker request."});
+   let authorized=Boolean(process.env.CRON_SECRET&&secret===process.env.CRON_SECRET);
+   if(!authorized&&secret&&SUPABASE_KEY){
+    try{
+     const verify=await fetch(SUPABASE_URL.replace(/\/$/,"")+"/rest/v1/rpc/verify_kingshot_scheduler_token",{method:"POST",headers:{apikey:SUPABASE_KEY,authorization:"Bearer "+SUPABASE_KEY,"content-type":"application/json"},body:JSON.stringify({p_token:secret}),signal:AbortSignal.timeout(5000)});
+     authorized=verify.ok&&Boolean(await verify.json());
+    }catch{}
+   }
+   if(!authorized)return res.status(401).json({error:"Unauthorized worker request."});
    const claimed=await adminDb("rpc/claim_due_discord_announcements",{method:"POST",body:JSON.stringify({p_limit:10})});
    let sent=0,failed=0;
    for(const item of Array.isArray(claimed)?claimed:[]){

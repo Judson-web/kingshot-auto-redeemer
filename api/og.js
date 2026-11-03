@@ -169,10 +169,9 @@ function compactCardPower(value){
  return String(Math.round(n));
 }
 function deploymentOrigin(){
- const host=process.env.VERCEL_ENV==="production"&&process.env.VERCEL_PROJECT_PRODUCTION_URL
-  ?process.env.VERCEL_PROJECT_PRODUCTION_URL
-  :process.env.VERCEL_URL||"kingshot-autoredeemer.vercel.app";
- return "https://"+String(host).replace(/^https?:\/\//i,"").replace(/\/.*$/,"");
+ const configured=String(process.env.PUBLIC_APP_URL||"https://kingshot-autoredeemer-edge.sajijudsa.workers.dev").trim();
+ try { const url=new URL(configured); if(url.protocol==="https:"&&!url.username&&!url.password)return url.origin; } catch {}
+ return "https://kingshot-autoredeemer-edge.sajijudsa.workers.dev";
 }
 function removeMeta(html,attribute,value){
  const needle=('<meta '+attribute+'="'+value+'"').toLowerCase();

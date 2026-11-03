@@ -89,7 +89,12 @@ export default async function handler(req:any,res:any){
  res.setHeader("Cache-Control","no-store");
  if(req.method!=="GET"&&req.method!=="POST"){res.setHeader("Allow","GET, POST");return res.status(405).json({error:"Method not allowed"});}
  const authorization=Array.isArray(req.headers.authorization)?req.headers.authorization[0]:String(req.headers.authorization||"");
- if(!JOB_SECRETS.some(secret=>authorization==="Bearer "+secret))return res.status(401).json({error:"Unauthorized"});
+ const suppliedToken=authorization.replace(/^Bearer\s+/i,"");
+ let authorized=JOB_SECRETS.some(secret=>authorization==="Bearer "+secret);
+ if(!authorized&&suppliedToken&&SB_KEY){
+  try{authorized=await sbRequest("rpc/verify_alliance_sync_scheduler_token",{method:"POST",body:JSON.stringify({p_token:suppliedToken})})===true;}catch{}
+ }
+ if(!authorized)return res.status(401).json({error:"Unauthorized"});
  const requestUrl=new URL(req.url||"/","http://localhost");
  if(requestUrl.searchParams.get("mode")==="manual-registration"){try{const jobs=await processManualRegistrationJobs();return res.status(200).json({ok:true,processedJobs:jobs.length,jobs});}catch(e){console.error("Supabase manual registration queue failed",String((e as Error)?.message||e));return res.status(500).json({error:"Manual registration queue processing failed safely."});}}
  const results:any[]=[];

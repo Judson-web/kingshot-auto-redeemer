@@ -11,6 +11,11 @@ export default async function developerApiV3(req: V3Request, res: V3Response, pa
   res.setHeader("X-Request-Id", id);
   res.setHeader("X-API-Version", "3");
   setPublicHeaders(res, allowedMethod);
+  // V3 remains callable for existing integrations, while new integrations should use V4.
+  res.setHeader("Deprecation", "true");
+  res.setHeader("Link", route === "redemptions"
+    ? '</api/v4/redemptions>; rel="successor-version", </developer>; rel="deprecation"'
+    : '</api/v4/players/{playerId}>; rel="successor-version", </developer>; rel="deprecation"');
   if (method === "OPTIONS") {
     const response = res.status(204);
     if (typeof response.end === "function") response.end();

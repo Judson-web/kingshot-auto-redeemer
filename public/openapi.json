@@ -4,7 +4,7 @@
     "title": "Kingshot Auto Redeemer Developer API",
     "version": "4.0.0",
     "description": "V4 is the current developer API for player lookup and manual redemption. It provides a consistent success/data/error/meta envelope, per-request tracing, machine-readable retry guidance, quota metadata, and V4-scoped idempotency. V3 remains available for existing integrations; V1 routes are deprecated. Keep API keys server-side and use only with player accounts you are authorized to access. Public JSON responses include top-level dev attribution. Full guide: /developer-v4.md.",
-    "termsOfService": "https://kingshot-autoredeemer.vercel.app/terms?service=kingshot-auto",
+    "termsOfService": "https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/terms?service=kingshot-auto",
     "contact": {
       "name": "Judson",
       "url": "https://discord.com/users/871756466900598815",
@@ -13,7 +13,7 @@
   },
   "servers": [
     {
-      "url": "https://kingshot-autoredeemer.vercel.app"
+      "url": "https://kingshot-autoredeemer-edge.sajijudsa.workers.dev"
     }
   ],
   "tags": [
@@ -2219,6 +2219,6 @@
   },
   "externalDocs": {
     "description": "Interactive developer documentation",
-    "url": "https://kingshot-autoredeemer.vercel.app/developer"
+    "url": "https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/developer"
   }
 }

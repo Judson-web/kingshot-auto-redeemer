@@ -119,17 +119,17 @@ test("Discord command sync uses safe per-command upserts and verifies read-back"
 });
 
 
-test("Discord deferred commands and components stay alive with Vercel waitUntil", () => {
-  assert.ok(interactions.includes('import { waitUntil } from "@vercel/functions";'));
-  assert.ok(interactions.includes("function retainAfterAcknowledgement(promise, interaction, label)"));
-  assert.ok(interactions.includes("waitUntil(task)"));
+test("Discord deferred commands and components stay alive with the Cloudflare execution context", () => {
+  assert.ok(!interactions.includes("@vercel/functions"));
+  assert.ok(interactions.includes("function retainAfterAcknowledgement(promise, interaction, label, req)"));
+  assert.ok(interactions.includes('if (typeof req?.waitUntil === "function") req.waitUntil(task);'));
 
   const handlerStart = interactions.indexOf("export default async function handler(req, res)");
   const handler = interactions.slice(handlerStart);
   assert.ok(handler.includes("const commandTask = handleCommand(req, interaction, res)"));
-  assert.ok(handler.includes("retainAfterAcknowledgement(commandTask, interaction, \"slash-command\")"));
+  assert.ok(handler.includes('retainAfterAcknowledgement(commandTask, interaction, "slash-command", req)'));
   assert.ok(handler.includes("const componentTask = handleComponent(req, interaction, res)"));
-  assert.ok(handler.includes("retainAfterAcknowledgement(componentTask, interaction, \"message-component\")"));
+  assert.ok(handler.includes('retainAfterAcknowledgement(componentTask, interaction, "message-component", req)'));
   assert.ok(handler.includes("if (res.headersSent)"));
 });
 

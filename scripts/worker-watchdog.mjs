@@ -1,6 +1,6 @@
 import { findStalledRecoveryQueue } from "../lib/recovery-queue-health.js";
 
-const configuredUrl = process.env.KINGSHOT_HEALTH_URL || "https://kingshot-autoredeemer.vercel.app/api/kingshot-health";
+const configuredUrl = process.env.KINGSHOT_HEALTH_URL || "https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/api/kingshot-health";
 const healthUrl = new URL(configuredUrl);
 healthUrl.searchParams.delete("logs");
 

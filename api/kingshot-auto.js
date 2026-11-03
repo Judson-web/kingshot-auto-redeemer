@@ -7,10 +7,9 @@ import { buildNewGiftCodeAlert, buildGiftCodeValidationAlert, buildGiftCodeVerif
 
 const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
 const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
-const APP_ORIGIN=process.env.VERCEL_ENV==="production"&&process.env.VERCEL_PROJECT_PRODUCTION_URL?"https://"+process.env.VERCEL_PROJECT_PRODUCTION_URL:process.env.VERCEL_URL?"https://"+process.env.VERCEL_URL:"https://kingshot-autoredeemer.vercel.app";
+const APP_ORIGIN=String(process.env.PUBLIC_APP_URL||"https://kingshot-autoredeemer-edge.sajijudsa.workers.dev").replace(/\/+$/,"");
 const GIFT_SOURCE_URL="https://kingshot.net/api/gift-codes";
 
-if(!SUPABASE_KEY)throw Error("Supabase service key is not configured on the server.");
 
 // Retry only known idempotent reads. Redemption claims, result writes, worker
 // leases and all other mutations must never be replayed automatically.
@@ -287,6 +286,7 @@ const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
 
 export default async function handler(req,res){
  if(!["GET","POST"].includes(req.method))return res.status(405).json({error:"Method not allowed"});
+ if(!SUPABASE_KEY)return res.status(503).json({error:"Supabase service key is not configured on the server."});
  const cycleStartedAt=Date.now();
  let currentStage="request-authentication";
  const cronSecret=process.env.CRON_SECRET;
@@ -636,7 +636,7 @@ export default async function handler(req,res){
    const body=uniqueCodes.length===1
     ?"Kingshot verification passed for "+listed[0]+". Tap View code to open redemption with the code filled in."
     :"Ready to redeem: "+listed.join(", ")+(extra>0?" and "+extra+" more":"")+". Tap View codes to redeem.";
-   try{await broadcastPush({title,body,url:"/manual?code="+encodeURIComponent(listed[0]),image:"https://kingshot-autoredeemer.vercel.app/api/og",tag,actions:[{action:"view-codes",title:uniqueCodes.length===1?"View code":"View codes"},{action:"dismiss",title:"Dismiss"}]})}
+   try{await broadcastPush({title,body,url:"/manual?code="+encodeURIComponent(listed[0]),image:APP_ORIGIN+"/api/og",tag,actions:[{action:"view-codes",title:uniqueCodes.length===1?"View code":"View codes"},{action:"dismiss",title:"Dismiss"}]})}
    catch(error){console.error("New gift-code push notification failed:",error instanceof Error?error.message:error)}
   }
   console.log("Kingshot code validation gate:",{pending:pendingCandidates.length,verificationAttempt,verifiedForWorkers:activeCodes.map(c=>c.code)});

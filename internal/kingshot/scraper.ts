@@ -111,7 +111,7 @@ async function fetchSourceUncached(rpc: Rpc, url: string, kind: string, source: 
         response = await fetch(url, {
           headers: apiLike
             ? { accept: "application/json", "user-agent": "Nex-Kingshot-Redeemer/1.1", ...(kind === "aggregator" ? { "X-API-Key": String(process.env.KINGSHOT_AGGREGATOR_API_KEY || "") } : {}) }
-            : { accept: "text/html,application/xhtml+xml", "accept-language": "en-US,en;q=0.9", "user-agent": "Mozilla/5.0 (compatible; Nex-Kingshot-Redeemer/1.1; +https://kingshot-autoredeemer.vercel.app/)" },
+            : { accept: "text/html,application/xhtml+xml", "accept-language": "en-US,en;q=0.9", "user-agent": "Mozilla/5.0 (compatible; Nex-Kingshot-Redeemer/1.1; +https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/)" },
           signal: AbortSignal.timeout(15000)
         });
         if (response.status === 429) {

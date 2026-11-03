@@ -8,7 +8,6 @@ export interface RegisterPlayerResult { registered: boolean; alreadyRegistered: 
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wocxvtptqapietlteshr.supabase.co";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
-if (!SUPABASE_KEY) throw Error("Supabase service key is not configured on the server.");
 
 async function announceRegistrationMilestone(): Promise<void> {
  try {
@@ -41,6 +40,7 @@ async function rpc(name: string, body: Record<string, unknown>): Promise<any> {
 }
 
 export async function registerPlayer(input: ReturnType<typeof normalizeRegistrationInput>): Promise<RegisterPlayerResult> {
+ if (!SUPABASE_KEY) throw Error("Supabase service key is not configured on the server.");
  const banResponse=await fetch(SUPABASE_URL+"/rest/v1/kingshot_player_bans?select=player_id,reason,created_at&player_id=eq."+encodeURIComponent(input.playerId)+"&limit=1",{headers:{apikey:SUPABASE_KEY,authorization:"Bearer "+SUPABASE_KEY},signal:AbortSignal.timeout(5000)});
  if(!banResponse.ok)throw Error("Registration policy check is temporarily unavailable. Please retry.");
  const bans=await banResponse.json().catch(()=>[]);

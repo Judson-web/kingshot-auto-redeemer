@@ -7,7 +7,7 @@ import DeveloperAccountPanel from "./DeveloperAccountPanel";
 import { Activity, BookOpen, Check, ChevronRight, Code2, Copy, ExternalLink, Gauge, KeyRound, MessageCircle, ShieldCheck, Terminal } from "lucide-react";
 import { copyToClipboard } from "./utils/clipboard-feedback";
 
-const ORIGIN = "https://kingshot-autoredeemer.vercel.app";
+const ORIGIN = "";
 const DEVELOPER_NAME = "Judson";
 const DEVELOPER_DISCORD_USERNAME = "judson00713";
 const DEVELOPER_DISCORD_ID = "871756466900598815";
@@ -112,7 +112,7 @@ console.log(result.data.playerId, result.data.name);`;
           <section className="dev-card dev-feature-card">
             <div className="dev-section-kicker" style={{display:"flex",alignItems:"center",gap:7}}><ShieldCheck size={14}/> {t("developer.restApi","Kingshot REST API")}</div>
             <h2 style={{fontSize:"clamp(21px,3vw,28px)",letterSpacing:"-.035em",lineHeight:1.25,margin:"10px 0 8px"}}>{t("developer.featureTitle","Look up players. Redeem codes. Enroll for auto-redeem.")}</h2>
-            <p className="dev-muted" style={{maxWidth:620}}>{t("developer.featureSummary","Use a developer key for versioned player lookup and manual redemption. V4 is the current developer API with a consistent success/data/error/meta response envelope. V3 remains available for existing integrations; V1 is deprecated. The automatic-redemption registration flow is documented separately. Keep keys and signing secrets out of browser code, source control, and URLs.")}</p>
+            <p className="dev-muted" style={{maxWidth:620}}>{t("developer.featureSummary","Use a developer key for versioned player lookup and manual redemption. V4 is the current developer API with a consistent success/data/error/meta response envelope. V3 is deprecated but remains available for existing integrations; V1 is deprecated. The automatic-redemption registration flow is documented separately. Keep keys and signing secrets out of browser code, source control, and URLs.")}</p>
             <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:15}}>{[[t("developer.tagPlayerLookup","Player lookup"),"lookup"],[t("developer.tagManualRedemption","Manual redemption"),"manual"],[t("developer.tagAutoEnrollment","Auto-redeem enrollment"),"auto"],[t("developer.tagJsonResponses","JSON responses"),"json"],[t("developer.tagBearerAuth","Bearer authentication"),"bearer"]].map(([tag,id])=><span key={id} style={{border:"1px solid #343e4d",borderRadius:7,padding:"5px 8px",fontSize:10,color:"#cbd3e2"}}>{tag}</span>)}</div>
           </section>
           <section className="dev-card" id="quickstart">

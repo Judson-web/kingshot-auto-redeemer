@@ -1,7 +1,7 @@
 import React,{useEffect,useMemo,useState} from "react";
 import {LockKeyhole,LogOut,Search,ExternalLink,ChevronRight,ShieldCheck,Code2,BookOpen,KeyRound,Activity,Copy,MessageCircle} from "lucide-react";
 import {copyToClipboard} from "./utils/clipboard-feedback";
-const ORIGIN="https://kingshot-autoredeemer.vercel.app";
+const ORIGIN="";
 const OWNER="Judson-web";
 const pages=[
 {path:"/",group:"Public pages",desc:"Automatic redemption landing page"},
