@@ -64,6 +64,9 @@ jobs:
 
       - name: Exercise Worker runtime locally before deployment
         run: node scripts/cloudflare-worker-smoke.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: b45bd4f50a1e0280366712348fe2055a
 
       - name: Bind only missing runtime secrets
         shell: bash
