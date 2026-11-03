@@ -1,0 +1,15 @@
+{
+  "$schema": "https://developers.cloudflare.com/wrangler/config-schema.json",
+  "name": "kingshot-webhook-egress",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-03",
+  "workers_dev": true,
+  "observability": { "enabled": true },
+  "vpc_networks": [
+    {
+      "binding": "EGRESS",
+      "network_id": "cf1:network",
+      "remote": true
+    }
+  ]
+}
