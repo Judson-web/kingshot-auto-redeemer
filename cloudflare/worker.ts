@@ -5,6 +5,24 @@ interface Env {
 
 const API_PREFIX = "/api";
 
+function handleEdgeLocale(request: Request): Response {
+  const country = (request.cf as { country?: unknown } | undefined)?.country;
+  const countryCode = typeof country === "string" && /^[A-Z]{2}$/.test(country)
+    ? country
+    : null;
+  return Response.json(
+    { countryCode },
+    {
+      status: 200,
+      headers: {
+        "Cache-Control": "no-store, max-age=0",
+        "Vary": "CF-IPCountry",
+        "X-Content-Type-Options": "nosniff",
+      },
+    },
+  );
+}
+
 function jsonError(status: number, code: string, message: string): Response {
   return Response.json(
     { error: message, code },
@@ -21,6 +39,13 @@ function jsonError(status: number, code: string, message: string): Response {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const incoming = new URL(request.url);
+
+    // Cloudflare-native equivalent of the existing lightweight visitor locale
+    // lookup. Keep POST telemetry on the legacy handler until its trusted
+    // client-IP and geographic-header semantics are migrated deliberately.
+    if (incoming.pathname === "/api/ops-tools/visitor" && request.method === "GET") {
+      return handleEdgeLocale(request);
+    }
 
     if (incoming.pathname === API_PREFIX || incoming.pathname.startsWith(API_PREFIX + "/")) {
       if (!env.LEGACY_API_ORIGIN) {
