@@ -38,6 +38,65 @@ function classifyAgent(ua: string | null) {
   return { browser, operating_system, device_type };
 }
 
+const registrationStatusBuckets = new Map<string, { count: number; resetAt: number }>();
+
+async function handleRegistrationStatus(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "GET") return new Response(JSON.stringify({ error: "Method not allowed." }), {
+    status: 405, headers: { Allow: "GET", "Content-Type": "application/json", "Cache-Control": "no-store" },
+  });
+  if (!env.SUPABASE_SERVICE_ROLE_KEY) return jsonError(503, "registration_status_unavailable",
+    "Registration status is temporarily unavailable. No members were made selectable.");
+  const params = new URL(request.url).searchParams;
+  const rawIds = (params.get("ids") || "").split(",").map(value => value.trim()).filter(Boolean);
+  const uniqueIds = [...new Set(rawIds)];
+  const ids = uniqueIds.filter(id => /^\d{5,20}$/.test(id)).slice(0, 200);
+  if (!ids.length || ids.length !== uniqueIds.length || uniqueIds.length > 200) {
+    return jsonError(400, "invalid_player_ids", "Provide up to 200 valid Player IDs.");
+  }
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+  const now = Date.now();
+  let bucket = registrationStatusBuckets.get(ip);
+  if (!bucket || bucket.resetAt <= now) bucket = { count: 0, resetAt: now + 60_000 };
+  bucket.count++;
+  registrationStatusBuckets.set(ip, bucket);
+  if (registrationStatusBuckets.size > 5000) {
+    for (const [key, value] of registrationStatusBuckets) if (value.resetAt <= now) registrationStatusBuckets.delete(key);
+  }
+  if (bucket.count > 20) return new Response(JSON.stringify({
+    error: "Too many alliance lookups. Please wait before trying again.", code: "rate_limit_exceeded",
+  }), { status: 429, headers: {
+    "Content-Type": "application/json", "Cache-Control": "no-store",
+    "Retry-After": String(Math.max(1, Math.ceil((bucket.resetAt - now) / 1000))),
+    "X-RateLimit-Limit": "20", "X-RateLimit-Remaining": "0",
+  } });
+  const base = String(env.SUPABASE_URL || "https://wocxvtptqapietlteshr.supabase.co").replace(/\/$/, "");
+  const query = new URLSearchParams({ select: "player_id", player_id: "in.(" + ids.join(",") + ")" });
+  try {
+    const response = await fetch(base + "/rest/v1/kingshot_autoredeem?" + query.toString(), {
+      headers: {
+        apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+        authorization: "Bearer " + env.SUPABASE_SERVICE_ROLE_KEY,
+        accept: "application/json",
+      },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok) return jsonError(503, "registration_status_unavailable",
+      "Could not verify existing registrations. Please refresh and try again.");
+    const rows: unknown = await response.json().catch(() => null);
+    if (!Array.isArray(rows)) return jsonError(503, "registration_status_unavailable",
+      "Could not verify existing registrations. Please refresh and try again.");
+    const registeredIds = [...new Set(rows.map((row: Record<string, unknown>) =>
+      String(row.player_id || "")).filter(id => ids.includes(id)))];
+    return Response.json({ registeredIds }, { headers: {
+      "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
+      "X-Edge-Backend": "cloudflare-supabase",
+    } });
+  } catch {
+    return jsonError(503, "registration_status_unavailable",
+      "Could not verify existing registrations. Please refresh and try again.");
+  }
+}
+
 async function handlePublicHealth(request: Request, env: Env): Promise<Response> {
   if (request.method !== "GET") return new Response(JSON.stringify({ error: "Method not allowed" }), {
     status: 405, headers: { Allow: "GET", "Content-Type": "application/json", "Cache-Control": "no-store" },
@@ -350,6 +409,12 @@ export default {
 
     // Visitor telemetry moves natively to Workers when the Supabase service
     // credential is provisioned. Until then, POST remains on the legacy bridge.
+    if (incoming.pathname === "/api/kingshot-player" &&
+      incoming.searchParams.get("developerPath") === "alliance-lookup" &&
+      incoming.searchParams.get("mode") === "registration-status") {
+      return handleRegistrationStatus(request, env);
+    }
+
     if (incoming.pathname === "/api/ops-tools/health") return handlePublicHealth(request, env);
 
     if (incoming.pathname === "/api/ops-tools/visitor") {
