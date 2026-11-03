@@ -81,7 +81,7 @@ test("Gateway relay enforces delivery body limits in UTF-8 bytes",async()=>{
 test("Gateway relay rejects header injection and malformed header collections",async()=>{
  const env={RELAY_SECRET:"test-secret",EGRESS:{fetch:async()=>{throw new Error("must not be called")}}};
  const base={"content-type":"application/json","x-kingshot-event-id":"evt","x-kingshot-signature":"sha256=x","x-kingshot-timestamp":"1"};
- const injected=await gatewayRelay.fetch(new Request("https://relay.example/deliver",{method:"POST",headers:{authorization:"Bearer test-secret","content-type":"application/json"},body:JSON.stringify({url:"https://receiver.example/hook",headers:{...base,"user-agent":"safe\\r\\nX-Injected: yes"},body:"{}"})}),env);
+ const injected=await gatewayRelay.fetch(new Request("https://relay.example/deliver",{method:"POST",headers:{authorization:"Bearer test-secret","content-type":"application/json"},body:JSON.stringify({url:"https://receiver.example/hook",headers:{...base,"user-agent":"safe"+String.fromCharCode(13,10)+"X-Injected: yes"},body:"{}"})}),env);
  assert.equal(injected.status,400);
  const malformed=await gatewayRelay.fetch(new Request("https://relay.example/deliver",{method:"POST",headers:{authorization:"Bearer test-secret","content-type":"application/json"},body:JSON.stringify({url:"https://receiver.example/hook",headers:[["content-type","application/json"]],body:"{}"})}),env);
  assert.equal(malformed.status,400);
