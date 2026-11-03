@@ -52,6 +52,6 @@
 - Reserves the shared Supabase redemption pacing slot before attempting a redemption.
 - Writes a Neon `in_flight` intent before atomic Supabase redemption and recovery claims.
 - Records the confirmed upstream result in Neon before completing Supabase recovery/history writes.
-- Ambiguous timeout, non-JSON, upstream gateway, or journal persistence outcomes are quarantined as `needs_review`; the route never automatically replays the upstream request.
+- Ambiguous timeout, non-JSON, upstream gateway, or journal persistence outcomes are quarantined as `needs_review` in both Neon and Supabase; the route never automatically replays the upstream request.
 - Preview remains read-only: `SUPABASE_WRITE_MODE` stays disabled and smoke tests assert the route refuses writes.
 - No production redemption, deployment, DNS change, or cutover was performed.
