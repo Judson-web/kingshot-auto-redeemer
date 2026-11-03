@@ -1,3 +1,5 @@
+import { validDeliveryUrl } from "./webhook-url.ts";
+
 interface Env {
   SUPABASE_URL?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;
@@ -99,24 +101,6 @@ async function database(env: Env, path: string, init: RequestInit = {}): Promise
   const body = await result.json().catch(() => null);
   if (!result.ok) throw new Error("database_request_failed_" + result.status);
   return body;
-}
-
-function validDeliveryUrl(value: string): URL | null {
-  if (value.length > 2048) return null;
-  try {
-    const url = new URL(value);
-    const host = url.hostname.toLowerCase().replace(/\.$/, "");
-    const ipv4 = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(host);
-    const ipv6 = host.includes(":");
-    if (url.protocol !== "https:" || url.username || url.password ||
-        (url.port && url.port !== "443") || ipv4 || ipv6 ||
-        host === "localhost" || host.endsWith(".localhost") ||
-        host.endsWith(".local") || host.endsWith(".internal") ||
-        !host.includes(".") || host.length > 253) return null;
-    return url;
-  } catch {
-    return null;
-  }
 }
 
 function retryDelaySeconds(attempt: number): number {
