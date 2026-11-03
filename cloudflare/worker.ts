@@ -2,14 +2,17 @@ import { fetchMightPulseNative, mightPulsePlayerErrorStatus } from "./mightpulse
 import { handleNativeAvatarFrame } from "./avatar-frame.js";
 import { handleNativeRegistration } from "./registration.js";
 import { handleNativeRedemption } from "./redemption.js";
-import { handleNativeV4 } from "./developer-v4.js";\nimport { handleNativeDeveloperAccount } from "./developer-account.js";
+import { handleNativeV4 } from "./developer-v4.js";
+import { handleNativeDeveloperAccount } from "./developer-account.js";
 
 interface Env {
   ASSETS: Fetcher;
   SUPABASE_WRITE_MODE?: string;
   NEON_RECOVERY_DATABASE_URL?: string;
   SUPABASE_URL?: string;
-  SUPABASE_SERVICE_ROLE_KEY?: string;\n  SUPABASE_PUBLISHABLE_KEY?: string;\n  SUPABASE_ANON_KEY?: string;
+  SUPABASE_SERVICE_ROLE_KEY?: string;
+  SUPABASE_PUBLISHABLE_KEY?: string;
+  SUPABASE_ANON_KEY?: string;
   DISCORD_BOT_TOKEN?: string;
   MIGHTPULSE_API_KEY?: string;
   MIGHTPULSE_API_KEY_2?: string;
