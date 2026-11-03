@@ -779,7 +779,20 @@ export default {
       try {
         const shardResponse = await env.SHARD_WORKER.fetch(new Request("https://shard.internal/health"));
         const shardBody = await shardResponse.json().catch(() => ({}));
-        return Response.json(shardBody, { status: shardResponse.status, headers: { "Cache-Control": "no-store" } });
+        if (!shardResponse.ok || shardBody?.ok !== true) {
+          return jsonError(503, "shard_service_unhealthy", "Internal shard service health check failed.");
+        }
+        const routeProbe = await env.SHARD_WORKER.fetch(new Request(
+          "https://shard.internal/api/kingshot-auto?mode=worker&slot=0",
+          { method: "POST", headers: { authorization: "Bearer invalid-route-probe", "content-type": "application/json" }, body: "{}" },
+        ));
+        if (routeProbe.status !== 401) {
+          return jsonError(503, "shard_route_probe_failed", "Internal shard worker route did not reach its authentication gate.");
+        }
+        return Response.json({
+          ...shardBody,
+          routeProbe: { ok: true, status: routeProbe.status, stage: "authentication_gate" },
+        }, { status: 200, headers: { "Cache-Control": "no-store" } });
       } catch {
         return jsonError(503, "shard_service_unavailable", "Internal shard service health check failed.");
       }
