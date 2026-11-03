@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - migration/cloudflare-native-runtime
+      - migration/cloudflare-native-runtime-ready
     paths:
       - "cloudflare/**"
       - "tests/**"
@@ -20,7 +21,7 @@ on:
       - ".github/workflows/cloudflare-migration-ci.yml"
   pull_request:
     branches:
-      - migration/cloudflare-native-runtime
+      - main
   workflow_dispatch:
 
 permissions:
