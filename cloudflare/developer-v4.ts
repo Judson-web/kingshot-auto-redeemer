@@ -341,6 +341,9 @@ async function handleV4Redemption(
       retryHint: hasIdempotencyKey ? "same_idempotency_key" : "do_not_retry",
     };
     const result = response(503, null, error, requestId, { rateLimit: auth.rateLimit }, h);
+    await enqueueNativeWebhookEvent(env, "redemption.unknown", { playerId, code, kingdomId: kid, reason: "adapter_exception" }).catch(() => {
+      console.error("[v4-webhook-enqueue] uncertain adapter event could not be persisted");
+    });
     if (hasIdempotencyKey) {
       try {
         const stored = await result.clone().json();
