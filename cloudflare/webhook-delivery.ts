@@ -237,6 +237,30 @@ async function deliverOne(env: Env, delivery: Delivery): Promise<"delivered" | "
   return terminal ? "terminal" : "retry";
 }
 
+
+export async function enqueueNativeWebhookEvent(
+  env: Env,
+  eventType: "redemption.completed" | "redemption.unknown",
+  payload: Record<string, unknown>,
+): Promise<void> {
+  const query = new URLSearchParams({
+    select: "id,events",
+    disabled_at: "is.null",
+    events: "cs.{" + eventType + "}",
+  });
+  const subscriptions = await database(env, "/rest/v1/kingshot_developer_webhooks?" + query.toString());
+  if (!Array.isArray(subscriptions) || !subscriptions.length) return;
+  const rows = subscriptions
+    .filter((subscription: { events?: unknown }) => Array.isArray(subscription.events) && subscription.events.includes(eventType))
+    .map((subscription: { id: string }) => ({ webhook_id: subscription.id, event_type: eventType, payload }));
+  if (!rows.length) return;
+  await database(env, "/rest/v1/kingshot_developer_webhook_deliveries", {
+    method: "POST",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify(rows),
+  });
+}
+
 export async function handleWebhookDeliveryDispatch(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") return json(405, { ok: false, error: "method_not_allowed" });
   if (String(env.SUPABASE_WRITE_MODE || "").toLowerCase() !== "enabled") {
