@@ -6,17 +6,17 @@
 
 **An independent community service for discovering and redeeming eligible Kingshot gift codes.**
 
-[![Live Website Status](https://kingshot-autoredeemer.vercel.app/api/kingshot-health?badge=1)](https://kingshot-autoredeemer.vercel.app/)
-[![Live Site](https://img.shields.io/badge/Live%20Site-Open%20Service-2563EB?style=for-the-badge&logo=vercel&logoColor=white)](https://kingshot-autoredeemer.vercel.app/)
+[![Live Website Status](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/api/kingshot-health?badge=1)](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/)
+[![Live Site](https://img.shields.io/badge/Live%20Site-Open%20Service-2563EB?style=for-the-badge&logo=vercel&logoColor=white)](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/)
 [![Verification](https://github.com/Judson-web/kingshot-auto-redeemer/actions/workflows/verify.yml/badge.svg)](https://github.com/Judson-web/kingshot-auto-redeemer/actions/workflows/verify.yml)
 [![Node.js 24](https://img.shields.io/badge/Node.js-24.x-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![React 19](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=111827)](https://react.dev/)
 [![Vite 6](https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vite.dev/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=flat-square&logo=supabase&logoColor=111827)](https://supabase.com/)
-[![Vercel](https://img.shields.io/badge/Deployment-Vercel-000000?style=flat-square&logo=vercel&logoColor=white)](https://vercel.com/)
+[![Cloudflare Workers](https://img.shields.io/badge/Runtime-Cloudflare%20Workers-F38020?style=flat-square&logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/workers/)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-2DA44E?style=flat-square)](./LICENSE)
 
-[**Open the service →**](https://kingshot-autoredeemer.vercel.app/) · [**How it works →**](https://kingshot-autoredeemer.vercel.app/info) · [**Privacy →**](https://kingshot-autoredeemer.vercel.app/privacy) · [**Terms →**](https://kingshot-autoredeemer.vercel.app/terms)
+[**Open the service →**](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/) · [**How it works →**](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/info) · [**Privacy →**](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/privacy) · [**Terms →**](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/terms)
 
 </div>
 
@@ -47,7 +47,7 @@ Kingshot Auto Redeemer helps players discover eligible public gift codes and red
 
 ## Live website
 
-The public application is available at [kingshot-autoredeemer.vercel.app](https://kingshot-autoredeemer.vercel.app/). Use the site's navigation for current routes and features. Administrative and developer tools may require a verified session and server-side authorization; a URL alone does not grant access.
+The public application is available at [kingshot-autoredeemer.vercel.app](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/). Use the site's navigation for current routes and features. Administrative and developer tools may require a verified session and server-side authorization; a URL alone does not grant access.
 
 ## Alliance registration and sync
 
@@ -57,7 +57,7 @@ The normal limit is **four registered alliance configurations per kingdom**. The
 
 Discord registration records the initiating Discord account for audit, while the sync worker runs independently of that user's continued presence or permissions. Registration uses the existing player registry and skips already-registered or banned players rather than creating duplicate player records. The initial roster is validated before registration; suspiciously incomplete, stale, or malformed rosters fail closed. Successful syncs continue on the existing 24-hour schedule, with the existing per-alliance lease preventing overlapping runs. The website and Discord share the same server-side sync configuration and worker safeguards.
 
-The alliance page fetches and validates the selected roster, checks registration status, and processes eligible players in bounded batches. The admin **Sync now** action runs the same server-side reconciliation path, with a 300-second Vercel execution budget for larger rosters. Each run validates a fresh provider roster against the alliance's reported member count and rejects suspiciously incomplete responses before changing registration state. The worker batch-checks the authoritative Supabase player registry and player-ban registry (up to 100 IDs per query), then skips already-registered and banned players before attempting registration. Per-alliance seen-player state records outcomes for audit and incremental processing; it is not the authoritative count of globally registered players. If a manual sync fails, the server records a retry due in five minutes. The GitHub Actions scheduler wakes the existing worker every five minutes to pick up due syncs and retries; Supabase's daily cron remains a backup wake-up. Both scheduler paths use the same per-alliance database lease, preventing overlapping runs for the same alliance. Successful syncs advance the next scheduled run by 24 hours. Scheduled sync adds newly discovered eligible members; it does not automatically deregister players who leave an alliance.
+The alliance page fetches and validates the selected roster, checks registration status, and processes eligible players in bounded batches. The admin **Sync now** action runs the same server-side reconciliation path, with a Cloudflare Worker execution limits for larger rosters. Each run validates a fresh provider roster against the alliance's reported member count and rejects suspiciously incomplete responses before changing registration state. The worker batch-checks the authoritative Supabase player registry and player-ban registry (up to 100 IDs per query), then skips already-registered and banned players before attempting registration. Per-alliance seen-player state records outcomes for audit and incremental processing; it is not the authoritative count of globally registered players. If a manual sync fails, the server records a retry due in five minutes. The GitHub Actions scheduler wakes the existing worker every five minutes to pick up due syncs and retries; Supabase's daily cron remains a backup wake-up. Both scheduler paths use the same per-alliance database lease, preventing overlapping runs for the same alliance. Successful syncs advance the next scheduled run by 24 hours. Scheduled sync adds newly discovered eligible members; it does not automatically deregister players who leave an alliance.
 
 ## Discord bot
 
@@ -81,9 +81,9 @@ Administrators can review an announcement's content and destination in an in-app
 
 **V4 is the recommended API for new integrations.** It provides player lookup, manual redemption, alliance roster/ranking lookup, read-only redemption history, webhook subscriptions, and compact usage information. Responses use a consistent `success`, `data`, `error`, and `meta` envelope.
 
-- [Interactive developer portal](https://kingshot-autoredeemer.vercel.app/developer)
-- [V4 API reference](https://kingshot-autoredeemer.vercel.app/developer-v4.md)
-- [OpenAPI 3.1 specification](https://kingshot-autoredeemer.vercel.app/openapi.json)
+- [Interactive developer portal](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/developer)
+- [V4 API reference](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/developer-v4.md)
+- [OpenAPI 3.1 specification](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/openapi.json)
 
 V4 endpoints include:
 
@@ -142,7 +142,7 @@ Use the website's support channel to report a suspected vulnerability. Avoid pos
 
 ## Privacy
 
-The service handles information needed to provide its features. Depending on how you use it, this may include a Player ID, supported provider profile data, redemption status, support messages, account information used for sign-in, push-notification subscriptions, and limited operational telemetry. See the [Privacy notice](https://kingshot-autoredeemer.vercel.app/privacy) for the service's current explanation of data handling.
+The service handles information needed to provide its features. Depending on how you use it, this may include a Player ID, supported provider profile data, redemption status, support messages, account information used for sign-in, push-notification subscriptions, and limited operational telemetry. See the [Privacy notice](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/privacy) for the service's current explanation of data handling.
 
 ## Technology
 
