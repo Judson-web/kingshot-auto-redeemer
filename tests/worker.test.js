@@ -109,5 +109,5 @@ test("Cloudflare MightPulse adapter caches circuit-breaker RPC outages and prese
   const router = await readFile(new URL("../cloudflare/worker.ts", import.meta.url), "utf8");
   assert.match(adapter, /circuitRpcUnavailableUntil = Date\.now\(\) \+ 30_000/);
   assert.match(adapter, /if \(Date\.now\(\) < circuitRpcUnavailableUntil\) return null/);
-  assert.match(router, /fast\?\{totalTimeoutMs:18_000,maxAttempts:2\}:\{\}/);
+  assert.ok(router.includes("fast?{totalTimeoutMs:18_000,maxAttempts:2,fastPath:true}:{}"));
 });
