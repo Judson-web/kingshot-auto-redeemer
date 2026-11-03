@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { selectWorkerShardBatch, workerBucket } from "../internal/kingshot/worker.ts";
+import { selectWorkerShardBatch, workerBucket } from "../internal/kingshot/worker-shard-batch.js";
 
 test("worker shard batches rotate without starving assigned players", () => {
   const players = Array.from({ length: 120 }, (_, index) => ({ player_id: String(index + 1) }));
