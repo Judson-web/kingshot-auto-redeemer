@@ -132,7 +132,7 @@ test("Cloudflare Worker routes V4 paths to the native adapter without a legacy h
   assert.match(router, /incoming\.pathname\.startsWith\("\/api\/v4\/"\)/);
   assert.match(adapter, /kingshot_developer_authorize_key/);
   assert.match(adapter, /fetchMightPulseNative/);
-  assert.match(adapter, /players:\/read/);
+  assert.match(adapter, /players:read/);
   assert.match(adapter, /route_not_migrated/);
   assert.match(adapter, /apiVersion: "4"/);
 });
