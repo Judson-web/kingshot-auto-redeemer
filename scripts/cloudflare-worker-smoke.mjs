@@ -71,7 +71,7 @@ try {
     body => body?.code === "invalid_avatar_request");
 
   await checkJson("/api/discord-avatar", 405,
-    body => body?.code === "method_not_allowed", { method: "POST" });
+    body => body?.error === "Method not allowed.", { method: "POST" });
 
   await checkJson("/api/discord-user?id=invalid", 400,
     body => body?.code === "invalid_discord_user_id");
