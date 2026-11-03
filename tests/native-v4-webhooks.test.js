@@ -29,7 +29,7 @@ test("webhook signing secrets use Workers Web Crypto and legacy-compatible AES-G
   assert.match(source, /secret_ciphertext: ciphertext/);
 });
 
-test("webhook registration rejects unsafe URL forms and never attempts destination delivery", async () => {
+test("webhook registration rejects unsafe URL forms and delivery uses guarded manual egress", async () => {
   const source = await readFile(new URL("../cloudflare/developer-v4.ts", import.meta.url), "utf8");
   assert.match(source, /url\.protocol !== "https:"/);
   assert.match(source, /url\.username \|\| url\.password/);
@@ -45,4 +45,44 @@ test("V4 webhook API documents that delivery remains paused pending secure egres
   assert.match(docs, /Delivery is currently paused/);
   assert.match(docs, /connection time/);
   assert.match(docs, /V4_WEBHOOK_ENCRYPTION_KEY/);
+});
+
+
+test("native webhook delivery is authenticated, write-gated, and requires the app zone boundary", async () => {
+  const worker = await readFile(new URL("../cloudflare/webhook-delivery.ts", import.meta.url), "utf8");
+  const auth = worker.indexOf("if (!expected.some(secret => constantTimeEqual(supplied, secret)))");
+  const writeGate = worker.indexOf('if (String(env.SUPABASE_WRITE_MODE || "").toLowerCase() !== "enabled")');
+  const claim = worker.indexOf('kingshot_developer_claim_webhook_deliveries');
+  assert.ok(auth >= 0 && writeGate > auth && claim > writeGate);
+  assert.match(worker, /webhook_egress_zone_unconfigured/);
+  assert.match(worker, /WEBHOOK_BLOCKED_ZONE/);
+  assert.match(worker, /host === zone \\|\\| host\\.endsWith\\("\\." \\+ zone\\)/);
+});
+
+test("webhook delivery uses Cloudflare guarded fetch, manual redirects, bounded requests, and signatures", async () => {
+  const worker = await readFile(new URL("../cloudflare/webhook-delivery.ts", import.meta.url), "utf8");
+  assert.match(worker, /redirect: "manual"/);
+  assert.match(worker, /AbortSignal\\.timeout\\(5000\\)/);
+  assert.match(worker, /Cloudflare's outbound HTTP proxy/);
+  assert.match(worker, /X-Kingshot-Signature/);
+  assert.match(worker, /X-Kingshot-Event-Id/);
+  assert.match(worker, /status >= 300 && response\\.status < 400/);
+  assert.match(worker, /MAX_ATTEMPTS = 8/);
+});
+
+test("webhook delivery queue claims are atomic and completion is fenced by lease token", async () => {
+  const sql = await readFile(new URL("../supabase/migrations/20261103140000_v4_webhook_delivery_leases.sql", import.meta.url), "utf8");
+  assert.match(sql, /for update skip locked/i);
+  assert.match(sql, /lease_token = gen_random_uuid\\(\\)/i);
+  assert.match(sql, /lease_until/);
+  assert.match(sql, /attempt_count = d\\.attempt_count \\+ 1/i);
+  assert.match(sql, /where id = p_delivery_id\\s+and lease_token = p_lease_token/i);
+  assert.match(sql, /grant execute on function public\\.kingshot_developer_claim_webhook_deliveries/);
+});
+
+test("native V4 redemption outcomes enqueue webhook events without blocking the response", async () => {
+  const source = await readFile(new URL("../cloudflare/developer-v4.ts", import.meta.url), "utf8");
+  assert.match(source, /enqueueNativeWebhookEvent/);
+  assert.match(source, /"redemption\\.completed" : "redemption\\.unknown"/);
+  assert.match(source, /delivery event could not be persisted/);
 });
