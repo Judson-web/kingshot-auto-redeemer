@@ -1,5 +1,5 @@
 {
-  "$schema": "https://developers.cloudflare.com/wrangler/config-schema.json",
+  "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "kingshot-webhook-egress",
   "main": "src/index.ts",
   "compatibility_date": "2026-11-03",
