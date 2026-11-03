@@ -420,7 +420,7 @@ export async function handleNativeV4(request: Request, env: Env): Promise<Respon
   const url = new URL(request.url);
   const requestId = crypto.randomUUID();
   const playerMatch = /^\/api\/v4\/players\/(\d{5,20})\/?$/.exec(url.pathname);
-  const webhookMatch = /^\\/api\\/v4\\/webhooks\\/([0-9a-f-]{36})\\/?$/i.exec(url.pathname);
+  const webhookMatch = /^\/api\/v4\/webhooks\/([0-9a-f-]{36})\/?$/i.exec(url.pathname);
   const route = playerMatch ? "player"
     : webhookMatch ? "webhook-item"
     : url.pathname === "/api/v4/alliances" ? "alliances"
