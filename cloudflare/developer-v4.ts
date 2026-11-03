@@ -64,7 +64,16 @@ function retryHint(status: number, code: string, retryAfterAvailable = false): {
 }
 
 function fail(status: number, code: string, message: string, requestId: string, meta: Record<string, unknown> = {}, h?: Headers): Response {
-  return response(status, null, { code, message, ...retryHint(status, code, Boolean(h?.get("Retry-After") || meta.resetAt)) }, requestId, meta, h);
+  const headerRetry = Number(h?.get("Retry-After"));
+  const metaRetry = Number(meta.retryAfterSeconds);
+  const retryAfterSeconds = Number.isFinite(headerRetry) && headerRetry > 0 ? Math.ceil(headerRetry)
+    : Number.isFinite(metaRetry) && metaRetry > 0 ? Math.ceil(metaRetry) : undefined;
+  return response(status, null, {
+    code,
+    message,
+    ...retryHint(status, code, Boolean(retryAfterSeconds || meta.resetAt)),
+    ...(retryAfterSeconds ? { retryAfterSeconds } : {}),
+  }, requestId, meta, h);
 }
 
 async function sha256(value: string): Promise<string> {
