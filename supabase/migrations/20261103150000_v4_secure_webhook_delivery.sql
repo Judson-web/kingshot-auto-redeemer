@@ -18,7 +18,8 @@ returns table (
   event_type text,
   payload jsonb,
   attempt_count integer,
-  lease_token uuid
+  lease_token uuid,
+  created_at timestamptz
 )
 language plpgsql
 security definer
@@ -47,10 +48,10 @@ begin
         locked_until = clock_timestamp() + make_interval(secs => p_lease_seconds)
     from due
     where d.id = due.id
-    returning d.id, d.webhook_id, d.event_id, d.event_type, d.payload, d.attempt_count, d.lease_token
+    returning d.id, d.webhook_id, d.event_id, d.event_type, d.payload, d.attempt_count, d.lease_token, d.created_at
   )
   select claimed.id, claimed.webhook_id, claimed.event_id, claimed.event_type,
-         claimed.payload, claimed.attempt_count, claimed.lease_token
+         claimed.payload, claimed.attempt_count, claimed.lease_token, claimed.created_at
   from claimed;
 end;
 $$;
@@ -69,9 +70,6 @@ language plpgsql
 security definer
 set search_path = public, private, extensions
 as $$
-declare
-  v_attempt integer;
-  v_terminal boolean;
 begin
   if p_delivery_id is null or p_lease_token is null
      or p_status is not null and p_status not between 100 and 599
@@ -93,7 +91,7 @@ begin
   where d.id = p_delivery_id
     and d.lease_token = p_lease_token
     and d.delivered_at is null
-  returning d.attempt_count, (d.delivered_at is not null and not p_delivered) into v_attempt, v_terminal;
+  returning d.id into p_delivery_id;
 
   return found;
 end;
