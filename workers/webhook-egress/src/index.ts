@@ -52,8 +52,9 @@ export default {
       return Response.json({ error: "invalid_delivery" }, { status: 400 });
     }
     const headers = new Headers();
+    const incoming = new Map(Object.entries(input.headers as Record<string, unknown>).map(([name, value]) => [name.toLowerCase(), value]));
     for (const name of allowedHeaders) {
-      const value = (input.headers as Record<string, unknown>)[name];
+      const value = incoming.get(name);
       if (typeof value === "string" && value.length <= 2048) headers.set(name, value);
     }
     if (!headers.get("content-type")?.toLowerCase().startsWith("application/json") ||
