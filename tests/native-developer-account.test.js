@@ -47,3 +47,11 @@ test("webhook management remains explicitly unavailable until its SSRF-safe nati
   const adapter = await readFile(new URL("../cloudflare/developer-account.ts", import.meta.url), "utf8");
   assert.match(adapter, /webhook_management_not_migrated/);
 });
+
+test("native logout reports server-side revocation failures after clearing browser cookies", async () => {
+  const adapter = await readFile(new URL("../cloudflare/developer-account.ts", import.meta.url), "utf8");
+  assert.match(adapter, /Promise\.allSettled\(hashes\.map/);
+  assert.match(adapter, /serverSessionRevoked = results\.every/);
+  assert.match(adapter, /status: 503|json\(503/);
+  assert.match(adapter, /localSessionCleared: true, serverSessionRevoked: false/);
+});
