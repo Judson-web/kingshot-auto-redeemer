@@ -28,11 +28,11 @@ test("player profile has a discovery landing page and share actions", async () =
   assert.match(page, /r\.leaderboards/);
 });
 
-test("profile metadata and share cards use the existing OG handler", async () => {
+test("profile metadata keeps its OG handler while production routes remain behind maintenance mode", async () => {
   const og = await read("api/og.js");
   const config = JSON.parse(await read("vercel.json"));
-  assert.ok(config.rewrites.some(route => route.source === "/user" && route.destination === "/index.html"));
-  assert.ok(config.rewrites.some(route => route.source === "/user/:playerId" && route.destination.includes("/api/og?route=player-page")));
+  assert.ok(config.rewrites.some(route => route.source === "/user" && route.destination === "/maintenance.html"));
+  assert.ok(config.rewrites.some(route => route.source === "/user/:playerId" && route.destination === "/maintenance.html"));
   assert.match(og, /route==="player-page"/);
   assert.match(og, /og:title/);
   assert.match(og, /twitter:card/);
