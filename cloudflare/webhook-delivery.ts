@@ -224,7 +224,7 @@ export async function handleNativeWebhookDelivery(request: Request, env: Env): P
   try {
     const claimed = await database(env, "/rest/v1/rpc/kingshot_developer_claim_webhook_deliveries", {
       method: "POST",
-      body: JSON.stringify({ p_limit: 20, p_lease_seconds: 90 }),
+      body: JSON.stringify({ p_limit: 10, p_lease_seconds: 180 }),
     });
     const rows: Delivery[] = Array.isArray(claimed) ? claimed : [];
     let delivered = 0, retried = 0, terminal = 0;
