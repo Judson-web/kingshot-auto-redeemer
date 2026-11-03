@@ -43,6 +43,55 @@ async function quotaRpc(env: MightPulseEnv, name: string, body: Record<string, u
   return response.json().catch(() => ({}));
 }
 
+const usageState = new Map<string, { nextCheckAt: number; inFlight: Promise<void> | null }>();
+const USAGE_REFRESH_MS = 30_000;
+
+async function refreshUsage(env: MightPulseEnv, key: { id: string; value: string }, timeoutMs = 5000): Promise<void> {
+  const budget = Math.max(250, Math.min(5000, Number(timeoutMs) || 5000));
+  const prior = usageState.get(key.id);
+  if (prior && (prior.inFlight || prior.nextCheckAt > Date.now())) {
+    if (prior.inFlight) await prior.inFlight;
+    return;
+  }
+  const state = prior || { nextCheckAt: 0, inFlight: null };
+  state.inFlight = (async () => {
+    try {
+      const observedAt = new Date(Date.now() - 10_000).toISOString();
+      const response = await fetch("https://api.mightpulse.com/v1/usage", {
+        headers: { Authorization: "Bearer " + key.value, Accept: "application/json" },
+        signal: AbortSignal.timeout(budget),
+      });
+      if (!response.ok) throw new Error("usage endpoint returned HTTP " + response.status);
+      const data: any = await response.json();
+      const minuteRemaining = Number(data?.minute?.remaining);
+      const dayRemaining = Number(data?.daily?.remaining);
+      const minuteResetAt = Date.parse(String(data?.minute?.resets_at || ""));
+      const dayResetAt = Date.parse(String(data?.daily?.resets_at || ""));
+      if (!Number.isFinite(minuteRemaining) || minuteRemaining < 0 ||
+          !Number.isFinite(dayRemaining) || dayRemaining < 0 ||
+          !Number.isFinite(minuteResetAt) || !Number.isFinite(dayResetAt)) {
+        throw new Error("usage endpoint returned an invalid allowance snapshot");
+      }
+      await quotaRpc(env, "record_mightpulse_api_key_usage", {
+        p_key_id: key.id,
+        p_observed_at: observedAt,
+        p_minute_remaining: Math.floor(minuteRemaining),
+        p_minute_resets_at: new Date(minuteResetAt).toISOString(),
+        p_day_remaining: Math.floor(dayRemaining),
+        p_day_resets_at: new Date(dayResetAt).toISOString(),
+      }, budget);
+    } catch {
+      // Atomic SQL reservation remains the enforcement boundary if preflight is unavailable.
+    } finally {
+      state.nextCheckAt = Date.now() + USAGE_REFRESH_MS;
+      state.inFlight = null;
+      usageState.set(key.id, state);
+    }
+  })();
+  usageState.set(key.id, state);
+  await state.inFlight;
+}
+
 /** Worker-native port of the existing shared key reservation and cooldown path.
  * Keys are never persisted; each request is atomically reserved in Supabase.
  */
@@ -55,20 +104,18 @@ export async function fetchMightPulseNative(env: MightPulseEnv, url: string, tim
   if (!configured.length) throw new Error("MightPulse API key is not configured on the server.");
   const offset = keyCursor++ % configured.length;
   const ordered = configured.slice(offset).concat(configured.slice(0, offset));
+  const firstUsable = ordered.find(key => (blockedUntil.get(key.id) || 0) <= Date.now());
   let circuitFailureCount = 0;
-  try {
-    const circuit = await quotaRpc(env, "check_mightpulse_provider_circuit_breaker", {}, 1200);
-    circuitFailureCount = Number(circuit?.failureCount) || 0;
-    if (circuit?.open === true) {
-      const error = new Error("MightPulse requests are temporarily paused after repeated provider-wide blocks.") as ProviderError;
-      error.status = 503;
-      error.retryAfterMs = Math.max(1000, Number(circuit.retryAfterMs) || 60_000);
-      throw error;
-    }
-  } catch (error) {
-    if ((error as ProviderError)?.status === 503 && /temporarily paused/.test(String((error as Error).message))) throw error;
-    // Match the established runtime: a circuit-state RPC outage does not bypass
-    // the mandatory atomic per-key reservation below.
+  const [circuitResult] = await Promise.all([
+    quotaRpc(env, "check_mightpulse_provider_circuit_breaker", {}, 1200).catch(() => null),
+    firstUsable ? refreshUsage(env, firstUsable, Math.min(5000, timeoutMs)) : Promise.resolve(),
+  ]);
+  circuitFailureCount = Number(circuitResult?.failureCount) || 0;
+  if (circuitResult?.open === true) {
+    const error = new Error("MightPulse requests are temporarily paused after repeated provider-wide blocks.") as ProviderError;
+    error.status = 503;
+    error.retryAfterMs = Math.max(1000, Number(circuitResult.retryAfterMs) || 60_000);
+    throw error;
   }
   const failures: ProviderError[] = [];
   const unavailable: Array<{ reason: string; waitMs: number }> = [];
@@ -84,6 +131,7 @@ export async function fetchMightPulseNative(env: MightPulseEnv, url: string, tim
     }
     blockedUntil.delete(key.id);
     blockedReason.delete(key.id);
+    if (key !== firstUsable) await refreshUsage(env, key, Math.min(2500, timeoutMs));
     let reservation: any;
     try {
       reservation = await quotaRpc(env, "claim_mightpulse_api_key_request", {
