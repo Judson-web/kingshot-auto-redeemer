@@ -74,11 +74,12 @@ export async function redeemKingshot({playerId,code,kid}: RedeemKingshotInput): 
  if(!/^\d{5,20}$/.test(fid))return invalidInput("Enter a valid Kingshot Player ID (5–20 digits).");
  if(!/^\d{1,10}$/.test(kingdom))return invalidInput("Could not resolve a valid kingdom for this player.");
  if(!/^[A-Za-z0-9_-]{6,32}$/.test(giftCode))return invalidInput("Gift codes must be 6–32 letters, numbers, underscores, or hyphens.");
- const secret=process.env.KINGSHOT_API_SECRET;
- if(!secret)return {httpStatus:503,error:"Kingshot redemption secret is not configured on the server."};
+ // Century Games ships this signing salt in its public gift-code client.
+ // It is not a private API credential and must not be configured as a deployment secret.
+ const publicSigningSalt="mN4!pQs6JrYwV9";
  const payload={fid,cdk:giftCode,kid:kingdom,time:String(Math.floor(Date.now()/1000))};
  const encoded=Object.keys(payload).sort().map(k=>k+"="+payload[k]).join("&");
- const sign=crypto.createHash("md5").update(encoded+secret).digest("hex");
+ const sign=crypto.createHash("md5").update(encoded+publicSigningSalt).digest("hex");
  try{
   const r=await fetch("https://kingshot-giftcode.centurygame.com/api/gift_code",{
    method:"POST",
