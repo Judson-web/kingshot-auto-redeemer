@@ -23,13 +23,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: cloudflare-preview-${{ github.ref }}
+  group: cloudflare-preview-\${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   deploy-preview:
-    name: Build and deploy isolated Cloudflare preview
+    name: Build and deploy Cloudflare workers.dev runtime
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,41 +53,40 @@ jobs:
       - name: Exercise Worker runtime locally before deployment
         run: node scripts/cloudflare-worker-smoke.mjs
 
-
       - name: Bind only missing runtime secrets
         shell: bash
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: \${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: b45bd4f50a1e0280366712348fe2055a
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          NEON_RECOVERY_DATABASE_URL: ${{ secrets.NEON_RECOVERY_DATABASE_URL }}
-          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
-          DISCORD_PUBLIC_KEY: ${{ secrets.DISCORD_PUBLIC_KEY }}
-          DISCORD_APPLICATION_PUBLIC_KEY: ${{ secrets.DISCORD_APPLICATION_PUBLIC_KEY }}
-          DISCORD_APPLICATION_ID: ${{ secrets.DISCORD_APPLICATION_ID }}
-          DISCORD_BRAND_ICON_URL: ${{ secrets.DISCORD_BRAND_ICON_URL }}
-          DISCORD_KINGSHOT_WEBHOOK_URL: ${{ secrets.DISCORD_KINGSHOT_WEBHOOK_URL }}
-          DISCORD_SCRAPER_WEBHOOK_URL: ${{ secrets.DISCORD_SCRAPER_WEBHOOK_URL }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          ALLIANCE_SYNC_CRON_SECRET: ${{ secrets.ALLIANCE_SYNC_CRON_SECRET }}
-          KINGSHOT_API_SECRET: ${{ secrets.KINGSHOT_API_SECRET }}
-          KINGSHOT_AGGREGATOR_API_KEY: ${{ secrets.KINGSHOT_AGGREGATOR_API_KEY }}
-          MIGHTPULSE_API_KEY: ${{ secrets.MIGHTPULSE_API_KEY }}
-          MIGHTPULSE_API_KEY_2: ${{ secrets.MIGHTPULSE_API_KEY_2 }}
-          MIGHTPULSE_API_KEY_3: ${{ secrets.MIGHTPULSE_API_KEY_3 }}
-          MIGHTPULSE_API_KEY_4: ${{ secrets.MIGHTPULSE_API_KEY_4 }}
-          MIGHTPULSE_API_KEY_5: ${{ secrets.MIGHTPULSE_API_KEY_5 }}
-          MIGHTPULSE_API_KEY_6: ${{ secrets.MIGHTPULSE_API_KEY_6 }}
-          V4_WEBHOOK_ENCRYPTION_KEY: ${{ secrets.V4_WEBHOOK_ENCRYPTION_KEY }}
-          V4_WEBHOOK_WORKER_SECRET: ${{ secrets.V4_WEBHOOK_WORKER_SECRET }}
-          WEB_PUSH_VAPID_PUBLIC_KEY: ${{ secrets.WEB_PUSH_VAPID_PUBLIC_KEY }}
-          WEB_PUSH_VAPID_PRIVATE_KEY: ${{ secrets.WEB_PUSH_VAPID_PRIVATE_KEY }}
-          WEB_PUSH_VAPID_SUBJECT: ${{ secrets.WEB_PUSH_VAPID_SUBJECT }}
-          CUSTOM_MESSAGE_DESTINATIONS: ${{ secrets.CUSTOM_MESSAGE_DESTINATIONS }}
-          CUSTOM_MESSAGE_WEBHOOK_1494360495694549134_URL: ${{ secrets.CUSTOM_MESSAGE_WEBHOOK_1494360495694549134_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: \${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_SECRET_KEY: \${{ secrets.SUPABASE_SECRET_KEY }}
+          SUPABASE_PUBLISHABLE_KEY: \${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_ANON_KEY: \${{ secrets.SUPABASE_ANON_KEY }}
+          NEON_RECOVERY_DATABASE_URL: \${{ secrets.NEON_RECOVERY_DATABASE_URL }}
+          DISCORD_BOT_TOKEN: \${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_PUBLIC_KEY: \${{ secrets.DISCORD_PUBLIC_KEY }}
+          DISCORD_APPLICATION_PUBLIC_KEY: \${{ secrets.DISCORD_APPLICATION_PUBLIC_KEY }}
+          DISCORD_APPLICATION_ID: \${{ secrets.DISCORD_APPLICATION_ID }}
+          DISCORD_BRAND_ICON_URL: \${{ secrets.DISCORD_BRAND_ICON_URL }}
+          DISCORD_KINGSHOT_WEBHOOK_URL: \${{ secrets.DISCORD_KINGSHOT_WEBHOOK_URL }}
+          DISCORD_SCRAPER_WEBHOOK_URL: \${{ secrets.DISCORD_SCRAPER_WEBHOOK_URL }}
+          CRON_SECRET: \${{ secrets.CRON_SECRET }}
+          ALLIANCE_SYNC_CRON_SECRET: \${{ secrets.ALLIANCE_SYNC_CRON_SECRET }}
+          KINGSHOT_API_SECRET: \${{ secrets.KINGSHOT_API_SECRET }}
+          KINGSHOT_AGGREGATOR_API_KEY: \${{ secrets.KINGSHOT_AGGREGATOR_API_KEY }}
+          MIGHTPULSE_API_KEY: \${{ secrets.MIGHTPULSE_API_KEY }}
+          MIGHTPULSE_API_KEY_2: \${{ secrets.MIGHTPULSE_API_KEY_2 }}
+          MIGHTPULSE_API_KEY_3: \${{ secrets.MIGHTPULSE_API_KEY_3 }}
+          MIGHTPULSE_API_KEY_4: \${{ secrets.MIGHTPULSE_API_KEY_4 }}
+          MIGHTPULSE_API_KEY_5: \${{ secrets.MIGHTPULSE_API_KEY_5 }}
+          MIGHTPULSE_API_KEY_6: \${{ secrets.MIGHTPULSE_API_KEY_6 }}
+          V4_WEBHOOK_ENCRYPTION_KEY: \${{ secrets.V4_WEBHOOK_ENCRYPTION_KEY }}
+          V4_WEBHOOK_WORKER_SECRET: \${{ secrets.V4_WEBHOOK_WORKER_SECRET }}
+          WEB_PUSH_VAPID_PUBLIC_KEY: \${{ secrets.WEB_PUSH_VAPID_PUBLIC_KEY }}
+          WEB_PUSH_VAPID_PRIVATE_KEY: \${{ secrets.WEB_PUSH_VAPID_PRIVATE_KEY }}
+          WEB_PUSH_VAPID_SUBJECT: \${{ secrets.WEB_PUSH_VAPID_SUBJECT }}
+          CUSTOM_MESSAGE_DESTINATIONS: \${{ secrets.CUSTOM_MESSAGE_DESTINATIONS }}
+          CUSTOM_MESSAGE_WEBHOOK_1494360495694549134_URL: \${{ secrets.CUSTOM_MESSAGE_WEBHOOK_1494360495694549134_URL }}
         run: |
           set +x
           set -euo pipefail
@@ -112,12 +112,12 @@ jobs:
             WEB_PUSH_VAPID_PUBLIC_KEY WEB_PUSH_VAPID_PRIVATE_KEY WEB_PUSH_VAPID_SUBJECT
             CUSTOM_MESSAGE_DESTINATIONS CUSTOM_MESSAGE_WEBHOOK_1494360495694549134_URL
           )
-          for name in "${NAMES[@]}"; do
+          for name in "\${NAMES[@]}"; do
             if printf '%s\n' "$EXISTING" | grep -Fxq "$name"; then
               SKIPPED+=("$name")
               continue
             fi
-            value="${!name:-}"
+            value="\${!name:-}"
             if [ -z "$value" ]; then
               MISSING+=("$name")
               continue
@@ -125,76 +125,36 @@ jobs:
             printf '%s' "$value" | npx --yes wrangler@4 secret put "$name" --name kingshot-autoredeemer-edge >/dev/null
             BOUND+=("$name")
           done
-          AVAILABLE="$EXISTING"            echo "## Cloudflare Worker secret sync"
-            echo
-            echo "Existing secrets preserved: ${#SKIPPED[@]}"
-            printf 'Bound from GitHub Actions: %s\n' "${BOUND[*]:-none}"
-            printf 'Not configured in GitHub Actions: %s\n' "${MISSING[*]:-none}"
-            echo "Secret values were never printed. Existing Worker secrets were not overwritten."
-          } >> "$GITHUB_STEP_SUMMARY"
-          printf 'Bound: %s\n' "${BOUND[*]:-none}"
-          printf 'Missing (not modified): %s\n' "${MISSING[*]:-none}"
-
-      - name: Deploy to workers.dev only
-        run: npx --yes wrangler@4 deploy --config wrangler.jsonc
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: b45bd4f50a1e0280366712348fe2055a
-
-      - name: Smoke-test deployed workers.dev preview
-        run: node scripts/cloudflare-worker-smoke.mjs
-        env:
-          WORKER_PREVIEW_URL: https://kingshot-autoredeemer-edge.sajijudsa.workers.dev
-\\n'"${BOUND[*]}"
+          AVAILABLE="$EXISTING"$'\n'"\${BOUND[*]}"
           REQUIRED=(SUPABASE_SERVICE_ROLE_KEY KINGSHOT_API_SECRET CRON_SECRET ALLIANCE_SYNC_CRON_SECRET)
-          for name in "${REQUIRED[@]}"; do
-            if ! printf '%s\\n' "$AVAILABLE" | grep -Fxq "$name"; then
+          for name in "\${REQUIRED[@]}"; do
+            if ! printf '%s\n' "$AVAILABLE" | grep -Fxq "$name"; then
               echo "::error::Required runtime secret $name is unavailable; refusing to deploy."
               exit 1
             fi
           done
-          if ! printf '%s\\n' "$AVAILABLE" | grep -Eq '^MIGHTPULSE_API_KEY(_[2-6])?            echo "## Cloudflare Worker secret sync"
-            echo
-            echo "Existing secrets preserved: ${#SKIPPED[@]}"
-            printf 'Bound from GitHub Actions: %s\n' "${BOUND[*]:-none}"
-            printf 'Not configured in GitHub Actions: %s\n' "${MISSING[*]:-none}"
-            echo "Secret values were never printed. Existing Worker secrets were not overwritten."
-          } >> "$GITHUB_STEP_SUMMARY"
-          printf 'Bound: %s\n' "${BOUND[*]:-none}"
-          printf 'Missing (not modified): %s\n' "${MISSING[*]:-none}"
-
-      - name: Deploy to workers.dev only
-        run: npx --yes wrangler@4 deploy --config wrangler.jsonc
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: b45bd4f50a1e0280366712348fe2055a
-
-      - name: Smoke-test deployed workers.dev preview
-        run: node scripts/cloudflare-worker-smoke.mjs
-        env:
-          WORKER_PREVIEW_URL: https://kingshot-autoredeemer-edge.sajijudsa.workers.dev
-; then
+          if ! printf '%s\n' "$AVAILABLE" | grep -Eq '^MIGHTPULSE_API_KEY(_[2-6])?$'; then
             echo "::error::No MightPulse API key is available; refusing to deploy a non-functional player/auto-redemption runtime."
             exit 1
           fi
           {
             echo "## Cloudflare Worker secret sync"
             echo
-            echo "Existing secrets preserved: ${#SKIPPED[@]}"
-            printf 'Bound from GitHub Actions: %s\n' "${BOUND[*]:-none}"
-            printf 'Not configured in GitHub Actions: %s\n' "${MISSING[*]:-none}"
+            echo "Existing secrets preserved: \${#SKIPPED[@]}"
+            printf 'Bound from GitHub Actions: %s\n' "\${BOUND[*]:-none}"
+            printf 'Not configured in GitHub Actions: %s\n' "\${MISSING[*]:-none}"
             echo "Secret values were never printed. Existing Worker secrets were not overwritten."
           } >> "$GITHUB_STEP_SUMMARY"
-          printf 'Bound: %s\n' "${BOUND[*]:-none}"
-          printf 'Missing (not modified): %s\n' "${MISSING[*]:-none}"
+          printf 'Bound: %s\n' "\${BOUND[*]:-none}"
+          printf 'Missing (not modified): %s\n' "\${MISSING[*]:-none}"
 
       - name: Deploy to workers.dev only
         run: npx --yes wrangler@4 deploy --config wrangler.jsonc
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: \${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: b45bd4f50a1e0280366712348fe2055a
 
-      - name: Smoke-test deployed workers.dev preview
+      - name: Smoke-test deployed workers.dev runtime
         run: node scripts/cloudflare-worker-smoke.mjs
         env:
           WORKER_PREVIEW_URL: https://kingshot-autoredeemer-edge.sajijudsa.workers.dev
