@@ -627,7 +627,7 @@ export default {
       return handleDiscordAvatar(request);
     }
 
-    if ((incoming.pathname === "/api/discord-user" || incoming.pathname === "/api/discord-tools/user") && env.DISCORD_BOT_TOKEN) {
+    if (incoming.pathname === "/api/discord-user" || incoming.pathname === "/api/discord-tools/user") {
       return handleDiscordUser(request, env);
     }
 
