@@ -95,3 +95,11 @@ test("Gateway relay rejects null and non-object JSON payloads",async()=>{
   assert.equal(response.status,400,body);
  }
 });
+
+
+test("Gateway relay preserves the upstream status when response-body cleanup fails",async()=>{
+ const env={RELAY_SECRET:"test-secret",EGRESS:{fetch:async()=>new Response(new ReadableStream({cancel(){throw new Error("cleanup failed")}}),{status:202})}};
+ const response=await gatewayRelay.fetch(new Request("https://relay.example/deliver",{method:"POST",headers:{authorization:"Bearer test-secret","content-type":"application/json"},body:JSON.stringify({url:"https://receiver.example/hook",headers:{"content-type":"application/json","x-kingshot-event-id":"evt","x-kingshot-signature":"sha256=x","x-kingshot-timestamp":"1"},body:"{}"})}),env);
+ assert.equal(response.status,200);
+ assert.equal((await response.json()).status,202);
+});
