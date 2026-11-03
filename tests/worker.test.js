@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const workerSource = await readFile(new URL("../internal/kingshot/worker.ts", import.meta.url), "utf8");
+const workerBatchSource = await readFile(new URL("../internal/kingshot/worker-shard-batch.js", import.meta.url), "utf8");
 const healthSource = await readFile(new URL("../lib/health.js", import.meta.url), "utf8");
 const scraperSource = await readFile(new URL("../internal/kingshot/scraper.ts", import.meta.url), "utf8");
 const autoSource = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
@@ -15,8 +16,9 @@ const mightPulseBudgetMigration = await readFile(new URL("../supabase/migrations
 const mightPulseUsageMigration = await readFile(new URL("../supabase/migrations/20261018140000_mightpulse_usage_headroom.sql", import.meta.url), "utf8");
 
 test("worker assignment uses deterministic player bucketing", () => {
-  assert.match(workerSource, /function workerBucket|const workerBucket/);
-  assert.match(workerSource, /workerBucket\(/);
+  assert.match(workerBatchSource, /function workerBucket/);
+  assert.match(workerSource, /workerBucket/);
+  assert.match(workerBatchSource, /selectWorkerShardBatch/);
 });
 
 test("worker checks its runtime deadline before starting queued work", () => {
@@ -91,7 +93,9 @@ test("zero-attempt cycles explain when verified codes are already handled or una
 
 
 
-test("redemption concurrency is bounded at two per shard behind the shared upstream reservation gate", () => {
+test("Cloudflare redemption shards process at most two players sequentially behind shared quota reservations", () => {
+  assert.ok(autoSource.includes("const MAX_PLAYERS_PER_SHARD=2;"));
+  assert.ok(autoSource.includes("const PLAYER_CONCURRENCY=1;"));
   assert.ok(workerSource.includes("const safeConcurrency = Math.min(2"));
   assert.ok(workerSource.includes("safeConcurrency, { deadline }"));
   assert.ok(autoSource.includes("kingshot_reserve_redemption_request"));
