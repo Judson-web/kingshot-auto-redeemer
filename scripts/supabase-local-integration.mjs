@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
 
-const apiUrl = String(process.env.API_URL || "").replace(/\/$/, "");
-const serviceKey = String(process.env.SERVICE_ROLE_KEY || "");
-const anonKey = String(process.env.ANON_KEY || "");
+function envValue(name) {
+  return String(process.env[name] || "").trim().replace(/^"(.*)"$/, "$1").replace(/^'(.*)'$/, "$1");
+}
+
+const apiUrl = envValue("API_URL").replace(/\/$/, "");
+const serviceKey = envValue("SERVICE_ROLE_KEY");
+const anonKey = envValue("ANON_KEY");
 
 assert.ok(apiUrl, "Supabase local API_URL is required");
 assert.ok(serviceKey, "Supabase local SERVICE_ROLE_KEY is required");
