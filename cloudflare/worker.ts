@@ -133,7 +133,9 @@ async function mightPulseJson(env: Env, url: string, timeoutMs: number, options:
 }
 async function loadNativePlayerContext(env: Env, player: Record<string, any>): Promise<Record<string, unknown>> {
   const kid = String(player.kid ?? player.kingdom_id ?? "").trim();
-  const allianceTag = String(player.alliance?.abbr ?? player.alliance_tag ?? player.allianceTag ?? "").trim();
+  const allianceObject = player.alliance && typeof player.alliance === "object" && !Array.isArray(player.alliance) ? player.alliance : {};
+  const allianceTag = String(player.alliance_tag ?? player.allianceTag ?? player.alliance_abbr ?? player.allianceAbbr ?? allianceObject.abbr ?? allianceObject.tag ?? allianceObject.abbreviation ?? allianceObject.short_name ?? allianceObject.shortName ?? "").replace(/^\\[|\\]$/g, "").trim().slice(0,32);
+  const allianceName = String(player.alliance_name ?? player.allianceName ?? allianceObject.name ?? (typeof player.alliance === "string" ? player.alliance : "") ?? player.guild_name ?? "").trim().slice(0,100);
   const validKingdom = /^\d{1,10}$/.test(kid);
   const kingdomPromise = validKingdom
     ? mightPulseJson(env, "https://api.mightpulse.com/v1/kingdoms/" + encodeURIComponent(kid) + "?include=boards&limit=100", 4500)
@@ -178,7 +180,8 @@ async function loadNativePlayerContext(env: Env, player: Record<string, any>): P
   if (allianceResult.status === "fulfilled" && allianceResult.value) {
     const body = allianceResult.value;
     const source = body.data && typeof body.data === "object" ? body.data : body;
-    const raw = Array.isArray(source.members) ? source.members : Array.isArray(source.roster) ? source.roster : Array.isArray(source.alliance?.members) ? source.alliance.members : [];
+    const alliance = source.alliance && typeof source.alliance === "object" ? source.alliance : source;
+    const raw = Array.isArray(source.members) ? source.members : Array.isArray(source.roster) ? source.roster : Array.isArray(alliance.members) ? alliance.members : Array.isArray(alliance.roster) ? alliance.roster : [];
     const members = raw.flatMap((member: Record<string, any>) => {
       const governorId = String(member.governor_id ?? member.fid ?? "").trim();
       if (!/^\d{5,20}$/.test(governorId)) return [];
@@ -189,7 +192,7 @@ async function loadNativePlayerContext(env: Env, player: Record<string, any>): P
     });
     members.sort((a:any,b:any)=>(b.power ?? -1)-(a.power ?? -1));
     const position=members.findIndex((member:any)=>member.governor_id===playerIdOf(player));
-    allianceRoster={members:members.slice(0,8),total:raw.length,player_power_rank:position<0?null:position+1,
+    allianceRoster={name:String(alliance.name ?? alliance.alliance_name ?? allianceName).trim().slice(0,100),tag:String(alliance.abbr ?? alliance.tag ?? alliance.alliance_tag ?? allianceTag).trim().slice(0,32),power:numericOrNull(alliance.power ?? alliance.score),members:members.slice(0,8),total:members.length,player_power_rank:position<0?null:position+1,
       fresh:typeof body.fresh==="boolean"?body.fresh:null,age_seconds:numericOrNull(body.age_seconds),cached_at:typeof body.cached_at==="string"?body.cached_at:null};
   }
   return {
@@ -214,17 +217,18 @@ async function loadNativeDetailedProfile(env: Env, playerId: string, player: Rec
     ]);
     const body=detailsResult.status==="fulfilled"?detailsResult.value:{};
     const context=contextResult.status==="fulfilled"?contextResult.value:{kingdom:null,kingdom_board_ranks:[],kingdom_meta:null,alliance_roster:null};
-    const detailPlayer=body.player && typeof body.player==="object" ? body.player : player;
+    const detailSource=body.data && typeof body.data==="object" ? body.data : body;
+    const detailPlayer=detailSource.player && typeof detailSource.player==="object" ? detailSource.player : player;
     if(playerIdOf(detailPlayer)!==playerId) throw Object.assign(new Error("MightPulse returned a mismatched player profile."),{status:502});
     const result={
       ok:true,player,...context,
-      heroes:Array.isArray(body.heroes)?body.heroes:[],
-      ranks:body.ranks && typeof body.ranks==="object"?body.ranks:null,
-      gov_gear:body.gov_gear && typeof body.gov_gear==="object"?body.gov_gear:null,
-      fresh:typeof body.fresh==="boolean"?body.fresh:null,
-      cached_at:typeof body.cached_at==="string"?body.cached_at:null,
-      age_seconds:numericOrNull(body.age_seconds),
-      include:Array.isArray(body.include)?body.include:["heroes","ranks","gov_gear"],
+      heroes:Array.isArray(detailSource.heroes)?detailSource.heroes:[],
+      ranks:detailSource.ranks && typeof detailSource.ranks==="object"?detailSource.ranks:null,
+      gov_gear:detailSource.gov_gear && typeof detailSource.gov_gear==="object"?detailSource.gov_gear:null,
+      fresh:typeof body.fresh==="boolean"?body.fresh:typeof detailSource.fresh==="boolean"?detailSource.fresh:null,
+      cached_at:typeof body.cached_at==="string"?body.cached_at:typeof detailSource.cached_at==="string"?detailSource.cached_at:null,
+      age_seconds:numericOrNull(body.age_seconds ?? detailSource.age_seconds),
+      include:Array.isArray(body.include)?body.include:Array.isArray(detailSource.include)?detailSource.include:["heroes","ranks","gov_gear"],
       source:"mightpulse",extras_available:detailsResult.status==="fulfilled",
       extras_error:detailsResult.status==="rejected"?"Some extended player details could not be refreshed. The public profile is still available.":null
     };
