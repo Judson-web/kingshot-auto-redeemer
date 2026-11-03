@@ -1,6 +1,6 @@
 interface Env {
   ASSETS: Fetcher;
-  LEGACY_API_ORIGIN: string;
+  SUPABASE_WRITE_MODE?: string;
   SUPABASE_URL?: string;
   SUPABASE_SERVICE_ROLE_KEY?: string;
   DISCORD_BOT_TOKEN?: string;
@@ -102,9 +102,8 @@ async function handlePublicHealth(request: Request, env: Env): Promise<Response>
     status: 405, headers: { Allow: "GET", "Content-Type": "application/json", "Cache-Control": "no-store" },
   });
   const params = new URL(request.url).searchParams;
-  if (params.has("logs") || params.has("badge") || !env.SUPABASE_SERVICE_ROLE_KEY) {
-    return fetchLegacyApi(request, env);
-  }
+  if (params.has("logs") || params.has("badge")) return jsonError(501, "health_detail_not_migrated", "Extended health diagnostics are not yet available on the native runtime.");
+  if (!env.SUPABASE_SERVICE_ROLE_KEY) return jsonError(503, "health_backend_unconfigured", "Health backend is not configured.");
   const base = String(env.SUPABASE_URL || "https://wocxvtptqapietlteshr.supabase.co").replace(/\/$/, "");
   const query = new URLSearchParams({ select: "last_started_at,last_finished_at,last_status,lock_until", id: "eq.true", limit: "1" });
   try {
@@ -135,30 +134,6 @@ async function handlePublicHealth(request: Request, env: Env): Promise<Response>
   }
 }
 
-async function fetchLegacyApi(request: Request, env: Env): Promise<Response> {
-  if (!env.LEGACY_API_ORIGIN) return jsonError(503, "api_upstream_unconfigured", "API service is temporarily unavailable.");
-  let origin: URL;
-  try { origin = new URL(env.LEGACY_API_ORIGIN); }
-  catch { return jsonError(503, "api_upstream_invalid", "API service is temporarily unavailable."); }
-  if (origin.protocol !== "https:" || origin.username || origin.password) return jsonError(503, "api_upstream_invalid", "API service is temporarily unavailable.");
-  const incoming = new URL(request.url);
-  const target = new URL(incoming.pathname + incoming.search, origin);
-  const upstream = await fetch(new Request(target, request), { redirect: "manual", cf: { cacheTtl: 0, cacheEverything: false } });
-  const headers = new Headers(upstream.headers);
-  const location = headers.get("Location");
-  if (location) {
-    try {
-      const redirectTarget = new URL(location, target);
-      if (redirectTarget.origin === origin.origin) headers.set("Location", redirectTarget.pathname + redirectTarget.search + redirectTarget.hash);
-    } catch { /* Preserve malformed or external redirects. */ }
-  }
-  headers.set("Cache-Control", "no-store");
-  headers.set("X-Content-Type-Options", "nosniff");
-  headers.set("X-Edge-Backend", "legacy-api-bridge");
-  headers.delete("server");
-  return new Response(upstream.body, { status: upstream.status, statusText: upstream.statusText, headers });
-}
-
 async function handleVisitorTelemetry(request: Request, env: Env): Promise<Response> {
   if (request.method === "GET") return handleEdgeLocale(request);
   if (request.method !== "POST") {
@@ -167,9 +142,8 @@ async function handleVisitorTelemetry(request: Request, env: Env): Promise<Respo
       headers: { Allow: "GET, POST", "Content-Type": "application/json", "Cache-Control": "no-store" },
     });
   }
-  if (!env.SUPABASE_SERVICE_ROLE_KEY) {
-    return jsonError(503, "telemetry_storage_unconfigured", "Telemetry storage is not configured.");
-  }
+  if (!env.SUPABASE_SERVICE_ROLE_KEY) return jsonError(503, "telemetry_storage_unconfigured", "Telemetry storage is not configured.");
+  if (env.SUPABASE_WRITE_MODE !== "enabled") return jsonError(503, "telemetry_writes_disabled", "Telemetry writes are disabled in this preview environment.");
   const origin = request.headers.get("Origin");
   let originHost = "";
   try { originHost = origin ? new URL(origin).host.toLowerCase() : ""; } catch {}
@@ -407,8 +381,7 @@ export default {
       return handleDiscordUser(request, env);
     }
 
-    // Visitor telemetry moves natively to Workers when the Supabase service
-    // credential is provisioned. Until then, POST remains on the legacy bridge.
+    // Preview writes are fail-closed until an isolated staging database is configured.
     if (incoming.pathname === "/api/kingshot-player" &&
       incoming.searchParams.get("developerPath") === "alliance-lookup" &&
       incoming.searchParams.get("mode") === "registration-status") {
@@ -423,11 +396,11 @@ export default {
     }
 
     if (incoming.pathname === API_PREFIX || incoming.pathname.startsWith(API_PREFIX + "/")) {
-      return fetchLegacyApi(request, env);
+      return jsonError(501, "route_not_migrated", "This API route has not yet been migrated to the native Cloudflare runtime.");
     }
 
     return env.ASSETS.fetch(request);
   },
 } satisfies ExportedHandler<Env>;
 
-// Preview deployment refresh: bind newly configured backend secrets.
+// Native Cloudflare runtime. Unported routes fail closed; no legacy host fallback exists.

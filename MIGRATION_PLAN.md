@@ -1,0 +1,41 @@
+# Cloudflare-native migration
+
+## Current checkpoint
+- Branch: `migration/cloudflare-native-runtime`
+- Baseline: `21814aa430ddcdfba2ca4cf08f43be6c3ee92105`
+- Production is untouched. No DNS changes, domain cutover, or production deployment are authorized.
+- Existing domain is redirect-only, not an application host, API origin, or runtime dependency.
+- Vercel is excluded entirely: no bridge, fallback, runtime, or deployment dependency.
+
+## Agreed architecture
+- Cloudflare Workers: application/API runtime.
+- Cloudflare Workers Assets: frontend/static assets.
+- Supabase: primary application database and existing application services.
+- Supabase `pg_cron`: default scheduler for database-led jobs and dispatches.
+- Cloudflare Queues/Workflows: durable asynchronous execution where needed, not a second general-purpose scheduler.
+- Neon: preserve historical records and the independent redemption recovery journal.
+- Existing domain: redirect only to the selected Cloudflare destination.
+
+## Safety constraints
+- Preserve API paths and response contracts wherever possible.
+- Preserve redemption idempotency, four-shard coordination, durable leases, shared MightPulse quota/cooldown handling, and recovery journaling.
+- Preview must not write to production Supabase. Writes stay disabled until a dedicated staging database or equivalent isolation is configured.
+- No production DNS/domain changes or cutover without explicit approval.
+- Do not merge PR #341 as part of this work.
+
+## Migration sequence
+1. Native Worker router, shared runtime adapters, preview safety.
+2. Read-only endpoints: health, Discord avatar/user, player lookup/profile, registration status.
+3. Registration, account/Discord OAuth, developer V3/V4 APIs, keys, quotas, webhooks.
+4. Redemption engine, Neon journal, Supabase RPCs, worker leases/shards, provider cooldowns.
+5. Discord interactions, support, notifications, admin operations.
+6. Supabase `pg_cron` schedules; secured Worker dispatch for jobs requiring Worker execution.
+7. Contract/integration/security tests, preview validation, then separately approved cutover planning.
+
+## Initial implementation checkpoint
+- Removed the Vercel legacy API bridge from the Worker.
+- Removed `LEGACY_API_ORIGIN` from Wrangler configuration.
+- Unported API routes return explicit `501 route_not_migrated` responses instead of silently forwarding elsewhere.
+- Existing native read-only endpoints remain available.
+- Supabase telemetry writes are disabled by default in preview.
+- This is an intermediate migration checkpoint, not a production-ready replacement.
