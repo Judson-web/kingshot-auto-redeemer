@@ -10,7 +10,7 @@ export interface MightPulseEnv {
 }
 
 type ProviderError = Error & { status?: number; retryAfterMs?: number };
-export type MightPulseRequestOptions = { totalTimeoutMs?: number; maxAttempts?: number };
+export type MightPulseRequestOptions = { totalTimeoutMs?: number; maxAttempts?: number; fastPath?: boolean };
 export function resolveMightPulseRequestBudget(timeoutMs = 7000, options: MightPulseRequestOptions = {}, keyCount = 1) {
   const perAttemptMs = Math.max(250, Math.min(30_000, Number(timeoutMs) || 7000));
   const requestedTotal = Number(options.totalTimeoutMs);
@@ -146,7 +146,7 @@ export async function fetchMightPulseNative(env: MightPulseEnv, url: string, tim
   const ordered = configured.slice(offset).concat(configured.slice(0, offset)).slice(0, budget.maxAttempts);
   const firstUsable = ordered.find(key => (blockedUntil.get(key.id) || 0) <= Date.now());
   let circuitFailureCount = 0;
-  const [circuitResult] = await Promise.all([
+  const [circuitResult] = options.fastPath ? [null] : await Promise.all([
     checkProviderCircuit(env, Math.max(250, Math.min(1200, remaining()))),
     firstUsable && remaining() > 250 ? refreshUsage(env, firstUsable, Math.max(250, Math.min(5000, remaining()))) : Promise.resolve(),
   ]);
@@ -172,7 +172,7 @@ export async function fetchMightPulseNative(env: MightPulseEnv, url: string, tim
     }
     blockedUntil.delete(key.id);
     blockedReason.delete(key.id);
-    if (key !== firstUsable) await refreshUsage(env, key, Math.max(250, Math.min(2500, remaining())));
+    if (!options.fastPath && key !== firstUsable) await refreshUsage(env, key, Math.max(250, Math.min(2500, remaining())));
     if (remaining() <= 250) break;
     let reservation: any;
     try {
@@ -210,7 +210,7 @@ export async function fetchMightPulseNative(env: MightPulseEnv, url: string, tim
         if (!credentialFailure) {
           await quotaRpc(env, "claim_mightpulse_api_key_request", {
             p_key_id: key.id, p_mark_cooldown_seconds: Math.min(90, Math.ceil(cooldownMs / 1000)),
-          }).catch(() => undefined);
+          }, Math.max(250, Math.min(1200, remaining()))).catch(() => undefined);
         }
         const error = new Error("MightPulse key " + key.id + " was rejected or rate limited (HTTP " + response.status + ").") as ProviderError;
         error.status = response.status;
