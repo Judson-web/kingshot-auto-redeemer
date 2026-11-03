@@ -16,6 +16,6 @@ test("manual redemption writes remain disabled in preview", async () => {
   assert.equal(r.status,503); assert.equal((await r.json()).code,"writes_disabled");
 });
 test("manual redemption refuses to run without Neon recovery journal", async () => {
-  const r=await handleNativeRedemption(new Request("https://worker.test/api/kingshot-redeem",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({playerId:"123456789",code:"ABCDEF",kid:"7"})}),{SUPABASE_WRITE_MODE:"enabled",SUPABASE_URL:"https://db.test",SUPABASE_SERVICE_ROLE_KEY:"test",KINGSHOT_API_SECRET:"test"});
+  const r=await handleNativeRedemption(new Request("https://worker.test/api/kingshot-redeem",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({playerId:"123456789",code:"ABCDEF",kid:"7"})}),{SUPABASE_WRITE_MODE:"enabled",SUPABASE_URL:"https://db.test",SUPABASE_SERVICE_ROLE_KEY:"test"});
   assert.equal(r.status,503); assert.equal((await r.json()).code,"redemption_unavailable");
 });
