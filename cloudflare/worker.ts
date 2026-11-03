@@ -301,7 +301,7 @@ async function handleNativeAllianceLookup(request: Request, env: Env): Promise<R
   try {
     if (mode === "search") {
       const endpoint = "https://api.mightpulse.com/v1/kingdoms/"+encodeURIComponent(kid)+"/ranks?board=alliance_power&limit=100";
-      const response = await fetchMightPulseNative(env,endpoint,fast?6000:12000,fast?{totalTimeoutMs:18_000,maxAttempts:2}:{});
+      const response = await fetchMightPulseNative(env,endpoint,fast?6000:12000,fast?{totalTimeoutMs:18_000,maxAttempts:2,fastPath:true}:{});
       const body = await response.json().catch(()=>({})) as Record<string,any>;
       if (!response.ok) return jsonError(response.status===404?404:response.status===429?429:502,response.status===404?"kingdom_not_found":response.status===429?"provider_rate_limited":"provider_unavailable",
         response.status===404?"That kingdom was not found in the alliance rankings.":response.status===429?"The game data provider is busy. Please wait a moment and try again.":"Alliance rankings are temporarily unavailable. Please try again shortly.");
