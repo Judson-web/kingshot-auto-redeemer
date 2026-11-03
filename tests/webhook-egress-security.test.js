@@ -86,3 +86,12 @@ test("Gateway relay rejects header injection and malformed header collections",a
  const malformed=await gatewayRelay.fetch(new Request("https://relay.example/deliver",{method:"POST",headers:{authorization:"Bearer test-secret","content-type":"application/json"},body:JSON.stringify({url:"https://receiver.example/hook",headers:[["content-type","application/json"]],body:"{}"})}),env);
  assert.equal(malformed.status,400);
 });
+
+
+test("Gateway relay rejects null and non-object JSON payloads",async()=>{
+ const env={RELAY_SECRET:"test-secret",EGRESS:{fetch:async()=>{throw new Error("must not be called")}}};
+ for(const body of ["null","[]","42"]) {
+  const response=await gatewayRelay.fetch(new Request("https://relay.example/deliver",{method:"POST",headers:{authorization:"Bearer test-secret","content-type":"application/json"},body}),env);
+  assert.equal(response.status,400,body);
+ }
+});
