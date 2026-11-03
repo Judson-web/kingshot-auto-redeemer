@@ -1,6 +1,6 @@
 # Kingshot Auto Redeemer — Developer API
 
-Base URL: https://kingshot-autoredeemer.vercel.app
+Base URL: https://kingshot-autoredeemer-edge.sajijudsa.workers.dev
 
 **Current version: V4.** Use HTTPS and JSON. V4 is recommended for new integrations; V3 remains available for existing clients, and V1 developer routes are deprecated. Never place API keys in URLs, browser bundles, client-visible environment variables, or logs. See [the V4 reference](../public/developer-v4.md) for the complete envelope, retry hints, and Node.js/Python examples.
 
@@ -36,7 +36,7 @@ The registration endpoint enrolls a player in the existing workflow; it does not
 
 ## Authentication
 
-Sign in with your shared Discord account at https://kingshot-autoredeemer.vercel.app/developer, then create an API key for your integration. The full key is displayed only once; the database stores a SHA-256 hash of it. Send it in the Authorization header:
+Sign in with your shared Discord account at https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/developer, then create an API key for your integration. The full key is displayed only once; the database stores a SHA-256 hash of it. Send it in the Authorization header:
 
     Authorization: Bearer ks_live_YOUR_64_CHARACTER_SECRET
 
@@ -48,7 +48,7 @@ GET /api/v3/players/43180889
 
 The playerId path parameter must be a string containing 5–20 digits.
 
-    curl "https://kingshot-autoredeemer.vercel.app/api/v3/players/43180889" \
+    curl "https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/api/v3/players/43180889" \
       -H "Authorization: Bearer $KINGSHOT_API_KEY"
 
 Success responses contain data and meta. The data object has playerId, name, kingdomId, power, townCenterLevel, avatarUrl, allianceName and allianceTag. The alliance fields are nullable when the provider has no alliance data. Fields that are missing or invalid at the provider may be null. Metadata includes apiVersion, requestId, timestamp, and provider freshness fields fetchedAt, providerFresh, providerAgeSeconds and stale. The provider may return cached data, so do not assume every response reflects a real-time lookup.
@@ -61,7 +61,7 @@ POST /api/v3/redemptions
 
 Optional `Idempotency-Key` (8–128 safe ASCII characters) enables durable replay protection for 24 hours, scoped to the developer key. Same key and body replays the stored response; a different body returns 409. Concurrent requests return 409. A stale in-progress request becomes an explicit unknown outcome rather than being submitted again. Storage failures reject keyed requests before redemption. Requests without this header retain legacy non-idempotent behavior.
 
-    curl -X POST "https://kingshot-autoredeemer.vercel.app/api/v3/redemptions" \
+    curl -X POST "https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/api/v3/redemptions" \
       -H "Authorization: Bearer $KINGSHOT_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{"playerId":"43180889","code":"EXAMPLECODE","kid":"1125"}'
@@ -130,7 +130,7 @@ V3 remains available for existing integrations. New integrations should use V4 f
 
 POST /api/kingshot-register registers a player for scheduled processing. It does not start or stop the worker, force an individual redemption, or guarantee a code is eligible. It does not use developer Bearer-key authentication.
 
-    curl -X POST "https://kingshot-autoredeemer.vercel.app/api/kingshot-register" \
+    curl -X POST "https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/api/kingshot-register" \
       -H "Content-Type: application/json" \
       -d '{"playerId":"43180889","kingdomId":"1125","playerName":"Example Player"}'
 
@@ -151,9 +151,9 @@ For private account, player-registration, or redemption issues, use the website'
 ## Related links
 
 - Maintainer / Discord: https://discord.com/users/871756466900598815
-- Automatic redemption: https://kingshot-autoredeemer.vercel.app/auto
-- Manual redemption: https://kingshot-autoredeemer.vercel.app/manual
-- Developer portal: https://kingshot-autoredeemer.vercel.app/developer
-- OpenAPI 3.1: https://kingshot-autoredeemer.vercel.app/openapi.json
-- Privacy: https://kingshot-autoredeemer.vercel.app/privacy?service=kingshot-auto
-- Terms: https://kingshot-autoredeemer.vercel.app/terms?service=kingshot-auto
+- Automatic redemption: https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/auto
+- Manual redemption: https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/manual
+- Developer portal: https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/developer
+- OpenAPI 3.1: https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/openapi.json
+- Privacy: https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/privacy?service=kingshot-auto
+- Terms: https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/terms?service=kingshot-auto
