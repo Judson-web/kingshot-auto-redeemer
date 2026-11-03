@@ -43,7 +43,14 @@ try {
   if (!remote) {
     child = spawn("npx", ["--yes", "wrangler@4", "dev", "--local", "--ip", "127.0.0.1", "--port", String(port), "--config", "wrangler.jsonc"], {
       stdio: ["ignore", "pipe", "pipe"],
-      env: process.env,
+      // Legacy route modules validate the presence of a service key at import time.
+      // Use a deliberately invalid local-only placeholder so smoke tests never need
+      // production credentials and cannot accidentally write to the live database.
+      env: {
+        ...process.env,
+        SUPABASE_SERVICE_ROLE_KEY: "local-worker-smoke-placeholder-not-a-real-key",
+        SUPABASE_SECRET_KEY: "",
+      },
       detached: true,
     });
     child.stdout.on("data", chunk => { wranglerOutput += chunk.toString(); });
