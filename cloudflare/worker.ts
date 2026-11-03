@@ -123,10 +123,12 @@ function playerIdOf(player: Record<string, unknown>): string {
 function normalizeNativePlayer(player: Record<string, any>): Record<string, any> {
   const existing = player.alliance && typeof player.alliance === "object" && !Array.isArray(player.alliance)
     ? player.alliance : {};
-  const abbr = String(existing.abbr ?? existing.tag ?? existing.abbreviation ?? existing.short_name ??
-    existing.shortName ?? player.alliance_abbr ?? player.allianceAbbr ?? player.alliance_tag ?? player.allianceTag ?? "").trim();
-  const name = String(existing.name ?? existing.alliance_name ?? player.alliance_name ?? player.allianceName ??
-    (typeof player.alliance === "string" ? player.alliance : "") ?? player.guild_name ?? "").trim();
+  const abbr = [existing.abbr, existing.tag, existing.abbreviation, existing.short_name, existing.shortName,
+    player.alliance_abbr, player.allianceAbbr, player.alliance_tag, player.allianceTag]
+    .map(value => typeof value === "string" ? value.trim() : "").find(Boolean) || "";
+  const name = [existing.name, existing.alliance_name, player.alliance_name, player.allianceName,
+    typeof player.alliance === "string" ? player.alliance : "", player.guild_name]
+    .map(value => typeof value === "string" ? value.trim() : "").find(Boolean) || "";
   if (!abbr && !name) return player;
   return { ...player, alliance: { ...existing, ...(abbr ? { abbr } : {}), ...(name ? { name } : {}) } };
 }
