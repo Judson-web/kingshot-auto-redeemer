@@ -45,3 +45,12 @@ test("native Worker exposes an internal, write-gated webhook dispatcher", async 
   assert.match(source, /handleWebhookDeliveryDispatch/);
   assert.match(source, /\/api\/internal\/v4\/webhooks\/dispatch/);
 });
+
+test("native V4 redemption enqueues completed and unknown webhook events without affecting manual redemption", async () => {
+  const redemption = await readFile(new URL("../cloudflare/redemption.ts", import.meta.url), "utf8");
+  const queue = await readFile(new URL("../cloudflare/webhook-delivery.ts", import.meta.url), "utf8");
+  assert.match(redemption, /import \{ enqueueNativeWebhookEvent \}/);
+  assert.match(redemption, /if\(options\.v4\)await enqueueNativeWebhookEvent/);
+  assert.match(redemption, /result\.ok\?'redemption\.completed':'redemption\.unknown'/);
+  assert.match(queue, /kingshot_developer_webhook_deliveries/);
+});
