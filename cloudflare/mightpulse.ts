@@ -22,6 +22,8 @@ export function resolveMightPulseRequestBudget(timeoutMs = 7000, options: MightP
 const blockedUntil = new Map<string, number>();
 const blockedReason = new Map<string, string>();
 let keyCursor = 0;
+let circuitRpcUnavailableUntil = 0;
+let circuitRpcWarningLogged = false;
 
 function keys(env: MightPulseEnv): Array<{ id: string; value: string }> {
   const configured = [
@@ -101,6 +103,32 @@ async function refreshUsage(env: MightPulseEnv, key: { id: string; value: string
   await state.inFlight;
 }
 
+async function checkProviderCircuit(env: MightPulseEnv, timeoutMs: number): Promise<any> {
+  if (Date.now() < circuitRpcUnavailableUntil) return null;
+  try {
+    const state = await quotaRpc(env, "check_mightpulse_provider_circuit_breaker", {}, timeoutMs);
+    circuitRpcUnavailableUntil = 0;
+    circuitRpcWarningLogged = false;
+    return state;
+  } catch (error) {
+    circuitRpcUnavailableUntil = Date.now() + 30_000;
+    if (!circuitRpcWarningLogged) circuitRpcWarningLogged = true;
+    return null;
+  }
+}
+
+async function updateProviderCircuit(env: MightPulseEnv, name: string): Promise<void> {
+  if (Date.now() < circuitRpcUnavailableUntil) return;
+  try {
+    await quotaRpc(env, name, {}, 1200);
+    circuitRpcUnavailableUntil = 0;
+    circuitRpcWarningLogged = false;
+  } catch {
+    circuitRpcUnavailableUntil = Date.now() + 30_000;
+    if (!circuitRpcWarningLogged) circuitRpcWarningLogged = true;
+  }
+}
+
 /** Worker-native port of the existing shared key reservation and cooldown path.
  * Keys are never persisted; each request is atomically reserved in Supabase.
  */
@@ -119,7 +147,7 @@ export async function fetchMightPulseNative(env: MightPulseEnv, url: string, tim
   const firstUsable = ordered.find(key => (blockedUntil.get(key.id) || 0) <= Date.now());
   let circuitFailureCount = 0;
   const [circuitResult] = await Promise.all([
-    quotaRpc(env, "check_mightpulse_provider_circuit_breaker", {}, Math.max(250, Math.min(1200, remaining()))).catch(() => null),
+    checkProviderCircuit(env, Math.max(250, Math.min(1200, remaining()))),
     firstUsable && remaining() > 250 ? refreshUsage(env, firstUsable, Math.max(250, Math.min(5000, remaining()))) : Promise.resolve(),
   ]);
   circuitFailureCount = Number(circuitResult?.failureCount) || 0;
@@ -192,7 +220,7 @@ export async function fetchMightPulseNative(env: MightPulseEnv, url: string, tim
         providerBlocked.add(key.id);
         continue;
       }
-      if (circuitFailureCount > 0) await quotaRpc(env, "reset_mightpulse_provider_circuit_breaker", {}).catch(() => undefined);
+      if (circuitFailureCount > 0) await updateProviderCircuit(env, "reset_mightpulse_provider_circuit_breaker");
       return response;
     } catch (error) {
       failures.push(error instanceof Error ? error as ProviderError : new Error(String(error)));
@@ -206,7 +234,7 @@ export async function fetchMightPulseNative(env: MightPulseEnv, url: string, tim
     throw error;
   }
   if (providerBlocked.size === ordered.length && ordered.length) {
-    await quotaRpc(env, "record_mightpulse_provider_block_sweep", {}).catch(() => undefined);
+    await updateProviderCircuit(env, "record_mightpulse_provider_block_sweep");
   }
   const earliest = unavailable.reduce((min, item) => Math.min(min, item.waitMs), Infinity);
   if (failures.length) {
