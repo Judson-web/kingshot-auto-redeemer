@@ -55,6 +55,21 @@ export async function fetchMightPulseNative(env: MightPulseEnv, url: string, tim
   if (!configured.length) throw new Error("MightPulse API key is not configured on the server.");
   const offset = keyCursor++ % configured.length;
   const ordered = configured.slice(offset).concat(configured.slice(0, offset));
+  let circuitFailureCount = 0;
+  try {
+    const circuit = await quotaRpc(env, "check_mightpulse_provider_circuit_breaker", {}, 1200);
+    circuitFailureCount = Number(circuit?.failureCount) || 0;
+    if (circuit?.open === true) {
+      const error = new Error("MightPulse requests are temporarily paused after repeated provider-wide blocks.") as ProviderError;
+      error.status = 503;
+      error.retryAfterMs = Math.max(1000, Number(circuit.retryAfterMs) || 60_000);
+      throw error;
+    }
+  } catch (error) {
+    if ((error as ProviderError)?.status === 503 && /temporarily paused/.test(String((error as Error).message))) throw error;
+    // Match the established runtime: a circuit-state RPC outage does not bypass
+    // the mandatory atomic per-key reservation below.
+  }
   const failures: ProviderError[] = [];
   const unavailable: Array<{ reason: string; waitMs: number }> = [];
   const providerBlocked = new Set<string>();
@@ -115,6 +130,7 @@ export async function fetchMightPulseNative(env: MightPulseEnv, url: string, tim
         providerBlocked.add(key.id);
         continue;
       }
+      if (circuitFailureCount > 0) await quotaRpc(env, "reset_mightpulse_provider_circuit_breaker", {}).catch(() => undefined);
       return response;
     } catch (error) {
       failures.push(error instanceof Error ? error as ProviderError : new Error(String(error)));
