@@ -1,4 +1,5 @@
 name: Cloudflare Native Runtime Deploy
+# Deployment remains workers.dev-only until the migration checks pass.
 
 on:
   push:
