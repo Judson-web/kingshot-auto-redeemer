@@ -342,7 +342,7 @@ async function handleNativeAllianceLookup(request: Request, env: Env): Promise<R
       leaderName:String(alliance.leader_name??"").trim().slice(0,80)},members,
       stale:body.fresh===false||Boolean(body.stale),fresh:typeof body.fresh==="boolean"?body.fresh:null,
       fetchedAt:typeof body.cached_at==="string"?body.cached_at:null,ageSeconds:num(body.age_seconds)},
-      headers:{"Cache-Control":"private, no-store","X-Edge-Backend":"cloudflare-mightpulse"}});
+      {headers:{"Cache-Control":"private, no-store","X-Edge-Backend":"cloudflare-mightpulse"}});
   } catch(error) {
     const status=mightPulsePlayerErrorStatus(error);
     return jsonError(status===429?429:502,status===429?"provider_rate_limited":"provider_unavailable",
