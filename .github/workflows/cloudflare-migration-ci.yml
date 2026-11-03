@@ -6,6 +6,7 @@ on:
       - migration/cloudflare-native-runtime
     paths:
       - "cloudflare/**"
+      - "tests/**"
       - "scripts/cloudflare-worker-smoke.mjs"
       - "wrangler.jsonc"
       - "src/**"
