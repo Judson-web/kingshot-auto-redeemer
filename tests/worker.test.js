@@ -123,3 +123,16 @@ test("detailed profile enrichment handles nested provider payloads and legacy al
   assert.match(router, /detailSource\.heroes/);
   assert.match(router, /allianceRoster=\{name:/);
 });
+
+
+test("Cloudflare Worker routes V4 paths to the native adapter without a legacy host", async () => {
+  const router = await readFile(new URL("../cloudflare/worker.ts", import.meta.url), "utf8");
+  const adapter = await readFile(new URL("../cloudflare/developer-v4.ts", import.meta.url), "utf8");
+  assert.match(router, /import \{ handleNativeV4 \} from "\.\/developer-v4\.js"/);
+  assert.match(router, /incoming\.pathname\.startsWith\("\/api\/v4\/"\)/);
+  assert.match(adapter, /kingshot_developer_authorize_key/);
+  assert.match(adapter, /fetchMightPulseNative/);
+  assert.match(adapter, /players:read/);
+  assert.match(adapter, /route_not_migrated/);
+  assert.match(adapter, /apiVersion: "4"/);
+});

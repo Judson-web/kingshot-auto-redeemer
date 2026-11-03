@@ -2,6 +2,7 @@ import { fetchMightPulseNative, mightPulsePlayerErrorStatus } from "./mightpulse
 import { handleNativeAvatarFrame } from "./avatar-frame.js";
 import { handleNativeRegistration } from "./registration.js";
 import { handleNativeRedemption } from "./redemption.js";
+import { handleNativeV4 } from "./developer-v4.js";
 
 interface Env {
   ASSETS: Fetcher;
@@ -738,6 +739,8 @@ export default {
     if (incoming.pathname === "/api/discord-user" || incoming.pathname === "/api/discord-tools/user") {
       return handleDiscordUser(request, env);
     }
+
+    if (incoming.pathname.startsWith("/api/v4/")) return handleNativeV4(request, env);
 
     if (incoming.pathname === "/api/kingshot-register") return handleNativeRegistration(request, env);
     if (incoming.pathname === "/api/kingshot-redeem") return handleNativeRedemption(request, env);
