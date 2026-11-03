@@ -84,8 +84,9 @@ const deliveryInsert = await request("/rest/v1/kingshot_developer_webhook_delive
   },
   headers: { Prefer: "return=representation" },
 });
-assert.equal(deliveryInsert.status, 201, await deliveryInsert.text());
-const inserted = await deliveryInsert.clone().json();
+const deliveryInsertRaw = await deliveryInsert.text();
+assert.equal(deliveryInsert.status, 201, deliveryInsertRaw);
+const inserted = JSON.parse(deliveryInsertRaw);
 assert.equal(inserted.length, 1);
 
 result = await rpc("kingshot_developer_webhook_claim_deliveries", {
