@@ -14,7 +14,7 @@ concurrency:
 jobs:
   baseline:
     name: Passive scan of production
-    if: vars.LEGACY_VERCEL_ZAP_ENABLED == 'true' && vars.PRODUCTION_URL != ''
+    if: vars.PRODUCTION_ZAP_ENABLED == 'true' && vars.PRODUCTION_URL != '' && !endsWith(vars.PRODUCTION_URL, '.vercel.app')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
