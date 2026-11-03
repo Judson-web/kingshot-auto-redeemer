@@ -1,4 +1,4 @@
-name: Cloudflare Worker Preview
+name: Cloudflare Native Runtime Deploy
 
 on:
   push:
