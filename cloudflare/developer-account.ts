@@ -151,13 +151,20 @@ export async function handleNativeDeveloperAccount(request: Request, env: Env, r
     }
     if (method === "DELETE") {
       const tokens = [...new Set([cookie(request, DEVELOPER_COOKIE), cookie(request, PROFILE_COOKIE)].filter(Boolean))];
+      let serverSessionRevoked = tokens.length === 0;
       if (allowedWrite(env)) {
         const hashes = await Promise.all(tokens.map(token => sha(token)));
-        await Promise.allSettled(hashes.map(p_token_hash => rpc(env, "kingshot_developer_account_session_delete", { p_token_hash })));
+        const results = await Promise.allSettled(hashes.map(p_token_hash =>
+          rpc(env, "kingshot_developer_account_session_delete", { p_token_hash })));
+        serverSessionRevoked = results.every(result => result.status === "fulfilled");
       }
       headers.append("Set-Cookie", cookieHeader(DEVELOPER_COOKIE, "", 0));
       headers.append("Set-Cookie", cookieHeader(PROFILE_COOKIE, "", 0));
-      return json(200, { ok: true, localSessionCleared: true }, headers);
+      if (allowedWrite(env) && !serverSessionRevoked) {
+        return json(503, { ok: false, localSessionCleared: true, serverSessionRevoked: false,
+          error: "Browser cookies were cleared, but server-side session revocation could not be confirmed. Retry sign-out." }, headers);
+      }
+      return json(200, { ok: true, localSessionCleared: true, serverSessionRevoked }, headers);
     }
     if (method !== "POST") return json(405, { error: "Method not allowed." }, { ...Object.fromEntries(headers), Allow: "GET, POST, DELETE" });
     if (!allowedWrite(env)) return json(503, { error: "writes_disabled", code: "writes_disabled" }, headers);
