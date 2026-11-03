@@ -41,7 +41,7 @@ async function waitForServer() {
 
 try {
   if (!remote) {
-    child = spawn("npx", ["--yes", "wrangler@4", "dev", "--local", "--ip", "127.0.0.1", "--port", String(port), "--config", "wrangler.jsonc"], {
+    child = spawn("npx", ["--yes", "wrangler@4", "dev", "--local", "--ip", "127.0.0.1", "--port", String(port), "--var", "SUPABASE_SERVICE_ROLE_KEY:local-worker-smoke-placeholder-not-a-real-key", "--config", "wrangler.jsonc"], {
       stdio: ["ignore", "pipe", "pipe"],
       // Legacy route modules validate the presence of a service key at import time.
       // Use a deliberately invalid local-only placeholder so smoke tests never need
