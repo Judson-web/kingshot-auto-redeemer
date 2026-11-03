@@ -10,6 +10,15 @@ export interface MightPulseEnv {
 }
 
 type ProviderError = Error & { status?: number; retryAfterMs?: number };
+export type MightPulseRequestOptions = { totalTimeoutMs?: number; maxAttempts?: number };
+export function resolveMightPulseRequestBudget(timeoutMs = 7000, options: MightPulseRequestOptions = {}, keyCount = 1) {
+  const perAttemptMs = Math.max(250, Math.min(30_000, Number(timeoutMs) || 7000));
+  const requestedTotal = Number(options.totalTimeoutMs);
+  const totalTimeoutMs = Math.max(perAttemptMs, Math.min(60_000, Number.isFinite(requestedTotal) && requestedTotal > 0 ? requestedTotal : Math.max(12_000, perAttemptMs * Math.min(Math.max(1, keyCount), 3))));
+  const requestedAttempts = Number(options.maxAttempts);
+  const maxAttempts = Number.isInteger(requestedAttempts) && requestedAttempts > 0 ? Math.min(Math.max(1, keyCount), requestedAttempts) : Math.max(1, keyCount);
+  return { perAttemptMs, totalTimeoutMs, maxAttempts };
+}
 const blockedUntil = new Map<string, number>();
 const blockedReason = new Map<string, string>();
 let keyCursor = 0;
@@ -95,20 +104,23 @@ async function refreshUsage(env: MightPulseEnv, key: { id: string; value: string
 /** Worker-native port of the existing shared key reservation and cooldown path.
  * Keys are never persisted; each request is atomically reserved in Supabase.
  */
-export async function fetchMightPulseNative(env: MightPulseEnv, url: string, timeoutMs = 7000): Promise<Response> {
+export async function fetchMightPulseNative(env: MightPulseEnv, url: string, timeoutMs = 7000, options: MightPulseRequestOptions = {}): Promise<Response> {
   const target = new URL(url);
   if (target.protocol !== "https:" || target.hostname !== "api.mightpulse.com" || target.port || target.username || target.password) {
     throw new Error("MightPulse client only permits HTTPS requests to api.mightpulse.com.");
   }
   const configured = keys(env);
   if (!configured.length) throw new Error("MightPulse API key is not configured on the server.");
+  const budget = resolveMightPulseRequestBudget(timeoutMs, options, configured.length);
+  const deadline = Date.now() + budget.totalTimeoutMs;
+  const remaining = () => deadline - Date.now();
   const offset = keyCursor++ % configured.length;
-  const ordered = configured.slice(offset).concat(configured.slice(0, offset));
+  const ordered = configured.slice(offset).concat(configured.slice(0, offset)).slice(0, budget.maxAttempts);
   const firstUsable = ordered.find(key => (blockedUntil.get(key.id) || 0) <= Date.now());
   let circuitFailureCount = 0;
   const [circuitResult] = await Promise.all([
-    quotaRpc(env, "check_mightpulse_provider_circuit_breaker", {}, 1200).catch(() => null),
-    firstUsable ? refreshUsage(env, firstUsable, Math.min(5000, timeoutMs)) : Promise.resolve(),
+    quotaRpc(env, "check_mightpulse_provider_circuit_breaker", {}, Math.max(250, Math.min(1200, remaining()))).catch(() => null),
+    firstUsable && remaining() > 250 ? refreshUsage(env, firstUsable, Math.max(250, Math.min(5000, remaining()))) : Promise.resolve(),
   ]);
   circuitFailureCount = Number(circuitResult?.failureCount) || 0;
   if (circuitResult?.open === true) {
@@ -122,6 +134,7 @@ export async function fetchMightPulseNative(env: MightPulseEnv, url: string, tim
   const providerBlocked = new Set<string>();
 
   for (const key of ordered) {
+    if (remaining() <= 250) break;
     const localWait = (blockedUntil.get(key.id) || 0) - Date.now();
     if (localWait > 0) {
       const reason = blockedReason.get(key.id) || "COOLDOWN";
@@ -131,12 +144,13 @@ export async function fetchMightPulseNative(env: MightPulseEnv, url: string, tim
     }
     blockedUntil.delete(key.id);
     blockedReason.delete(key.id);
-    if (key !== firstUsable) await refreshUsage(env, key, Math.min(2500, timeoutMs));
+    if (key !== firstUsable) await refreshUsage(env, key, Math.max(250, Math.min(2500, remaining())));
+    if (remaining() <= 250) break;
     let reservation: any;
     try {
       reservation = await quotaRpc(env, "claim_mightpulse_api_key_request", {
         p_key_id: key.id, p_mark_cooldown_seconds: 0,
-      }, Math.min(1800, timeoutMs));
+      }, Math.max(250, Math.min(1800, remaining())));
     } catch (error) {
       // Fail closed: never call the provider if shared atomic quota reservation is unavailable.
       throw Object.assign(new Error("MightPulse shared quota protection is unavailable; request was not sent."), {
@@ -156,7 +170,7 @@ export async function fetchMightPulseNative(env: MightPulseEnv, url: string, tim
     try {
       const response = await fetch(target, {
         headers: { Accept: "application/json", Authorization: "Bearer " + key.value },
-        signal: AbortSignal.timeout(timeoutMs),
+        signal: AbortSignal.timeout(Math.max(250, Math.min(budget.perAttemptMs, remaining()))),
       });
       if (response.status === 429 || response.status === 401 || response.status === 403) {
         const credentialFailure = response.status === 401 || response.status === 403;
@@ -185,6 +199,12 @@ export async function fetchMightPulseNative(env: MightPulseEnv, url: string, tim
     }
   }
 
+  if (remaining() <= 250) {
+    const error = new Error("MightPulse lookup exceeded its overall time budget.") as ProviderError;
+    error.status = 504;
+    error.retryAfterMs = 1000;
+    throw error;
+  }
   if (providerBlocked.size === ordered.length && ordered.length) {
     await quotaRpc(env, "record_mightpulse_provider_block_sweep", {}).catch(() => undefined);
   }
