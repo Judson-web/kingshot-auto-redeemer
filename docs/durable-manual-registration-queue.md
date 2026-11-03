@@ -1,6 +1,6 @@
 # Durable manual alliance registration queue
 
-The optional durable mode stores selected player IDs and per-player outcomes in the existing Supabase project. Queue rows are protected by RLS and are accessible only to the server-side service role. The existing five-minute GitHub Actions scheduler invokes the already-deployed `/api/kingshot-alliance-sync-worker?mode=manual-registration` route, so queued jobs continue after the admin page is closed without adding another Vercel serverless function.
+The optional durable mode stores selected player IDs and per-player outcomes in the existing Supabase project. Queue rows are protected by RLS and are accessible only to the server-side service role. The five-minute Supabase `pg_cron` job invokes the Cloudflare Worker route `/api/kingshot-alliance-sync-worker?mode=manual-registration`, so queued jobs continue after the admin page is closed without GitHub-hosted or Vercel serverless execution.
 
 Supabase owns this queue's state, atomic job claims, and per-player progress. The worker requires the same `ALLIANCE_SYNC_CRON_SECRET` (or fallback `CRON_SECRET`) as the existing scheduler. It revalidates the current MightPulse roster, registers only players still present in the configured kingdom/alliance, retries transient registration errors through the established registration helper, and persists each outcome. Interrupted jobs become eligible for recovery after the 120-second stale-job window.
 
