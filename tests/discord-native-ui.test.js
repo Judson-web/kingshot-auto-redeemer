@@ -216,13 +216,18 @@ test("scheduled website announcements use durable claims, validated roles, and p
   const ui = await readFile(new URL("../src/CustomMessageApp.jsx", import.meta.url), "utf8");
   const migration = await readFile(new URL("../supabase/migrations/20261101170000_durable_discord_announcements.sql", import.meta.url), "utf8");
   const workflow = await readFile(new URL("../.github/workflows/announcement-scheduler.yml", import.meta.url), "utf8");
+  const cronCutover = await readFile(new URL("../ops/cloudflare-pg-cron-cutover.sql", import.meta.url), "utf8");
   for (const expected of ["SCHEDULE_CREATE","SCHEDULE_LIST","SCHEDULE_UPDATE","SCHEDULE_RUN","ANNOUNCEMENT_ROLES","ANNOUNCEMENT_ATTACHMENT_UPLOAD","claim_due_discord_announcements","allowed_mentions:{parse:[],roles:roleIds}","lease_token","interval_seconds","attachment_path"]) {
     assert.ok(api.includes(expected) || migration.includes(expected), "missing scheduler backend feature: "+expected);
   }
   for (const expected of ["datetime-local","repeatMinutes","roleIdsInput","SCHEDULE_CREATE","Pause","Resume","Cancel",'type="file"']) assert.ok(ui.includes(expected), "missing scheduler UI feature: "+expected);
   for (const expected of ["create table if not exists public.discord_scheduled_announcements","for update skip locked","lease_until","enable row level security","revoke all","claim_due_discord_announcements","announcement-attachments"]) assert.ok(migration.includes(expected), "missing durable migration feature: "+expected);
-  assert.ok(workflow.includes('cron: "*/5 * * * *"'));
+  assert.ok(workflow.includes("workflow_dispatch"));
+  assert.ok(!workflow.includes('cron: "*/5 * * * *"'), "GitHub Actions must not duplicate the pg_cron schedule");
+  assert.ok(workflow.includes("kingshot-autoredeemer-edge.sajijudsa.workers.dev"));
   assert.ok(workflow.includes("CRON_SECRET"));
+  assert.ok(cronCutover.includes("'scheduled-announcement-worker'"));
+  assert.ok(cronCutover.includes("'*/5 * * * *'"));
 });
 
 test("gift-code alerts use bot channels without replacing the worker logs webhook", async () => {
