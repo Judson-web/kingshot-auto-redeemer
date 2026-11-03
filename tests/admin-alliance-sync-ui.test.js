@@ -113,18 +113,27 @@ test("manual registration supports browser-driven per-player mode and optional d
 
 
 test("manual Sync now admin endpoint has enough execution time for full roster reconciliation", async () => {
-  const config = JSON.parse(await readFile(new URL("../vercel.json", import.meta.url), "utf8"));
-  assert.equal(config.functions["api/admin-tools/[...path].js"]?.maxDuration, 300);
+  const wrangler = JSON.parse(await readFile(new URL("../wrangler.jsonc", import.meta.url), "utf8"));
+  const adapter = await readFile(new URL("../cloudflare/legacy-api-adapter.ts", import.meta.url), "utf8");
+  assert.equal(wrangler.name, "kingshot-autoredeemer-edge");
+  assert.ok(wrangler.compatibility_flags.includes("nodejs_compat"));
+  assert.match(adapter, /adminToolsHandler/);
   const adminData = await readFile(new URL("../lib/admin-data.js", import.meta.url), "utf8");
   assert.match(adminData, /ADMIN_RUN_ALLIANCE_SYNC/);
   assert.match(adminData, /runAllianceSyncAsAdmin\(id,ownerUserId\)/);
 });
 
-test("five-minute scheduler wakes due alliance syncs so failed manual runs retry promptly", async () => {
+test("Supabase pg_cron wakes due alliance syncs and retries without a GitHub scheduler", async () => {
   const workflow = await readFile(new URL("../.github/workflows/alliance-sync-scheduler.yml", import.meta.url), "utf8");
+  const cutover = await readFile(new URL("../ops/cloudflare-pg-cron-cutover.sql", import.meta.url), "utf8");
+  const migration = await readFile(new URL("../supabase/migrations/20261103160000_cloudflare_worker_scheduler_auth.sql", import.meta.url), "utf8");
   const handler = await readFile(new URL("../internal/kingshot/alliance-sync-handler.ts", import.meta.url), "utf8");
-  assert.match(workflow, /cron: "\*\/5/);
-  assert.match(workflow, /name: Run due alliance syncs and scheduled retries/);
-  assert.doesNotMatch(workflow, /if: github\.event_name == 'workflow_dispatch'/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.doesNotMatch(workflow, /schedule:/);
+  assert.match(cutover, /\*\/5 \* \* \* \*/);
+  assert.match(cutover, /alliance-sync-worker/);
+  assert.match(cutover, /alliance-manual-registration-queue/);
+  assert.match(cutover, /scheduled-announcement-worker/);
+  assert.match(migration, /verify_alliance_sync_scheduler_token/);
   assert.match(handler, /next_run_at:new Date\(Date\.now\(\)\+5\*60000\)/);
 });
