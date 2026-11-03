@@ -269,10 +269,11 @@ export async function handleWebhookDeliveryDispatch(request: Request, env: Env):
   if (!env.EGRESS || typeof env.EGRESS.fetch !== "function") {
     return json(503, { ok: false, error: "secure_egress_unconfigured" });
   }
-  if (!env.SUPABASE_SERVICE_ROLE_KEY || !env.V4_WEBHOOK_ENCRYPTION_KEY) {
+  if (!env.SUPABASE_SERVICE_ROLE_KEY || !/^[0-9a-f]{64}$/i.test(String(env.V4_WEBHOOK_ENCRYPTION_KEY || ""))) {
     return json(503, { ok: false, error: "delivery_secrets_unconfigured" });
   }
   const expected = String(env.V4_WEBHOOK_WORKER_SECRET || env.CRON_SECRET || "");
+  if (expected.length < 32) return json(503, { ok: false, error: "dispatcher_secret_unconfigured" });
   const authorization = request.headers.get("Authorization") || "";
   const supplied = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
   if (!expected || !equalSecret(supplied, expected)) return json(401, { ok: false, error: "unauthorized" });
