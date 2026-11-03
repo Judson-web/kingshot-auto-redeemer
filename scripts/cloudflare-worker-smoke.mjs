@@ -41,7 +41,7 @@ async function waitForServer() {
 
 try {
   if (!remote) {
-    child = spawn("npx", ["--yes", "wrangler@4", "dev", "--local", "--ip", "127.0.0.1", "--port", String(port), "--var", "SUPABASE_SERVICE_ROLE_KEY:local-worker-smoke-placeholder-not-a-real-key", "--config", "wrangler.jsonc"], {
+    child = spawn("npx", ["--yes", "wrangler@4", "dev", "--local", "--ip", "127.0.0.1", "--port", String(port), "--var", "SUPABASE_SERVICE_ROLE_KEY:local-worker-smoke-placeholder-not-a-real-key", "--var", "SUPABASE_WRITE_MODE:disabled", "--config", "wrangler.jsonc"], {
       stdio: ["ignore", "pipe", "pipe"],
       // Legacy route modules validate the presence of a service key at import time.
       // Use a deliberately invalid local-only placeholder so smoke tests never need
@@ -50,6 +50,7 @@ try {
         ...process.env,
         SUPABASE_SERVICE_ROLE_KEY: "local-worker-smoke-placeholder-not-a-real-key",
         SUPABASE_SECRET_KEY: "",
+        SUPABASE_WRITE_MODE: "disabled",
       },
       detached: true,
     });
@@ -84,14 +85,22 @@ try {
     body => body?.code === "method_not_allowed", { method: "GET" });
   await checkJson("/api/kingshot-redeem", 400,
     body => body?.code === "invalid_player_id", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ playerId: "invalid", code: "ABCDEF", kid: "7" }) });
-  await checkJson("/api/kingshot-redeem", 503,
-    body => body?.code === "writes_disabled", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ playerId: "123456789", code: "ABCDEF", kid: "7" }) });
+  if (!remote) {
+    await checkJson("/api/kingshot-redeem", 503,
+      body => body?.code === "writes_disabled", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ playerId: "123456789", code: "ABCDEF", kid: "7" }) });
+  }
 
   await checkJson("/api/v4/redemptions", 405,
     body => body?.error?.code === "method_not_allowed", { method: "GET" });
-  await checkJson("/api/v4/redemptions", 503,
-    body => body?.success === false && body?.data === null && body?.error?.code === "writes_disabled",
-    { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ playerId: "123456789", code: "ABCDEF", kid: "7" }) });
+  if (remote) {
+    await checkJson("/api/v4/redemptions", 400,
+      body => body?.success === false && body?.data === null && body?.error?.code === "invalid_player_id",
+      { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ playerId: "invalid", code: "ABCDEF", kid: "7" }) });
+  } else {
+    await checkJson("/api/v4/redemptions", 503,
+      body => body?.success === false && body?.data === null && body?.error?.code === "writes_disabled",
+      { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ playerId: "123456789", code: "ABCDEF", kid: "7" }) });
+  }
 
   await checkJson("/api/kingshot-register", 405,
     body => body?.code === "method_not_allowed", { method: "GET" });
@@ -99,10 +108,12 @@ try {
     body => body?.code === "invalid_player_id", {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ playerId: "invalid" }),
     });
-  await checkJson("/api/kingshot-register", 503,
-    body => body?.code === "writes_disabled", {
-      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ playerId: "123456789" }),
-    });
+  if (!remote) {
+    await checkJson("/api/kingshot-register", 503,
+      body => body?.code === "writes_disabled", {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ playerId: "123456789" }),
+      });
+  }
 
   await checkJson("/api/discord-user?id=invalid", 400,
     body => body?.error === "Enter a valid Discord user ID.");
