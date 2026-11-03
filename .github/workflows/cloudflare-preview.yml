@@ -1,0 +1,89 @@
+name: Cloudflare Worker Preview
+
+on:
+  push:
+    branches:
+      - main
+      - migration/cloudflare-worker-preview
+    paths:
+      - "src/**"
+      - "public/**"
+      - "index.html"
+      - "*.html"
+      - "cloudflare/**"
+      - "scripts/cloudflare-worker-smoke.mjs"
+      - "wrangler.jsonc"
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.*"
+      - ".github/workflows/cloudflare-preview.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-preview:
+    name: Build and deploy isolated Cloudflare preview
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check application source
+        run: npm run typecheck
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Exercise Worker runtime locally before deployment
+        run: node scripts/cloudflare-worker-smoke.mjs
+
+
+      - name: Bind Supabase service credential when configured
+        run: |
+          if [ -n "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            printf '%s' "$SUPABASE_SERVICE_ROLE_KEY" | npx --yes wrangler@4 secret put SUPABASE_SERVICE_ROLE_KEY --config wrangler.jsonc
+          else
+            echo "Supabase service credential is not configured in GitHub Actions; native telemetry POST remains on the legacy API bridge."
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: b45bd4f50a1e0280366712348fe2055a
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Bind Discord bot credential when configured
+        run: |
+          if [ -n "$DISCORD_BOT_TOKEN" ]; then
+            printf '%s' "$DISCORD_BOT_TOKEN" | npx --yes wrangler@4 secret put DISCORD_BOT_TOKEN --config wrangler.jsonc
+          else
+            echo "Discord bot credential is not configured; Discord profile requests remain on the legacy API bridge."
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: b45bd4f50a1e0280366712348fe2055a
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+
+      - name: Deploy to workers.dev only
+        run: npx --yes wrangler@4 deploy --config wrangler.jsonc
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: b45bd4f50a1e0280366712348fe2055a
+
+      - name: Smoke-test deployed workers.dev preview
+        run: node scripts/cloudflare-worker-smoke.mjs
+        env:
+          WORKER_PREVIEW_URL: https://kingshot-autoredeemer-edge.sajijudsa.workers.dev

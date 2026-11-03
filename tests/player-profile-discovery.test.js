@@ -28,7 +28,7 @@ test("player profile has a discovery landing page and share actions", async () =
   assert.match(page, /r\.leaderboards/);
 });
 
-test("profile metadata retains the OG handler while legacy site routes stay on maintenance", async () => {
+test("profile metadata keeps its OG handler while production routes remain behind maintenance mode", async () => {
   const og = await read("api/og.js");
   const config = JSON.parse(await read("vercel.json"));
   assert.ok(config.rewrites.some(route => route.source === "/user" && route.destination === "/maintenance.html"));

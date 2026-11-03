@@ -1,0 +1,129 @@
+name: Cloudflare Migration CI
+
+on:
+  push:
+    branches:
+      - migration/cloudflare-native-runtime
+    paths:
+      - "cloudflare/**"
+      - "tests/**"
+      - "scripts/**"
+      - "supabase/migrations/**"
+      - "wrangler.jsonc"
+      - "src/**"
+      - "public/**"
+      - "index.html"
+      - "*.html"
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.*"
+      - ".github/workflows/cloudflare-migration-ci.yml"
+  pull_request:
+    branches:
+      - migration/cloudflare-native-runtime
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-migration-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-worker:
+    name: Verify migration without deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Enforce zero-cost and no-production-write CI policy
+        run: node scripts/verify-zero-cost-ci.mjs
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run build
+      - name: Build Worker bundle without deploying
+        run: npx --yes wrangler@4 deploy --dry-run --config wrangler.jsonc
+      - name: Smoke-test local Worker runtime
+        run: node scripts/cloudflare-worker-smoke.mjs
+
+  postgres-migration-integration:
+    name: Test V4 migrations on disposable PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: migration_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d migration_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: migration_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create disposable Supabase-compatible baseline
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/native-v4-migration-fixture.sql
+      - name: Apply V4 idempotency migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261103120000_v4_native_redemption_idempotency.sql
+      - name: Apply V4 webhook delivery migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261103150000_v4_secure_webhook_delivery.sql
+      - name: Verify RPC behavior, leases, privileges and retry ceiling
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/native-v4-migration-assertions.sql
+
+  supabase-local-stack-integration:
+    name: Test V4 through local Supabase Auth and PostgREST
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SUPABASE_TELEMETRY_DISABLED: "1"
+      PGHOST: 127.0.0.1
+      PGPORT: 54322
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+      - name: Isolate the incomplete historical migration chain
+        run: |
+          mkdir -p /tmp/kingshot-v4-migrations
+          cp supabase/migrations/20261103120000_v4_native_redemption_idempotency.sql /tmp/kingshot-v4-migrations/
+          cp supabase/migrations/20261103150000_v4_secure_webhook_delivery.sql /tmp/kingshot-v4-migrations/
+          mv supabase/migrations /tmp/kingshot-full-migrations
+          mkdir -p supabase/migrations
+      - name: Start disposable local Supabase services
+        run: supabase start --exclude realtime,storage,functions,studio,mail,analytics,pooler
+      - name: Export local Supabase endpoints and test keys
+        run: supabase status -o env >> "$GITHUB_ENV"
+      - name: Apply isolated V4 schema to local Supabase Postgres
+        run: |
+          psql -v ON_ERROR_STOP=1 -f tests/sql/native-v4-migration-fixture.sql
+          psql -v ON_ERROR_STOP=1 -f /tmp/kingshot-v4-migrations/20261103120000_v4_native_redemption_idempotency.sql
+          psql -v ON_ERROR_STOP=1 -f /tmp/kingshot-v4-migrations/20261103150000_v4_secure_webhook_delivery.sql
+          psql -v ON_ERROR_STOP=1 -c "insert into private.kingshot_developer_api_keys(id) values ('11111111-1111-4111-8111-111111111111') on conflict (id) do nothing"
+          psql -v ON_ERROR_STOP=1 -c "notify pgrst, 'reload schema'"
+          sleep 2
+      - name: Verify Auth, PostgREST RPC authorization, idempotency and webhook leases
+        run: node scripts/supabase-local-integration.mjs
+      - name: Stop disposable Supabase services
+        if: always()
+        run: supabase stop

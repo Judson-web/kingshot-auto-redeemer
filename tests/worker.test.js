@@ -1,3 +1,4 @@
+import { resolveMightPulseRequestBudget } from "../cloudflare/mightpulse.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -95,4 +96,82 @@ test("redemption concurrency is bounded at two per shard behind the shared upstr
   assert.ok(workerSource.includes("safeConcurrency, { deadline }"));
   assert.ok(autoSource.includes("kingshot_reserve_redemption_request"));
   assert.ok(autoSource.includes("kingshot_set_source_cooldown"));
+});
+
+test("Cloudflare MightPulse request budgets bound retries and allow explicit fast-path limits", () => {
+  assert.deepEqual(resolveMightPulseRequestBudget(7000, {}, 6), { perAttemptMs: 7000, totalTimeoutMs: 21000, maxAttempts: 6 });
+  assert.deepEqual(resolveMightPulseRequestBudget(9000, { totalTimeoutMs: 15000, maxAttempts: 2 }, 6), { perAttemptMs: 9000, totalTimeoutMs: 15000, maxAttempts: 2 });
+  assert.deepEqual(resolveMightPulseRequestBudget(9000, { totalTimeoutMs: 1000, maxAttempts: 99 }, 3), { perAttemptMs: 9000, totalTimeoutMs: 9000, maxAttempts: 3 });
+});
+
+test("Cloudflare MightPulse adapter caches circuit-breaker RPC outages and preserves bounded fast paths", async () => {
+  const adapter = await readFile(new URL("../cloudflare/mightpulse.ts", import.meta.url), "utf8");
+  const router = await readFile(new URL("../cloudflare/worker.ts", import.meta.url), "utf8");
+  assert.match(adapter, /circuitRpcUnavailableUntil = Date\.now\(\) \+ 30_000/);
+  assert.match(adapter, /if \(Date\.now\(\) < circuitRpcUnavailableUntil\) return null/);
+  assert.ok(router.includes("fast?{totalTimeoutMs:18_000,maxAttempts:2,fastPath:true}:{}"));
+});
+
+test("detailed profile enrichment handles nested provider payloads and legacy alliance aliases", async () => {
+  const router = await readFile(new URL("../cloudflare/worker.ts", import.meta.url), "utf8");
+  assert.match(router, /player\.alliance_abbr/);
+  assert.match(router, /allianceObject\.abbreviation/);
+  assert.match(router, /function normalizeNativePlayer/);
+  assert.match(router, /alliance: \{ \.\.\.existing/);
+  assert.match(router, /nested\?\.player/);
+  assert.match(router, /Array\.isArray\(alliance\.members\)/);
+  assert.match(router, /detailSource\.heroes/);
+  assert.match(router, /allianceRoster=\{name:/);
+});
+
+
+test("Cloudflare Worker routes V4 paths to the native adapter without a legacy host", async () => {
+  const router = await readFile(new URL("../cloudflare/worker.ts", import.meta.url), "utf8");
+  const adapter = await readFile(new URL("../cloudflare/developer-v4.ts", import.meta.url), "utf8");
+  assert.match(router, /import \{ handleNativeV4 \} from "\.\/developer-v4\.js"/);
+  assert.match(router, /incoming\.pathname\.startsWith\("\/api\/v4\/"\)/);
+  assert.match(adapter, /kingshot_developer_authorize_key/);
+  assert.match(adapter, /fetchMightPulseNative/);
+  assert.match(adapter, /players:read/);
+  assert.match(adapter, /route_not_migrated/);
+  assert.match(adapter, /apiVersion: "4"/);
+});
+
+
+test("Cloudflare V4 read-only extended endpoints enforce their documented scopes", async () => {
+  const adapter = await readFile(new URL("../cloudflare/developer-v4.ts", import.meta.url), "utf8");
+  for (const route of ["alliances", "redemption-history", "usage", "webhooks"]) {
+    assert.ok(adapter.includes('"/api/v4/' + route + '"'));
+  }
+  assert.match(adapter, /alliances:read/);
+  assert.match(adapter, /redemptions:read/);
+  assert.match(adapter, /usage:read/);
+  assert.match(adapter, /webhooks:manage/);
+  assert.match(adapter, /kingshot_developer_get_usage/);
+  assert.match(adapter, /kingshot_developer_webhooks/);
+  assert.match(adapter, /kingshot_redemptions/);
+  assert.match(adapter, /fetchMightPulseNative/);
+});
+
+test("Cloudflare V4 webhook mutations require write mode while unsupported routes remain fail-closed", async () => {
+  const adapter = await readFile(new URL("../cloudflare/developer-v4.ts", import.meta.url), "utf8");
+  assert.match(adapter, /route === "redemptions" \? \["POST"\] : route === "webhooks" \? \["GET", "POST"\] : route === "webhook-item" \? \["DELETE"\]/);
+  assert.match(adapter, /SUPABASE_WRITE_MODE/);
+  assert.match(adapter, /route_not_migrated/);
+});
+
+
+test("Cloudflare Worker exposes the native V4 redemption route", async () => {
+  const router = await readFile(new URL("../cloudflare/worker.ts", import.meta.url), "utf8");
+  const adapter = await readFile(new URL("../cloudflare/developer-v4.ts", import.meta.url), "utf8");
+  const redemption = await readFile(new URL("../cloudflare/redemption.ts", import.meta.url), "utf8");
+  assert.match(router, /incoming\.pathname\.startsWith\("\/api\/v4\/"\)/);
+  assert.match(adapter, /url\.pathname === "\/api\/v4\/redemptions"/);
+  assert.match(adapter, /redemptions:write/);
+  assert.match(adapter, /kingshot_developer_v4_begin_redemption/);
+  assert.match(adapter, /kingshot_developer_v4_finish_redemption/);
+  assert.match(adapter, /kingshot_developer_v4_release_redemption/);
+  assert.match(adapter, /handleNativeRedemption\(request, env, \{ v4: true \}\)/);
+  assert.match(redemption, /options\.v4\?/);
+  assert.match(redemption, /!options\.v4&&limited\(req\)/);
 });
