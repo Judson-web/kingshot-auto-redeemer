@@ -68,3 +68,13 @@
 - V4 idempotency is optional per the existing OpenAPI contract. Neon/Supabase redemption recovery remains the independent protection against duplicate player/code submissions.
 - Tests mock Supabase authorization and idempotency RPCs. Wrangler preview remains write-disabled; the V4 redemption route now checks this before quota authorization or idempotency RPCs, and Worker smoke tests assert the early rejection.
 - This checkpoint is a code change only. The new Supabase migration has not been applied to production, no live redemption has been attempted, and no deployment or DNS cutover has occurred.
+
+
+## Native Discord developer account checkpoint
+
+- Added native Worker routes for the existing `account-auth` and `account-keys` application paths.
+- Discord access tokens are verified against Supabase Auth before server-side sessions are created. Developer and profile sessions retain the existing two-month lifetime and use separate HttpOnly, Secure, host-only cookies.
+- Session lookup, enrollment, logout, key listing, key creation, scope/expiry updates, and key revocation use the existing account RPCs. API-key issuance hashes the trusted Cloudflare `CF-Connecting-IP`; forwarded client-IP headers are not trusted.
+- Preview account mutations are blocked before session or key RPC writes unless `SUPABASE_WRITE_MODE=enabled`. The checked-in Wrangler preview remains write-disabled.
+- Webhook subscription management deliberately remains fail-closed with an explicit `webhook_management_not_migrated` response. Its native port must preserve public-IP DNS validation and redirect-safe delivery protections rather than reusing Node DNS APIs inside Workers.
+- This is a code-only checkpoint. No OAuth provider configuration, secrets, database migrations, production writes, deployment, or DNS changes were made.
