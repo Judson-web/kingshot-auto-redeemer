@@ -296,5 +296,217 @@
     "api/discord-tools/[...path].js": {
       "maxDuration": 300
     }
-  }
+  },
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/index.html",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/auto",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/auto.html",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/alliance-registration",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/alliance-registration.html",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/developer",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/developer.html",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/profile",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/profile.html",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/info",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/info.html",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/manual",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/manual.html",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/redeem",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/redeem.html",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/terms",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/terms.html",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/privacy",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/privacy.html",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/message",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/message.html",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/gift-codes",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/gift-codes.html",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/push",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/push/",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/push.html",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/devsupport",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/devsupport.html",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/dev",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/admin/alliance-sync",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/admin/maintenance",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/admin/players",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/user",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    },
+    {
+      "source": "/user/:playerId",
+      "destination": "/maintenance.html",
+      "permanent": false,
+      "statusCode": 307
+    }
+  ]
 }
