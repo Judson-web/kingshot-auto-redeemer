@@ -11,7 +11,7 @@ import supportChatHandler from "../api/kingshot-support-chat.js";
 import ogHandler from "../api/og.js";
 
 type Handler = (req: any, res: any) => unknown | Promise<unknown>;
-type RuntimeContext = { waitUntil?: (promise: Promise<unknown>) => void };
+type RuntimeContext = { waitUntil?: (promise: Promise<unknown>) => void; env?: any };
 
 const MAX_API_BODY_BYTES = 8 * 1024 * 1024;
 const JSON_TYPE = "application/json; charset=utf-8";
@@ -181,6 +181,7 @@ export async function dispatchLegacyApi(
     ip,
     socket: { remoteAddress: ip },
     connection: { remoteAddress: ip },
+    workerEnv: context.env,
     waitUntil(promise: Promise<unknown>) {
       if (typeof context.waitUntil === "function") context.waitUntil(Promise.resolve(promise).catch(error => {
         console.error("Background API task failed:", error instanceof Error ? error.message : "unknown error");
