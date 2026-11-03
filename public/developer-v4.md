@@ -1,7 +1,6 @@
 # Kingshot Auto Redeemer Developer API — V4
 
-Interactive documentation: $API_BASE/developer  
-OpenAPI 3.1: $API_BASE/openapi.json
+Set `API_BASE` to the HTTPS origin of the Cloudflare app host. The API and documentation are served from that origin.
 
 V4 is the current API for player lookup and manual gift-code redemption. It provides a consistent JSON envelope for success and errors. V3 remains available for existing integrations; V1 is deprecated.
 
@@ -137,7 +136,8 @@ This example uses Node.js 18+ built-in fetch. Keep the API key in a server-side 
 
     import { randomUUID } from "node:crypto";
 
-    const API_BASE = "$API_BASE";
+    const API_BASE = process.env.KINGSHOT_API_BASE;
+    if (!API_BASE) throw new Error("KINGSHOT_API_BASE is not configured");
     const API_KEY = process.env.KINGSHOT_API_KEY;
     if (!API_KEY) throw new Error("KINGSHOT_API_KEY is not configured");
 
@@ -190,10 +190,11 @@ When catching the error, use its `retryHint` rather than retrying every failure.
     import requests
 
     api_key = os.environ["KINGSHOT_API_KEY"]
+    api_base = os.environ["KINGSHOT_API_BASE"]
     body = {"playerId": "43180889", "code": "EXAMPLECODE", "kid": "1125"}
     key = str(uuid.uuid4())  # generate once for this logical redemption
     response = requests.post(
-        "$API_BASE/api/v4/redemptions",
+        f"{api_base}/api/v4/redemptions",
         headers={
             "Authorization": f"Bearer {api_key}",
             "Idempotency-Key": key,
