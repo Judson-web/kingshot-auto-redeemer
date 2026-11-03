@@ -43,3 +43,15 @@
 - Ported `profile=detail` with hero, governor gear, ranks, kingdom context, board-rank extraction, alliance roster enrichment, in-flight deduplication, and a short in-memory cache. Optional enrichment failures preserve the public base profile.
 - Supabase telemetry writes are disabled by default in preview.
 - This is an intermediate migration checkpoint, not a production-ready replacement.
+
+## Manual redemption migration
+
+- Native Worker route: `POST /api/kingshot-redeem`.
+- Preserves the Kingshot form payload and MD5 signature using Workers' supported `node:crypto` implementation.
+- Requires Supabase write mode, Supabase service-role credentials, the Kingshot API secret, and the independent Neon recovery-journal connection.
+- Reserves the shared Supabase redemption pacing slot before attempting a redemption.
+- Writes a Neon `in_flight` intent before atomic Supabase redemption and recovery claims.
+- Records the confirmed upstream result in Neon before completing Supabase recovery/history writes.
+- Ambiguous timeout, non-JSON, upstream gateway, or journal persistence outcomes are quarantined as `needs_review`; the route never automatically replays the upstream request.
+- Preview remains read-only: `SUPABASE_WRITE_MODE` stays disabled and smoke tests assert the route refuses writes.
+- No production redemption, deployment, DNS change, or cutover was performed.
