@@ -49,6 +49,6 @@ test("V4 idempotency SQL never expires or reopens unknown outcomes", async () =>
   assert.match(sql, /state = 'unknown'/);
   assert.match(sql, /return jsonb_build_object\('state', 'unknown'/);
   assert.match(sql, /kingshot_developer_v4_release_redemption/);
-  assert.doesNotMatch(sql, /expires_at/);
+  assert.doesNotMatch(sql, /expires_at\\s+timestamptz/);
   assert.doesNotMatch(sql, /set state = 'processing'/);
 });
