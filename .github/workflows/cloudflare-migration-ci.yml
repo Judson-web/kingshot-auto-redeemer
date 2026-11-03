@@ -34,6 +34,7 @@ jobs:
   verify-worker:
     name: Verify migration without deployment
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -41,6 +42,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Enforce zero-cost and no-production-write CI policy
+        run: node scripts/verify-zero-cost-ci.mjs
       - run: npm test
       - run: npm run typecheck
       - run: npm run build
@@ -52,6 +55,7 @@ jobs:
   postgres-migration-integration:
     name: Test V4 migrations on disposable PostgreSQL
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       postgres:
         image: postgres:17
@@ -86,6 +90,7 @@ jobs:
   supabase-local-stack-integration:
     name: Test V4 through local Supabase Auth and PostgREST
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     env:
       SUPABASE_TELEMETRY_DISABLED: "1"
       PGHOST: 127.0.0.1

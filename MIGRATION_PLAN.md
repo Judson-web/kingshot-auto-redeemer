@@ -107,3 +107,14 @@
 - Cloudflare's Network Session Logs expose `OnrampType = WORKERS_VPC`, `SourceName`, `SourceID`, and `EgressRuleName`. No Logpush job was configured. A live staging Worker session has not yet been generated, so runtime policy matching remains unproven and webhook delivery stays disabled.
 - An attempted IPv4-mapped IPv6 CIDR was normalized by Cloudflare to the dangerous IPv4 catch-all `0.0.0.0/0`; that rule was immediately deleted and replaced with a safe IPv6 expression that omits the mapped prefix. The final read-back rules contain no IPv4 catch-all.
 - No production database migration/write, production deployment, DNS change, domain cutover, or live redemption was performed.
+
+
+## No-cost validation policy
+
+- No paid Supabase development branch, Supabase project, Neon branch, Cloudflare add-on, paid tunnel, paid Logpush destination, or external staging service will be provisioned.
+- The Supabase V4 integration suite runs on disposable local Supabase CLI containers inside GitHub Actions. PostgreSQL migration semantics run in a separate disposable PostgreSQL 17 service container.
+- The repository is public, and CI uses standard GitHub-hosted runners. Job timeouts now bound resource use.
+- Wrangler builds are dry-run only. CI explicitly rejects production Supabase linking, production database credentials, Supabase branch creation, and non-dry-run Worker deployment commands.
+- Cloudflare documents Workers VPC as a public beta available free to all Workers plans. The existing VPC binding remains in code, but this does not authorize any paid add-on or over-quota usage.
+- No remote probe Worker has been deployed. Gateway policy matching remains unverified at runtime, and webhook dispatch remains fail-closed until a zero-cost verification path is available.
+- The rejected Supabase branch cost was not confirmed, and no branch was created. Production migrations remain unapplied.

@@ -40,3 +40,10 @@ Cloudflare normalized an attempted IPv4-mapped IPv6 CIDR (`::ffff:0:0/96`) into 
 The CI workflow starts disposable local Supabase Auth and PostgREST services, applies only the two V4 migrations to a minimal isolated baseline, and exercises the actual RPCs through the local REST API. It does not use production credentials or link the CLI to a remote project.
 
 The repository's historical migration directory is not a complete, version-aligned reproduction of the remote project's migration history. The local stack job deliberately isolates the two V4 migrations rather than claiming that a full production-schema `supabase db reset` is reproducible. Full-project schema parity remains a separate migration task.
+
+
+## Cost boundary
+
+Cloudflare's Workers VPC documentation states that the feature is in public beta and available free to all Workers plans: https://developers.cloudflare.com/workers-vpc/. This only covers Workers VPC beta availability. It does not imply that unrelated Cloudflare add-ons, tunnels, logging destinations, or usage beyond included limits are free. No such paid resources have been provisioned for this migration.
+
+A temporary remote probe Worker has not been deployed. Local Worker tests and Wrangler dry-run builds do not prove live Gateway enforcement. Keep webhook dispatch fail-closed until a runtime check can be completed within included free usage, with no production deployment or paid infrastructure.
