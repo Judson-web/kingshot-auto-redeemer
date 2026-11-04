@@ -5,12 +5,7 @@ do $$
 declare
   v_job record;
   v_command text;
-  v_old_origins constant text[] := array[
-    'https://kingshot-autoredeemer.vercel.app',
-    'https://app.ks-redeemer.workers.dev',
-    'https://kingshot-autoredeemer-edge.ks-redeemer.workers.dev'
-  ];
-  v_origin text;
+  v_old_origin constant text := 'https://kingshot-autoredeemer.vercel.app';
   v_new_origin constant text := 'https://app.ks-redeemer.workers.dev';
   v_announcement_job_id bigint;
   v_announcement_command text := $cmd$
@@ -48,16 +43,15 @@ begin
       'alliance-manual-registration-queue'
     )
   loop
-    v_command := v_job.command;
-    foreach v_origin in array v_old_origins loop
-      v_command := replace(v_command, v_origin, v_new_origin);
-    end loop;
+    v_command := replace(v_job.command, v_old_origin, v_new_origin);
+    v_command := regexp_replace(
+      v_command,
+      'https://kingshot-autoredeemer-edge\\.[a-z0-9-]+\\.workers\\.dev',
+      v_new_origin,
+      'g'
+    );
 
-    if v_command <> v_job.command then
-      null;
-    elsif position(v_new_origin in v_job.command) > 0 then
-      v_command := v_job.command;
-    else
+    if v_command = v_job.command and position(v_new_origin in v_job.command) = 0 then
       raise exception 'Unexpected command target for cron job %; refusing to overwrite it.', v_job.jobname;
     end if;
 
