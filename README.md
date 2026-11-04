@@ -47,7 +47,7 @@ Kingshot Auto Redeemer helps players discover eligible public gift codes and red
 
 ## Live website
 
-The public application is hosted on Cloudflare Workers at [kingshot-autoredeemer-edge.sajijudsa.workers.dev](https://app.ks-redeemer.workers.dev/). The previous Vercel address is not an application origin; it is reserved for a temporary redirect during the domain transition. Use the site's navigation for current routes and features. Administrative and developer tools may require a verified session and server-side authorization; a URL alone does not grant access.
+The public application is hosted on Cloudflare Workers at [app.ks-redeemer.workers.dev](https://app.ks-redeemer.workers.dev/). The previous Vercel address is not an application origin; it is reserved for a temporary redirect during the domain transition. Use the site's navigation for current routes and features. Administrative and developer tools may require a verified session and server-side authorization; a URL alone does not grant access.
 
 ## Alliance registration and sync
 
