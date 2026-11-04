@@ -49,7 +49,7 @@ test("hybrid shard execution uses one coordinator eligibility snapshot", () => {
   assert.doesNotMatch(shardSource, /list_kingshot_admin_gift_codes/);
   assert.doesNotMatch(shardSource, /kingshot_player_bans/);
   assert.match(coordinatorSource, /kingshot_player_bans/);
-  assert.match(coordinatorSource, /bannedPlayersFiltered/);
+  assert.match(coordinatorSource, /excludedPlayersFiltered/);
   assert.match(coordinatorSource, /verifiedCodes:true,banFilterApplied:true/);
 });
 
