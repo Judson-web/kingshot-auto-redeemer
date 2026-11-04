@@ -257,7 +257,7 @@ test("alliance registration preview is private, confirmed by its initiating user
   assert.ok(handler.includes("!/^\\\\d{5,25}$/.test(discordUserId)") === false, "preview must not use a double-escaped digit regex");
   assert.ok(handler.includes("toUpperCase()===roster.tag.trim().toUpperCase()"), "existing alliance tags must match case-insensitively");
   assert.ok(handler.includes("alreadyRegistered:true"), "repeat registration must be idempotent");
-  assert.ok(handler.includes("syncPending:true"), "failed eager sync must not misreport durable registration");
+  assert.ok(handler.includes("scheduled:true"), "the first sync must be queued for the durable worker");
   assert.ok(interactions.includes("result.alreadyRegistered"), "confirmation must report existing registrations");
   assert.ok(interactions.includes("result.syncPending"), "confirmation must report deferred first syncs accurately");
   assert.ok(interactions.includes("refreshAllianceRosterMessage"), "successful registration must refresh the original roster message");

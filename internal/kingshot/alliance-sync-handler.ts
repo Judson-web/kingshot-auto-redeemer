@@ -160,17 +160,11 @@ export async function registerAllianceFromDiscord(kingdomId:string, allianceTag:
  }
  const config=Array.isArray(created)?created[0]:created;
  if(!config?.id) throw new Error('Supabase did not confirm alliance registration.');
- const lease=randomUUID();
- const claimed=await patchRows('alliance_sync_config','id=eq.'+enc(config.id)+'&enabled=eq.true&or=(lease_token.is.null,lease_expires_at.lt.'+enc(new Date().toISOString())+')',{lease_token:lease,lease_expires_at:new Date(Date.now()+4*60000).toISOString(),last_status:'running',updated_at:new Date().toISOString()});
- if(!Array.isArray(claimed)||!claimed.length) return {config,validatedRosterCount:roster.members.length,scheduled:true,ownerBypass:isOwner};
- try{
-  const initialSync=await performSync(claimed[0],String(config.owner_user_id),true,lease);
-  return {config,validatedRosterCount:roster.members.length,initialSync,ownerBypass:isOwner};
- }catch(error){
-  // Configuration creation is durable. A failed eager sync is retried by the existing 5-minute worker schedule.
-  console.error('Discord alliance initial sync deferred after registration was saved:',String((error as Error)?.message||error).slice(0,240));
-  return {config,validatedRosterCount:roster.members.length,scheduled:true,syncPending:true,ownerBypass:isOwner};
- }
+ // The configuration RPC sets next_run_at=now() and last_status=pending.
+ // Let the existing cron-authenticated worker claim it. This keeps the first
+ // registration on the same durable, bounded path as every subsequent sync.
+ // The worker persists per-player outcomes and continues in batches of ten.
+ return {config,validatedRosterCount:roster.members.length,scheduled:true,ownerBypass:isOwner};
 }
 export default async function handler(req:Req,res:Res){
  res.setHeader('Cache-Control','private, no-store');
@@ -185,10 +179,20 @@ export default async function handler(req:Req,res:Res){
   if(action==='progress'){
    const configs=await selectRows('alliance_sync_config',`owner_user_id=eq.${enc(ownerId)}&kingdom_id=eq.${enc(kingdom)}&alliance_tag=eq.${enc(tag)}&select=id,alliance_name,alliance_tag,kingdom_id,enabled,last_status,lease_expires_at,last_roster_count&limit=1`);
    if(!Array.isArray(configs)||!configs.length)return res.status(200).json({active:false});const c=configs[0];
-   const runs=await selectRows('alliance_sync_runs',`config_id=eq.${enc(c.id)}&order=created_at.desc&select=id,status,created_at,finished_at,roster_count,added_count,skipped_count,error_code&limit=1`);if(!Array.isArray(runs)||!runs.length)return res.status(200).json({active:false});const run=runs[0];
-   const active=run.status==='running'&&c.enabled&&c.lease_expires_at&&new Date(c.lease_expires_at).getTime()>Date.now();if(!active)return res.status(200).json({active:false});
-   const seen=await selectRows('alliance_sync_seen_players',`config_id=eq.${enc(c.id)}&last_seen_at=gte.${enc(run.created_at)}&select=player_id,registration_status,last_seen_at&order=last_seen_at.desc`);const list=Array.isArray(seen)?seen:[];
-   return res.status(200).json({active:true,allianceTag:c.alliance_tag,allianceName:c.alliance_name||c.alliance_tag,kingdomId:c.kingdom_id,processedCount:list.length,totalCount:Number(run.roster_count||c.last_roster_count||0),currentPlayerId:String(list.find((x:any)=>x.registration_status==='pending')?.player_id||''),status:run.status});
+   const leaseActive=Boolean(c.enabled&&c.lease_expires_at&&new Date(c.lease_expires_at).getTime()>Date.now());
+   const runs=await selectRows('alliance_sync_runs',`config_id=eq.${enc(c.id)}&order=created_at.desc&select=id,status,created_at,finished_at,roster_count,added_count,skipped_count,error_code&limit=1`);
+   if(!Array.isArray(runs)||!runs.length){
+    const queued=Boolean(c.enabled&&(c.last_status==='pending'||(c.last_status==='running'&&leaseActive)));
+    if(!queued)return res.status(200).json({active:false});
+    return res.status(200).json({active:true,allianceTag:c.alliance_tag,allianceName:c.alliance_name||c.alliance_tag,kingdomId:c.kingdom_id,processedCount:0,totalCount:Number(c.last_roster_count||0),currentPlayerId:'',status:c.last_status});
+   }
+   const run=runs[0];
+   const queued=Boolean(c.enabled&&c.last_status==='pending');
+   const active=Boolean(c.enabled&&((run.status==='running'&&leaseActive)||queued));
+   if(!active)return res.status(200).json({active:false});
+   const seen=await selectRows('alliance_sync_seen_players',`config_id=eq.${enc(c.id)}&last_seen_at=gte.${enc(run.created_at)}&registration_status=neq.pending&registration_status=neq.departed&select=player_id,registration_status,last_seen_at&order=last_seen_at.desc`);const list=Array.isArray(seen)?seen:[];
+   const pending=await selectRows('alliance_sync_seen_players',`config_id=eq.${enc(c.id)}&last_seen_at=gte.${enc(run.created_at)}&registration_status=eq.pending&select=player_id&limit=1`);
+   return res.status(200).json({active:true,allianceTag:c.alliance_tag,allianceName:c.alliance_name||c.alliance_tag,kingdomId:c.kingdom_id,processedCount:list.length,totalCount:Number(run.roster_count||c.last_roster_count||0),currentPlayerId:String(Array.isArray(pending)&&pending.length?pending[0].player_id:''),status:queued?'pending':run.status});
   }
   if(action==='history'){
    const configs=await selectRows('alliance_sync_config',`kingdom_id=eq.${enc(kingdom)}&alliance_tag=eq.${enc(tag)}&select=id,alliance_name,alliance_tag,kingdom_id&limit=1`);if(!Array.isArray(configs)||!configs.length)return res.status(200).json({runs:[],departedCount:0});const c=configs[0];
@@ -203,9 +207,9 @@ export default async function handler(req:Req,res:Res){
   if(action==='create'||action==='register-alliance'){
    const k=String(req.body?.kingdomId??'').trim(),t=String(req.body?.allianceTag??'').trim();if(!validKingdom(k)||!validTag(t))return fail(res,400,'invalid_alliance','Check the kingdom ID and alliance tag.');
    const existing=await selectRows('alliance_sync_config',`kingdom_id=eq.${enc(k)}&alliance_tag=eq.${enc(t)}&select=id,owner_user_id,enabled&limit=1`);
-   if(Array.isArray(existing)&&existing.length){const c=existing[0];if(String(c.owner_user_id)!==ownerId)return fail(res,409,'alliance_already_managed','This alliance already has an automatic sync owner. A second worker will not be created.');if(action!=='register-alliance')return fail(res,409,'alliance_already_registered','This alliance is already registered. Existing settings cannot be edited.');if(!c.enabled)return fail(res,409,'sync_paused','This alliance is paused. Resume it before syncing.');const lease=randomUUID();const claimed=await patchRows('alliance_sync_config',`id=eq.${enc(c.id)}&enabled=eq.true&or=(lease_token.is.null,lease_expires_at.lt.${enc(new Date().toISOString())})`,{lease_token:lease,lease_expires_at:new Date(Date.now()+4*60000).toISOString(),last_status:'running'});if(!Array.isArray(claimed)||!claimed.length)return fail(res,409,'sync_in_progress','A sync is already running for this alliance.');return res.status(200).json({config:c,initialSync:await performSync(claimed[0],ownerId,true,lease),alreadyRegisteredAlliance:true});}
+   if(Array.isArray(existing)&&existing.length){const c=existing[0];if(String(c.owner_user_id)!==ownerId)return fail(res,409,'alliance_already_managed','This alliance already has an automatic sync owner. A second worker will not be created.');if(action!=='register-alliance')return fail(res,409,'alliance_already_registered','This alliance is already registered. Existing settings cannot be edited.');if(!c.enabled)return fail(res,409,'sync_paused','This alliance is paused. Resume it before syncing.');const queued=await patchRows('alliance_sync_config',`id=eq.${enc(c.id)}&enabled=eq.true&or=(lease_token.is.null,lease_expires_at.lt.${enc(new Date().toISOString())})`,{lease_token:null,lease_expires_at:null,last_status:'pending',next_run_at:new Date().toISOString(),updated_at:new Date().toISOString()});if(!Array.isArray(queued)||!queued.length)return fail(res,409,'sync_in_progress','A sync is already running for this alliance.');return res.status(200).json({config:queued[0],scheduled:true,alreadyRegisteredAlliance:true});}
    const roster=await readAlliance(k,t);const created=await callRpc('register_alliance_sync_config',{p_owner_user_id:ownerId,p_kingdom_id:k,p_alliance_tag:roster.tag,p_alliance_name:roster.name,p_roster_count:roster.members.length});const config=Array.isArray(created)?created[0]:created;if(!config?.id)throw new Error('Supabase did not confirm alliance registration.');
-   if(action==='register-alliance'){const lease=randomUUID();const claimed=await patchRows('alliance_sync_config',`id=eq.${enc(config.id)}&enabled=eq.true&or=(lease_token.is.null,lease_expires_at.lt.${enc(new Date().toISOString())})`,{lease_token:lease,lease_expires_at:new Date(Date.now()+4*60000).toISOString(),last_status:'running'});if(!Array.isArray(claimed)||!claimed.length)return res.status(201).json({config,validatedRosterCount:roster.members.length,scheduled:true});return res.status(201).json({config,validatedRosterCount:roster.members.length,initialSync:await performSync(claimed[0],ownerId,true,lease)});}
+   if(action==='register-alliance')return res.status(201).json({config,validatedRosterCount:roster.members.length,scheduled:true});
    return res.status(201).json({config,validatedRosterCount:roster.members.length});
   }
   const id=String(req.body?.id??'');if(!/^[0-9a-f-]{36}$/i.test(id))return fail(res,400,'invalid_config_id','Choose a valid sync configuration.');

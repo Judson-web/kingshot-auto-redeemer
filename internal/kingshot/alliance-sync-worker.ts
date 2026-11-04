@@ -181,6 +181,10 @@ export default async function handler(req:any,res:any){
     const errorMessage=failures.slice(0,5).join('; ').slice(0,500)||null;
     const finished=await callRpc('finish_alliance_sync_run',{p_config_id:config.id,p_lease_token:lease,p_run_id:runId,p_status:status,p_roster_count:roster.members.length,p_added_count:registered,p_skipped_count:skipped,p_departed_count:departedCount,p_error_code:errorCode,p_error_message:errorMessage,p_next_run_at:nextRunAt,p_alliance_name:roster.name});
     if(finished!==true&&!(Array.isArray(finished)&&finished[0]===true))throw new Error('Sync lease was lost before completion.');
+    if(continuation){
+     // Keep the config visibly queued between bounded worker invocations.
+     await patchRows('alliance_sync_config',`id=eq.${enc(config.id)}&enabled=eq.true&lease_token=is.null`,{last_status:'pending',updated_at:new Date().toISOString()});
+    }
     results.push({configId:config.id,status:continuation?'continuing':status,rosterCount:roster.members.length,registered,skipped,banned:bannedMembers.length,failed,departed:departedCount,nextRunAt,continuation});
    }catch(e){
     const message=String((e as Error)?.message||'Sync failed.').slice(0,400);
