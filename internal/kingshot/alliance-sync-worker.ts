@@ -12,7 +12,8 @@ const wait=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms));
 async function registerWithRetry(input:any){let last:unknown;for(let attempt=0;attempt<3;attempt++){try{return await registerPlayer(input)}catch(error){last=error;if(attempt<2)await wait(400*(attempt+1));}}throw last instanceof Error?last:new Error("Registration failed after retries.");}
 async function loadRoster(kingdom:string,tag:string){
  const url="https://api.mightpulse.com/v1/alliances/"+encodeURIComponent(kingdom)+"/"+encodeURIComponent(tag)+"?include=info,roster";
- const r=await fetchMightPulse(url,{headers:{Accept:"application/json"}},{timeoutMs:20000});
+ // Keep all six configured credentials reachable within the overall budget. The SQL reservation is authoritative, so skip serial usage preflights between fallback keys.
+ const r=await fetchMightPulse(url,{headers:{Accept:"application/json"}},{timeoutMs:7000,totalTimeoutMs:50000,maxAttempts:6,skipUsageRefresh:true});
  const d:any=await r.json().catch(()=>null);
  if(!r.ok)throw new Error(r.status===401||r.status===403?"MightPulse authentication failed.":r.status===429?"MightPulse rate limited.":`MightPulse request failed (${r.status}).`);
  if(!d||typeof d!=="object")throw new Error("MightPulse returned an invalid roster response.");
