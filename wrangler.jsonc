@@ -3,7 +3,10 @@
   "name": "kingshot-autoredeemer-edge",
   "main": "cloudflare/worker.ts",
   "compatibility_date": "2026-11-03",
-  "compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
+  "compatibility_flags": [
+    "nodejs_compat",
+    "nodejs_compat_populate_process_env"
+  ],
   "workers_dev": true,
   "preview_urls": true,
   "observability": {
@@ -12,10 +15,15 @@
   "vars": {
     "SUPABASE_URL": "https://wocxvtptqapietlteshr.supabase.co",
     "PUBLIC_APP_URL": "https://kingshot-autoredeemer-edge.sajijudsa.workers.dev",
-    "SUPABASE_WRITE_MODE": "enabled"
+    "SUPABASE_WRITE_MODE": "enabled",
+    "KINGDOM_AUTO_CHECK_ENABLED": "false"
   },
   "services": [
-    { "binding": "SHARD_WORKER", "service": "kingshot-autoredeemer-shard", "remote": true }
+    {
+      "binding": "SHARD_WORKER",
+      "service": "kingshot-autoredeemer-shard",
+      "remote": true
+    }
   ],
   "assets": {
     "directory": "./dist",
@@ -26,4 +34,4 @@
       "/api/*"
     ]
   }
-  }
+}
