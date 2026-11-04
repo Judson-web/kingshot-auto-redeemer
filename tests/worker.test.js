@@ -56,10 +56,10 @@ test("hybrid shard execution uses one coordinator eligibility snapshot", () => {
 
 test("coordinator sends only the bounded page to each private shard", () => {
   assert.match(autoSource, /const shardBatches=assignments\.map/);
-  assert.match(autoSource, /selectWorkerShardBatch\\(assigned,workerIndex,WORKER_COUNT,cycleBucket,MAX_PLAYERS_PER_SHARD\\)/);
+  assert.match(autoSource, /selectWorkerShardBatch\(assigned,workerIndex,WORKER_COUNT,cycleBucket,MAX_PLAYERS_PER_SHARD\)/);
   assert.match(autoSource, /players:batchPlayers/);
   assert.match(autoSource, /batchSelected:true/);
-  assert.match(autoSource, /allEligiblePlayers\\.length>MAX_PLAYERS_PER_SHARD/);
+  assert.match(autoSource, /allEligiblePlayers\.length>MAX_PLAYERS_PER_SHARD/);
   assert.match(autoSource, /deferredPlayers:shardBatch\\.deferredPlayers/);
 });
 
