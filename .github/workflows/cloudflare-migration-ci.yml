@@ -112,7 +112,7 @@ jobs:
           mv supabase/migrations /tmp/kingshot-full-migrations
           mkdir -p supabase/migrations
       - name: Start disposable local Supabase services
-        run: supabase start --exclude realtime,storage,functions,studio,mail,analytics,pooler
+        run: supabase start --exclude realtime,storage,functions,studio,mail,inbucket,analytics,pooler
       - name: Export local Supabase endpoints and test keys
         run: supabase status -o env >> "$GITHUB_ENV"
       - name: Apply isolated V4 schema to local Supabase Postgres
