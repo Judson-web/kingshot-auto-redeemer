@@ -496,6 +496,9 @@ assertCheck("Public and administrator push subscriptions are audience-separated"
  bansMigration.includes("audience text not null default 'public'"));
 
 const discordIdentity = read("lib/discord-identity.js");
+assertCheck("Browser-facing Supabase Auth never falls back to the service-role key",
+  developerAuth.includes('const AUTH_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || "";') &&
+  !/const AUTH_KEY =[^\\n]*\\|\\| KEY/.test(developerAuth));
 assertCheck("Privileged owner checks use only verified Discord identity data",
  discordIdentity.includes("function isDiscordOwner") &&
  discordIdentity.includes("function verifiedDiscordId") &&
