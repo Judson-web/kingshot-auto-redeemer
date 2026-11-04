@@ -4,7 +4,7 @@ import {copyToClipboard} from "./utils/clipboard-feedback";
 const ORIGIN="";
 const OWNER="Judson-web";
 const DISCORD_PKCE_KEY="ks-discord-pkce-verifier";
-function base64Url(bytes:Uint8Array){const binary=Array.from(bytes,value=>String.fromCharCode(value)).join("");return btoa(binary).replace(/\\+/g,"-").replace(/\\//g,"_").replace(/=+$/g,"")}
+function base64Url(bytes:Uint8Array){const binary=Array.from(bytes,value=>String.fromCharCode(value)).join("");return btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"")}
 async function createDiscordPkcePair(){const random=new Uint8Array(32);crypto.getRandomValues(random);const verifier=base64Url(random);const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(verifier));return {verifier,challenge:base64Url(new Uint8Array(digest))}}
 const pages=[
 {path:"/",group:"Public pages",desc:"Automatic redemption landing page"},
