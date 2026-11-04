@@ -7,9 +7,9 @@ import gatewayRelay from "../workers/webhook-egress/src/index.ts";
 
 test("production Worker binds outbound webhook traffic through Cloudflare Gateway VPC", async () => {
  const config = await readFile(new URL("../wrangler.jsonc", import.meta.url), "utf8");
- assert.match(config, /"vpc_networks"\\s*:\\s*\\[/);
- assert.match(config, /"binding"\\s*:\\s*"EGRESS"/);
- assert.match(config, /"network_id"\\s*:\\s*"cf1:network"/);
+ assert.match(config, /"vpc_networks"\s*:\s*\[/);
+ assert.match(config, /"binding"\s*:\s*"EGRESS"/);
+ assert.match(config, /"network_id"\s*:\s*"cf1:network"/);
  assert.match(config, /"remote"\\s*:\\s*true/);
 });
 
