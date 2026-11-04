@@ -46,7 +46,7 @@ test("admin player page never renders empty statistics before a valid player lis
   assert.match(page, /if\(!hasLoadedData\)return/);
   assert.match(page, /Your administrator session is missing, expired, or does not have permission/);
   assert.match(page, /profile\?returnTo=%2Fadmin%2Fplayers/);
-  assert.match(page, /if\(!Array\.isArray\(d\.players\)\)throw Error\("The player database response was incomplete\."/);
+  assert.match(page, /if\(!Array\.isArray\(d\.players\)\|\|!Number\.isFinite\(Number\(d\.totalCount\)\)\)throw Error\("The player database response was incomplete\."/);
   assert.match(page, /data\.players\.length\?"No players match this filter\."\:"No registered players yet\."/);
   assert.match(helper, /status === 401 \|\| status === 403/);
 });
@@ -90,7 +90,7 @@ test("admin player page verifies the profile session and obtains owner access be
   const page = await readFile(new URL("../src/AdminPlayersApp.tsx", import.meta.url), "utf8");
   const helper = await readFile(new URL("../src/admin-session-bootstrap.js", import.meta.url), "utf8");
   const call = page.indexOf("await ensureAdminWorkspaceSession();");
-  const data = page.indexOf("const d=await request();", call);
+  const data = page.indexOf("const d=await request(API+\"?\"+params.toString());", call);
   assert.ok(call >= 0 && data > call, "owner session bootstrap must run before the private data request");
   assert.match(helper, /developer=account-auth/);
   assert.match(helper, /action: "dev-check"/);
