@@ -10,7 +10,7 @@ test("production Worker binds outbound webhook traffic through Cloudflare Gatewa
  assert.match(config, /"vpc_networks"\s*:\s*\[/);
  assert.match(config, /"binding"\s*:\s*"EGRESS"/);
  assert.match(config, /"network_id"\s*:\s*"cf1:network"/);
- assert.match(config, /"remote"\\s*:\\s*true/);
+ assert.match(config, /"remote"\s*:\s*true/);
 });
 
 test("webhook egress rejects IPv4 special-use and private destinations",()=>{
