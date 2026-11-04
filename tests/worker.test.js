@@ -38,6 +38,28 @@ test("worker assignment uses deterministic player bucketing", () => {
   assert.match(workerBatchSource, /selectWorkerShardBatch/);
 });
 
+test("hybrid shard execution uses one coordinator eligibility snapshot", () => {
+  const shardStart = autoSource.indexOf('if(mode==="worker")');
+  const coordinatorStart = autoSource.indexOf('currentStage="worker-ban-snapshot"');
+  const shardSource = autoSource.slice(shardStart, autoSource.indexOf('let authorized=', shardStart));
+  const coordinatorSource = autoSource.slice(coordinatorStart);
+  assert.ok(shardStart >= 0 && coordinatorStart > shardStart);
+  assert.match(shardSource, /body\?\.verifiedCodes!==true/);
+  assert.match(shardSource, /body\?\.banFilterApplied!==true/);
+  assert.doesNotMatch(shardSource, /list_kingshot_admin_gift_codes/);
+  assert.doesNotMatch(shardSource, /kingshot_player_bans/);
+  assert.match(coordinatorSource, /kingshot_player_bans/);
+  assert.match(coordinatorSource, /excludedPlayersFiltered/);
+  assert.match(coordinatorSource, /verifiedCodes:true,banFilterApplied:true/);
+});
+
+test("hybrid distribution keeps four bounded shards and does not add a polling trigger", () => {
+  assert.match(autoSource, /const WORKER_COUNT=4/);
+  assert.match(autoSource, /const MAX_PLAYERS_PER_SHARD=2/);
+  assert.match(autoSource, /Promise\.all\(assignments\.map/);
+  assert.doesNotMatch(autoSource, /setInterval\s*\(/);
+});
+
 test("worker checks its runtime deadline before starting queued work", () => {
   assert.match(workerSource, /deadlineSkipped/);
   assert.match(workerSource, /deadline/);

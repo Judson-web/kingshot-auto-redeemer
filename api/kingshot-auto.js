@@ -340,33 +340,17 @@ export default async function handler(req,res){
   if(typeof body==="string"){try{body=JSON.parse(body)}catch{return res.status(400).json({error:"Invalid worker payload"})}}
   const requestedCodes=Array.isArray(body?.codes)?body.codes:[];
   const players=Array.isArray(body?.players)?body.players:[];
+  // The coordinator sends a protected execution envelope after applying the
+  // verified-code and player-ban snapshots once for the whole cycle.
+  if(body?.verifiedCodes!==true||body?.banFilterApplied!==true)return res.status(400).json({error:"Incomplete coordinator execution envelope."});
   try{
-   // Recovery queues are global, not shard-local. Drain them once per cycle
-   // instead of making all four shards scan and race over the same queue.
-   // Slot 0 is the designated recovery drainer; the other shards preserve
-   // their runtime for the player partition assigned to them.
+   // Recovery queues are global, not shard-local. Slot 0 drains them once.
    if(slot===0)await drainRedemptionRecoveryQueue(rpc);
-   const adminRows=await rpc("list_kingshot_admin_gift_codes",{});
-   const suppressedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.suppressed===true).map(row=>String(row?.code||"").trim().toUpperCase()).filter(Boolean));
-   const verifiedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(r=>r?.validation_status==="verified"&&r?.active!==false&&r?.suppressed!==true).map(r=>String(r?.code||"").trim().toUpperCase()));
-   const codes=requestedCodes.filter(item=>item&&typeof item.code==="string"&&!suppressedCodes.has(item.code.trim().toUpperCase())&&verifiedCodes.has(item.code.trim().toUpperCase()));
-   // Partition before loading history. The coordinator sends the full player list
-   // to each shard, so querying history for every player here caused three large,
-   // redundant database scans per cycle and amplified PostgREST timeout pressure.
+   const codes=requestedCodes.filter(item=>item&&typeof item.code==="string"&&item.code.trim().length>0);
+   // The coordinator partitions players and applies bans once; retain a
+   // deterministic ownership check at this worker boundary.
    const assignedPlayers=players.filter(player=>workerBucket(player?.player_id,WORKER_COUNT)===slot);
-   // Enforce bans at the worker boundary, not only in registration/admin flows.
-   // Fail closed if ban state cannot be read: unknown ban state must never permit redemption.
-   const bannedIds=new Set();
-   const banPageSize=1000;
-   for(let offset=0;;offset+=banPageSize){
-    const bansResponse=await fetch(SUPABASE_URL+"/rest/v1/kingshot_player_bans?select=player_id&order=player_id.asc",{headers:{"apikey":SUPABASE_KEY,"authorization":"Bearer "+SUPABASE_KEY,"Range":offset+"-"+(offset+banPageSize-1)},signal:AbortSignal.timeout(10000)});
-    if(!bansResponse.ok)throw Error("Unable to verify player bans before redemption (HTTP "+bansResponse.status+").");
-    const bansRows=await bansResponse.json();
-    if(!Array.isArray(bansRows))throw Error("Unable to verify player bans before redemption: invalid response.");
-    for(const row of bansRows){const id=String(row?.player_id||"").trim();if(id)bannedIds.add(id)}
-    if(bansRows.length<banPageSize)break;
-   }
-   const allEligiblePlayers=assignedPlayers.filter(player=>player?.enabled!==false&&!bannedIds.has(String(player?.player_id||"").trim()));
+   const allEligiblePlayers=assignedPlayers.filter(player=>player?.enabled!==false);
    const restrictedPlayersSkipped=assignedPlayers.length-allEligiblePlayers.length;
    if(restrictedPlayersSkipped)console.warn("Kingshot worker skipped disabled/restricted players:",{slot,count:restrictedPlayersSkipped});
    const cycleBucket=Number.isSafeInteger(body?.cycleBucket)&&body.cycleBucket>=0?body.cycleBucket:Math.floor(Date.now()/60000);
@@ -613,6 +597,24 @@ export default async function handler(req,res){
    else validPlayerMap.set(id,result.player);
   }
   const validPlayers=[...validPlayerMap.values()];
+  // Take one fail-closed ban snapshot per coordinator cycle before any canary
+  // or shard work, instead of four identical full-table scans inside shards.
+  currentStage="worker-ban-snapshot";
+  const bannedPlayerIds=new Set();
+  const banPageSize=1000;
+  for(let offset=0;;offset+=banPageSize){
+   const bansResponse=await fetch(SUPABASE_URL+"/rest/v1/kingshot_player_bans?select=player_id&order=player_id.asc",{
+    headers:{"apikey":SUPABASE_KEY,"authorization":"Bearer "+SUPABASE_KEY,"Range":offset+"-"+(offset+banPageSize-1)},
+    signal:AbortSignal.timeout(10000)
+   });
+   if(!bansResponse.ok)throw Error("Unable to verify player bans before shard dispatch (HTTP "+bansResponse.status+").");
+   const bansRows=await bansResponse.json();
+   if(!Array.isArray(bansRows))throw Error("Unable to verify player bans before shard dispatch: invalid response.");
+   for(const row of bansRows){const id=String(row?.player_id||"").trim();if(id)bannedPlayerIds.add(id);}
+   if(bansRows.length<banPageSize)break;
+  }
+  const dispatchPlayers=validPlayers.filter(player=>player?.enabled!==false&&!bannedPlayerIds.has(String(player?.player_id||"").trim()));
+  const excludedPlayersFiltered=validPlayers.length-dispatchPlayers.length;
   console.log("Kingshot kingdom check:",{
    automaticChecksEnabled:KINGDOM_AUTO_CHECK_ENABLED,
    players:list.length,
@@ -638,8 +640,8 @@ export default async function handler(req,res){
     return Boolean(r.code&&evidence&&isCanaryEligibleGiftCodeCandidate(evidence,matchedFirstPartyApiAndPage)&&!expiredCodes.has(codeKey));
    });
   const canaryCandidate=pendingCandidates[0];let verificationAttempt=null;
-  if(canaryCandidate&&validPlayers.length){
-   for(const player of validPlayers){
+  if(canaryCandidate&&dispatchPlayers.length){
+   for(const player of dispatchPlayers){
     try{
      const history=await rpc("list_kingshot_player_redemptions",{p_player_id:player.player_id});
      const handled=getHandledGiftCodes(history);
@@ -716,9 +718,10 @@ export default async function handler(req,res){
   else if(schedulerToken)childHeaders["x-kingshot-scheduler-token"]=String(schedulerToken);
   else throw Error("No internal worker authorization is configured.");
 
+
   const cycleBucket=Math.floor(cycleStartedAt/60000);
   const assignments=Array.from({length:WORKER_COUNT},()=>[]);
-  for(const player of validPlayers)assignments[workerBucket(player?.player_id,WORKER_COUNT)].push(player);
+  for(const player of dispatchPlayers)assignments[workerBucket(player?.player_id,WORKER_COUNT)].push(player);
   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
   currentStage="worker-shard-fanout";
   const workerRuns=await Promise.all(assignments.map(async(assigned,workerIndex)=>{
@@ -727,7 +730,7 @@ export default async function handler(req,res){
     const response=await shardService.fetch(new Request("https://shard.internal/api/kingshot-auto?mode=worker&slot="+workerIndex,{
      method:"POST",
      headers:childHeaders,
-     body:JSON.stringify({codes:activeCodes,players:assigned,cycleBucket}),
+     body:JSON.stringify({codes:activeCodes,players:assigned,cycleBucket,verifiedCodes:true,banFilterApplied:true}),
      signal:AbortSignal.timeout(WORKER_MAX_RUNTIME_MS+15000)
     }));
     const payload=await response.json().catch(()=>({}));
@@ -795,7 +798,7 @@ export default async function handler(req,res){
    :validPlayers.length>0&&totals.alreadyHandled>=validPlayers.length*activeCodes.length?"ALL_ELIGIBLE_CODES_ALREADY_HANDLED"
    :"NO_REDEMPTION_ATTEMPTS_RECORDED";
   console.log("Kingshot auto worker pool:",{workers:WORKER_COUNT,assignments:assignments.map(x=>x.length),workerFailures:workerFailures.length,attempted:totals.attempted,success:totals.success,noWorkReason,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures});
-  const summary={source:"multi-source",sources:sourceResults.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,verificationAttempt,noWorkReason,...totals,workerFailures:workerFailures.length,shardFailureDiagnostics,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures,codeTelemetry};
+  const summary={source:"multi-source",sources:sourceResults.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,dispatchEligiblePlayers:dispatchPlayers.length,excludedPlayersFiltered,verificationAttempt,noWorkReason,...totals,workerFailures:workerFailures.length,shardFailureDiagnostics,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures,codeTelemetry};
   await rpc("finish_kingshot_worker_run",{p_token:workerToken,p_status:totals.errors||totals.stale||kingdomSummary.errors||kingdomSummary.deferred||workerFailures.length?"COMPLETED_WITH_WARNINGS":"COMPLETED",p_error:null,p_summary:summary}).catch(error=>console.error("Worker state update failed:",error?.message||error));
   const anomalyReasons=[];
   if(totals.errors||workerFailures.length)anomalyReasons.push("worker errors");
