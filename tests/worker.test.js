@@ -60,7 +60,7 @@ test("coordinator sends only the bounded page to each private shard", () => {
   assert.match(autoSource, /players:batchPlayers/);
   assert.match(autoSource, /batchSelected:true/);
   assert.match(autoSource, /allEligiblePlayers\.length>MAX_PLAYERS_PER_SHARD/);
-  assert.match(autoSource, /deferredPlayers:shardBatch\\.deferredPlayers/);
+  assert.match(autoSource, /deferredPlayers:shardBatch\.deferredPlayers/);
 });
 
 test("main and private shard Workers share the same automatic Kingdom Check switch", () => {
