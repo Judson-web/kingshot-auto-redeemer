@@ -251,3 +251,24 @@ test("public English and Korean dictionaries stay in sync across every shared pu
     }
   }
 });
+
+
+test("a stalled maintenance or health request times out and releases its shared in-flight slot", async () => {
+  const store = await import("../src/shared/service-status.js?service-timeout-recovery");
+  const never = () => new Promise(() => {});
+  await assert.rejects(() => store.refreshMaintenanceStatus(never, 10), /timed out/i);
+  assert.equal(store.getServiceStatusSnapshot().maintenance.error, true);
+  const maintenance = await store.refreshMaintenanceStatus(async () => ({
+    ok: true,
+    json: async () => ({ maintenanceEnabled: false })
+  }), 50);
+  assert.equal(maintenance.verified, true);
+  assert.equal(maintenance.maintenanceEnabled, false);
+
+  await assert.rejects(() => store.refreshHealthStatus(never, 10), /timed out/i);
+  const health = await store.refreshHealthStatus(async () => ({
+    ok: true,
+    json: async () => ({ healthy: true, status: "COMPLETED" })
+  }), 50);
+  assert.equal(health.kind, "online");
+});
