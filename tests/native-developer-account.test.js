@@ -2,12 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-test("Cloudflare Worker routes Discord developer sessions and API keys natively", async () => {
+test("Cloudflare Worker preserves PKCE profile auth through the legacy adapter while API keys remain native", async () => {
   const router = await readFile(new URL("../cloudflare/worker.ts", import.meta.url), "utf8");
+  const legacyApi = await readFile(new URL("../api/kingshot-player.ts", import.meta.url), "utf8");
   const adapter = await readFile(new URL("../cloudflare/developer-account.ts", import.meta.url), "utf8");
   assert.match(router, /handleNativeDeveloperAccount/);
-  assert.match(router, /developerPath === "account-auth"/);
+  assert.doesNotMatch(router, /developerPath === "account-auth"/);
   assert.match(router, /developerPath === "account-keys"/);
+  assert.match(router, /dispatchLegacyApi\(request/);
+  assert.match(legacyApi, /developerPath === "account-auth"\) return developerAuth\(req, res\)/);
+  assert.match(legacyApi, /developerPath === "account-keys"\) return developerAccount\(req, res\)/);
   assert.match(adapter, /kingshot_developer_account_session_get/);
   assert.match(adapter, /kingshot_developer_account_session_create/);
   assert.match(adapter, /kingshot_developer_account_create_key/);
