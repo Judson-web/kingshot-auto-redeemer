@@ -527,14 +527,10 @@ export default async function handler(req,res){
   const apiCodes=apiSource.codes;
   const kingshotPageCodes=kingshotPageSource.codes;
   const suppressedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.suppressed===true).map(row=>String(row?.code||"").trim().toUpperCase()).filter(Boolean));
-  const adminCodes=(Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.active!==false&&row?.suppressed!==true).map(row=>({
-   code:String(row?.code||"").trim(),
-   expiresAt:null,
-   createdAt:row?.source_date?Date.parse(String(row.source_date)):Date.parse(String(row?.first_seen_at||"")),
-   source:"admin",
-   adminAdded:Boolean(row?.admin_added)
-  })).filter(row=>row.code&&row.code.length>=6&&row.code.length<=32);
-  let codes=mergeCodes([apiCodes,kingshotPageCodes,adminCodes]).filter(item=>!suppressedCodes.has(String(item.code||"").trim().toUpperCase()));
+  // Discovery is intentionally restricted to the two official Kingshot.net endpoints.
+  // Admin records remain available only for suppression and existing validation metadata.
+  const adminCodes=[];
+  let codes=mergeCodes([apiCodes,kingshotPageCodes]).filter(item=>!suppressedCodes.has(String(item.code||"").trim().toUpperCase()));
   if(!codes.length)throw Error("Kingshot gift-code sources returned no active codes.");
   const codesDiscoveredAt=Date.now();
   console.log("Kingshot auto feed:",{apiActive:data?.data?.activeCount??null,apiCodes:apiCodes.map(x=>x.code),kingshotPageCodes:kingshotPageCodes.map(x=>x.code),adminCodes:adminCodes.map(x=>x.code),merged:codes.map(x=>x.code)});
@@ -652,63 +648,23 @@ export default async function handler(req,res){
   const apiCandidateKeys=new Set(apiCodes.map(item=>String(item.code||"").trim().toUpperCase()));
   const pageCandidateKeys=new Set(kingshotPageCodes.map(item=>String(item.code||"").trim().toUpperCase()));
 
-  const pendingCodeRows=persistedCodeRows
-   .filter(r=>r&&r.validation_status==="pending"&&r.suppressed!==true)
-   .map(r=>({code:String(r.code||"").trim()}))
-   .filter(r=>r.code);
-  const candidateAudit=pendingCodeRows.map(({code})=>{
-   const codeKey=code.toUpperCase();
-   const evidence=activeCodes.find(c=>c.code.toUpperCase()===codeKey);
-   const matchedFirstPartyApiAndPage=apiCandidateKeys.has(codeKey)&&pageCandidateKeys.has(codeKey);
-   const eligible=Boolean(evidence&&isCanaryEligibleGiftCodeCandidate(evidence,matchedFirstPartyApiAndPage)&&!expiredCodes.has(codeKey));
-   const reasons=[];
-   if(!evidence)reasons.push(expiredCodes.has(codeKey)?"EXPIRED_OR_EXCLUDED":"NOT_IN_CURRENT_ACTIVE_FEED");
-   else {
-    if(expiredCodes.has(codeKey))reasons.push("EXPIRED");
-    if(!isCredibleGiftCodeCandidate(evidence)&&!matchedFirstPartyApiAndPage)reasons.push("LOW_CONFIDENCE_NEEDS_INDEPENDENT_SOURCE");
-    if(!isCredibleGiftCodeCandidate(evidence)&&matchedFirstPartyApiAndPage)reasons.push("FIRST_PARTY_MATCH_CANARY_ELIGIBLE");
-   }
-   return {code,sources:evidence?.sources||[],confidence:evidence?.confidence??null,confidenceTier:evidence?.confidenceTier||"unknown",apiMatch:apiCandidateKeys.has(codeKey),activePageMatch:pageCandidateKeys.has(codeKey),eligible,reasons:eligible?["ELIGIBLE"]:reasons};
-  });
-  const pendingCandidates=candidateAudit.filter(row=>row.eligible).map(row=>({code:row.code}));
-  console.log("Kingshot gift-code validation gate:",{pending:pendingCodeRows.length,eligible:pendingCandidates.length,dispatchPlayers:dispatchPlayers.length,candidates:candidateAudit.slice(0,40)});
-  const canaryCandidate=pendingCandidates[0];let verificationAttempt=null;
-  if(canaryCandidate&&dispatchPlayers.length){
-   for(const player of dispatchPlayers){
-    try{
-     const history=await rpc("list_kingshot_player_redemptions",{p_player_id:player.player_id});
-     const handled=getHandledGiftCodes(history);
-     if(handled.has(canaryCandidate.code.toUpperCase()))continue;
-     await journalStart(player.player_id,canaryCandidate.code);
-     let claim;
-     try{claim=await rpc("claim_kingshot_redemption",{p_player_id:player.player_id,p_code:canaryCandidate.code});}
-     catch(error){await journalCancel(player.player_id,canaryCandidate.code,"Supabase canary claim unavailable: "+String(error?.message||error).slice(0,180));throw error;}
-     if(!claim){await journalCancel(player.player_id,canaryCandidate.code,"Supabase canary claim declined");continue;}
-     let result;
-     try{result=await redeemKingshot({playerId:player.player_id,code:canaryCandidate.code,kid:player.kingdom_id});}
-     catch(error){
-      await neonJournal?.query("update public.redemption_journal set state='needs_review',last_error=$3,updated_at=now() where player_id=$1 and upper(gift_code)=upper($2) and state='in_flight'",[String(player.player_id),String(canaryCandidate.code),String(error?.message||error).slice(0,240)]).catch(()=>{});
-      throw error;
-     }
-     const status=String(result?.status||"ERROR").toUpperCase(),message=String(result?.message||result?.error||"");
-     const canaryMessage=(result?.errorCategory?"["+result.errorCategory+"] ":"")+message;
-     try{await journalResult(player.player_id,canaryCandidate.code,status,result?.errCode??null,canaryMessage);}
-     catch(error){console.error("Canary Neon result journal write failed; falling back to Supabase history:",String(error?.message||error).slice(0,240));}
-     await recordRedemptionSafely(rpc,{p_player_id:player.player_id,p_code:canaryCandidate.code,p_status:status,p_err_code:result?.errCode??null,p_message:canaryMessage});
-     await neonJournal?.query("update public.redemption_journal set state='supabase_recorded',attempts=attempts+1,last_error=null,updated_at=now() where player_id=$1 and upper(gift_code)=upper($2) and state='result_recorded'",[String(player.player_id),String(canaryCandidate.code)]).catch(error=>console.error("Canary Neon journal acknowledgement failed:",error?.message||error));
-     // This response identifies an account eligibility restriction, not an invalid code.
-     // Treat only this exact response as verification success so the code is released to all players.
-     let validationStatus="pending";if(["SUCCESS","RECEIVED","SAME TYPE EXCHANGE","RECHARGE_MONEY ERROR"].includes(status))validationStatus="verified";else if(status==="CDK_NOT_FOUND")validationStatus="invalid";else if(status==="TIME_ERROR")validationStatus="expired";else if(status==="USAGE_LIMIT")validationStatus="usage_limit";
-     await rpc("set_kingshot_gift_code_validation",{p_code:canaryCandidate.code,p_status:validationStatus,p_player_id:String(player.player_id),p_message:message||status});
-     verificationAttempt={code:canaryCandidate.code,status,validationStatus,playerId:String(player.player_id)};
-     await sendDiscordEvent(buildGiftCodeValidationAlert({code:canaryCandidate.code,status,validationStatus,message:message||"",errorCategory:result?.errorCategory||null}),{botAlert:true});break;
-    }catch(error){const errorMessage=String(error?.message||error).slice(0,240);const errorCategory=classifyScraperError(error);console.error("Gift-code verification attempt failed:",canaryCandidate.code,errorMessage);verificationAttempt={code:canaryCandidate.code,status:"VERIFICATION_ERROR",validationStatus:"pending",errorCategory};await sendDiscordEvent(buildGiftCodeVerificationErrorAlert({code:canaryCandidate.code,errorCategory,message:errorMessage}),{botAlert:true});break;}
-   }
-  }
-  currentStage="gift-code-validation-gate";
+  // Verification is advisory only. Codes discovered from Kingshot.net remain
+  // eligible for the normal redemption queue regardless of validation_status.
+  // The game's response is recorded per player; it does not gate dispatch.
   const latestCodeRows=await rpc("list_kingshot_admin_gift_codes",{});
-  const verifiedCodeSet=new Set((Array.isArray(latestCodeRows)?latestCodeRows:[]).filter(r=>r?.validation_status==="verified"&&r?.active!==false&&r?.suppressed!==true).map(r=>String(r?.code||"").trim().toUpperCase()));
-  activeCodes=activeCodes.filter(c=>verifiedCodeSet.has(c.code.toUpperCase()));
+  const validationRowsByCode=new Map((Array.isArray(latestCodeRows)?latestCodeRows:[]).map(row=>[String(row?.code||"").trim().toUpperCase(),row]));
+  const verificationAudit=activeCodes.map(item=>{
+   const row=validationRowsByCode.get(String(item.code||"").trim().toUpperCase());
+   return {code:item.code,validationStatus:row?.validation_status||"pending",active:row?.active??null,suppressed:row?.suppressed===true};
+  });
+  console.log("Kingshot gift-code verification advisory:",{
+   discovered:activeCodes.length,
+   verified:verificationAudit.filter(row=>row.validationStatus==="verified").length,
+   pending:verificationAudit.filter(row=>row.validationStatus==="pending").length,
+   other:verificationAudit.filter(row=>!["verified","pending"].includes(row.validationStatus)).length,
+   dispatchEligible:activeCodes.length,
+   codes:verificationAudit.slice(0,40)
+  });
   // Advisory-only second pass for the Discord worker summary. This rechecks the
   // already-selected eligible set against the same read-only snapshot; it never
   // mutates eligibility or feeds back into the redemption selection.
@@ -729,7 +685,7 @@ export default async function handler(req,res){
    }
    return {checked:activeCodes.length,consistent,review,expiryKnown};
   })();
-  const newlyAvailableCodes=activeCodes.filter(item=>verifiedCodeSet.has(item.code.toUpperCase())&&!previouslyVerifiedCodes.has(item.code.toUpperCase()));
+  const newlyAvailableCodes=activeCodes.filter(item=>!previouslyVerifiedCodes.has(item.code.toUpperCase()));
   if(newlyAvailableCodes.length){
    // Stable tags make repeat delivery of the same verified batch replace, rather than stack, alerts.
    const uniqueCodes=[...new Map(newlyAvailableCodes.map(item=>[String(item.code).trim().toUpperCase(),item])).values()];
@@ -783,7 +739,7 @@ export default async function handler(req,res){
     const response=await shardService.fetch(new Request("https://shard.internal/api/kingshot-auto?mode=worker&slot="+workerIndex,{
      method:"POST",
      headers:childHeaders,
-     body:JSON.stringify({codes:activeCodes,players:assigned,cycleBucket,verifiedCodes:true,banFilterApplied:true}),
+     body:JSON.stringify({codes:activeCodes,players:assigned,verifiedCodes:true,banFilterApplied:true}),
      signal:AbortSignal.timeout(WORKER_MAX_RUNTIME_MS+15000)
     }));
     const payload=await response.json().catch(()=>({}));
