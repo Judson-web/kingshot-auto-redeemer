@@ -1,5 +1,5 @@
-const CACHE="kingshot-shell-v11";
-const SHELL=["/","/auto","/alliance-registration","/manual","/redeem","/info","/profile","/site.webmanifest","/favicon.svg","/icons/icon-192.svg","/icons/icon-512.svg"];
+const CACHE="kingshot-shell-v12";
+const SHELL=["/","/auto","/alliance-registration","/manual","/redeem","/info","/profile","/site.webmanifest?v=12","/favicon.svg?v=12","/icons/icon-192.svg?v=12","/icons/icon-512.svg?v=12"];
 self.addEventListener("install",event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()))});
 function safeImage(value){if(typeof value!=="string"||value.length>2048)return"";try{const url=new URL(value);return url.protocol==="https:"&&!url.username&&!url.password?url.href:""}catch{return""}}
