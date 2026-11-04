@@ -496,12 +496,15 @@ assertCheck("Public and administrator push subscriptions are audience-separated"
  bansMigration.includes("audience text not null default 'public'"));
 
 const discordIdentity = read("lib/discord-identity.js");
+assertCheck("Browser-facing Supabase Auth never falls back to the service-role key",
+  developerAuth.includes('const AUTH_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || "";') &&
+  !developerAuth.includes("const AUTH_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || KEY;"));
 assertCheck("Privileged owner checks use only verified Discord identity data",
  discordIdentity.includes("function isDiscordOwner") &&
  discordIdentity.includes("function verifiedDiscordId") &&
  !/user\?\.user_metadata\?\.(?:provider_id|sub|id)/.test(read("lib/admin-data.js")) &&
  !/user\?\.user_metadata\?\.(?:provider_id|sub|id)/.test(read("api/custom-message.js")) &&
- developerAuth.includes('import { isDiscordOwner, verifiedDiscordId } from "./discord-identity.js"'));
+ developerAuth.includes('import { discordAccountRole, isDiscordOwner, verifiedDiscordId } from "./discord-identity.js"'));
 assertCheck("Sensitive routes rate-limit before external authorization work",
  developerAuth.includes("protectedAuthActions.has(action)") &&
  read("lib/admin-data.js").includes('rateLimit(req,res,"admin-data",60,60000)') &&
