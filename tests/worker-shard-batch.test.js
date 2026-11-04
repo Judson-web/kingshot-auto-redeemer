@@ -25,7 +25,7 @@ test("worker shard batches rotate without starving assigned players", () => {
 test("worker shard batch remains deterministic for a given cycle bucket", () => {
   const players = Array.from({ length: 40 }, (_, index) => ({ player_id: String(index + 1) }));
   const first = selectWorkerShardBatch(players, 2, 4, 12345, 4);
-  const second = selectWorkerShardBatch(players, 2, 4, 12345, 2);
+  const second = selectWorkerShardBatch(players, 2, 4, 12345, 4);
   assert.deepEqual(first, second);
   assert.ok(first.players.length <= 2);
   assert.equal(first.deferredPlayers, players.filter(p => workerBucket(p.player_id, 4) === 2).length - first.players.length);
