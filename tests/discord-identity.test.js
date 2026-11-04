@@ -29,4 +29,5 @@ test("account role reflects verified Discord ownership and active developer keys
   assert.equal(discordAccountRole(ordinaryUser, ownerId, 0), "user");
   assert.equal(discordAccountRole(ordinaryUser, ownerId, -1), "user");
   assert.equal(discordAccountRole({ user_metadata: { provider_id: ownerId } }, ownerId, 0), "user");
+  assert.equal(discordAccountRole({ app_metadata: { providers: ["github"] } }, ownerId, 2), "user");
 });
