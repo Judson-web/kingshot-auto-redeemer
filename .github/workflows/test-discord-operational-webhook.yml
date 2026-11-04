@@ -15,28 +15,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Send one-player diagnostic summary through the production logging path
+      - name: Send a protected direct test event through the production Cloudflare runtime
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           set -euo pipefail
           test -n "$CRON_SECRET"
-          URL="https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/api/kingshot-auto?mode=kingdom-check&batch-size=1&notify-summary=true"
-          for attempt in $(seq 1 10); do
-            BODY="$(curl --fail-with-body --silent --show-error \
-              --request POST \
-              --header "Authorization: Bearer $CRON_SECRET" \
-              "$URL")"
-            printf '%s\n' "$BODY" | jq '{ok, mode, players, checked, changed, stale, errors, deferred, validated, skipped, reason}'
-            SKIPPED="$(printf '%s' "$BODY" | jq -r '.skipped // false')"
-            if [ "$SKIPPED" != "true" ]; then
-              printf '%s' "$BODY" | jq -e '.ok == true and .mode == "kingdom-check"' >/dev/null
-              exit 0
-            fi
-            if [ "$attempt" -lt 10 ]; then
-              echo "Coordinator currently owns the worker lock; waiting 8 seconds before one bounded retry ($attempt/10)."
-              sleep 8
-            fi
-          done
-          echo "Could not acquire the diagnostic lock; no test event was sent."
-          exit 1
+          URL="https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/api/kingshot-auto?mode=discord-webhook-test"
+          BODY="$(curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            "$URL")"
+          printf '%s\n' "$BODY" | jq '{ok, mode, delivered}'
+          printf '%s' "$BODY" | jq -e '.ok == true and .mode == "discord-webhook-test" and .delivered == true' >/dev/null
