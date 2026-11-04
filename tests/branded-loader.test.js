@@ -9,12 +9,10 @@ test("workspace and preflight use one permanent Kingshot 3D loader",async()=>{
  assert.ok(css.includes("preserve-3d"));assert.ok(css.includes("rotateX(68deg)"));assert.ok(css.includes("prefers-reduced-motion"));
  assert.ok(!loader.includes("isHalloweenThemeActive"));
 });
-test("Halloween countdown is removed while seasonal decoration stays separate from the loader",async()=>{
- const main=await read("src/main.jsx"),overlay=await read("src/components/SeasonalHalloweenOverlay.jsx"),loader=await read("src/components/PumpkinLoader.jsx");
- assert.ok(main.includes("SeasonalHalloweenOverlay"));
- assert.ok(!overlay.includes("ks-halloween-countdown"));
- assert.ok(!overlay.includes("HALLOWEEN ENDS IN"));
- assert.ok(!overlay.includes('role="timer"'));
+test("Halloween effects and seasonal branding are removed from the app shell",async()=>{
+ const main=await read("src/main.jsx"),loader=await read("src/components/PumpkinLoader.jsx");
+ assert.ok(!main.includes("SeasonalHalloweenOverlay"));
+ assert.ok(!main.includes("HALLOWEEN"));
  assert.ok(!loader.includes("PumpkinMark"));assert.ok(!loader.includes("seasonal-theme"));
 });
 test("registration milestone countdown is removed from the public header",async()=>{
