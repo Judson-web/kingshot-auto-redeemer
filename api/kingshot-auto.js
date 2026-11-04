@@ -597,6 +597,24 @@ export default async function handler(req,res){
    else validPlayerMap.set(id,result.player);
   }
   const validPlayers=[...validPlayerMap.values()];
+  // Take one fail-closed ban snapshot per coordinator cycle before any canary
+  // or shard work, instead of four identical full-table scans inside shards.
+  currentStage="worker-ban-snapshot";
+  const bannedPlayerIds=new Set();
+  const banPageSize=1000;
+  for(let offset=0;;offset+=banPageSize){
+   const bansResponse=await fetch(SUPABASE_URL+"/rest/v1/kingshot_player_bans?select=player_id&order=player_id.asc",{
+    headers:{"apikey":SUPABASE_KEY,"authorization":"Bearer "+SUPABASE_KEY,"Range":offset+"-"+(offset+banPageSize-1)},
+    signal:AbortSignal.timeout(10000)
+   });
+   if(!bansResponse.ok)throw Error("Unable to verify player bans before shard dispatch (HTTP "+bansResponse.status+").");
+   const bansRows=await bansResponse.json();
+   if(!Array.isArray(bansRows))throw Error("Unable to verify player bans before shard dispatch: invalid response.");
+   for(const row of bansRows){const id=String(row?.player_id||"").trim();if(id)bannedPlayerIds.add(id);}
+   if(bansRows.length<banPageSize)break;
+  }
+  const dispatchPlayers=validPlayers.filter(player=>player?.enabled!==false&&!bannedPlayerIds.has(String(player?.player_id||"").trim()));
+  const bannedPlayersFiltered=validPlayers.length-dispatchPlayers.length;
   console.log("Kingshot kingdom check:",{
    automaticChecksEnabled:KINGDOM_AUTO_CHECK_ENABLED,
    players:list.length,
@@ -622,8 +640,8 @@ export default async function handler(req,res){
     return Boolean(r.code&&evidence&&isCanaryEligibleGiftCodeCandidate(evidence,matchedFirstPartyApiAndPage)&&!expiredCodes.has(codeKey));
    });
   const canaryCandidate=pendingCandidates[0];let verificationAttempt=null;
-  if(canaryCandidate&&validPlayers.length){
-   for(const player of validPlayers){
+  if(canaryCandidate&&dispatchPlayers.length){
+   for(const player of dispatchPlayers){
     try{
      const history=await rpc("list_kingshot_player_redemptions",{p_player_id:player.player_id});
      const handled=getHandledGiftCodes(history);
@@ -700,24 +718,7 @@ export default async function handler(req,res){
   else if(schedulerToken)childHeaders["x-kingshot-scheduler-token"]=String(schedulerToken);
   else throw Error("No internal worker authorization is configured.");
 
-  // Take one fail-closed ban snapshot per coordinator cycle instead of
-  // four identical full-table scans inside the shard Workers.
-  currentStage="worker-ban-snapshot";
-  const bannedPlayerIds=new Set();
-  const banPageSize=1000;
-  for(let offset=0;;offset+=banPageSize){
-   const bansResponse=await fetch(SUPABASE_URL+"/rest/v1/kingshot_player_bans?select=player_id&order=player_id.asc",{
-    headers:{"apikey":SUPABASE_KEY,"authorization":"Bearer "+SUPABASE_KEY,"Range":offset+"-"+(offset+banPageSize-1)},
-    signal:AbortSignal.timeout(10000)
-   });
-   if(!bansResponse.ok)throw Error("Unable to verify player bans before shard dispatch (HTTP "+bansResponse.status+").");
-   const bansRows=await bansResponse.json();
-   if(!Array.isArray(bansRows))throw Error("Unable to verify player bans before shard dispatch: invalid response.");
-   for(const row of bansRows){const id=String(row?.player_id||"").trim();if(id)bannedPlayerIds.add(id);}
-   if(bansRows.length<banPageSize)break;
-  }
-  const dispatchPlayers=validPlayers.filter(player=>player?.enabled!==false&&!bannedPlayerIds.has(String(player?.player_id||"").trim()));
-  const bannedPlayersFiltered=validPlayers.length-dispatchPlayers.length;
+
   const cycleBucket=Math.floor(cycleStartedAt/60000);
   const assignments=Array.from({length:WORKER_COUNT},()=>[]);
   for(const player of dispatchPlayers)assignments[workerBucket(player?.player_id,WORKER_COUNT)].push(player);
