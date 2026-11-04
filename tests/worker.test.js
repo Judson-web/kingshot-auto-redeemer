@@ -115,7 +115,7 @@ test("Cloudflare redemption shards process at most two players sequentially behi
   assert.ok(autoSource.includes("const PLAYER_CONCURRENCY=1;"));
   assert.ok(workerSource.includes("const safeConcurrency = Math.min(2"));
   assert.ok(workerSource.includes("safeConcurrency, { deadline }"));
-  assert.ok(autoSource.includes("kingshot_reserve_redemption_request"));
+  assert.ok(autoSource.includes("reserveNeonRedemptionRequest"));
   assert.ok(autoSource.includes("kingshot_set_source_cooldown"));
 });
 
