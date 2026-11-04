@@ -1,0 +1,30 @@
+name: Test Discord operational webhook
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discord-operational-webhook-test
+  cancel-in-progress: false
+
+jobs:
+  send-safe-test-event:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Send one-player diagnostic summary through the production logging path
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          test -n "$CRON_SECRET"
+          URL="https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/api/kingshot-auto?mode=kingdom-check&batch-size=1&notify-summary=true"
+          BODY="$(curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            "$URL")"
+          printf '%s\n' "$BODY" | jq '{ok, mode, players, checked, changed, stale, errors, deferred, validated, skipped, reason}'
+          printf '%s' "$BODY" | jq -e '.ok == true and .mode == "kingdom-check" and .skipped != true' >/dev/null
