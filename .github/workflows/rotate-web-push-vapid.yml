@@ -1,0 +1,61 @@
+name: Rotate Web Push VAPID configuration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/rotate-web-push-vapid.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rotate:
+    name: Generate and bind a fresh VAPID key pair
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Generate fresh P-256 VAPID keys
+        id: keys
+        shell: bash
+        run: |
+          set +x
+          node --input-type=commonjs <<'NODE' >> "$GITHUB_ENV"
+          const { generateKeyPairSync } = require("node:crypto");
+          const { publicKey, privateKey } = generateKeyPairSync("ec", {
+            namedCurve: "prime256v1",
+            publicKeyEncoding: { format: "jwk" },
+            privateKeyEncoding: { format: "jwk" }
+          });
+          const decode = value => Buffer.from(value, "base64url");
+          const publicBytes = Buffer.concat([
+            Buffer.from([4]), decode(publicKey.x), decode(publicKey.y)
+          ]);
+          console.log("VAPID_PUBLIC_KEY=" + publicBytes.toString("base64url"));
+          console.log("VAPID_PRIVATE_KEY=" + privateKey.d);
+          NODE
+
+      - name: Replace Cloudflare Web Push secrets
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: b45bd4f50a1e0280366712348fe2055a
+          VAPID_PUBLIC_KEY: ${{ env.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ env.VAPID_PRIVATE_KEY }}
+        run: |
+          set +x
+          set -euo pipefail
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN is missing."
+            exit 1
+          fi
+          printf '%s' "$VAPID_PUBLIC_KEY" | npx --yes wrangler@4 secret put WEB_PUSH_VAPID_PUBLIC_KEY --name kingshot-autoredeemer-edge
+          printf '%s' "$VAPID_PRIVATE_KEY" | npx --yes wrangler@4 secret put WEB_PUSH_VAPID_PRIVATE_KEY --name kingshot-autoredeemer-edge
+          printf '%s' 'https://app.ks-redeemer.workers.dev/' | npx --yes wrangler@4 secret put WEB_PUSH_VAPID_SUBJECT --name kingshot-autoredeemer-edge
+          echo "Fresh VAPID key pair bound to the production Cloudflare Worker. Values were not logged."
