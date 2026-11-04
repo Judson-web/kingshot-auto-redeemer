@@ -70,7 +70,7 @@ test("main and private shard Workers share the same automatic Kingdom Check swit
 
 test("hybrid distribution keeps four bounded shards and does not add a polling trigger", () => {
   assert.match(autoSource, /const WORKER_COUNT=4/);
-  assert.match(autoSource, /const MAX_PLAYERS_PER_SHARD=2/);
+  assert.match(autoSource, /const MAX_PLAYERS_PER_SHARD=4/);
   assert.match(autoSource, /Promise\.all\(assignments\.map/);
   assert.doesNotMatch(autoSource, /setInterval\s*\(/);
 });
@@ -147,8 +147,8 @@ test("zero-attempt cycles explain when verified codes are already handled or una
 
 
 
-test("Cloudflare redemption shards process at most two players sequentially behind shared quota reservations", () => {
-  assert.ok(autoSource.includes("const MAX_PLAYERS_PER_SHARD=2;"));
+test("Cloudflare redemption shards process at most four players sequentially behind shared quota reservations", () => {
+  assert.ok(autoSource.includes("const MAX_PLAYERS_PER_SHARD=4;"));
   assert.ok(autoSource.includes("const PLAYER_CONCURRENCY=1;"));
   assert.ok(workerSource.includes("const safeConcurrency = Math.min(2"));
   assert.ok(workerSource.includes("safeConcurrency, { deadline }"));

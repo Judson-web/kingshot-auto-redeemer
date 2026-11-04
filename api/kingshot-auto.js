@@ -67,10 +67,11 @@ async function rpc(name,body){
 import {extractPageCodes, mergeCodes, normalizeCodes, isCredibleGiftCodeCandidate, isCanaryEligibleGiftCodeCandidate} from "../internal/kingshot/gift-codes.js";
 import { getHandledGiftCodes, selectNextOutstandingCode } from "../internal/kingshot/redemption-history.js";
 const WORKER_COUNT=4;
-// Four durable shards × two concurrent redemptions keep each shard small while bounding upstream pressure.
+// Four durable shards process bounded four-player pages. Per-player execution stays serial, while the shared Neon reservation preserves provider-wide pacing.
 const PLAYER_CONCURRENCY=1;
-// Cloudflare Free has a strict per-invocation subrequest budget. Each shard rotates through a tiny player slice per minute.
-const MAX_PLAYERS_PER_SHARD=2;
+// Keep each invocation below the free-tier subrequest ceiling with headroom for recovery, persistence, and provider calls.
+// Four players per shard doubles roster throughput without parallelizing per-player redemption side effects.
+const MAX_PLAYERS_PER_SHARD=4;
 const KINGDOM_VALIDATION_CONCURRENCY=1;
 const KINGDOM_SCHEDULED_VALIDATION_BATCH_SIZE=2;
 // Temporary operational switch: disable background Kingdom Check without disabling redemption.
