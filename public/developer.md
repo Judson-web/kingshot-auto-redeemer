@@ -1,8 +1,8 @@
 # Kingshot Auto Redeemer — Developer API
 
-Interactive documentation: https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/developer
+Interactive documentation: https://app.ks-redeemer.workers.dev/developer
 
-Current API version: **V4**. Full V4 reference: https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/developer-v4.md. This crawler-friendly reference describes integration routes but does not provide credentials.
+Current API version: **V4**. Full V4 reference: https://app.ks-redeemer.workers.dev/developer-v4.md. This crawler-friendly reference describes integration routes but does not provide credentials.
 
 ## Response attribution
 
@@ -22,11 +22,11 @@ Send an active developer key over HTTPS in the Authorization header:
 
     Authorization: Bearer YOUR_API_KEY
 
-Create and revoke keys at https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/developer. The key is shown only once and is stored as a SHA-256 hash. Keep keys server-side, never in browser JavaScript, URLs, logs or public repositories.
+Create and revoke keys at https://app.ks-redeemer.workers.dev/developer. The key is shown only once and is stored as a SHA-256 hash. Keep keys server-side, never in browser JavaScript, URLs, logs or public repositories.
 
 ## V4 current API
 
-V4 is the recommended version for new integrations. Full documentation: https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/developer-v4.md
+V4 is the recommended version for new integrations. Full documentation: https://app.ks-redeemer.workers.dev/developer-v4.md
 
 ### Player lookup
 
@@ -35,7 +35,7 @@ V4 is the recommended version for new integrations. Full documentation: https://
 - Auth: developer Bearer key
 - playerId: string of 5–20 digits
 
-    curl "https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/api/v4/players/43180889" \
+    curl "https://app.ks-redeemer.workers.dev/api/v4/players/43180889" \
       -H "Authorization: Bearer $KINGSHOT_API_KEY"
 
 ### Manual redemption
@@ -46,7 +46,7 @@ V4 is the recommended version for new integrations. Full documentation: https://
 - Content-Type: application/json
 - Body: exactly playerId, code and kid, all strings
 
-    curl -X POST "https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/api/v4/redemptions" \
+    curl -X POST "https://app.ks-redeemer.workers.dev/api/v4/redemptions" \
       -H "Authorization: Bearer $KINGSHOT_API_KEY" \
       -H "Content-Type: application/json" \
       -H "Idempotency-Key: redeem-43180889-example-001" \
@@ -93,7 +93,7 @@ On HTTP 429, honor Retry-After and use bounded backoff. For a redemption, send a
 - playerId: string of 5–20 digits
 - Limits: 60 requests/minute and 1,000 requests/day per key, plus 120 requests/minute per IP
 
-    curl "https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/api/v3/players/43180889" \
+    curl "https://app.ks-redeemer.workers.dev/api/v3/players/43180889" \
       -H "Authorization: Bearer $KINGSHOT_API_KEY"
 
 Success responses contain data and meta. Metadata includes apiVersion, requestId, timestamp, rateLimit and provider freshness fields fetchedAt, providerFresh, providerAgeSeconds and stale. Player fields may be null. Reads use bounded timeouts and at most one retry for transient network/5xx failures; not-found, provider rate-limit and authentication/configuration errors are not automatically retried.
@@ -106,7 +106,7 @@ Success responses contain data and meta. Metadata includes apiVersion, requestId
 - Content-Type: application/json
 - Body: exactly playerId, code and kid as strings
 
-    curl -X POST "https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/api/v3/redemptions" \
+    curl -X POST "https://app.ks-redeemer.workers.dev/api/v3/redemptions" \
       -H "Authorization: Bearer $KINGSHOT_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{"playerId":"43180889","code":"EXAMPLECODE","kid":"1125"}'
@@ -149,7 +149,7 @@ Built and maintained by **Judson** (`@judson00713` on Discord). For API integrat
 
 For account, registration, or redemption issues, use the in-app Support Centre so the request can be followed in its own conversation. Never send passwords, API keys, session tokens, or sign-in codes through Discord.
 
-OpenAPI 3.1: https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/openapi.json
+OpenAPI 3.1: https://app.ks-redeemer.workers.dev/openapi.json
 Developer contact: https://discord.com/users/871756466900598815
-Privacy: https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/privacy
-Terms: https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/terms
+Privacy: https://app.ks-redeemer.workers.dev/privacy
+Terms: https://app.ks-redeemer.workers.dev/terms
