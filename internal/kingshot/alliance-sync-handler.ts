@@ -179,13 +179,11 @@ export default async function handler(req:Req,res:Res){
   if(action==='progress'){
    const configs=await selectRows('alliance_sync_config',`owner_user_id=eq.${enc(ownerId)}&kingdom_id=eq.${enc(kingdom)}&alliance_tag=eq.${enc(tag)}&select=id,alliance_name,alliance_tag,kingdom_id,enabled,last_status,lease_expires_at,last_roster_count&limit=1`);
    if(!Array.isArray(configs)||!configs.length)return res.status(200).json({active:false});const c=configs[0];
-   const runs=await selectRows('alliance_sync_runs',`config_id=eq.${enc(c.id)}&order=created_at.desc&select=id,status,created_at,finished_at,roster_count,added_count,skipped_count,error_code&limit=1`);
    const leaseActive=Boolean(c.enabled&&c.lease_expires_at&&new Date(c.lease_expires_at).getTime()>Date.now());
+   if(c.enabled&&c.last_status==='pending')return res.status(200).json({active:true,allianceTag:c.alliance_tag,allianceName:c.alliance_name||c.alliance_tag,kingdomId:c.kingdom_id,processedCount:0,totalCount:Number(c.last_roster_count||0),currentPlayerId:'',status:'pending'});
+   const runs=await selectRows('alliance_sync_runs',`config_id=eq.${enc(c.id)}&order=created_at.desc&select=id,status,created_at,finished_at,roster_count,added_count,skipped_count,error_code&limit=1`);
    if(!Array.isArray(runs)||!runs.length){
-    // A newly registered config is already durable before the worker's next
-    // scheduled wake-up. Expose this queued state so the page keeps polling.
-    const queued=Boolean(c.enabled&&(c.last_status==='pending'||(c.last_status==='running'&&leaseActive)));
-    if(!queued)return res.status(200).json({active:false});
+    if(!leaseActive)return res.status(200).json({active:false});
     return res.status(200).json({active:true,allianceTag:c.alliance_tag,allianceName:c.alliance_name||c.alliance_tag,kingdomId:c.kingdom_id,processedCount:0,totalCount:Number(c.last_roster_count||0),currentPlayerId:'',status:c.last_status});
    }
    const run=runs[0];
