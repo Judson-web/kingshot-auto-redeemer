@@ -40,3 +40,30 @@ export function selectNextOutstandingCode<T extends { code?: unknown }>(
     return Boolean(code) && !handledCodes.has(code.toUpperCase());
   });
 }
+
+
+// Pre-filter the roster using one bulk history snapshot before shard batching.
+// Only terminal/handled player-code states are excluded; transient failures stay
+// eligible for retry. The same snapshot is passed to the shard to avoid a second
+// per-player history read and keep the decision consistent within the cycle.
+export function filterPlayersWithOutstandingCodes(players, codes, historyRows) {
+  const historiesByPlayer = new Map();
+  for (const row of Array.isArray(historyRows) ? historyRows : []) {
+    const id = String(row?.player_id ?? "").trim();
+    if (!id) continue;
+    if (!historiesByPlayer.has(id)) historiesByPlayer.set(id, []);
+    const { player_id, ...history } = row;
+    historiesByPlayer.get(id).push(history);
+  }
+
+  const eligiblePlayers = [];
+  const alreadyHandledPlayers = [];
+  for (const player of Array.isArray(players) ? players : []) {
+    const id = String(player?.player_id ?? "").trim();
+    const handled = getHandledGiftCodes(historiesByPlayer.get(id) || []);
+    if (selectNextOutstandingCode(Array.isArray(codes) ? codes : [], handled)) eligiblePlayers.push(player);
+    else alreadyHandledPlayers.push(player);
+  }
+
+  return { eligiblePlayers, alreadyHandledPlayers, historiesByPlayer };
+}
