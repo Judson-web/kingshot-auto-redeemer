@@ -1,8 +1,17 @@
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { isPublicWebhookAddress } from "../lib/api-v4/webhooks.ts";
 import webhookWorker from "../lib/api-v4/webhooks.ts";
 import gatewayRelay from "../workers/webhook-egress/src/index.ts";
+
+test("production Worker binds outbound webhook traffic through Cloudflare Gateway VPC", async () => {
+ const config = await readFile(new URL("../wrangler.jsonc", import.meta.url), "utf8");
+ assert.match(config, /"vpc_networks"\s*:\s*\[/);
+ assert.match(config, /"binding"\s*:\s*"EGRESS"/);
+ assert.match(config, /"network_id"\s*:\s*"cf1:network"/);
+ assert.match(config, /"remote"\s*:\s*true/);
+});
 
 test("webhook egress rejects IPv4 special-use and private destinations",()=>{
  for(const address of ["0.0.0.0","10.1.2.3","100.64.0.1","127.0.0.1","169.254.169.254","172.16.0.1","192.0.2.1","192.31.196.1","192.52.193.1","192.168.1.1","192.175.48.1","198.18.0.1","198.51.100.2","203.0.113.4","224.0.0.1","240.0.0.1"])
