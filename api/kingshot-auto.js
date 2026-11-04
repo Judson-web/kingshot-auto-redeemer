@@ -65,13 +65,13 @@ async function rpc(name,body){
 }
 
 import {extractPageCodes, mergeCodes, normalizeCodes, isCredibleGiftCodeCandidate, isCanaryEligibleGiftCodeCandidate} from "../internal/kingshot/gift-codes.js";
-import { getHandledGiftCodes, selectNextOutstandingCode } from "../internal/kingshot/redemption-history.js";
+import { getHandledGiftCodes, selectNextOutstandingCode, filterPlayersWithOutstandingCodes } from "../internal/kingshot/redemption-history.js";
 const WORKER_COUNT=4;
-// Four durable shards process bounded four-player pages. Per-player execution stays serial, while the shared Neon reservation preserves provider-wide pacing.
+// Four durable shards process bounded eight-player pages. Handled history is bulk-filtered before batching; per-player execution stays serial.
 const PLAYER_CONCURRENCY=1;
 // Keep each invocation below the free-tier subrequest ceiling with headroom for recovery, persistence, and provider calls.
-// Four players per shard doubles roster throughput without parallelizing per-player redemption side effects.
-const MAX_PLAYERS_PER_SHARD=4;
+// Eight players per shard increases roster throughput while preserving serial redemption and shared upstream pacing.
+const MAX_PLAYERS_PER_SHARD=8;
 const KINGDOM_VALIDATION_CONCURRENCY=1;
 const KINGDOM_SCHEDULED_VALIDATION_BATCH_SIZE=2;
 // Temporary operational switch: disable background Kingdom Check without disabling redemption.
@@ -844,7 +844,7 @@ export default async function handler(req,res){
    :validPlayers.length>0&&totals.alreadyHandled>=validPlayers.length*activeCodes.length?"ALL_ELIGIBLE_CODES_ALREADY_HANDLED"
    :"NO_REDEMPTION_ATTEMPTS_RECORDED";
   console.log("Kingshot auto worker pool:",{workers:WORKER_COUNT,assignments:assignments.map(x=>x.length),workerFailures:workerFailures.length,attempted:totals.attempted,success:totals.success,noWorkReason,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures});
-  const summary={source:"kingshot.net",sources:sourceResults.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,dispatchEligiblePlayers:dispatchPlayers.length,excludedPlayersFiltered,noWorkReason,...totals,workerFailures:workerFailures.length,shardFailureDiagnostics,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures,codeTelemetry};
+  const summary={source:"kingshot.net",sources:sourceResults.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,dispatchEligiblePlayers:redemptionEligiblePlayers.length,alreadyHandledPlayersFiltered,excludedPlayersFiltered,noWorkReason,...totals,workerFailures:workerFailures.length,shardFailureDiagnostics,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures,codeTelemetry};
   await rpc("finish_kingshot_worker_run",{p_token:workerToken,p_status:totals.errors||totals.stale||kingdomSummary.errors||kingdomSummary.deferred||workerFailures.length?"COMPLETED_WITH_WARNINGS":"COMPLETED",p_error:null,p_summary:summary}).catch(error=>console.error("Worker state update failed:",error?.message||error));
   const anomalyReasons=[];
   if(totals.errors||workerFailures.length)anomalyReasons.push("worker errors");
