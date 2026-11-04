@@ -47,7 +47,7 @@ test("admin player page never renders empty statistics before a valid player lis
   assert.match(page, /Your administrator session is missing, expired, or does not have permission/);
   assert.match(page, /profile\?returnTo=%2Fadmin%2Fplayers/);
   assert.match(page, /if\(!Array\.isArray\(d\.players\)\|\|!Number\.isFinite\(Number\(d\.totalCount\)\)\)throw Error\("The player database response was incomplete\."/);
-  assert.match(page, /data\.players\.length\?"No players match this filter\."\:"No registered players yet\."/);
+  assert.match(page, /data\.totalCount\?"No players match this search or filter\."\:"No registered players yet\."/);
   assert.match(helper, /status === 401 \|\| status === 403/);
 });
 
