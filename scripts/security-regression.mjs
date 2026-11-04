@@ -115,6 +115,7 @@ const developerAuth=read("lib/developer-auth.ts");
 const profileAuthUi=read("src/ProfileApp.tsx");
 const ownerAuthUi=read("src/PrivateDevApp.tsx");
 const accountState=read("src/shared/account-state.js");
+const nativeRegistration=read("cloudflare/registration.ts");
 const discordInteractions=read("lib/discord-interactions.js");
 const health=read("lib/health.js");
 const logs=read("lib/health.js");
@@ -516,6 +517,12 @@ assertCheck("Application authentication is Discord-only",
  developerAuth.includes('hasProvider(user,"discord")') &&
  developerAuth.includes('if(provider!=="discord"') &&
  !/signInWithPassword|signInWithOtp|provider:\s*["']github["']/.test(developerAuth + profileAuthUi + ownerAuthUi));
+assertCheck("Registration no longer publishes the 1,000-player milestone",
+ !register.includes("announceRegistrationMilestone") &&
+ !register.includes("A thousand strong. And counting.") &&
+ !nativeRegistration.includes("announceMilestone") &&
+ !nativeRegistration.includes("1,000 REGISTERED PLAYER IDS") &&
+ !nativeRegistration.includes("claim_kingshot_registration_milestone"));
 assertCheck("Browser-facing Supabase Auth never falls back to the service-role key",
   developerAuth.includes('const AUTH_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || "";') &&
   !developerAuth.includes("const AUTH_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || KEY;"));
