@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { isIP } from "node:net";
 import { getPlayer } from "../internal/kingshot/mightpulse.js";
 import { allianceDetails } from "./player-display.js";
 import { redeemKingshot } from "../internal/kingshot/redeem.js";
@@ -14,8 +15,8 @@ const DEVELOPER_COOKIE = "__Host-ks_developer_session";
 const sha256 = (value: string) => crypto.createHash("sha256").update(value, "utf8").digest("hex");
 const header = (req: RequestLike, name: string) => { const value = req.headers[name.toLowerCase()] ?? req.headers[name]; return Array.isArray(value) ? value[0] : value; };
 function clientIp(req: RequestLike): string {
-  const value = String(header(req, "x-vercel-forwarded-for") || "").split(",")[0].trim();
-  return value.length > 0 && value.length <= 64 ? value : "";
+  const value = String(header(req, "cf-connecting-ip") || "").trim();
+  return value.length > 0 && value.length <= 64 && isIP(value) ? value : "";
 }
 function developerSession(req: RequestLike): string {
   const cookie = String(header(req, "cookie") || "");
