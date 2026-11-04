@@ -50,7 +50,22 @@ test("hybrid shard execution uses one coordinator eligibility snapshot", () => {
   assert.doesNotMatch(shardSource, /kingshot_player_bans/);
   assert.match(coordinatorSource, /kingshot_player_bans/);
   assert.match(coordinatorSource, /excludedPlayersFiltered/);
-  assert.match(coordinatorSource, /verifiedCodes:true,banFilterApplied:true/);
+  assert.match(coordinatorSource, /verifiedCodes:true,\\s*banFilterApplied:true,\\s*batchSelected:true/);
+  assert.match(coordinatorSource, /cycleBucket/);
+});
+
+test("coordinator sends only the bounded page to each private shard", () => {
+  assert.match(autoSource, /const shardBatches=assignments\\.map/);
+  assert.match(autoSource, /selectWorkerShardBatch\\(assigned,workerIndex,WORKER_COUNT,cycleBucket,MAX_PLAYERS_PER_SHARD\\)/);
+  assert.match(autoSource, /players:batchPlayers/);
+  assert.match(autoSource, /batchSelected:true/);
+  assert.match(autoSource, /allEligiblePlayers\\.length>MAX_PLAYERS_PER_SHARD/);
+  assert.match(autoSource, /deferredPlayers:shardBatch\\.deferredPlayers/);
+});
+
+test("main and private shard Workers share the same automatic Kingdom Check switch", () => {
+  assert.match(mainWrangler, /"KINGDOM_AUTO_CHECK_ENABLED": "false"/);
+  assert.match(shardWrangler, /"KINGDOM_AUTO_CHECK_ENABLED": "false"/);
 });
 
 test("hybrid distribution keeps four bounded shards and does not add a polling trigger", () => {
