@@ -15,6 +15,11 @@ SHARD_SETTINGS="$(curl --fail --silent --show-error \
   "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/kingshot-autoredeemer-shard/settings")"
 printf '%s' "$MAIN_SETTINGS" | jq -e '.success == true' >/dev/null
 printf '%s' "$SHARD_SETTINGS" | jq -e '.success == true' >/dev/null
+# Secret puts fail if a plain-text variable already owns the same binding name.
+# Track all names for collision avoidance, but count only secret_text bindings as
+# satisfying the required-secret checks below.
+MAIN_BINDINGS="$(printf '%s' "$MAIN_SETTINGS" | jq -r '.result.bindings[]? | .name')"
+SHARD_BINDINGS="$(printf '%s' "$SHARD_SETTINGS" | jq -r '.result.bindings[]? | .name')"
 MAIN_EXISTING="$(printf '%s' "$MAIN_SETTINGS" | jq -r '.result.bindings[]? | select(.type == "secret_text") | .name')"
 SHARD_EXISTING="$(printf '%s' "$SHARD_SETTINGS" | jq -r '.result.bindings[]? | select(.type == "secret_text") | .name')"
 
@@ -37,7 +42,7 @@ NAMES=(
 
 for name in "${NAMES[@]}"; do
   value="${!name:-}"
-  if printf '%s\n' "$MAIN_EXISTING" | grep -Fxq "$name"; then
+  if printf '%s\n' "$MAIN_BINDINGS" | grep -Fxq "$name"; then
     MAIN_SKIPPED+=("$name")
   elif [ -n "$value" ]; then
     printf '%s' "$value" | npx --yes wrangler@4 secret put "$name" --name kingshot-autoredeemer-edge >/dev/null
@@ -46,7 +51,7 @@ for name in "${NAMES[@]}"; do
     MAIN_MISSING+=("$name")
   fi
 
-  if printf '%s\n' "$SHARD_EXISTING" | grep -Fxq "$name"; then
+  if printf '%s\n' "$SHARD_BINDINGS" | grep -Fxq "$name"; then
     SHARD_SKIPPED+=("$name")
   elif [ -n "$value" ]; then
     printf '%s' "$value" | npx --yes wrangler@4 secret put "$name" --name kingshot-autoredeemer-shard >/dev/null
@@ -84,7 +89,7 @@ fi
   echo
   echo "Main Worker: preserved ${#MAIN_SKIPPED[@]}, bound ${#MAIN_BOUND[@]}, missing optional ${#MAIN_MISSING[@]}"
   echo "Shard Worker: preserved ${#SHARD_SKIPPED[@]}, bound ${#SHARD_BOUND[@]}, missing optional ${#SHARD_MISSING[@]}"
-  echo "Secret values were never printed. Existing Worker secrets were not overwritten."
+  echo "Secret values were never printed. Existing Worker bindings were not overwritten."
 } >> "$GITHUB_STEP_SUMMARY"
 printf 'Main Worker bound: %s\n' "${MAIN_BOUND[*]:-none}"
 printf 'Shard Worker bound: %s\n' "${SHARD_BOUND[*]:-none}"
