@@ -156,6 +156,36 @@ async function recordRedemptionSafely(rpcClient,payload){
 
 const NEON_RECOVERY_URL=String(process.env.NEON_RECOVERY_DATABASE_URL||"").trim();
 const neonJournal=NEON_RECOVERY_URL?neon(NEON_RECOVERY_URL):null;
+const REDEMPTION_SOURCE_URL="https://kingshot-giftcode.centurygame.com/api/gift_code";
+
+// Provider-wide pacing lives beside the independent recovery journal in Neon.
+// One atomic statement reserves the next slot across every Worker instance.
+async function reserveNeonRedemptionRequest(spacingMs=500){
+ if(!neonJournal)throw new Error("Independent Neon recovery database is required for redemption pacing.");
+ const spacing=Math.max(100,Math.min(Number(spacingMs)||500,5000));
+ const rows=await neonJournal.query(`
+  insert into public.redemption_source_state(source_url,next_request_at,cooldown_until,last_http_status,updated_at)
+  values($1,now()+($2::text||' milliseconds')::interval,now(),0,now())
+  on conflict(source_url) do update
+   set next_request_at=greatest(now(),public.redemption_source_state.next_request_at)+($2::text||' milliseconds')::interval,
+       updated_at=now()
+   where public.redemption_source_state.cooldown_until<=now()
+  returning next_request_at-($2::text||' milliseconds')::interval as reserved_at
+ `,[REDEMPTION_SOURCE_URL,spacing]);
+ return rows[0]?.reserved_at??null;
+}
+async function setNeonRedemptionCooldown(seconds,httpStatus=429){
+ if(!neonJournal)throw new Error("Independent Neon recovery database is required for redemption cooldowns.");
+ const duration=Math.max(30,Math.min(3600,Number(seconds)||60));
+ await neonJournal.query(`
+  insert into public.redemption_source_state(source_url,next_request_at,cooldown_until,last_http_status,updated_at)
+  values($1,now(),now()+($2::text||' seconds')::interval,$3,now())
+  on conflict(source_url) do update
+   set cooldown_until=greatest(public.redemption_source_state.cooldown_until,now()+($2::text||' seconds')::interval),
+       last_http_status=excluded.last_http_status,updated_at=now()
+ `,[REDEMPTION_SOURCE_URL,duration,Number(httpStatus)||429]);
+}
+
 async function journalStart(playerId,code){
  if(!neonJournal)throw new Error("Independent recovery journal is not configured; refusing redemption.");
  const rows=await neonJournal.query("insert into public.redemption_journal(player_id,gift_code,state) values($1,$2,'in_flight') on conflict(player_id,gift_code) do update set state='in_flight',status=null,err_code=null,message=null,last_error=null,updated_at=now() where public.redemption_journal.state in ('supabase_recorded','cancelled') returning id",[String(playerId),String(code)]);
@@ -242,7 +272,7 @@ const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
  // Reserve a globally shared request slot before touching the upstream API.
  // The database serializes all four shards and refuses new work during a
  // provider-wide HTTP cooldown. Reservations are spaced to avoid burst traffic.
- const reservation=await rpcClient("kingshot_reserve_redemption_request",{p_source_url:"https://kingshot-giftcode.centurygame.com/api/gift_code",p_spacing_ms:500});
+ const reservation=await reserveNeonRedemptionRequest(500);
  if(!reservation)return {attempted:0,success:0,alreadyHandled:0,skipped:1,kingdomCheck,kingdomChanged,upstreamCooldown:true};
  const reservationTime=Date.parse(String(reservation));
  if(Number.isFinite(reservationTime)){
@@ -270,7 +300,7 @@ const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
  const completedAt=Date.now();
  if(d?.errorCategory==="HTTP_RATE_LIMIT"){
   const cooldownSeconds=Math.min(3600,Math.max(30,Number(d?.retryAfterSeconds)||60));
-  await rpcClient("kingshot_set_source_cooldown",{p_source_url:"https://kingshot-giftcode.centurygame.com/api/gift_code",p_cooldown_seconds:cooldownSeconds,p_http_status:Number(d?.upstreamHttpStatus)||429}).catch(error=>console.error("Could not persist Kingshot redemption cooldown:",String(error?.message||error).slice(0,180)));
+  await setNeonRedemptionCooldown(cooldownSeconds,Number(d?.upstreamHttpStatus)||429).catch(error=>console.error("Could not persist Neon Kingshot redemption cooldown:",String(error?.message||error).slice(0,180)));
  }
  const status=String(d?.status||"ERROR").toUpperCase();
  const message=d?.message||d?.error||"";

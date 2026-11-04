@@ -115,8 +115,8 @@ test("Cloudflare redemption shards process at most two players sequentially behi
   assert.ok(autoSource.includes("const PLAYER_CONCURRENCY=1;"));
   assert.ok(workerSource.includes("const safeConcurrency = Math.min(2"));
   assert.ok(workerSource.includes("safeConcurrency, { deadline }"));
-  assert.ok(autoSource.includes("kingshot_reserve_redemption_request"));
-  assert.ok(autoSource.includes("kingshot_set_source_cooldown"));
+  assert.ok(autoSource.includes("reserveNeonRedemptionRequest"));
+  assert.ok(autoSource.includes("setNeonRedemptionCooldown"));
 });
 
 test("Cloudflare MightPulse request budgets bound retries and allow explicit fast-path limits", () => {
@@ -195,4 +195,14 @@ test("Cloudflare Worker exposes the native V4 redemption route", async () => {
   assert.match(adapter, /handleNativeRedemption\(request, env, \{ v4: true \}\)/);
   assert.match(redemption, /options\.v4\?/);
   assert.match(redemption, /!options\.v4&&limited\(req\)/);
+});
+
+test("redemption pacing and provider cooldown are coordinated through Neon, not Supabase RPCs", async () => {
+  assert.match(autoSource, /async function reserveNeonRedemptionRequest/);
+  assert.match(autoSource, /redemption_source_state/);
+  assert.match(autoSource, /async function setNeonRedemptionCooldown/);
+  assert.match(autoSource, /reserveNeonRedemptionRequest/);
+  assert.match(autoSource, /setNeonRedemptionCooldown/);
+  assert.doesNotMatch(autoSource, /rpcClient\("kingshot_reserve_redemption_request"/);
+  assert.doesNotMatch(autoSource, /rpcClient\("kingshot_set_source_cooldown"/);
 });
