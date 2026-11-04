@@ -102,6 +102,7 @@ export default async function handler(req:any,res:any){
   // Keep each Cloudflare Worker invocation bounded. Player outcomes are persisted in
   // alliance_sync_seen_players, so the next five-minute wake-up resumes safely.
   for(let attempt=0;attempt<1;attempt++){
+   await callRpc('recover_stale_alliance_sync_runs',{});
    const lease=randomUUID();
    const claims=await callRpc('claim_due_alliance_sync_config',{p_lease_token:lease});
    if(!Array.isArray(claims)||!claims.length)break;
