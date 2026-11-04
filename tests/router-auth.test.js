@@ -45,7 +45,7 @@ test("custom message endpoint rejects unauthenticated sends", async () => {
   assert.equal(res.body?.error,"Unauthorized.");
 });
 
-test("coordinator applies one fail-closed ban snapshot before canary and shard redemption", async () => {
+test("coordinator applies one fail-closed ban snapshot before shard dispatch", async () => {
   const source = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
   const shardStart = source.indexOf('if(mode==="worker")');
   const snapshotStart = source.indexOf('currentStage="worker-ban-snapshot"');
@@ -55,7 +55,6 @@ test("coordinator applies one fail-closed ban snapshot before canary and shard r
   assert.match(coordinatorSource, /Unable to verify player bans before shard dispatch/);
   assert.match(coordinatorSource, /const dispatchPlayers=validPlayers\.filter/);
   assert.match(coordinatorSource, /bannedPlayerIds\.has/);
-  assert.match(source, /if\(canaryCandidate&&dispatchPlayers\.length\)/);
   assert.match(shardSource, /body\?\.banFilterApplied!==true/);
   assert.match(shardSource, /const allEligiblePlayers=assignedPlayers\.filter\(player=>player\?\.enabled!==false\)/);
   assert.doesNotMatch(shardSource, /kingshot_player_bans/);
