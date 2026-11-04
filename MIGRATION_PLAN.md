@@ -37,7 +37,6 @@
 - Removed `LEGACY_API_ORIGIN` from Wrangler configuration.
 - Unported API routes return explicit `501 route_not_migrated` responses instead of silently forwarding elsewhere.
 - Existing native read-only endpoints remain available.
-- Added native `/api/kingshot-player?milestone=count` using the existing `kingshot_public_registration_count` Supabase RPC, preserving its response contract and cache policy.
 - Added a Worker-native MightPulse adapter with environment-bound key slots, atomic Supabase request reservations, per-key cooldowns, provider-block sweep accounting, fail-closed quota-store behavior, and key failover.
 - Ported the base `/api/kingshot-player?id=...` read-only lookup route with ID validation, rate limiting, provider identity verification, and compatible response metadata. It performs no registered-profile writes.
 - Ported `profile=detail` with hero, governor gear, ranks, kingdom context, board-rank extraction, alliance roster enrichment, in-flight deduplication, and a short in-memory cache. Optional enrichment failures preserve the public base profile.

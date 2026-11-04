@@ -279,6 +279,6 @@ Player profile URLs are discoverable from the navigation drawer at `/user`. Indi
 
 ### Shared loading experience and PWA
 
-The app and its workspace preflight use one shared, permanently branded 3D loader. The Halloween event countdown has been removed; the seasonal decorative atmosphere remains independent and does not replace the permanent loader identity. The community registration milestone countdown appears only on the Auto Redeem and Manual Redeem pages. It is part of normal page flow and remains visible after the 1,000-registration milestone is reached.
+The app and its workspace preflight use one shared, permanently branded 3D loader. The Halloween event countdown has been removed; the seasonal decorative atmosphere remains independent and does not replace the permanent loader identity.
 
 The installed PWA uses the same dark brand palette, refreshes its shell cache on release, and includes the Profile route in its offline shell. The Profile route has a dedicated desktop account layout while preserving its compact mobile presentation. Auto Redeem also has a dedicated wide-screen workspace layout, with its mobile registration flow preserved.

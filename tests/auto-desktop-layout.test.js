@@ -4,10 +4,9 @@ import { readFile } from "node:fs/promises";
 
 const read = path => readFile(new URL(path, import.meta.url), "utf8");
 
-test("registration milestone stays limited to Auto Redeem and Manual Redeem", async () => {
+test("registration milestone countdown is removed from all public pages", async () => {
   const header = await read("../src/components/PublicSiteHeader.jsx");
-  assert.match(header, /const showRegistrationCountdown=current==="auto"\|\|current==="manual"/);
-  assert.match(header, /showRegistrationCountdown&&<RegistrationCountdown\/>/);
+  assert.doesNotMatch(header, /RegistrationCountdown|showRegistrationCountdown|milestone=count/);
 });
 
 test("Halloween decoration has no visible countdown or one-second timer loop", async () => {
