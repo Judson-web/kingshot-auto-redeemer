@@ -4,5 +4,6 @@
   "main": "cloudflare/app-alias.js",
   "compatibility_date": "2026-11-04",
   "compatibility_flags": ["global_fetch_strictly_public"],
-  "workers_dev": true
+  "workers_dev": true,
+  "preview_urls": false
 }
