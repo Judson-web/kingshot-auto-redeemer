@@ -484,6 +484,8 @@ assertCheck("Admin player database is routed and protected by server-side admin 
  adminData.includes('kingshot_autoredeem?') &&
  adminData.includes('if(!session)return res.status(401)'));
 assertCheck("Admin player database supports MightPulse refresh and redemption history",
+ adminPlayers.includes('playerPageSize') && adminPlayers.includes('Next</button>') &&
+ adminPlayers.includes('Refresh enabled players on this page') &&
  adminPlayers.includes('action("REFRESH_PLAYER"') &&
  adminPlayers.includes('playerHistory=') &&
  adminData.includes('kingshot_redemptions?select=player_id,gift_code,status,err_code,message,attempted_at'));
