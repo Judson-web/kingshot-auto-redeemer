@@ -21,7 +21,7 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$CRON_SECRET"
-          URL="https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/api/kingshot-auto?mode=discord-webhook-test"
+          URL="https://app.ks-redeemer.workers.dev/api/kingshot-auto?mode=discord-webhook-test"
           BODY="$(curl --fail-with-body --silent --show-error \
             --request POST \
             --header "Authorization: Bearer $CRON_SECRET" \
