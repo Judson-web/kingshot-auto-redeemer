@@ -36,7 +36,7 @@ test("profile has a separate desktop layout while preserving responsive mobile s
 });
 test("PWA shell cache includes the profile route and refreshes the branded shell",async()=>{
  const sw=await read("public/sw.js"),manifest=JSON.parse(await read("public/site.webmanifest"));
- assert.ok(sw.includes("kingshot-shell-v11"));assert.ok(sw.includes('"/profile"'));
+ assert.ok(sw.includes("kingshot-shell-v12"));assert.ok(sw.includes('"/profile"'));
  assert.equal(manifest.name,"Kingshot Auto Redeemer");assert.equal(manifest.theme_color,"#0b0d10");
 });
 
@@ -53,6 +53,16 @@ test("public push subscriptions are reconciled server-side and public audience c
 });
 test("service worker refreshes notification shell and keeps one interaction option",async()=>{
  const sw=await read("public/sw.js");
- assert.ok(sw.includes('const CACHE="kingshot-shell-v11"'));
+ assert.ok(sw.includes('const CACHE="kingshot-shell-v12"'));
  assert.equal((sw.match(/requireInteraction:Boolean\(p\.requireInteraction\)/g)||[]).length,1);
+});
+
+test("favicon and installed app icons use permanent Kingshot branding",async()=>{
+ const favicon=await read("public/favicon.svg"),icon192=await read("public/icons/icon-192.svg"),icon512=await read("public/icons/icon-512.svg");
+ const manifest=JSON.parse(await read("public/site.webmanifest")),html=await read("index.html"),sw=await read("public/sw.js");
+ for(const asset of [favicon,icon192,icon512]){assert.match(asset,/<svg/);assert.doesNotMatch(asset,/pumpkin|#e77d32|#ffbd67|#bd5428/i);}
+ assert.ok(html.includes("/favicon.svg?v=12"));assert.ok(html.includes("/icons/icon-192.svg?v=12"));assert.ok(html.includes("/site.webmanifest?v=12"));
+ assert.ok(manifest.icons.every(icon=>icon.src.includes("?v=12")));
+ assert.ok(sw.includes('const CACHE="kingshot-shell-v12"'));
+ assert.ok(sw.includes('"/favicon.svg?v=12"'));assert.ok(sw.includes('"/icons/icon-512.svg?v=12"'));
 });
