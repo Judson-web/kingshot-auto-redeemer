@@ -11,7 +11,7 @@ import PublicSiteHeader from"./components/PublicSiteHeader.jsx";
 import AllianceFeatureAnnouncement from "./components/AllianceFeatureAnnouncement.jsx";
 import {useSiteLanguage,translate,getSiteLanguage} from "./shared/site-language.js";
 import TownCenterLevel from"./components/TownCenterLevel.tsx";
-import { useServiceStatus } from "./shared/service-status.js";
+import { useServiceStatus, refreshMaintenanceStatus } from "./shared/service-status.js";
 import KingshotAvatar from"./components/KingshotAvatar.tsx";
 import AllianceRegistration from "./AllianceRegistration.tsx";
 import PlayerProfileApp from "./PlayerProfileApp.jsx";
@@ -299,7 +299,7 @@ function MaintenanceScreen({state}){
 }
 function MaintenancePreflight({error}){
  const {t}=useSiteLanguage();
- return <WorkspaceLoader eyebrow={t("maintenance.preparing","KINGSHOT REDEEMER · WORKSPACE")} title={t("maintenance.preparingWorkspace","Getting things ready")} description={error?t("maintenance.preflightRetry","This is taking a little longer than usual. We’ll keep trying in the background."):t("maintenance.preflightCopy","Your Kingshot workspace is getting ready.")}/>;
+ return <WorkspaceLoader eyebrow={t("maintenance.preparing","KINGSHOT REDEEMER · WORKSPACE")} title={t("maintenance.preparingWorkspace","Getting things ready")} description={error?t("maintenance.preflightRetry","This is taking a little longer than usual. We’ll keep trying in the background."):t("maintenance.preflightCopy","Your Kingshot workspace is getting ready.")} onRetry={error?()=>void refreshMaintenanceStatus().catch(()=>{}):undefined} retryLabel={t("maintenance.retryNow","Retry status check")}/>;
 }
 function MaintenanceGate({children}){
  const {maintenance}=useServiceStatus({criticalMaintenance:true});
