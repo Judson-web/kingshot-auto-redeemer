@@ -64,6 +64,33 @@ function classifyAgent(ua: string | null) {
 
 const registrationStatusBuckets = new Map<string, { count: number; resetAt: number }>();
 
+async function authorizeCoordinatorDispatch(request: Request, env: Env): Promise<boolean> {
+  const authorization = request.headers.get("authorization") || "";
+  if (env.CRON_SECRET && authorization === "Bearer " + env.CRON_SECRET) return true;
+
+  const schedulerToken = request.headers.get("x-kingshot-scheduler-token") || "";
+  const base = String(env.SUPABASE_URL || "").replace(/\\/$/, "");
+  const serviceKey = String(env.SUPABASE_SERVICE_ROLE_KEY || "");
+  if (!schedulerToken || !base || !serviceKey) return false;
+
+  try {
+    const response = await fetch(base + "/rest/v1/rpc/verify_kingshot_scheduler_token", {
+      method: "POST",
+      headers: {
+        apikey: serviceKey,
+        authorization: "Bearer " + serviceKey,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ p_token: schedulerToken }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) return false;
+    return (await response.json()) === true;
+  } catch {
+    return false;
+  }
+}
+
 async function handleRegistrationStatus(request: Request, env: Env): Promise<Response> {
   if (request.method !== "GET") return new Response(JSON.stringify({ error: "Method not allowed." }), {
     status: 405, headers: { Allow: "GET", "Content-Type": "application/json", "Cache-Control": "no-store" },
@@ -822,6 +849,31 @@ export default {
     if (incoming.pathname === "/api/ops-tools/visitor") {
       if (request.method === "GET") return handleEdgeLocale(request);
       if (env.SUPABASE_SERVICE_ROLE_KEY) return handleVisitorTelemetry(request, env);
+    }
+
+    if (incoming.pathname === "/api/kingshot-auto" && request.method === "POST" &&
+        incoming.searchParams.get("mode") !== "worker") {
+      if (!await authorizeCoordinatorDispatch(request, env)) {
+        return jsonError(401, "unauthorized", "Unauthorized");
+      }
+      const backgroundRequest = request.clone();
+      ctx.waitUntil((async () => {
+        const response = await dispatchLegacyApi(backgroundRequest, {
+          waitUntil: promise => ctx.waitUntil(promise),
+          env,
+        });
+        if (!response) throw new Error("Kingshot coordinator route was not registered.");
+        if (!response.ok) {
+          console.error("Background Kingshot coordinator returned:", response.status);
+        }
+        try { await response.body?.cancel(); } catch {}
+      })().catch(error => {
+        console.error("Background Kingshot coordinator failed:", error instanceof Error ? error.message : "unknown error");
+      }));
+      return Response.json({ ok: true, accepted: true, service: "kingshot-auto-coordinator" }, {
+        status: 202,
+        headers: { "Cache-Control": "no-store" },
+      });
     }
 
     const adapted = await dispatchLegacyApi(request, { waitUntil: promise => ctx.waitUntil(promise), env });
