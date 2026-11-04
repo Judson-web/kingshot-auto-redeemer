@@ -36,7 +36,8 @@ async function getProfileOwner(req:Req):Promise<string|null>{
 }
 async function readAlliance(kingdomId:string,tag:string){
  const u="https://api.mightpulse.com/v1/alliances/"+encodeURIComponent(kingdomId)+"/"+encodeURIComponent(tag)+"?include=info,roster";
- const r=await fetchMightPulse(u,{headers:{Accept:"application/json"}},{timeoutMs:20000});
+ // Keep all six configured credentials reachable within the overall budget. The SQL reservation is authoritative, so skip serial usage preflights between fallback keys.
+ const r=await fetchMightPulse(u,{headers:{Accept:"application/json"}},{timeoutMs:7000,totalTimeoutMs:50000,maxAttempts:6,skipUsageRefresh:true});
  const d:any=await r.json().catch(()=>null);
  if(!r.ok)throw Object.assign(new Error(r.status===429?"Provider rate limited.":"Alliance provider unavailable."),{status:r.status});
  if(!d||typeof d!=="object"||d.fresh===false||d.stale===true)throw Object.assign(new Error("Provider roster is marked stale or malformed."),{code:"stale_roster"});
