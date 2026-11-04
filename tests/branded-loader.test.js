@@ -41,3 +41,20 @@ test("PWA shell cache includes the profile route and refreshes the branded shell
  assert.ok(sw.includes("kingshot-shell-v10"));assert.ok(sw.includes('"/profile"'));
  assert.equal(manifest.name,"Kingshot Auto Redeemer");assert.equal(manifest.theme_color,"#0b0d10");
 });
+
+test("seasonal Halloween overlay and branding are fully removed from the app shell",async()=>{
+ const main=await read("src/main.jsx");
+ assert.ok(!main.includes("SeasonalHalloweenOverlay"));
+ assert.ok(!main.includes("HALLOWEEN"));
+});
+test("public push subscriptions are reconciled server-side and public audience counts exclude admin devices",async()=>{
+ const push=await read("src/components/PushNotifications.tsx"),api=await read("api/custom-message.js");
+ assert.ok(push.includes('action: "PUSH_SUBSCRIBE", subscription: sub.toJSON()'));
+ assert.ok(push.includes('else if (permission === "granted" && sub) setState("on")'));
+ assert.ok(api.includes("kingshot_push_subscriptions?select=id&audience=eq.public&limit=1"));
+});
+test("service worker refreshes notification shell and keeps one interaction option",async()=>{
+ const sw=await read("public/sw.js");
+ assert.ok(sw.includes('const CACHE="kingshot-shell-v11"'));
+ assert.equal((sw.match(/requireInteraction:Boolean\(p\.requireInteraction\)/g)||[]).length,1);
+});
