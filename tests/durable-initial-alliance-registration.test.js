@@ -15,6 +15,7 @@ test("browser alliance registration is queued for the bounded worker", () => {
   assert.ok(!route.includes("performSync("));
   assert.ok(worker.includes("MAX_AUTOMATIC_SYNC_MEMBERS_PER_INVOCATION=10"));
   assert.ok(worker.includes("claim_due_alliance_sync_config"));
+  assert.ok(worker.includes("last_status:'pending'"));
 });
 
 test("Discord-native alliance registration also hands work to the worker", () => {
@@ -34,4 +35,5 @@ test("queued and running work remains visible to progress polling", () => {
   assert.ok(route.includes("c.last_status==='pending'"));
   assert.ok(route.includes("processedCount:0"));
   assert.ok(route.includes("run.status==='running'"));
+  assert.ok(route.includes("registration_status=neq.pending"));
 });
