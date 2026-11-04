@@ -17,11 +17,11 @@ test("Halloween countdown is removed while seasonal decoration stays separate fr
  assert.ok(!overlay.includes('role="timer"'));
  assert.ok(!loader.includes("PumpkinMark"));assert.ok(!loader.includes("seasonal-theme"));
 });
-test("registration milestone countdown is limited to Auto Redeem and Manual Redeem",async()=>{
+test("registration milestone countdown is removed from the public header",async()=>{
  const header=await read("src/components/PublicSiteHeader.jsx");
- assert.ok(header.includes("function RegistrationCountdown()"));
- assert.ok(header.includes('current==="auto"||current==="manual"'));
- assert.ok(header.includes("{showRegistrationCountdown&&<RegistrationCountdown/>}"));
+ assert.ok(!header.includes("RegistrationCountdown"));
+ assert.ok(!header.includes("showRegistrationCountdown"));
+ assert.ok(!header.includes("milestone=count"));
 });
 test("Auto Redeem has a distinct desktop workspace while retaining its mobile layout",async()=>{
  const css=await read("src/auto-registration-redesign.css"),main=await read("src/main.jsx");
