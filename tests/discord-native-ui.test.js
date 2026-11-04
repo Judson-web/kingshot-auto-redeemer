@@ -236,7 +236,8 @@ test("gift-code alerts use bot channels without replacing the worker logs webhoo
   assert.ok(worker.includes("if(botAlert&&DISCORD_BOT_TOKEN)"));
   assert.ok(worker.includes("if(!DISCORD_WEBHOOK_URL)return false;"));
   assert.ok(worker.includes('sendDiscordEvent(buildNewGiftCodeAlert(item),{botAlert:true})'));
-  assert.ok(worker.includes('}),{botAlert:true});'), "gift-code verification alerts must opt into bot delivery");
+  assert.ok(worker.includes("Kingshot gift-code verification advisory:"), "verification must remain advisory telemetry");
+  assert.ok(!worker.includes("set_kingshot_gift_code_validation"), "scheduled discovery must not mutate validation status");
   assert.ok(worker.includes('sendDiscordEvent({title:"📊 Auto-redeem cycle"'), "worker cycle summaries must still be sent");
   assert.ok(worker.includes('sendDiscordEvent({title:"🚨 Auto-redeem anomaly detected"'), "worker anomalies must still be sent");
   assert.ok(worker.includes("const DISCORD_WEBHOOK_URL=process.env.DISCORD_KINGSHOT_WEBHOOK_URL||process.env.DISCORD_SCRAPER_WEBHOOK_URL"));
