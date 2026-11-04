@@ -9,7 +9,7 @@
   "observability": { "enabled": true },
   "vars": {
     "SUPABASE_URL": "https://wocxvtptqapietlteshr.supabase.co",
-    "PUBLIC_APP_URL": "https://kingshot-autoredeemer-edge.sajijudsa.workers.dev",
+    "PUBLIC_APP_URL": "https://app.ks-redeemer.workers.dev",
     "SUPABASE_WRITE_MODE": "enabled"
   }
 }
