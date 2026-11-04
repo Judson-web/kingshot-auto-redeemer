@@ -362,7 +362,7 @@ assertCheck(
  read("internal/kingshot/worker.ts").includes("dependencies.claimSlot") &&
  read("internal/kingshot/worker.ts").includes('"claim_kingshot_worker_slot"') &&
  read("internal/kingshot/worker.ts").includes("await finishSlot({") &&
- !/catch \(error\) \{[\\s\\S]*?await rpc\("finish_kingshot_worker_slot"/.test(read("internal/kingshot/worker.ts"))
+ read("internal/kingshot/worker.ts").includes('  } catch (error) {\n    await finishSlot({')
 );
 assertCheck(
  "Admin SECURITY DEFINER RPCs are revoked from public roles",
