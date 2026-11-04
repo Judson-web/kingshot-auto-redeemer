@@ -160,17 +160,11 @@ export async function registerAllianceFromDiscord(kingdomId:string, allianceTag:
  }
  const config=Array.isArray(created)?created[0]:created;
  if(!config?.id) throw new Error('Supabase did not confirm alliance registration.');
- const lease=randomUUID();
- const claimed=await patchRows('alliance_sync_config','id=eq.'+enc(config.id)+'&enabled=eq.true&or=(lease_token.is.null,lease_expires_at.lt.'+enc(new Date().toISOString())+')',{lease_token:lease,lease_expires_at:new Date(Date.now()+4*60000).toISOString(),last_status:'running',updated_at:new Date().toISOString()});
- if(!Array.isArray(claimed)||!claimed.length) return {config,validatedRosterCount:roster.members.length,scheduled:true,ownerBypass:isOwner};
- try{
-  const initialSync=await performSync(claimed[0],String(config.owner_user_id),true,lease);
-  return {config,validatedRosterCount:roster.members.length,initialSync,ownerBypass:isOwner};
- }catch(error){
-  // Configuration creation is durable. A failed eager sync is retried by the existing 5-minute worker schedule.
-  console.error('Discord alliance initial sync deferred after registration was saved:',String((error as Error)?.message||error).slice(0,240));
-  return {config,validatedRosterCount:roster.members.length,scheduled:true,syncPending:true,ownerBypass:isOwner};
- }
+ // The configuration RPC sets next_run_at=now() and last_status=pending.
+ // Let the existing cron-authenticated worker claim it. This keeps the first
+ // registration on the same durable, bounded path as every subsequent sync.
+ // The worker persists per-player outcomes and continues in batches of ten.
+ return {config,validatedRosterCount:roster.members.length,scheduled:true,ownerBypass:isOwner};
 }
 export default async function handler(req:Req,res:Res){
  res.setHeader('Cache-Control','private, no-store');
