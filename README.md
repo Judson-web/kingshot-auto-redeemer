@@ -6,8 +6,8 @@
 
 **An independent community service for discovering and redeeming eligible Kingshot gift codes.**
 
-[![Live Website Status](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/api/kingshot-health?badge=1)](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/)
-[![Live Site](https://img.shields.io/badge/Live%20Site-Open%20Service-2563EB?style=for-the-badge&logo=cloudflare&logoColor=white)](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/)
+[![Live Website Status](https://app.ks-redeemer.workers.dev/api/kingshot-health?badge=1)](https://app.ks-redeemer.workers.dev/)
+[![Live Site](https://img.shields.io/badge/Live%20Site-Open%20Service-2563EB?style=for-the-badge&logo=cloudflare&logoColor=white)](https://app.ks-redeemer.workers.dev/)
 [![Verification](https://github.com/Judson-web/kingshot-auto-redeemer/actions/workflows/verify.yml/badge.svg)](https://github.com/Judson-web/kingshot-auto-redeemer/actions/workflows/verify.yml)
 [![Node.js 24](https://img.shields.io/badge/Node.js-24.x-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![React 19](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=111827)](https://react.dev/)
@@ -16,7 +16,7 @@
 [![Cloudflare Workers](https://img.shields.io/badge/Runtime-Cloudflare%20Workers-F38020?style=flat-square&logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/workers/)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-2DA44E?style=flat-square)](./LICENSE)
 
-[**Open the service →**](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/) · [**How it works →**](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/info) · [**Privacy →**](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/privacy) · [**Terms →**](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/terms)
+[**Open the service →**](https://app.ks-redeemer.workers.dev/) · [**How it works →**](https://app.ks-redeemer.workers.dev/info) · [**Privacy →**](https://app.ks-redeemer.workers.dev/privacy) · [**Terms →**](https://app.ks-redeemer.workers.dev/terms)
 
 </div>
 
@@ -47,7 +47,7 @@ Kingshot Auto Redeemer helps players discover eligible public gift codes and red
 
 ## Live website
 
-The public application is hosted on Cloudflare Workers at [kingshot-autoredeemer-edge.sajijudsa.workers.dev](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/). The previous Vercel address is not an application origin; it is reserved for a temporary redirect during the domain transition. Use the site's navigation for current routes and features. Administrative and developer tools may require a verified session and server-side authorization; a URL alone does not grant access.
+The public application is hosted on Cloudflare Workers at [kingshot-autoredeemer-edge.sajijudsa.workers.dev](https://app.ks-redeemer.workers.dev/). The previous Vercel address is not an application origin; it is reserved for a temporary redirect during the domain transition. Use the site's navigation for current routes and features. Administrative and developer tools may require a verified session and server-side authorization; a URL alone does not grant access.
 
 ## Alliance registration and sync
 
@@ -81,9 +81,9 @@ Administrators can review an announcement's content and destination in an in-app
 
 **V4 is the recommended API for new integrations.** It provides player lookup, manual redemption, alliance roster/ranking lookup, read-only redemption history, webhook subscriptions, and compact usage information. Responses use a consistent `success`, `data`, `error`, and `meta` envelope.
 
-- [Interactive developer portal](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/developer)
-- [V4 API reference](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/developer-v4.md)
-- [OpenAPI 3.1 specification](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/openapi.json)
+- [Interactive developer portal](https://app.ks-redeemer.workers.dev/developer)
+- [V4 API reference](https://app.ks-redeemer.workers.dev/developer-v4.md)
+- [OpenAPI 3.1 specification](https://app.ks-redeemer.workers.dev/openapi.json)
 
 V4 endpoints include:
 
@@ -142,7 +142,7 @@ Use the website's support channel to report a suspected vulnerability. Avoid pos
 
 ## Privacy
 
-The service handles information needed to provide its features. Depending on how you use it, this may include a Player ID, supported provider profile data, redemption status, support messages, account information used for sign-in, push-notification subscriptions, and limited operational telemetry. See the [Privacy notice](https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/privacy) for the service's current explanation of data handling.
+The service handles information needed to provide its features. Depending on how you use it, this may include a Player ID, supported provider profile data, redemption status, support messages, account information used for sign-in, push-notification subscriptions, and limited operational telemetry. See the [Privacy notice](https://app.ks-redeemer.workers.dev/privacy) for the service's current explanation of data handling.
 
 ## Technology
 
