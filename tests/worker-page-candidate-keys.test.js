@@ -2,10 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-test("worker initializes page candidate keys from the first-party page scraper before canary selection", () => {
+test("worker discovers gift codes only from the two official Kingshot.net feeds", () => {
   const source = readFileSync(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
-  const declaration = 'const pageCandidateKeys=new Set(kingshotPageCodes.map(item=>String(item.code||"").trim().toUpperCase()))';
-  const use = "pageCandidateKeys.has(codeKey)";
-  assert.ok(source.includes(declaration), "page candidate keys must be derived from kingshotPageCodes");
-  assert.ok(source.indexOf(declaration) < source.indexOf(use), "page candidate keys must be initialized before canary filtering");
+  assert.ok(source.includes('const GIFT_SOURCE_URL="https://kingshot.net/api/gift-codes"'));
+  assert.ok(source.includes("kingshotPageSource.codes"));
+  assert.ok(source.includes("mergeCodes([apiCodes,kingshotPageCodes])"));
+  assert.ok(!source.includes("mergeCodes([apiCodes,kingshotPageCodes,adminCodes])"));
+  assert.ok(source.includes("Kingshot gift-code verification advisory:"));
+  assert.ok(!source.includes("if(canaryCandidate&&dispatchPlayers.length)"));
 });
