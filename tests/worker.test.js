@@ -50,12 +50,12 @@ test("hybrid shard execution uses one coordinator eligibility snapshot", () => {
   assert.doesNotMatch(shardSource, /kingshot_player_bans/);
   assert.match(coordinatorSource, /kingshot_player_bans/);
   assert.match(coordinatorSource, /excludedPlayersFiltered/);
-  assert.match(coordinatorSource, /verifiedCodes:true,\\s*banFilterApplied:true,\\s*batchSelected:true/);
+  assert.match(coordinatorSource, /verifiedCodes:true,\s*banFilterApplied:true,\s*batchSelected:true/);
   assert.match(coordinatorSource, /cycleBucket/);
 });
 
 test("coordinator sends only the bounded page to each private shard", () => {
-  assert.match(autoSource, /const shardBatches=assignments\\.map/);
+  assert.match(autoSource, /const shardBatches=assignments\.map/);
   assert.match(autoSource, /selectWorkerShardBatch\\(assigned,workerIndex,WORKER_COUNT,cycleBucket,MAX_PLAYERS_PER_SHARD\\)/);
   assert.match(autoSource, /players:batchPlayers/);
   assert.match(autoSource, /batchSelected:true/);
