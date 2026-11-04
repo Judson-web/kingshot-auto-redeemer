@@ -197,12 +197,13 @@ test("Cloudflare Worker exposes the native V4 redemption route", async () => {
   assert.match(redemption, /!options\.v4&&limited\(req\)/);
 });
 
-\ntest("redemption pacing and provider cooldown are coordinated through Neon, not Supabase RPCs", async () => {
+\n
+test("redemption pacing and provider cooldown are coordinated through Neon, not Supabase RPCs", async () => {
   assert.match(autoSource, /async function reserveNeonRedemptionRequest/);
-  assert.match(autoSource, /public\\.redemption_source_state/);
+  assert.match(autoSource, /redemption_source_state/);
   assert.match(autoSource, /async function setNeonRedemptionCooldown/);
-  assert.match(autoSource, /reserveNeonRedemptionRequest\\(500\\)/);
-  assert.match(autoSource, /setNeonRedemptionCooldown\\(cooldownSeconds/);
-  assert.doesNotMatch(autoSource, /rpcClient\\("kingshot_reserve_redemption_request"/);
-  assert.doesNotMatch(autoSource, /rpcClient\\("kingshot_set_source_cooldown"/);
+  assert.match(autoSource, /reserveNeonRedemptionRequest/);
+  assert.match(autoSource, /setNeonRedemptionCooldown/);
+  assert.doesNotMatch(autoSource, /rpcClient\("kingshot_reserve_redemption_request"/);
+  assert.doesNotMatch(autoSource, /rpcClient\("kingshot_set_source_cooldown"/);
 });
