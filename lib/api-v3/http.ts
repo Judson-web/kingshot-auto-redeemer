@@ -11,7 +11,7 @@ export function header(req: V3Request, name: string): string {
   return Array.isArray(value) ? String(value[0] || "") : String(value || "");
 }
 export function trustedClientIp(req: V3Request): string {
-  const value = header(req, "cf-connecting-ip").split(",")[0].trim();
+  const value = header(req, "cf-connecting-ip").trim();
   return value.length <= 64 && isIP(value) ? value : "";
 }
 export function apiKeyFromRequest(req: V3Request): string {
