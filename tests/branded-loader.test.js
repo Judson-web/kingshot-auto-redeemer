@@ -36,7 +36,7 @@ test("profile has a separate desktop layout while preserving responsive mobile s
 });
 test("PWA shell cache includes the profile route and refreshes the branded shell",async()=>{
  const sw=await read("public/sw.js"),manifest=JSON.parse(await read("public/site.webmanifest"));
- assert.ok(sw.includes("kingshot-shell-v10"));assert.ok(sw.includes('"/profile"'));
+ assert.ok(sw.includes("kingshot-shell-v11"));assert.ok(sw.includes('"/profile"'));
  assert.equal(manifest.name,"Kingshot Auto Redeemer");assert.equal(manifest.theme_color,"#0b0d10");
 });
 
