@@ -190,7 +190,6 @@ export default async function handler(req:Req,res:Res){
    const queued=Boolean(c.enabled&&c.last_status==='pending');
    const active=Boolean(c.enabled&&((run.status==='running'&&leaseActive)||queued));
    if(!active)return res.status(200).json({active:false});
-   const active=run.status==='running'&&leaseActive;if(!active)return res.status(200).json({active:false});
    const seen=await selectRows('alliance_sync_seen_players',`config_id=eq.${enc(c.id)}&last_seen_at=gte.${enc(run.created_at)}&registration_status=neq.pending&registration_status=neq.departed&select=player_id,registration_status,last_seen_at&order=last_seen_at.desc`);const list=Array.isArray(seen)?seen:[];
    const pending=await selectRows('alliance_sync_seen_players',`config_id=eq.${enc(c.id)}&last_seen_at=gte.${enc(run.created_at)}&registration_status=eq.pending&select=player_id&limit=1`);
    return res.status(200).json({active:true,allianceTag:c.alliance_tag,allianceName:c.alliance_name||c.alliance_tag,kingdomId:c.kingdom_id,processedCount:list.length,totalCount:Number(run.roster_count||c.last_roster_count||0),currentPlayerId:String(Array.isArray(pending)&&pending.length?pending[0].player_id:''),status:queued?'pending':run.status});
