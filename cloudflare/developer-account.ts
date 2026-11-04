@@ -147,6 +147,78 @@ async function verifiedOAuthUser(env: Env, accessToken: string): Promise<any> {
   if (!response.ok || !user?.id || !hasDiscord(user)) throw new Error("Supabase could not verify this Discord sign-in.");
   return user;
 }
+
+async function exchangePkceCode(env: Env, authCode: string, codeVerifier: string): Promise<string> {
+  const base = String(env.SUPABASE_URL || "").replace(/\/$/, "");
+  const key = String(env.SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY || "");
+  if (!base || !key) throw Object.assign(new Error("Discord sign-in is not configured on this Worker."), { status: 503 });
+  if (!authCode || authCode.length > 4096 || !/^[A-Za-z0-9._~-]{43,128}$/.test(codeVerifier)) {
+    throw Object.assign(new Error("This Discord sign-in attempt is invalid or expired. Please try again."), { status: 400 });
+  }
+  const response = await fetch(base + "/auth/v1/token?grant_type=pkce", {
+    method: "POST",
+    headers: { apikey: key, "content-type": "application/json" },
+    body: JSON.stringify({ auth_code: authCode, code_verifier: codeVerifier }),
+    signal: AbortSignal.timeout(10000),
+  });
+  const data: any = await response.json().catch(() => null);
+  if (!response.ok || typeof data?.access_token !== "string") {
+    throw Object.assign(new Error(response.status === 429
+      ? "Too many sign-in attempts. Please wait and try again."
+      : "Discord sign-in could not be completed. The authorization code may have expired; please try again."),
+    { status: response.status === 429 ? 429 : 400 });
+  }
+  return data.access_token;
+}
+function discordIdentityId(user: any): string {
+  const identity = (Array.isArray(user?.identities) ? user.identities : []).find((item: any) => item?.provider === "discord");
+  return String(identity?.identity_data?.provider_id || identity?.identity_data?.sub ||
+    identity?.identity_data?.id || identity?.identity_data?.user_id || identity?.id || "");
+}
+function profileFor(user: any, role: string, activeKeyCount = 0): Json {
+  const metadata = user?.user_metadata || {};
+  const displayName = String(metadata.global_name || metadata.full_name || metadata.name ||
+    metadata.user_name || metadata.preferred_username || user?.email || "Discord user");
+  return {
+    email: user?.email || null,
+    username: displayName,
+    display_name: displayName,
+    discord_username: metadata.user_name || metadata.preferred_username || null,
+    global_name: metadata.global_name || metadata.full_name || null,
+    avatar_url: metadata.avatar_url || null,
+    discord_id: discordIdentityId(user) || null,
+    provider: "discord",
+    providers: ["discord"],
+    providerIds: ["discord"],
+    role,
+    kind: role,
+    activeKeyCount,
+  };
+}
+async function activeKeyCountFor(env: Env, sessionHash: string): Promise<number> {
+  try {
+    const keys = await rpc(env, "kingshot_developer_account_list_keys", { p_session_hash: sessionHash });
+    return Array.isArray(keys) ? keys.filter((key: any) => key && !key.revoked_at &&
+      (!key.expires_at || Date.parse(key.expires_at) > Date.now())).length : 0;
+  } catch { return 0; }
+}
+function discordAuthorizeUrl(env: Env, action: string, challenge: string): string | null {
+  const base = String(env.SUPABASE_URL || "").replace(/\/$/, "");
+  const key = String(env.SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY || "");
+  if (!base || !key || !/^[A-Za-z0-9_-]{43}$/.test(challenge)) return null;
+  const destination = action === "dev-oauth-url" || action === "dev-discord-oauth-url"
+    ? "https://app.ks-redeemer.workers.dev/dev?provider=discord"
+    : action === "oauth-url" || action === "discord-oauth-url"
+      ? "https://app.ks-redeemer.workers.dev/developer?provider=discord"
+      : "https://app.ks-redeemer.workers.dev/profile?provider=discord";
+  const authorize = new URL(base + "/auth/v1/authorize");
+  authorize.searchParams.set("provider", "discord");
+  authorize.searchParams.set("redirect_to", destination);
+  authorize.searchParams.set("apikey", key);
+  authorize.searchParams.set("code_challenge", challenge);
+  authorize.searchParams.set("code_challenge_method", "s256");
+  return authorize.toString();
+}
 async function sessionUser(env: Env, token: string): Promise<{ hash: string; user: any } | null> {
   if (!token || token.length > 256) return null;
   const hash = await sha(token);
@@ -157,8 +229,9 @@ async function sessionUser(env: Env, token: string): Promise<{ hash: string; use
   return { hash, user };
 }
 function errorStatus(error: any): number {
+  if (error?.status === 400 || error?.status === 422) return 400;
+  if (error?.status === 429 || /lifetime limit|limit of three active/i.test(String(error?.message || ""))) return 429;
   if (error?.status === 401 || error?.status === 403 || /unauthorized/i.test(String(error?.message || ""))) return 401;
-  if (/lifetime limit|limit of three active/i.test(String(error?.message || ""))) return 429;
   return 503;
 }
 
@@ -212,15 +285,43 @@ export async function handleNativeDeveloperAccount(request: Request, env: Env, r
       return json(200, { ok: true, localSessionCleared: true, serverSessionRevoked }, headers);
     }
     if (method !== "POST") return json(405, { error: "Method not allowed." }, { ...Object.fromEntries(headers), Allow: "GET, POST, DELETE" });
-    if (!allowedWrite(env)) return json(503, { error: "writes_disabled", code: "writes_disabled" }, headers);
     if (!limited(request, "developer-auth", 8, 900_000)) return json(429, { error: "Too many attempts. Try again in 15 minutes." }, headers);
     let body: Json;
     try { body = await request.json() as Json; } catch { return json(400, { error: "Invalid JSON body." }, headers); }
     const action = String(body.action || "");
     try {
-      if (action !== "oauth" && action !== "profile-oauth" && action !== "developer-enroll") {
-        return json(400, { error: "Only Discord OAuth sign-in is supported." }, headers);
+      const startActions = new Set(["profile-discord-url", "site-discord-oauth-url", "dev-oauth-url",
+        "dev-discord-oauth-url", "oauth-url", "discord-oauth-url"]);
+      if (startActions.has(action)) {
+        const authorizeUrl = discordAuthorizeUrl(env, action, String(body.code_challenge || ""));
+        if (!authorizeUrl) return json(400, { error: "A valid secure sign-in challenge is required, and Discord sign-in must be configured." }, headers);
+        return json(200, { url: authorizeUrl, provider: "discord" }, headers);
       }
+
+      if (action === "profile-check" || action === "dev-check") {
+        const token = action === "dev-check"
+          ? cookie(request, DEVELOPER_COOKIE)
+          : cookie(request, PROFILE_COOKIE) || cookie(request, DEVELOPER_COOKIE);
+        if (!token) return json(200, { authenticated: false, role: action === "dev-check" ? "guest" : "user", kind: "user" }, headers);
+        const session = await sessionUser(env, token);
+        if (!session || (action === "dev-check" && !isOwner(session.user))) {
+          return json(200, { authenticated: false, role: action === "dev-check" ? "guest" : "user", kind: "user" }, headers);
+        }
+        const activeKeyCount = await activeKeyCountFor(env, session.hash);
+        const role = isOwner(session.user) ? "admin" : activeKeyCount > 0 ? "developer" : "user";
+        const user = profileFor(session.user, role, activeKeyCount);
+        return json(200, action === "dev-check"
+          ? { authenticated: true, user: { email: user.email, user_name: user.username, username: user.username } }
+          : { authenticated: true, role, kind: role, activeKeyCount, user }, headers);
+      }
+
+      const pkceActions = new Set(["profile-oauth-exchange", "dev-oauth-exchange"]);
+      const tokenActions = new Set(["oauth", "profile-oauth", "dev-verify"]);
+      if (!pkceActions.has(action) && !tokenActions.has(action) && action !== "developer-enroll") {
+        return json(400, { error: "Unsupported Discord authentication action." }, headers);
+      }
+      if (!allowedWrite(env)) return json(503, { error: "writes_disabled", code: "writes_disabled" }, headers);
+
       let user: any;
       if (action === "developer-enroll") {
         const profileToken = cookie(request, PROFILE_COOKIE);
@@ -228,19 +329,33 @@ export async function handleNativeDeveloperAccount(request: Request, env: Env, r
         if (!existing) return json(401, { error: "Sign in to your profile with Discord before enabling developer access." }, headers);
         user = existing.user;
       } else {
-        const accessToken = String(body.access_token || "");
+        const accessToken = pkceActions.has(action)
+          ? await exchangePkceCode(env, String(body.code || ""), String(body.code_verifier || ""))
+          : String(body.access_token || "");
         if (!accessToken || accessToken.length > 8192) return json(400, { error: "Missing or invalid Discord session token." }, headers);
         user = await verifiedOAuthUser(env, accessToken);
       }
+
+      const developerOnly = action === "dev-oauth-exchange" || action === "dev-verify";
+      if (developerOnly && !isOwner(user)) return json(403, { error: "This developer hub is restricted to its owner." }, headers);
       const token = randomToken();
       const created = await rpc(env, "kingshot_developer_account_session_create", {
         p_token_hash: await sha(token), p_user_id: user.id,
       });
       if (created !== true) return json(403, { error: "Could not establish a verified Discord session." }, headers);
-      const profileOnly = action === "profile-oauth";
+
+      const profileOnly = action === "profile-oauth" || action === "profile-oauth-exchange";
       headers.append("Set-Cookie", cookieHeader(profileOnly ? PROFILE_COOKIE : DEVELOPER_COOKIE, token, SESSION_AGE));
-      const role = isOwner(user) ? "admin" : "user";
-      return json(200, { ok: true, role, provider: "discord", kind: role }, headers);
+      const sessionHash = await sha(token);
+      const activeKeyCount = profileOnly ? await activeKeyCountFor(env, sessionHash) : 0;
+      const role = isOwner(user) ? "admin" : profileOnly && activeKeyCount > 0 ? "developer" : "user";
+      if (profileOnly) {
+        const profile = profileFor(user, role, activeKeyCount);
+        return json(200, { ok: true, role, kind: role, activeKeyCount, user: profile }, headers);
+      }
+      return json(200, { ok: true, role: isOwner(user) ? "admin" : "developer", kind: isOwner(user) ? "admin" : "developer",
+        provider: "discord", user: { email: user.email || null, user_name: user.user_metadata?.user_name ||
+          user.user_metadata?.preferred_username || user.email || "Discord user" } }, headers);
     } catch (error) { return json(errorStatus(error), { error: String((error as Error)?.message || "Discord sign-in failed.") }, headers); }
   }
 
