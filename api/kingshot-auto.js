@@ -652,15 +652,26 @@ export default async function handler(req,res){
   const apiCandidateKeys=new Set(apiCodes.map(item=>String(item.code||"").trim().toUpperCase()));
   const pageCandidateKeys=new Set(kingshotPageCodes.map(item=>String(item.code||"").trim().toUpperCase()));
 
-  const pendingCandidates=persistedCodeRows
+  const pendingCodeRows=persistedCodeRows
    .filter(r=>r&&r.validation_status==="pending"&&r.suppressed!==true)
    .map(r=>({code:String(r.code||"").trim()}))
-   .filter(r=>{
-    const codeKey=r.code.toUpperCase();
-    const evidence=activeCodes.find(c=>c.code.toUpperCase()===codeKey);
-    const matchedFirstPartyApiAndPage=apiCandidateKeys.has(codeKey)&&pageCandidateKeys.has(codeKey);
-    return Boolean(r.code&&evidence&&isCanaryEligibleGiftCodeCandidate(evidence,matchedFirstPartyApiAndPage)&&!expiredCodes.has(codeKey));
-   });
+   .filter(r=>r.code);
+  const candidateAudit=pendingCodeRows.map(({code})=>{
+   const codeKey=code.toUpperCase();
+   const evidence=activeCodes.find(c=>c.code.toUpperCase()===codeKey);
+   const matchedFirstPartyApiAndPage=apiCandidateKeys.has(codeKey)&&pageCandidateKeys.has(codeKey);
+   const eligible=Boolean(evidence&&isCanaryEligibleGiftCodeCandidate(evidence,matchedFirstPartyApiAndPage)&&!expiredCodes.has(codeKey));
+   const reasons=[];
+   if(!evidence)reasons.push(expiredCodes.has(codeKey)?"EXPIRED_OR_EXCLUDED":"NOT_IN_CURRENT_ACTIVE_FEED");
+   else {
+    if(expiredCodes.has(codeKey))reasons.push("EXPIRED");
+    if(!isCredibleGiftCodeCandidate(evidence)&&!matchedFirstPartyApiAndPage)reasons.push("LOW_CONFIDENCE_NEEDS_INDEPENDENT_SOURCE");
+    if(!isCredibleGiftCodeCandidate(evidence)&&matchedFirstPartyApiAndPage)reasons.push("FIRST_PARTY_MATCH_CANARY_ELIGIBLE");
+   }
+   return {code,sources:evidence?.sources||[],confidence:evidence?.confidence??null,confidenceTier:evidence?.confidenceTier||"unknown",apiMatch:apiCandidateKeys.has(codeKey),activePageMatch:pageCandidateKeys.has(codeKey),eligible,reasons:eligible?["ELIGIBLE"]:reasons};
+  });
+  const pendingCandidates=candidateAudit.filter(row=>row.eligible).map(row=>({code:row.code}));
+  console.log("Kingshot gift-code validation gate:",{pending:pendingCodeRows.length,eligible:pendingCandidates.length,dispatchPlayers:dispatchPlayers.length,candidates:candidateAudit.slice(0,40)});
   const canaryCandidate=pendingCandidates[0];let verificationAttempt=null;
   if(canaryCandidate&&dispatchPlayers.length){
    for(const player of dispatchPlayers){
