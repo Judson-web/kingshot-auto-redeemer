@@ -102,32 +102,6 @@ async function syncProfile(env: Env, playerId: string, player: Record<string, an
   });
   if (!response.ok) throw new Error("Could not save the refreshed player profile.");
 }
-async function announceMilestone(env: Env): Promise<void> {
-  try {
-    const claimed = await rpc(env, "claim_kingshot_registration_milestone", { p_milestone: 1000 });
-    if (claimed !== true) return;
-    const base = String(env.SUPABASE_URL || "").replace(/\/$/, "");
-    const key = String(env.SUPABASE_SERVICE_ROLE_KEY || "");
-    const message = "The Kingshot Auto Redeemer community has reached 1,000 registered Player IDs. Thank you for building this with us. This milestone belongs to every player who joined the journey.";
-    const announcement = await fetch(base + "/rest/v1/kingshot_announcements", {
-      method: "POST", headers: { apikey: key, authorization: "Bearer " + key, "content-type": "application/json", Prefer: "return=minimal" },
-      body: JSON.stringify({ title: "A thousand strong. And counting.", message, type: "success", link_url: "/", link_label: "Explore the community", active: true, published_at: new Date().toISOString() }),
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!announcement.ok) console.error("[registration-milestone] announcement failed", announcement.status);
-    const webhook = String(env.DISCORD_KINGSHOT_WEBHOOK_URL || env.DISCORD_SCRAPER_WEBHOOK_URL || "").trim();
-    if (webhook) {
-      const url = new URL(webhook);
-      if (url.protocol === "https:" && /discord(?:app)?\.com$/i.test(url.hostname)) {
-        await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
-          embeds: [{ title: "🏆 1,000 REGISTERED PLAYER IDS", description: message, color: 0xD6B56D,
-            footer: { text: "Kingshot Auto Redeemer • Community milestone" }, timestamp: new Date().toISOString() }],
-          allowed_mentions: { parse: [] },
-        }), signal: AbortSignal.timeout(8000) });
-      }
-    }
-  } catch (e) { console.error("[registration-milestone] delivery failed", e instanceof Error ? e.message : "unknown"); }
-}
 export async function handleNativeRegistration(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") return error(405, "method_not_allowed", "Method not allowed.");
   let body: Record<string, any>;
@@ -168,7 +142,6 @@ export async function handleNativeRegistration(request: Request, env: Env): Prom
       p_player_id: playerId, p_kingdom_id: kingdomId || null, p_player_name: playerName || null, p_avatar_url: avatarUrl || null,
     }, 10_000);
     const alreadyRegistered = Boolean(result?.already_registered);
-    if (!alreadyRegistered) await announceMilestone(env);
     try {
       const upstream = await fetchMightPulseNative(env, "https://api.mightpulse.com/v1/players/" + encodeURIComponent(playerId) + "?include=base", 9000);
       const data: any = await upstream.json().catch(() => ({}));
