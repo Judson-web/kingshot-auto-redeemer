@@ -406,6 +406,20 @@ export default async function handler(req,res){
  }
  if(!authorized)return res.status(401).json({error:"Unauthorized"});
 
+ // Protected, side-effect-free operational webhook probe. It sends one harmless
+ // diagnostic embed and reports the actual Discord webhook HTTP outcome without
+ // acquiring the redemption worker lock or reading/changing player records.
+ if(mode==="discord-webhook-test"){
+  const delivered=await sendDiscordEvent({
+   title:"🧪 Discord operational webhook test",
+   description:"Production Cloudflare runtime successfully exercised the Kingshot operational logging webhook.",
+   fields:[{name:"Runtime",value:"Cloudflare Workers",inline:true},{name:"Test",value:"Authenticated direct webhook probe",inline:true}],
+   color:0x57F287
+  });
+  if(!delivered)console.error("Discord operational webhook probe failed.");
+  return res.status(delivered?200:502).json({ok:delivered,mode:"discord-webhook-test",delivered});
+ }
+
  // Manual diagnostic mode: process a stable, bounded batch of registered players
  // against MightPulse. Keyset pagination avoids skipping records if stale players
  // are removed between calls. This mode never discovers codes or starts redemption.
