@@ -1,11 +1,21 @@
 # Cloudflare-native migration
 
-## Current checkpoint
-- Branch: `migration/cloudflare-native-runtime`
-- Baseline: `21814aa430ddcdfba2ca4cf08f43be6c3ee92105`
-- Production is untouched. No DNS changes, domain cutover, or production deployment are authorized.
-- Existing domain is redirect-only, not an application host, API origin, or runtime dependency.
-- Vercel is excluded entirely: no bridge, fallback, runtime, or deployment dependency.
+## Current production checkpoint (2026-11-04)
+
+- The Cloudflare main Worker and isolated shard Worker are deployed on `workers.dev`. The latest deployed commit is `e66002ce324f29e74d23bd4b2b3171b917a5a9b9`; the post-merge local and deployed smoke suites passed.
+- The main Worker serves the application and API routes through Cloudflare Workers Assets and the in-process API adapter. No Vercel API bridge, fallback, or runtime dependency remains. Deprecated V1/V3 endpoints remain callable through Cloudflare during their deprecation window; V4 is the current API.
+- Supabase remains the primary application database and scheduler. Existing Supabase `pg_cron` jobs dispatch to Cloudflare; no Cloudflare Cron replacement was introduced.
+- Neon remains the independent recovery journal and now also owns the global redemption pacing/cooldown state. Its production pacing table is applied. Supabase remains authoritative for player redemption history and atomic per-player claims.
+- The coordinator heartbeat lease is bounded to five minutes. The production SQL function and service-role-only permissions were verified, and the scheduler successfully acquired a new lock after the previous stale lease expired.
+- Production Supabase now has the V4 redemption idempotency ledger and the durable webhook-delivery lease RPCs. Both migrations passed disposable PostgreSQL and local Supabase Auth/PostgREST CI before application. The webhook claim/finish functions are executable by `service_role` only.
+- This PR adds the main Worker's Cloudflare VPC `EGRESS` binding through the account's default virtual network so webhook destination requests can pass through Gateway policy enforcement. The binding does not itself enable webhook dispatch.
+- V4 webhook delivery remains fail-closed until the encryption and dispatcher secrets are configured and a live Gateway policy-match check is completed. No webhook delivery schedule is active.
+- No live redemption was triggered as a migration test. The post-cutover scheduler has run successfully, but recent cycles found no eligible new redemption attempts, so the live Neon reservation path has not yet been exercised by a real redemption.
+- The existing domain remains redirect-only. No DNS/domain cutover was performed. No paid resources, extra compute, or paid database branches were provisioned.
+
+## Historical planning baseline
+
+The original migration plan below records the implementation sequence and intermediate code-only checkpoints. Any statements in those historical sections that production deployment, database migrations, or cutover had not yet occurred describe the state at the time they were written and are superseded by the current production checkpoint above.
 
 ## Agreed architecture
 - Cloudflare Workers: application/API runtime.
