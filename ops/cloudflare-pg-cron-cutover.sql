@@ -6,11 +6,11 @@ declare
   v_job record;
   v_command text;
   v_old_origin constant text := 'https://kingshot-autoredeemer.vercel.app';
-  v_new_origin constant text := 'https://kingshot-autoredeemer-edge.sajijudsa.workers.dev';
+  v_new_origin constant text := 'https://app.ks-redeemer.workers.dev';
   v_announcement_job_id bigint;
   v_announcement_command text := $cmd$
     select net.http_post(
-      url := 'https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/api/custom-message',
+      url := 'https://app.ks-redeemer.workers.dev/api/custom-message',
       headers := jsonb_build_object(
         'Content-Type', 'application/json',
         'Authorization', 'Bearer ' || (select token_plain from private.kingshot_scheduler_config where id = true)
