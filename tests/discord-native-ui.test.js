@@ -224,7 +224,7 @@ test("scheduled website announcements use durable claims, validated roles, and p
   for (const expected of ["create table if not exists public.discord_scheduled_announcements","for update skip locked","lease_until","enable row level security","revoke all","claim_due_discord_announcements","announcement-attachments"]) assert.ok(migration.includes(expected), "missing durable migration feature: "+expected);
   assert.ok(workflow.includes("workflow_dispatch"));
   assert.ok(!workflow.includes('cron: "*/5 * * * *"'), "GitHub Actions must not duplicate the pg_cron schedule");
-  assert.ok(workflow.includes("kingshot-autoredeemer-edge.sajijudsa.workers.dev"));
+  assert.ok(workflow.includes("app.ks-redeemer.workers.dev"));
   assert.ok(workflow.includes("CRON_SECRET"));
   assert.ok(cronCutover.includes("'scheduled-announcement-worker'"));
   assert.ok(cronCutover.includes("'*/5 * * * *'"));
