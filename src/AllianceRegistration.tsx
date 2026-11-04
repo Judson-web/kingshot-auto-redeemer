@@ -465,6 +465,7 @@ export default function AllianceRegistration() {
         throw new Error(String(verified.error || t("alliance.registrationNotConfirmed", "The server did not confirm this alliance registration. Refresh and try again.")));
       }
       setAllianceSyncCapacity({ registeredCount: Number(verified.registeredCount) || 0, limit: Number(verified.limit) || 4, isRegistered: true, managedByCurrentUser: true, enabled: Boolean(verified.enabled), status: typeof verified.status === "string" ? verified.status : null, canRegister: false });
+      setAllianceServerProgress({ active: true, processedCount: 0, totalCount: roster.members.length, currentPlayerId: "", allianceTag: activeAlliance.tag, allianceName: activeAlliance.name, kingdomId: String(activeAlliance.kingdomId || kingdomId.trim()) });
       // The config is durable, but member processing is performed by the
       // scheduled worker. Do not display 100% until its persisted run finishes.
       await loadRoster(activeAlliance, true);
