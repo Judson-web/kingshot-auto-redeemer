@@ -203,7 +203,8 @@ assertCheck(
  auto.includes("codeTelemetry") &&
  auto.includes("firstResultLatencyMs") &&
  auto.includes("avgRedemptionLatencyMs") &&
- auto.includes("first_seen_at")
+ auto.includes("discoveryToResultMs") &&
+ worker.includes("telemetry.discoveryToResultMs")
 );
 assertCheck(
  "Worker has anomaly detection for unhealthy cycles",
