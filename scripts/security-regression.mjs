@@ -504,8 +504,9 @@ assertCheck("Sensitive routes rate-limit before external authorization work",
  developerAuth.includes("protectedAuthActions.has(action)") &&
  read("lib/admin-data.js").includes('rateLimit(req,res,"admin-data",60,60000)') &&
  read("api/custom-message.js").includes('rateLimit(req,res,"custom-message-post",60,60000)'));
-assertCheck("Rate limiter ignores caller-controlled X-Forwarded-For",
- read("lib/request-rate-limit.js").includes('req.headers?.["x-real-ip"]') &&
+assertCheck("Rate limiter keys on Cloudflare connecting IP and ignores caller-controlled forwarding headers",
+ read("lib/request-rate-limit.js").includes('req.headers?.["cf-connecting-ip"]') &&
+ !read("lib/request-rate-limit.js").includes('req.headers?.["x-real-ip"]') &&
  !read("lib/request-rate-limit.js").includes('headers["x-forwarded-for"]'));
 
 const failed=checks.filter(item=>!item.ok);

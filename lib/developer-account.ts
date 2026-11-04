@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { isIP } from "node:net";
 import { assertPublicWebhookUrl } from "./api-v4/webhooks.js";
 import { rateLimit } from "./request-rate-limit.js";
 type Req={method?:string;url?:string;headers:Record<string,string|string[]|undefined>;body?:Record<string,unknown>};
@@ -10,7 +11,7 @@ const PROFILE_COOKIE="__Host-ks_profile_session";
 const sha=(v:string)=>crypto.createHash("sha256").update(v).digest("hex");
 const get=(req:Req,n:string)=>{const v=req.headers[n.toLowerCase()]??req.headers[n];return Array.isArray(v)?v[0]:v};
 function sessionTokens(req:Req){const raw=String(get(req,"cookie")||"");const read=(name:string)=>{const p=raw.split(";").map(x=>x.trim()).find(x=>x.startsWith(name+"="));if(!p)return "";try{return decodeURIComponent(p.slice(name.length+1))}catch{return ""}};return [...new Set([read(PROFILE_COOKIE),read(COOKIE)].filter(Boolean))]}
-function ip(req:Req){const raw=String(get(req,"x-vercel-forwarded-for")||"").split(",")[0].trim();return raw.length>0&&raw.length<=64?raw:"unknown"}
+function ip(req:Req){const raw=String(get(req,"cf-connecting-ip")||"").trim();return raw.length>0&&raw.length<=64&&isIP(raw)?raw:"unknown"}
 async function db(path:string,init:RequestInit={}){if(!KEY)throw new Error("Developer API is not configured");const r=await fetch(SUPABASE_URL+path,{...init,signal:init.signal||AbortSignal.timeout(8000),headers:{apikey:KEY,authorization:"Bearer "+KEY,"content-type":"application/json",...(init.headers||{})}});const d:any=await r.json().catch(()=>null);if(!r.ok){const e=new Error(d?.message||"Developer webhook request failed") as Error&{status?:number};e.status=r.status;throw e}return d}
 async function rpc(name:string,body:Record<string,unknown>){if(!KEY)throw new Error("Developer API is not configured");const r=await fetch(SUPABASE_URL+"/rest/v1/rpc/"+name,{method:"POST",headers:{apikey:KEY,authorization:"Bearer "+KEY,"content-type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(8000)});const d:any=await r.json().catch(()=>null);if(!r.ok){const e=new Error(d?.message||"Developer account request failed") as Error&{status?:number};e.status=r.status;throw e}return d}
 export default async function handler(req:Req,res:Res){res.setHeader("Cache-Control","private, no-store");res.setHeader("X-Content-Type-Options","nosniff");if(!["GET","POST","PATCH","DELETE"].includes(String(req.method))){res.status(405).json({error:"Method not allowed"});return}

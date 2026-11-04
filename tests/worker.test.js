@@ -146,6 +146,17 @@ test("detailed profile enrichment handles nested provider payloads and legacy al
 });
 
 
+test("Cloudflare adapter preserves deprecated V1 and V3 API routes", async () => {
+  const adapter = await readFile(new URL("../cloudflare/legacy-api-adapter.ts", import.meta.url), "utf8");
+  assert.match(adapter, /v3PlayerMatch/);
+  assert.ok(adapter.includes('developerPath: "v3-player"'));
+  assert.ok(adapter.includes('queryId: v3PlayerMatch[1]'));
+  assert.ok(adapter.includes('developerPath: "v3-redemptions"'));
+  assert.ok(adapter.includes('developerPath: "player"'));
+  assert.ok(adapter.includes('developerPath: "redeem"'));
+  assert.match(adapter, /if \(route\.queryId\) query\.id = route\.queryId/);
+});
+
 test("Cloudflare Worker routes V4 paths to the native adapter without a legacy host", async () => {
   const router = await readFile(new URL("../cloudflare/worker.ts", import.meta.url), "utf8");
   const adapter = await readFile(new URL("../cloudflare/developer-v4.ts", import.meta.url), "utf8");

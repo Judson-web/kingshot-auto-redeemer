@@ -101,6 +101,13 @@ try {
     await checkJson("/api/v4/redemptions", 401,
       body => body?.success === false && body?.data === null && body?.error?.code === "missing_api_key",
       { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ playerId: "invalid", code: "ABCDEF", kid: "7" }) });
+  }
+
+  if (remote) {
+    await checkJson("/api/v3/players/12345", 401,
+      body => body?.error?.code === "missing_api_key");
+    await checkJson("/api/v3/redemptions", 405,
+      body => body?.error?.code === "method_not_allowed", { method: "GET" });
   } else {
     await checkJson("/api/v4/redemptions", 503,
       body => body?.success === false && body?.data === null && body?.error?.code === "writes_disabled",
