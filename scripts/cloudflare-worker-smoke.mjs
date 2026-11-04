@@ -152,6 +152,12 @@ try {
     const healthBody = await health.json();
     assert.ok(typeof healthBody.healthy === "boolean" || typeof healthBody.code === "string", "health response must expose health state or a structured error");
     console.log(`PASS GET /api/ops-tools/health -> ${health.status}`);
+    await checkJson("/api/kingshot-admin-data?public=maintenance", 200,
+      body => typeof body?.maintenanceEnabled === "boolean" &&
+        (body.message === undefined || typeof body.message === "string") &&
+        (body.endsAt === null || typeof body.endsAt === "string"));
+    await checkJson("/api/kingshot-admin-data?public=announcements", 200,
+      body => Array.isArray(body?.announcements));
   } else {
     await checkJson("/api/kingshot-player?developerPath=alliance-lookup&mode=registration-status&ids=12345",
       503, body => body?.code === "registration_status_unavailable");

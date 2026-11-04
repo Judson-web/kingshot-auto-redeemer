@@ -239,3 +239,12 @@ test("redemption pacing and provider cooldown are coordinated through Neon, not 
   assert.doesNotMatch(autoSource, /rpcClient\("kingshot_reserve_redemption_request"/);
   assert.doesNotMatch(autoSource, /rpcClient\("kingshot_set_source_cooldown"/);
 });
+
+
+test("Cloudflare Worker preserves the public and authenticated admin-data rewrite on the native runtime", async () => {
+  const adapter = await readFile(new URL("../cloudflare/legacy-api-adapter.ts", import.meta.url), "utf8");
+  const router = await readFile(new URL("../cloudflare/worker.ts", import.meta.url), "utf8");
+  assert.match(adapter, /path === "\/api\/kingshot-admin-data"/);
+  assert.match(adapter, /handler: adminToolsHandler, queryPath: \["data"\], rewritePath: "\/api\/admin-tools\/data"/);
+  assert.match(router, /dispatchLegacyApi\(request/);
+});

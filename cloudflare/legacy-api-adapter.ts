@@ -49,6 +49,11 @@ function routeFor(url: URL): { handler: Handler; queryPath?: string[]; developer
   if (path === "/api/v1/redeem") return { handler: playerHandler, developerPath: "redeem" };
   if (path === "/api/kingshot-auto") return { handler: autoRedeemHandler };
   if (path === "/api/kingshot-player") return { handler: playerHandler };
+  // The public app and admin control room use this stable alias. Vercel rewrote
+  // it to /api/admin-tools/data; preserve that contract in the native Worker.
+  if (path === "/api/kingshot-admin-data") return {
+    handler: adminToolsHandler, queryPath: ["data"], rewritePath: "/api/admin-tools/data",
+  };
   if (path === "/api/kingshot-alliance-sync") return { handler: playerHandler, developerPath: "alliance-sync" };
   if (path === "/api/kingshot-alliance-sync-worker") return { handler: playerHandler, developerPath: "alliance-sync-worker" };
   if (path === "/api/discord-interactions") return { handler: discordToolsHandler, queryPath: ["interactions"] };
