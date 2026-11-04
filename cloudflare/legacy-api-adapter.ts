@@ -42,7 +42,7 @@ function cookieObject(value: string | null): Record<string, string> {
 
 function routeFor(url: URL): { handler: Handler; queryPath?: string[]; developerPath?: string; queryId?: string; rewritePath?: string } | null {
   const path = url.pathname;
-  const v3PlayerMatch = /^\\/api\\/v3\\/players\\/([^/]+)$/.exec(path);
+  const v3PlayerMatch = /^\/api\/v3\/players\/([^/]+)$/.exec(path);
   if (v3PlayerMatch) return { handler: playerHandler, developerPath: "v3-player", queryId: v3PlayerMatch[1] };
   if (path === "/api/v3/redemptions") return { handler: playerHandler, developerPath: "v3-redemptions" };
   if (path.startsWith("/api/v1/player/")) return { handler: playerHandler, developerPath: "player" };
