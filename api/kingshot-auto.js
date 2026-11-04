@@ -792,7 +792,7 @@ export default async function handler(req,res){
   const shardFailureDiagnostics=workerFailures.map(result=>({
    slot:Number.isInteger(result?.slot)?result.slot:null,
    category:String(result?.errorCategory||"WORKER_SHARD"),
-   message:String(result?.error||result?.reason||"Worker shard failed.").replace(/\\s+/g," ").trim().slice(0,240),
+   message:String(result?.error||result?.reason||"Worker shard failed.").replace(/\s+/g," ").trim().slice(0,240),
    assignedPlayers:Number.isFinite(result?.assignedPlayers)?result.assignedPlayers:null,
    batchPlayers:Number.isFinite(result?.players)?result.players:null,
    deferredPlayers:Number.isFinite(result?.deferredPlayers)?result.deferredPlayers:null
