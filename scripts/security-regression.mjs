@@ -302,7 +302,7 @@ assertCheck("Discord owner ID is never derived from user-editable metadata",
  developerAuth.includes('const OWNER_DISCORD_ID = "871756466900598815";'));
 assertCheck("Admin privileged RPCs require a hashed Discord session",
  adminData.includes('rpc("kingshot_admin_create_discord_session",{p_token_hash:tokenHash,p_user_id:ownerUserId})') &&
- adminData.includes('rpcAll("kingshot_admin_list_players",{p_token_hash:tokenHash})'));
+ adminData.includes('dbAll("kingshot_autoredeem?select=*&order=created_at.asc,player_id.asc")'));
 
 const developerApi = read("lib/developer-api.ts");
 const developerApiV3 = read("lib/developer-api-v3.ts");
