@@ -157,3 +157,11 @@ For private account, player-registration, or redemption issues, use the website'
 - OpenAPI 3.1: https://app.ks-redeemer.workers.dev/openapi.json
 - Privacy: https://app.ks-redeemer.workers.dev/privacy?service=kingshot-auto
 - Terms: https://app.ks-redeemer.workers.dev/terms?service=kingshot-auto
+
+## Public manual redemption safety contract
+
+The public website submits `POST /api/kingshot-redeem` with JSON string fields `playerId`, `code`, and `kid`. Player ID must contain 5–20 digits, kingdom ID 1–10 digits, and the public gift code 6–32 letters, digits, underscores or hyphens. Leading and trailing whitespace is trimmed, but embedded punctuation, letters, or numeric JSON values are rejected rather than silently converted into a different identifier. Invalid requests are rejected before any Supabase claim, Neon journal write, or Kingshot API request.
+
+Redemption requires `SUPABASE_WRITE_MODE=enabled`, a configured Supabase service role, and the Neon recovery journal. The handler reserves shared pacing, journals the intent, claims the operation, and only then sends the signed request to Century Games. Unexpected upstream HTTP responses, non-JSON payloads, malformed payloads, and timeouts leave the attempt in a review-required state instead of recording a definitive success or failure. **Do not resubmit a player/code pair while its outcome is unresolved.** The endpoint does not automatically retry a potentially processed game request.
+
+The public endpoint returns `ok`, `status`, `statusLabel`, `message`, `errorCategory`, and `errCode` on a confirmed response. HTTP 200 with `ok: true` may include an already-claimed result; check `status` to distinguish newly redeemed from previously received. For new developer integrations, use authenticated V4 with a stable `Idempotency-Key` instead of the public endpoint.
