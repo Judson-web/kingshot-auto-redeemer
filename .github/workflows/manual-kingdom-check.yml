@@ -38,7 +38,7 @@ jobs:
             LOCK_RETRIES=0
 
             while true; do
-              URL="https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/api/kingshot-auto?mode=kingdom-check&batch-size=$BATCH_SIZE&notify-summary=false"
+              URL="https://app.ks-redeemer.workers.dev/api/kingshot-auto?mode=kingdom-check&batch-size=$BATCH_SIZE&notify-summary=false"
               if [ -n "$AFTER" ]; then
                 ENCODED_AFTER="$(jq -rn --arg value "$AFTER" '$value | @uri')"
                 URL="$URL&after=$ENCODED_AFTER"
