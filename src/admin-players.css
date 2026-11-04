@@ -199,3 +199,12 @@ main.admin-players-page .ap-state-secondary{display:inline-flex;align-items:cent
 main.admin-players-page .ap-state-secondary:hover{text-decoration:underline;color:#f2efff}
 main.admin-players-page .ap-state-actions :focus-visible{outline:2px solid #d1c7ff;outline-offset:3px}
 @media(max-width:620px){main.admin-players-page .ap-state-shell{padding-top:12px}main.admin-players-page .ap-state-actions{align-items:stretch;flex-direction:column}main.admin-players-page .ap-state-actions>.ap-action,main.admin-players-page .ap-state-actions>.ap-state-secondary{width:100%;justify-content:center;text-align:center}}
+main.admin-players-page .ap-pagination{display:grid;gap:12px;margin-top:14px;padding:13px;border:1px solid #ffffff12;border-radius:13px;background:#ffffff04;color:#b9c0d0;font-size:11px}
+main.admin-players-page .ap-pagination>label{display:flex;align-items:center;gap:8px}
+main.admin-players-page .ap-pagination select{min-height:34px;padding:5px 28px 5px 9px;border:1px solid #ffffff20;border-radius:8px;background:#111522;color:#f2f3f8}
+main.admin-players-page .ap-pagination>span{font-variant-numeric:tabular-nums;color:#c7c0f4}
+main.admin-players-page .ap-pagination>div{display:flex;align-items:center;justify-content:space-between;gap:8px}
+main.admin-players-page .ap-pagination button{min-height:36px;padding:7px 12px;border:1px solid #ffffff20;border-radius:9px;background:#ffffff08;color:#ececf5;font-weight:700}
+main.admin-players-page .ap-pagination button:disabled{opacity:.35}
+main.admin-players-page .ap-pagination b{font-size:10px;color:#d8d3f7;font-variant-numeric:tabular-nums}
+@media(min-width:620px){main.admin-players-page .ap-pagination{grid-template-columns:auto 1fr auto;align-items:center}main.admin-players-page .ap-pagination>span{text-align:center}}
