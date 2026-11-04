@@ -1,14 +1,9 @@
 const APP_UPSTREAM = "https://kingshot-autoredeemer-edge.ks-redeemer.workers.dev";
 const CANONICAL_HOST = "app.ks-redeemer.workers.dev";
-const LEGACY_HOSTS = [
-  "kingshot-autoredeemer-edge.sajijudsa.workers.dev",
-  "kingshot-autoredeemer-edge.ks-redeemer.workers.dev",
-];
+const LEGACY_HOST_PATTERN = /kingshot-autoredeemer-edge\.[a-z0-9-]+\.workers\.dev/g;
 
 function canonicalize(value) {
-  let result = value;
-  for (const host of LEGACY_HOSTS) result = result.replaceAll(host, CANONICAL_HOST);
-  return result;
+  return value.replace(LEGACY_HOST_PATTERN, CANONICAL_HOST);
 }
 
 addEventListener("fetch", (event) => {
