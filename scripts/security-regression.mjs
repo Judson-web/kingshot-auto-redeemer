@@ -541,6 +541,13 @@ assertCheck("Rate limiter keys on Cloudflare connecting IP and ignores caller-co
  !read("lib/request-rate-limit.js").includes('req.headers?.["x-real-ip"]') &&
  !read("lib/request-rate-limit.js").includes('headers["x-forwarded-for"]'));
 
+const cloudflareSecretSync = read("scripts/cloudflare-sync-secrets.sh");
+assertCheck("Cloudflare secret sync preserves the existing public Discord key variable without duplicate-binding failures",
+ cloudflareSecretSync.includes('select(.type == "plain_text" and .name == "DISCORD_PUBLIC_KEY")') &&
+ cloudflareSecretSync.includes('MAIN_PUBLIC_VARIABLES') &&
+ cloudflareSecretSync.includes('SHARD_PUBLIC_VARIABLES') &&
+ cloudflareSecretSync.includes('[ "$name" = "DISCORD_PUBLIC_KEY" ]'));
+
 const failed=checks.filter(item=>!item.ok);
 for(const item of checks){
  console.log(`${item.ok?"PASS":"FAIL"}  ${item.name}${item.detail?": "+item.detail:""}`);
