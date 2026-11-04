@@ -52,6 +52,10 @@ test("hybrid shard execution uses one coordinator eligibility snapshot", () => {
   assert.match(coordinatorSource, /excludedPlayersFiltered/);
   assert.match(coordinatorSource, /verifiedCodes:true,\s*banFilterApplied:true,\s*batchSelected:true/);
   assert.match(coordinatorSource, /cycleBucket/);
+  assert.match(coordinatorSource, /list_kingshot_player_redemptions_bulk/);
+  assert.match(coordinatorSource, /filterPlayersWithOutstandingCodes/);
+  assert.match(coordinatorSource, /historySnapshotProvided:true/);
+  assert.match(coordinatorSource, /alreadyHandledPlayersFiltered/);
 });
 
 test("coordinator sends only the bounded page to each private shard", () => {
