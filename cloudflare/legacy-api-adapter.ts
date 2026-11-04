@@ -40,8 +40,13 @@ function cookieObject(value: string | null): Record<string, string> {
   return cookies;
 }
 
-function routeFor(url: URL): { handler: Handler; queryPath?: string[]; developerPath?: string; rewritePath?: string } | null {
+function routeFor(url: URL): { handler: Handler; queryPath?: string[]; developerPath?: string; queryId?: string; rewritePath?: string } | null {
   const path = url.pathname;
+  const v3PlayerMatch = /^\\/api\\/v3\\/players\\/([^/]+)$/.exec(path);
+  if (v3PlayerMatch) return { handler: playerHandler, developerPath: "v3-player", queryId: v3PlayerMatch[1] };
+  if (path === "/api/v3/redemptions") return { handler: playerHandler, developerPath: "v3-redemptions" };
+  if (path.startsWith("/api/v1/player/")) return { handler: playerHandler, developerPath: "player" };
+  if (path === "/api/v1/redeem") return { handler: playerHandler, developerPath: "redeem" };
   if (path === "/api/kingshot-auto") return { handler: autoRedeemHandler };
   if (path === "/api/kingshot-player") return { handler: playerHandler };
   if (path === "/api/kingshot-alliance-sync") return { handler: playerHandler, developerPath: "alliance-sync" };
@@ -161,6 +166,7 @@ export async function dispatchLegacyApi(
   const query = queryObject(incoming);
   if (route.queryPath) query.path = route.queryPath;
   if (route.developerPath) query.developerPath = route.developerPath;
+  if (route.queryId) query.id = route.queryId;
 
   let parsedBody: unknown;
   const contentType = request.headers.get("content-type") || "";
