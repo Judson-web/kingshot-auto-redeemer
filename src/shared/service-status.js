@@ -5,6 +5,26 @@ const HEALTH_URL = "/api/kingshot-health";
 const MAINTENANCE_CRITICAL_INTERVAL = 5000;
 const STANDARD_INTERVAL = 30000;
 const HEALTH_INTERVAL = 30000;
+const STATUS_REQUEST_TIMEOUT_MS = 8000;
+
+async function withRequestTimeout(task, timeoutMs, message) {
+  const controller = new AbortController();
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(new Error(message));
+    }, timeoutMs);
+  });
+  try {
+    return await Promise.race([
+      Promise.resolve().then(() => task(controller.signal)),
+      timeout
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 const initialState = () => ({
   maintenance: {
@@ -56,17 +76,20 @@ async function readJson(response) {
   return response.json().catch(() => null);
 }
 
-export function refreshMaintenanceStatus(fetchImpl = globalThis.fetch) {
+export function refreshMaintenanceStatus(fetchImpl = globalThis.fetch, timeoutMs = STATUS_REQUEST_TIMEOUT_MS) {
   if (maintenanceInFlight) return maintenanceInFlight;
   let pending;
   pending = Promise.resolve().then(async () => {
     try {
-      const response = await fetchImpl(MAINTENANCE_URL, {
-        credentials: "same-origin",
-        cache: "no-store",
-        headers: { "cache-control": "no-cache" }
-      });
-      const data = await readJson(response);
+      const { response, data } = await withRequestTimeout(async signal => {
+        const response = await fetchImpl(MAINTENANCE_URL, {
+          credentials: "same-origin",
+          cache: "no-store",
+          headers: { "cache-control": "no-cache" },
+          signal
+        });
+        return { response, data: await readJson(response) };
+      }, timeoutMs, "Maintenance status check timed out.");
       if (!response.ok || !data || typeof data.maintenanceEnabled !== "boolean") {
         throw new Error("Maintenance status could not be verified.");
       }
@@ -104,16 +127,19 @@ export function refreshMaintenanceStatus(fetchImpl = globalThis.fetch) {
   return pending;
 }
 
-export function refreshHealthStatus(fetchImpl = globalThis.fetch) {
+export function refreshHealthStatus(fetchImpl = globalThis.fetch, timeoutMs = STATUS_REQUEST_TIMEOUT_MS) {
   if (healthInFlight) return healthInFlight;
   let pending;
   pending = Promise.resolve().then(async () => {
     try {
-      const response = await fetchImpl(HEALTH_URL, {
-        credentials: "same-origin",
-        cache: "no-store"
-      });
-      const data = await readJson(response);
+      const { response, data } = await withRequestTimeout(async signal => {
+        const response = await fetchImpl(HEALTH_URL, {
+          credentials: "same-origin",
+          cache: "no-store",
+          signal
+        });
+        return { response, data: await readJson(response) };
+      }, timeoutMs, "Service health check timed out.");
       const healthy = Boolean(response.ok && data?.healthy === true);
       update({
         health: {
