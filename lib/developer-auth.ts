@@ -7,7 +7,7 @@ type Req = { method?: string; headers: Record<string,string|string[]|undefined>;
 type Res = { status(n:number):Res; json(v:unknown):Res; setHeader(k:string,v:string|string[]):void };
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://wocxvtptqapietlteshr.supabase.co";
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
-const AUTH_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || KEY;
+const AUTH_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || "";
 const COOKIE = "__Host-ks_developer_session";
 const OWNER_COOKIE = "__Host-ks_owner_session";
 const PROFILE_COOKIE = "__Host-ks_profile_session";
@@ -37,7 +37,7 @@ async function ownerFromSession(req:Req){const token=ownerSession(req);if(!token
 function setCookie(res:Res,v:string,age:number){res.setHeader("Set-Cookie",COOKIE+"="+encodeURIComponent(v)+"; Max-Age="+age+"; Path=/; HttpOnly; Secure; SameSite=Strict")}
 function clearCookie(res:Res){res.setHeader("Set-Cookie",COOKIE+"=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Strict")}
 async function rpc(name:string,body:Record<string,unknown>){if(!KEY)throw new Error("Auth service is not configured");const r=await fetch(SUPABASE_URL+"/rest/v1/rpc/"+name,{method:"POST",headers:{apikey:KEY,authorization:"Bearer "+KEY,"content-type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(8000)});const d:any=await r.json().catch(()=>null);if(!r.ok)throw new Error(d?.message||"Account service unavailable");return d}
-async function authUser(accessToken:string){const r=await fetch(SUPABASE_URL+"/auth/v1/user",{headers:{apikey:AUTH_KEY||"",authorization:"Bearer "+accessToken},signal:AbortSignal.timeout(8000)});const d:any=await r.json().catch(()=>null);if(!r.ok||!d?.id){const e=new Error("Discord sign-in could not be verified. Check that Discord is enabled in Supabase Auth and try again.") as Error&{status?:number};e.status=r.status===429?429:401;throw e}return d}
+async function authUser(accessToken:string){if(!AUTH_KEY){const e=new Error("Discord authentication is not configured. Add the Supabase publishable or anon key to the Worker.") as Error&{status?:number};e.status=503;throw e}const r=await fetch(SUPABASE_URL+"/auth/v1/user",{headers:{apikey:AUTH_KEY,authorization:"Bearer "+accessToken},signal:AbortSignal.timeout(8000)});const d:any=await r.json().catch(()=>null);if(!r.ok||!d?.id){const e=new Error("Discord sign-in could not be verified. Check that Discord is enabled in Supabase Auth and try again.") as Error&{status?:number};e.status=r.status===429?429:401;throw e}return d}
 const discordProfileCache = new Map<string,{expiresAt:number;profile:any}>();
 const discordProfileInFlight = new Map<string,Promise<any>>();
 async function liveDiscordProfile(id:string){
