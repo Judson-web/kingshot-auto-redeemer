@@ -9,12 +9,10 @@ test("workspace and preflight use one permanent Kingshot 3D loader",async()=>{
  assert.ok(css.includes("preserve-3d"));assert.ok(css.includes("rotateX(68deg)"));assert.ok(css.includes("prefers-reduced-motion"));
  assert.ok(!loader.includes("isHalloweenThemeActive"));
 });
-test("Halloween countdown is removed while seasonal decoration stays separate from the loader",async()=>{
- const main=await read("src/main.jsx"),overlay=await read("src/components/SeasonalHalloweenOverlay.jsx"),loader=await read("src/components/PumpkinLoader.jsx");
- assert.ok(main.includes("SeasonalHalloweenOverlay"));
- assert.ok(!overlay.includes("ks-halloween-countdown"));
- assert.ok(!overlay.includes("HALLOWEEN ENDS IN"));
- assert.ok(!overlay.includes('role="timer"'));
+test("Halloween effects and seasonal branding are removed from the app shell",async()=>{
+ const main=await read("src/main.jsx"),loader=await read("src/components/PumpkinLoader.jsx");
+ assert.ok(!main.includes("SeasonalHalloweenOverlay"));
+ assert.ok(!main.includes("HALLOWEEN"));
  assert.ok(!loader.includes("PumpkinMark"));assert.ok(!loader.includes("seasonal-theme"));
 });
 test("registration milestone countdown is removed from the public header",async()=>{
@@ -38,6 +36,23 @@ test("profile has a separate desktop layout while preserving responsive mobile s
 });
 test("PWA shell cache includes the profile route and refreshes the branded shell",async()=>{
  const sw=await read("public/sw.js"),manifest=JSON.parse(await read("public/site.webmanifest"));
- assert.ok(sw.includes("kingshot-shell-v10"));assert.ok(sw.includes('"/profile"'));
+ assert.ok(sw.includes("kingshot-shell-v11"));assert.ok(sw.includes('"/profile"'));
  assert.equal(manifest.name,"Kingshot Auto Redeemer");assert.equal(manifest.theme_color,"#0b0d10");
+});
+
+test("seasonal Halloween overlay and branding are fully removed from the app shell",async()=>{
+ const main=await read("src/main.jsx");
+ assert.ok(!main.includes("SeasonalHalloweenOverlay"));
+ assert.ok(!main.includes("HALLOWEEN"));
+});
+test("public push subscriptions are reconciled server-side and public audience counts exclude admin devices",async()=>{
+ const push=await read("src/components/PushNotifications.tsx"),api=await read("api/custom-message.js");
+ assert.ok(push.includes('action: "PUSH_SUBSCRIBE", subscription: sub.toJSON()'));
+ assert.ok(push.includes('else if (permission === "granted" && sub) setState("on")'));
+ assert.ok(api.includes("kingshot_push_subscriptions?select=id&audience=eq.public&limit=1"));
+});
+test("service worker refreshes notification shell and keeps one interaction option",async()=>{
+ const sw=await read("public/sw.js");
+ assert.ok(sw.includes('const CACHE="kingshot-shell-v11"'));
+ assert.equal((sw.match(/requireInteraction:Boolean\(p\.requireInteraction\)/g)||[]).length,1);
 });

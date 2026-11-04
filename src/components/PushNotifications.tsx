@@ -74,13 +74,18 @@ export default function PushNotifications() {
         // Browser push subscriptions are bound to the VAPID public key used
         // when they were created. A rotated key makes the old subscription
         // unusable, so retire it and show the opt-in panel again.
+        // A browser subscription can remain valid even when the key endpoint is
+        // temporarily unavailable. Keep it enabled and idempotently repair the
+        // server-side row so missed/failed saves do not strand this device.
         let staleSubscription = false;
-        if (permission === "granted" && sub && currentKey) {
-          const existingKey = sub.options.applicationServerKey;
-          const existingBytes = existingKey ? new Uint8Array(existingKey) : null;
-          const currentBytes = new Uint8Array(currentKey);
-          staleSubscription = !existingBytes || existingBytes.length !== currentBytes.length ||
-            existingBytes.some((value, index) => value !== currentBytes[index]);
+        if (permission === "granted" && sub) {
+          if (currentKey) {
+            const existingKey = sub.options.applicationServerKey;
+            const existingBytes = existingKey ? new Uint8Array(existingKey) : null;
+            const currentBytes = new Uint8Array(currentKey);
+            staleSubscription = !existingBytes || existingBytes.length !== currentBytes.length ||
+              existingBytes.some((value, index) => value !== currentBytes[index]);
+          }
           if (staleSubscription) {
             await fetch("/api/custom-message", {
               method: "POST",
@@ -90,13 +95,19 @@ export default function PushNotifications() {
             }).catch(() => {});
             await sub.unsubscribe().catch(() => {});
             sub = null;
+          } else {
+            await fetch("/api/custom-message", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ action: "PUSH_SUBSCRIBE", subscription: sub.toJSON() }),
+              credentials: "same-origin",
+              cache: "no-store",
+            }).catch(() => {});
           }
         }
 
         let dismissed = false;
         try {
-          // Start a fresh dismissal generation so everyone sees the updated
-          // VAPID opt-in prompt once, including people who dismissed v3.
           dismissed = localStorage.getItem("ks-push-panel-dismissed-v4") === "1";
           if (staleSubscription) {
             dismissed = false;
@@ -105,7 +116,7 @@ export default function PushNotifications() {
         } catch {}
         setHidden(dismissed);
         if (permission === "denied") setState("denied");
-        else if (permission === "granted" && sub && currentKey) setState("on");
+        else if (permission === "granted" && sub) setState("on");
         else setState("off");
       } finally { checking = false; }
     };
