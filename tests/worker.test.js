@@ -38,25 +38,20 @@ test("worker assignment uses deterministic player bucketing", () => {
   assert.match(workerBatchSource, /selectWorkerShardBatch/);
 });
 
-test("hybrid shard execution uses one coordinator eligibility snapshot", () => {
+test("each selected player reads their own redemption history inside the shard", () => {
   const shardStart = autoSource.indexOf('if(mode==="worker")');
   const coordinatorStart = autoSource.indexOf('currentStage="worker-ban-snapshot"');
   const shardSource = autoSource.slice(shardStart, autoSource.indexOf('let authorized=', shardStart));
   const coordinatorSource = autoSource.slice(coordinatorStart);
   assert.ok(shardStart >= 0 && coordinatorStart > shardStart);
-  assert.match(shardSource, /body\?\.verifiedCodes!==true/);
-  assert.match(shardSource, /body\?\.banFilterApplied!==true/);
-  assert.doesNotMatch(shardSource, /list_kingshot_admin_gift_codes/);
-  assert.doesNotMatch(shardSource, /kingshot_player_bans/);
-  assert.match(coordinatorSource, /kingshot_player_bans/);
-  assert.match(coordinatorSource, /excludedPlayersFiltered/);
-  assert.match(coordinatorSource, /verifiedCodes:true,\s*banFilterApplied:true,\s*batchSelected:true/);
-  assert.match(coordinatorSource, /cycleBucket/);
-  assert.match(coordinatorSource, /list_kingshot_player_redemptions_bulk/);
-  assert.match(coordinatorSource, /filterPlayersWithOutstandingCodes/);
-  assert.match(coordinatorSource, /historySnapshotProvided:true/);
-  assert.match(coordinatorSource, /alreadyHandledPlayersFiltered/);
+  assert.match(shardSource, /redeemForPlayer\(player,codes,rpc\)/);
+  assert.match(autoSource, /rpcClient\("list_kingshot_player_redemptions",\{p_player_id:player\.player_id\}\)/);
+  assert.doesNotMatch(shardSource, /list_kingshot_player_redemptions_bulk/);
+  assert.doesNotMatch(coordinatorSource, /list_kingshot_player_redemptions_bulk/);
+  assert.doesNotMatch(coordinatorSource, /historySnapshotProvided|redemptionHistory/);
+  assert.match(coordinatorSource, /dispatchPlayers\)assignments\[workerBucket/);
 });
+
 
 test("coordinator sends only the bounded page to each private shard", () => {
   assert.match(autoSource, /const shardBatches=assignments\.map/);
