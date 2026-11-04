@@ -16,6 +16,8 @@ interface NotifyResult {}
 export interface WorkerDependencies {
   rpc: Rpc;
   redeemForPlayer: (player: Player, codes: any[]) => Promise<WorkerResult>;
+  claimSlot?: (slot: number) => Promise<any>;
+  finishSlot?: (payload: Record<string, unknown>) => Promise<any>;
 }
 
 export async function runWithConcurrency<T>(
@@ -158,7 +160,8 @@ export async function runWorkerShard(
   options: { workerCount: number; concurrency: number; maxRuntimeMs: number }
 ): Promise<{ claimed: false; skipped: true; reason: string; slot: number } | ({ claimed: true } & WorkerSummary)> {
   const { rpc, redeemForPlayer } = dependencies;
-  const claim = await rpc("claim_kingshot_worker_slot", { p_slot: slot });
+  const claim = dependencies.claimSlot ? await dependencies.claimSlot(slot) : await rpc("claim_kingshot_worker_slot", { p_slot: slot });
+  const finishSlot = (payload: Record<string, unknown>) => dependencies.finishSlot ? dependencies.finishSlot(payload) : rpc("finish_kingshot_worker_slot", payload);
   if (!claim?.claimed) return { slot, claimed: false, skipped: true, reason: claim?.reason || "SLOT_ALREADY_RUNNING" };
 
   const workerToken = claim.token;
@@ -176,7 +179,7 @@ export async function runWorkerShard(
     totals.deadlineSkipped = results.reduce((n, r) => n + (r?.deadlineSkipped || 0), 0);
     const summary = { slot, players: assigned.length, ...totals };
 
-    await rpc("finish_kingshot_worker_slot", {
+    await finishSlot({
       p_slot: slot, p_token: workerToken,
       p_status: totals.errors || totals.stale ? "COMPLETED_WITH_WARNINGS" : "COMPLETED",
       p_error: null, p_summary: summary
