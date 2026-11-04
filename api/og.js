@@ -169,9 +169,9 @@ function compactCardPower(value){
  return String(Math.round(n));
 }
 function deploymentOrigin(){
- const configured=String(process.env.PUBLIC_APP_URL||"https://kingshot-autoredeemer-edge.sajijudsa.workers.dev").trim();
+ const configured=String(process.env.PUBLIC_APP_URL||"https://app.ks-redeemer.workers.dev").trim();
  try { const url=new URL(configured); if(url.protocol==="https:"&&!url.username&&!url.password)return url.origin; } catch {}
- return "https://kingshot-autoredeemer-edge.sajijudsa.workers.dev";
+ return "https://app.ks-redeemer.workers.dev";
 }
 function removeMeta(html,attribute,value){
  const needle=('<meta '+attribute+'="'+value+'"').toLowerCase();

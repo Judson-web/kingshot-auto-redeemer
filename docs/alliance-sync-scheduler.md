@@ -26,7 +26,7 @@ For the optional manual GitHub Actions workflow, configure the repository Action
 
 ## Verify
 
-1. Inspect `cron.job` and confirm the jobs above are active and their commands target `https://kingshot-autoredeemer-edge.sajijudsa.workers.dev`.
+1. Inspect `cron.job` and confirm the jobs above are active and their commands target `https://app.ks-redeemer.workers.dev`.
 2. Inspect `cron.job_run_details` for recent successful scheduler invocations.
 3. Inspect `net._http_response` for the HTTP responses produced by `pg_net`; a successful cron enqueue alone does not prove the Worker returned a successful response.
 4. In the Admin Alliance Sync page, confirm each enabled alliance has a recent attempt and an updated next-run time.

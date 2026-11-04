@@ -68,8 +68,8 @@ export default async function developerApi(req: RequestLike, res: ResponseLike, 
   if (publicApiRoute) {
     res.setHeader("Deprecation", "true");
     res.setHeader("Link", path === "redeem"
-      ? '<https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/developer.md>; rel="deprecation"; type="text/markdown", <https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/api/v4/redemptions>; rel="successor-version"'
-      : '<https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/developer.md>; rel="deprecation"; type="text/markdown", <https://kingshot-autoredeemer-edge.sajijudsa.workers.dev/api/v4/players/{playerId}>; rel="successor-version"');
+      ? '<https://app.ks-redeemer.workers.dev/developer.md>; rel="deprecation"; type="text/markdown", <https://app.ks-redeemer.workers.dev/api/v4/redemptions>; rel="successor-version"'
+      : '<https://app.ks-redeemer.workers.dev/developer.md>; rel="deprecation"; type="text/markdown", <https://app.ks-redeemer.workers.dev/api/v4/players/{playerId}>; rel="successor-version"');
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");

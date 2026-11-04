@@ -114,5 +114,5 @@ jobs:
       - name: Smoke-test deployed workers.dev runtime
         run: node scripts/cloudflare-worker-smoke.mjs
         env:
-          WORKER_PREVIEW_URL: https://kingshot-autoredeemer-edge.sajijudsa.workers.dev
+          WORKER_PREVIEW_URL: https://app.ks-redeemer.workers.dev
           CRON_SECRET: ${{ secrets.CRON_SECRET }}

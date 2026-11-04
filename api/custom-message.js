@@ -202,7 +202,7 @@ export default async function handler(req,res){
     if(!rateLimit(req,res,"gift-code-trigger",3,5*60*1000))return res.status(429).json({error:"A manual run was triggered recently. Wait five minutes."});
     const cronSecret=process.env.CRON_SECRET;
     if(!cronSecret)return res.status(503).json({error:"Worker trigger is not configured (CRON_SECRET missing)."});
-    const origin=String(process.env.PUBLIC_APP_URL||"https://kingshot-autoredeemer-edge.sajijudsa.workers.dev").replace(/\/+$/,"");
+    const origin=String(process.env.PUBLIC_APP_URL||"https://app.ks-redeemer.workers.dev").replace(/\/+$/,"");
     const mode=action==="TRIGGER_KINGDOM_VALIDATION"?"kingdom-check":"worker";
     const url=mode==="worker"?origin+"/api/kingshot-auto":origin+"/api/kingshot-auto?mode=kingdom-check";
     if(mode==="worker"){
