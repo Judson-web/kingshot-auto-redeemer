@@ -180,8 +180,13 @@ export function subscribeAccountState(listener, options = {}) {
   if (wasEmpty || snapshot.status === "checking" || Date.now() - (snapshot.lastAttemptAt || 0) >= REFRESH_INTERVAL) {
     // OAuth redirects carry a one-time access token in the fragment. Let the
     // callback establish its server session before attempting profile-check.
-    const oauthPending = typeof window !== "undefined" &&
-      new URLSearchParams(window.location.hash.slice(1)).has("access_token");
+    const oauthPending = typeof window !== "undefined" && (() => {
+      if (new URLSearchParams(window.location.hash.slice(1)).has("access_token")) return true;
+      const hasCode = new URLSearchParams(window.location.search).has("code");
+      if (!hasCode) return false;
+      try { return Boolean(sessionStorage.getItem("ks-discord-pkce-verifier")); }
+      catch { return false; }
+    })();
     if (!oauthPending) void refreshAccount({ fetchImpl: options.fetchImpl });
   }
   return () => {
