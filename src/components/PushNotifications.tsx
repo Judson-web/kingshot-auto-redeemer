@@ -77,8 +77,8 @@ export default function PushNotifications() {
         // A browser subscription can remain valid even when the key endpoint is
         // temporarily unavailable. Keep it enabled and idempotently repair the
         // server-side row so missed/failed saves do not strand this device.
+        let staleSubscription = false;
         if (permission === "granted" && sub) {
-          let staleSubscription = false;
           if (currentKey) {
             const existingKey = sub.options.applicationServerKey;
             const existingBytes = existingKey ? new Uint8Array(existingKey) : null;
