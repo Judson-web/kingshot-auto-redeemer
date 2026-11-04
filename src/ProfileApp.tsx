@@ -23,29 +23,37 @@ async function request(body?:Record<string,unknown>){const r=await fetch(API,{me
 function readToken(){try{return sessionStorage.getItem("ks-profile-oauth-token")||""}catch{return""}}
 function saveToken(token:string){try{if(token)sessionStorage.setItem("ks-profile-oauth-token",token)}catch{}}
 function clearToken(){try{sessionStorage.removeItem("ks-profile-oauth-token")}catch{}}
+const DISCORD_PKCE_KEY="ks-discord-pkce-verifier";
+function base64Url(bytes:Uint8Array){const binary=Array.from(bytes,value=>String.fromCharCode(value)).join("");return btoa(binary).replace(/\\+/g,"-").replace(/\\//g,"_").replace(/=+$/g,"")}
+async function createDiscordPkcePair(){const random=new Uint8Array(32);crypto.getRandomValues(random);const verifier=base64Url(random);const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(verifier));return {verifier,challenge:base64Url(new Uint8Array(digest))}}
+function readDiscordPkceVerifier(){try{return sessionStorage.getItem(DISCORD_PKCE_KEY)||""}catch{return""}}
+function clearDiscordPkceVerifier(){try{sessionStorage.removeItem(DISCORD_PKCE_KEY)}catch{}}
 export default function ProfileApp(){const {account:user}=useAccountState() as {account:Profile|null};const {t}=useSiteLanguage();const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
 useEffect(()=>{
  let live=true;
  const hash=new URLSearchParams(location.hash.slice(1));
- const token=hash.get("access_token");
- const returnTo=new URLSearchParams(location.search).get("returnTo") || sessionStorage.getItem("ks-profile-return-to");
- if(token){
-  history.replaceState(null,"",location.pathname+location.search);
-  saveToken(token);
+ const legacyToken=hash.get("access_token");
+ const params=new URLSearchParams(location.search);
+ const code=params.get("code");
+ const verifier=readDiscordPkceVerifier();
+ const returnTo=params.get("returnTo") || sessionStorage.getItem("ks-profile-return-to");
+ const cleanCallback=()=>{params.delete("code");params.delete("state");params.delete("provider");history.replaceState(null,"",location.pathname+(params.toString()?"?"+params.toString():""))};
+ const completeProfileSignIn=(d:any)=>{if(!live)return;const next=d.user?{...d.user,kind:(d.role==="admin"?"admin":d.kind==="developer"?"developer":"user") as "user"|"developer"|"admin",role:d.role||"user"}:null;setAccountState(next);setNotice(t("profile.copy024","Signed in with Discord."));if(["/devsupport","/message","/gift-codes","/admin/players","/admin/maintenance","/alliance-registration","/developer"].includes(returnTo||"")){try{sessionStorage.removeItem("ks-profile-return-to")}catch{}location.assign(returnTo)}};
+ if(code){
+  cleanCallback();
+  if(!verifier){setError(t("profile.signInExpired","This Discord sign-in attempt expired. Please try again."));return()=>{live=false}}
+  clearDiscordPkceVerifier();
   setBusy(true);
-  request({action:"profile-oauth",provider:"discord",access_token:token}).then(d=>{
-   if(!live)return;
-   const next=d.user?{...d.user,kind:(d.role==="admin"?"admin":d.kind==="developer"?"developer":"user") as "user"|"developer"|"admin",role:d.role||"user"}:null;
-   setAccountState(next);
-   setNotice(t("profile.copy024","Signed in with Discord."));
-   if(["/devsupport","/message","/gift-codes","/admin/players","/admin/maintenance","/alliance-registration","/developer"].includes(returnTo||"")){sessionStorage.removeItem("ks-profile-return-to");location.assign(returnTo)}
-  }).catch(e=>{
-   if(live){setAccountState(null,{error:e instanceof Error?e.message:t("profile.signInFailed","Discord sign-in failed.")});setError(e instanceof Error?e.message:"Discord sign-in failed.")}
-  }).finally(()=>{if(live)setBusy(false)});
+  request({action:"profile-oauth-exchange",code,code_verifier:verifier}).then(completeProfileSignIn).catch(e=>{if(live){setAccountState(null,{error:e instanceof Error?e.message:t("profile.signInFailed","Discord sign-in failed.")});setError(e instanceof Error?e.message:"Discord sign-in failed.")}}).finally(()=>{if(live)setBusy(false)});
+ }else if(legacyToken){
+  history.replaceState(null,"",location.pathname+location.search);
+  saveToken(legacyToken);
+  setBusy(true);
+  request({action:"profile-oauth",provider:"discord",access_token:legacyToken}).then(completeProfileSignIn).catch(e=>{if(live){setAccountState(null,{error:e instanceof Error?e.message:t("profile.signInFailed","Discord sign-in failed.")});setError(e instanceof Error?e.message:"Discord sign-in failed.")}}).finally(()=>{if(live)setBusy(false)});
  }
  return()=>{live=false};
 },[]);
-async function signIn(){setBusy(true);setError("");try{const returnTo=new URLSearchParams(location.search).get("returnTo");if(["/alliance-registration","/developer"].includes(returnTo||""))sessionStorage.setItem("ks-profile-return-to",returnTo||"");const d=await request({action:"profile-discord-url"});if(!d.url)throw Error(t("profile.signInNotConfigured","Discord sign-in is not configured."));location.assign(d.url)}catch(e){setError(e instanceof Error?e.message:t("profile.startSignInFailed","Could not start Discord sign-in."));setBusy(false)}}
+async function signIn(){setBusy(true);setError("");try{const returnTo=new URLSearchParams(location.search).get("returnTo");if(["/alliance-registration","/developer"].includes(returnTo||""))sessionStorage.setItem("ks-profile-return-to",returnTo||"");const {verifier,challenge}=await createDiscordPkcePair();sessionStorage.setItem(DISCORD_PKCE_KEY,verifier);const d=await request({action:"profile-discord-url",code_challenge:challenge});if(!d.url)throw Error(t("profile.signInNotConfigured","Discord sign-in is not configured."));location.assign(d.url)}catch(e){clearDiscordPkceVerifier();setError(e instanceof Error?e.message:t("profile.startSignInFailed","Could not start Discord sign-in."));setBusy(false)}}
 async function logout(){setBusy(true);setError("");setNotice("");try{const r=await fetch(API,{method:"DELETE",credentials:"same-origin",cache:"no-store",headers:{"content-type":"application/json"},body:JSON.stringify({access_token:readToken()})});const d=await r.json().catch(()=>({}));clearToken();setAccountState(null);if(!r.ok)throw Error(d.error||t("profile.logoutUnconfirmed","Signed out locally, but server-side logout could not be fully confirmed."));setNotice(t("profile.copy025","Signed out successfully."))}catch(e){setError(e instanceof Error?e.message:t("profile.signOutFailed","Could not sign out."))}finally{setBusy(false)}}
 const hasProfileAccess=Boolean(user);
 const profileLoginAllowed=true;
