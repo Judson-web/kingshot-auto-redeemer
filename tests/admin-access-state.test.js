@@ -30,7 +30,7 @@ test("notification preferences stay available on public pages, not private works
 
 test("push notifications use richer platform presentation and safe click navigation", async () => {
   const worker = await readFile(new URL("../public/sw.js", import.meta.url), "utf8");
-  assert.match(worker, /const CACHE="kingshot-shell-v11"/);
+  assert.match(worker, /const CACHE="kingshot-shell-v12"/);
   assert.match(worker, /timestamp:Date\.now\(\)/);
   assert.match(worker, /vibrate:\[120,60,120\]/);
   assert.match(worker, /dir:"auto"/);
