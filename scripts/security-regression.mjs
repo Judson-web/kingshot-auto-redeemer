@@ -480,7 +480,8 @@ assertCheck("Configured Discord owner is returned as explicit admin kind",
  developerAuth.includes('kind:role') && developerAuth.includes('OWNER_DISCORD_ID = "871756466900598815"'));
 assertCheck("Admin player database is routed and protected by server-side admin session",
  read("src/main.jsx").includes('location.pathname==="/admin/players"?<AdminPlayersApp/>') &&
- adminData.includes('kingshot_admin_list_players') &&
+ adminData.includes('requestUrl.searchParams.has("playerPage")') &&
+ adminData.includes('kingshot_autoredeem?') &&
  adminData.includes('if(!session)return res.status(401)'));
 assertCheck("Admin player database supports MightPulse refresh and redemption history",
  adminPlayers.includes('action("REFRESH_PLAYER"') &&
