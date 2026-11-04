@@ -187,7 +187,7 @@ export async function runWorkerShard(
     console.log("Kingshot worker shard:", summary);
     return { claimed: true, ...summary };
   } catch (error) {
-    await rpc("finish_kingshot_worker_slot", {
+    await finishSlot({
       p_slot: slot, p_token: workerToken, p_status: "FAILED",
       p_error: error instanceof Error ? error.message : "Worker shard failed.",
       p_summary: { slot, errorCategory: classifyScraperError(error) }

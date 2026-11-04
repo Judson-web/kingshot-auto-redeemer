@@ -355,12 +355,14 @@ assertCheck(
  /revoke all on function public\.claim_kingshot_worker_run\(\) from public, anon, authenticated/i.test(migrations)
 );
 assertCheck(
- "Production worker slots use Neon leases with a restricted Supabase test fallback",
+ "Production worker slots use Neon leases, release failures through the injected coordinator, and outlive the bounded shard runtime",
  read("api/kingshot-auto.js").includes("claimNeonWorkerSlot") &&
  read("api/kingshot-auto.js").includes("finishNeonWorkerSlot") &&
+ read("api/kingshot-auto.js").includes("now()+interval '5 minutes'") &&
  read("internal/kingshot/worker.ts").includes("dependencies.claimSlot") &&
  read("internal/kingshot/worker.ts").includes('"claim_kingshot_worker_slot"') &&
- read("internal/kingshot/worker.ts").includes('"finish_kingshot_worker_slot"')
+ read("internal/kingshot/worker.ts").includes("await finishSlot({") &&
+ read("internal/kingshot/worker.ts").includes('  } catch (error) {\n    await finishSlot({')
 );
 assertCheck(
  "Admin SECURITY DEFINER RPCs are revoked from public roles",

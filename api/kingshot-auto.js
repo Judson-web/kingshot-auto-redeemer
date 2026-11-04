@@ -165,7 +165,7 @@ async function claimNeonWorkerSlot(slot){
  const safeSlot=Number(slot);
  if(!Number.isInteger(safeSlot)||safeSlot<0||safeSlot>=WORKER_COUNT)return {claimed:false,reason:"INVALID_SLOT"};
  const rows=await neonJournal.query(
-  "insert into public.worker_slot_leases(slot,lease_token,locked_until,last_started_at,last_status,last_error,updated_at) values($1,gen_random_uuid(),now()+interval '2 minutes',now(),'RUNNING',null,now()) on conflict(slot) do update set lease_token=gen_random_uuid(),locked_until=now()+interval '2 minutes',last_started_at=now(),last_status='RUNNING',last_error=null,updated_at=now() where public.worker_slot_leases.locked_until is null or public.worker_slot_leases.locked_until<now() returning lease_token::text as token,last_started_at as started_at",
+  "insert into public.worker_slot_leases(slot,lease_token,locked_until,last_started_at,last_status,last_error,updated_at) values($1,gen_random_uuid(),now()+interval '5 minutes',now(),'RUNNING',null,now()) on conflict(slot) do update set lease_token=gen_random_uuid(),locked_until=now()+interval '5 minutes',last_started_at=now(),last_status='RUNNING',last_error=null,updated_at=now() where public.worker_slot_leases.locked_until is null or public.worker_slot_leases.locked_until<now() returning lease_token::text as token,last_started_at as started_at",
   [safeSlot]
  );
  return rows.length?{claimed:true,slot:safeSlot,token:rows[0].token,started_at:rows[0].started_at}:{claimed:false,reason:"SLOT_ALREADY_RUNNING"};
