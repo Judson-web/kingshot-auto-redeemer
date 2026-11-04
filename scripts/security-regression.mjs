@@ -501,7 +501,7 @@ assertCheck("Privileged owner checks use only verified Discord identity data",
  discordIdentity.includes("function verifiedDiscordId") &&
  !/user\?\.user_metadata\?\.(?:provider_id|sub|id)/.test(read("lib/admin-data.js")) &&
  !/user\?\.user_metadata\?\.(?:provider_id|sub|id)/.test(read("api/custom-message.js")) &&
- developerAuth.includes('import { isDiscordOwner, verifiedDiscordId } from "./discord-identity.js"'));
+ developerAuth.includes('import { discordAccountRole, isDiscordOwner, verifiedDiscordId } from "./discord-identity.js"'));
 assertCheck("Sensitive routes rate-limit before external authorization work",
  developerAuth.includes("protectedAuthActions.has(action)") &&
  read("lib/admin-data.js").includes('rateLimit(req,res,"admin-data",60,60000)') &&
