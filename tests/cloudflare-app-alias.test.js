@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 test("canonical app alias forwards to the production Worker with same-zone fetch enabled", async () => {
   const worker = await readFile(new URL("../cloudflare/app-alias.js", import.meta.url), "utf8");
   const config = await readFile(new URL("../wrangler.app-alias.jsonc", import.meta.url), "utf8");
+  const mainConfig = await readFile(new URL("../wrangler.jsonc", import.meta.url), "utf8");
 
   assert.ok(worker.includes('https://kingshot-autoredeemer-edge.ks-redeemer.workers.dev'));
   assert.ok(worker.includes('x-forwarded-host'));
@@ -15,5 +16,7 @@ test("canonical app alias forwards to the production Worker with same-zone fetch
   assert.ok(worker.includes("responseHeaders.set(\"location\", canonicalize(location))"));
   assert.ok(config.includes('"name": "app"'));
   assert.ok(config.includes('"workers_dev": true'));
+  assert.ok(config.includes('"preview_urls": false'));
+  assert.ok(mainConfig.includes('"preview_urls": false'));
   assert.ok(config.includes('"global_fetch_strictly_public"'));
 });
