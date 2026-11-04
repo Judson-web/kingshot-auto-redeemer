@@ -1,5 +1,5 @@
 // Seasonal Halloween atmosphere and decorative elements, without an event countdown.
-import React,{useEffect,useState}from"react";
+import React,{useEffect}from"react";
 import{createPortal}from"react-dom";
 import"./SeasonalHalloweenOverlay.css";
 import {HALLOWEEN_SEASON_END} from "../shared/seasonal-theme.js";
@@ -26,16 +26,12 @@ function Pumpkin({className=""}){return <svg className={className} viewBox="0 0 
 
 
 export default function SeasonalHalloweenOverlay(){
- const[now,setNow]=useState(()=>Date.now());
  useEffect(()=>{
   if(Date.now()>=HALLOWEEN_SEASON_END){restoreBrand();return}
-  const cleanup=applyBrand();
-  const timer=window.setInterval(()=>{const value=Date.now();setNow(value);if(value>=HALLOWEEN_SEASON_END){window.clearInterval(timer);cleanup()}},1000);
-  return()=>{window.clearInterval(timer);cleanup()};
+  return applyBrand();
  },[]);
  if(typeof document==="undefined")return null;
- const halloweenActive=now<HALLOWEEN_SEASON_END;
- return createPortal(<>{halloweenActive&&<>
+ return createPortal(<>{Date.now()<HALLOWEEN_SEASON_END&&<>
   <div className="ks-halloween-overlay" aria-hidden="true">
   <div className="ks-halloween-atmosphere" aria-hidden="true"/>
 
