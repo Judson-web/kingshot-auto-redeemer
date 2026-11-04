@@ -394,9 +394,11 @@ export default async function handler(req,res){
    const eligiblePlayers=shardBatch.players;
    const deferredPlayers=shardBatch.deferredPlayers;
    const playerIds=[...new Set(eligiblePlayers.map(player=>String(player?.player_id||"").trim()).filter(Boolean))];
-   const historyRows=playerIds.length
-    ? await rpc("list_kingshot_player_redemptions_bulk",{p_player_ids:playerIds})
-    : [];
+   const historyRows=body?.historySnapshotProvided===true&&Array.isArray(body?.redemptionHistory)
+    ? body.redemptionHistory
+    : playerIds.length
+     ? await rpc("list_kingshot_player_redemptions_bulk",{p_player_ids:playerIds})
+     : [];
    const historiesByPlayer=new Map();
    for(const row of Array.isArray(historyRows)?historyRows:[]){
     const id=String(row?.player_id||"");
@@ -741,11 +743,22 @@ export default async function handler(req,res){
   else throw Error("No internal worker authorization is configured.");
 
 
+  // Read redemption history for the eligible roster once, before selecting any
+  // shard pages. Fully handled players never enter a shard or consume upstream
+  // pacing slots. Transient failures remain eligible for a later retry.
+  currentStage="redemption-history-prefilter";
+  const rosterPlayerIds=[...new Set(dispatchPlayers.map(player=>String(player?.player_id||"").trim()).filter(Boolean))];
+  const rosterHistoryRows=rosterPlayerIds.length
+   ? await rpc("list_kingshot_player_redemptions_bulk",{p_player_ids:rosterPlayerIds})
+   : [];
+  const historyFilter=filterPlayersWithOutstandingCodes(dispatchPlayers,activeCodes,rosterHistoryRows);
+  const redemptionEligiblePlayers=historyFilter.eligiblePlayers;
+  const alreadyHandledPlayersFiltered=historyFilter.alreadyHandledPlayers.length;
   const cycleBucket=Math.floor(cycleStartedAt/60000);
   const assignments=Array.from({length:WORKER_COUNT},()=>[]);
-  for(const player of dispatchPlayers)assignments[workerBucket(player?.player_id,WORKER_COUNT)].push(player);
-  // Slice before crossing the service binding. Sending a whole shard roster
-  // forced the child Worker to parse and sort hundreds of players just to use two.
+  for(const player of redemptionEligiblePlayers)assignments[workerBucket(player?.player_id,WORKER_COUNT)].push(player);
+  // Only outstanding players are rotated into bounded pages. The history
+  // snapshot for each page travels with it, eliminating another database read.
   const shardBatches=assignments.map((assigned,workerIndex)=>
    selectWorkerShardBatch(assigned,workerIndex,WORKER_COUNT,cycleBucket,MAX_PLAYERS_PER_SHARD)
   );
@@ -762,6 +775,7 @@ export default async function handler(req,res){
      body:JSON.stringify({
       codes:activeCodes,players:batchPlayers,verifiedCodes:true,banFilterApplied:true,
       batchSelected:true,cycleBucket,deferredPlayers:shardBatch.deferredPlayers,
+      historySnapshotProvided:true,redemptionHistory:batchPlayers.flatMap(player=>{const id=String(player?.player_id||"").trim();return (historyFilter.historiesByPlayer.get(id)||[]).map(row=>({...row,player_id:id}));}),
       shardBatchIndex:shardBatch.batchIndex,shardBatchCount:shardBatch.batchCount
      }),
      signal:AbortSignal.timeout(WORKER_MAX_RUNTIME_MS+15000)
@@ -841,7 +855,7 @@ export default async function handler(req,res){
   },{})).sort((x,y)=>y.count-x.count).slice(0,8);
   const noWorkReason=totals.attempted>0?null
    :activeCodes.length===0?"NO_ELIGIBLE_VERIFIED_UNSUPPRESSED_UNEXPIRED_CODES"
-   :validPlayers.length>0&&totals.alreadyHandled>=validPlayers.length*activeCodes.length?"ALL_ELIGIBLE_CODES_ALREADY_HANDLED"
+   :dispatchPlayers.length>0&&alreadyHandledPlayersFiltered===dispatchPlayers.length?"ALL_ELIGIBLE_CODES_ALREADY_HANDLED"
    :"NO_REDEMPTION_ATTEMPTS_RECORDED";
   console.log("Kingshot auto worker pool:",{workers:WORKER_COUNT,assignments:assignments.map(x=>x.length),workerFailures:workerFailures.length,attempted:totals.attempted,success:totals.success,noWorkReason,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures});
   const summary={source:"kingshot.net",sources:sourceResults.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,dispatchEligiblePlayers:redemptionEligiblePlayers.length,alreadyHandledPlayersFiltered,excludedPlayersFiltered,noWorkReason,...totals,workerFailures:workerFailures.length,shardFailureDiagnostics,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures,codeTelemetry};
