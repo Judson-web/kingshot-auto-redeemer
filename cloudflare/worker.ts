@@ -729,7 +729,9 @@ export default {
 
     if (incoming.pathname === "/api/kingshot-player") {
       const developerPath = incoming.searchParams.get("developerPath") || incoming.searchParams.get("developer") || "";
-      if (developerPath === "account-auth") return handleNativeDeveloperAccount(request, env, "auth");
+      // Keep the shared profile OAuth/PKCE lifecycle on the legacy adapter until the native
+      // account handler implements profile-check and profile-oauth-exchange. API-key operations
+      // remain native and continue to accept the shared profile session cookie.
       if (developerPath === "account-keys") return handleNativeDeveloperAccount(request, env, "keys");
     }
 
