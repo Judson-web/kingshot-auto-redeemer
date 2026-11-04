@@ -7,7 +7,7 @@ declare
   v_command text;
   v_old_origins constant text[] := array[
     'https://kingshot-autoredeemer.vercel.app',
-    'https://kingshot-autoredeemer-edge.sajijudsa.workers.dev',
+    'https://app.ks-redeemer.workers.dev',
     'https://kingshot-autoredeemer-edge.ks-redeemer.workers.dev'
   ];
   v_origin text;
