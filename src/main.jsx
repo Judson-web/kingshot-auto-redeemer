@@ -103,7 +103,7 @@ function KingshotApp(){
    if(d.status||d.statusLabel||d.message){
     setResult({...d,ok:Boolean(d.ok),statusLabel:d.statusLabel||d.status||"Redemption result",message:d.message||d.error||"Kingshot returned a redemption result."});
     setError("");
-   }else if(!r.ok)throw Error(d.error||"Redemption failed.");
+   }else if(!r.ok)throw Object.assign(new Error(d.error||"Redemption failed."),{code:d.code,status:r.status});
    else setResult(d);
   }catch(e){
    if(manualAbortReasonRef.current==="user"){
@@ -115,7 +115,7 @@ function KingshotApp(){
    const issue=playerIdFeedback(e?.code,e?.message);
    const timedOut=e?.name==="TimeoutError"||e?.name==="AbortError";
    if(issue){setErrorTitle(issue.type==="invalid"?"Check Player ID":"Player not found");setError(issue.type==="invalid"?t("manual.playerIdHint","Use the numeric Player ID shown in Kingshot under Profile → Info. It must contain 5–20 digits; your kingdom number is different."):t("manual.playerNotFoundMessage","No player was found for this ID. Check every digit against Kingshot → Profile → Info. If the ID is correct, try again shortly."))}
-   else{setErrorTitle(timedOut?"Request timed out":"Couldn’t redeem that code.");setError(timedOut?t("manual.requestTimeoutMessage","The request timed out. Kingshot may already have received it, so it was not retried automatically. Check your in-game mail before submitting again."):t("manual.summaryFallback","The request could not be completed. Try again shortly."))}
+   else{const code=String(e?.code||"");const title=code==="upstream_cooldown"||code==="rate_limit_exceeded"?"Please wait before trying again":code==="redemption_unresolved"||code==="redemption_outcome_needs_review"?"Redemption needs review":code==="writes_disabled"||code==="redemption_unavailable"?"Redemption temporarily unavailable":"Couldn’t redeem that code.";const detail=String(e?.message||"").trim();setErrorTitle(timedOut?"Request timed out":title);setError(timedOut?t("manual.requestTimeoutMessage","The request timed out. Kingshot may already have received it, so it was not retried automatically. Check your in-game mail before submitting again."):detail&&detail!=="Failed to fetch"?detail.slice(0,300):t("manual.summaryFallback","The request could not be completed. Try again shortly."))}
   }finally{manualSubmissionRef.current=false;setBusy(false)}
  };
 
