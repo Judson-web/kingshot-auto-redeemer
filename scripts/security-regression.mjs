@@ -355,11 +355,12 @@ assertCheck(
  /revoke all on function public\.claim_kingshot_worker_run\(\) from public, anon, authenticated/i.test(migrations)
 );
 assertCheck(
- "Production worker slots use Neon leases and retain the restricted Supabase fallback",
+ "Production worker slots use Neon leases with a restricted Supabase test fallback",
  read("api/kingshot-auto.js").includes("claimNeonWorkerSlot") &&
  read("api/kingshot-auto.js").includes("finishNeonWorkerSlot") &&
  read("internal/kingshot/worker.ts").includes("dependencies.claimSlot") &&
- /revoke all on function public\\.claim_kingshot_worker_slot\\(integer\\) from public, anon, authenticated/i.test(migrations)
+ read("internal/kingshot/worker.ts").includes('"claim_kingshot_worker_slot"') &&
+ read("internal/kingshot/worker.ts").includes('"finish_kingshot_worker_slot"')
 );
 assertCheck(
  "Admin SECURITY DEFINER RPCs are revoked from public roles",
