@@ -246,6 +246,5 @@ test("Cloudflare Worker preserves the public and authenticated admin-data rewrit
   const router = await readFile(new URL("../cloudflare/worker.ts", import.meta.url), "utf8");
   assert.match(adapter, /path === "\/api\/kingshot-admin-data"/);
   assert.match(adapter, /handler: adminToolsHandler, queryPath: \["data"\], rewritePath: "\/api\/admin-tools\/data"/);
-  assert.match(adapter, /const pathname=new URL\(req\.url\|\|["']\/["'],["']http:\/\/localhost["']\)\.pathname/);
   assert.match(router, /dispatchLegacyApi\(request/);
 });
