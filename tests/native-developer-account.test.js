@@ -15,6 +15,22 @@ test("Cloudflare Worker routes Discord developer sessions and API keys natively"
   assert.match(adapter, /kingshot_developer_account_revoke_key/);
 });
 
+test("native Cloudflare auth supports the app's Discord PKCE login and account checks", async () => {
+  const adapter = await readFile(new URL("../cloudflare/developer-account.ts", import.meta.url), "utf8");
+  assert.match(adapter, /profile-discord-url/);
+  assert.match(adapter, /profile-oauth-exchange/);
+  assert.match(adapter, /dev-discord-oauth-url/);
+  assert.match(adapter, /dev-oauth-exchange/);
+  assert.match(adapter, /auth\/v1\/token\?grant_type=pkce/);
+  assert.match(adapter, /code_challenge_method", "s256"/);
+  assert.match(adapter, /action === "profile-check"/);
+  assert.match(adapter, /action === "dev-check"/);
+  const startAction = adapter.indexOf('if (startActions.has(action))');
+  const writeGate = adapter.indexOf('if (!allowedWrite(env)) return json(503');
+  assert.ok(startAction >= 0 && writeGate > startAction,
+    "OAuth URL creation and session checks must remain available before the database-write gate");
+});
+
 test("native developer sessions verify Discord with Supabase and use host-only secure cookies", async () => {
   const adapter = await readFile(new URL("../cloudflare/developer-account.ts", import.meta.url), "utf8");
   assert.match(adapter, /auth\/v1\/user/);
