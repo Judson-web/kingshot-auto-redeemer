@@ -5,7 +5,12 @@ do $$
 declare
   v_job record;
   v_command text;
-  v_old_origin constant text := 'https://kingshot-autoredeemer.vercel.app';
+  v_old_origins constant text[] := array[
+    'https://kingshot-autoredeemer.vercel.app',
+    'https://kingshot-autoredeemer-edge.sajijudsa.workers.dev',
+    'https://kingshot-autoredeemer-edge.ks-redeemer.workers.dev'
+  ];
+  v_origin text;
   v_new_origin constant text := 'https://app.ks-redeemer.workers.dev';
   v_announcement_job_id bigint;
   v_announcement_command text := $cmd$
@@ -43,8 +48,13 @@ begin
       'alliance-manual-registration-queue'
     )
   loop
-    if position(v_old_origin in v_job.command) > 0 then
-      v_command := replace(v_job.command, v_old_origin, v_new_origin);
+    v_command := v_job.command;
+    foreach v_origin in array v_old_origins loop
+      v_command := replace(v_command, v_origin, v_new_origin);
+    end loop;
+
+    if v_command <> v_job.command then
+      null;
     elsif position(v_new_origin in v_job.command) > 0 then
       v_command := v_job.command;
     else
