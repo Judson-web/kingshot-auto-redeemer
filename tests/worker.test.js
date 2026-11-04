@@ -116,7 +116,7 @@ test("Cloudflare redemption shards process at most two players sequentially behi
   assert.ok(workerSource.includes("const safeConcurrency = Math.min(2"));
   assert.ok(workerSource.includes("safeConcurrency, { deadline }"));
   assert.ok(autoSource.includes("reserveNeonRedemptionRequest"));
-  assert.ok(autoSource.includes("kingshot_set_source_cooldown"));
+  assert.ok(autoSource.includes("setNeonRedemptionCooldown"));
 });
 
 test("Cloudflare MightPulse request budgets bound retries and allow explicit fast-path limits", () => {
