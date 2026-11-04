@@ -212,5 +212,5 @@ test("production Worker config disables automatic Kingdom Check without disablin
   const apiSource = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
   assert.ok(apiSource.includes("automaticCheckDisabled:true"));
   const manualBranch = apiSource.slice(apiSource.indexOf('if(mode==="kingdom-check")'), apiSource.indexOf('let workerToken=null;'));
-  assert.match(manualBranch, /revalidatePlayer\\(player,\\{rpc,notify:sendDiscordEvent\\},\\{force:true\\}\\)/);
+  assert.ok(manualBranch.includes("revalidatePlayer(player,{rpc,notify:sendDiscordEvent},{force:true})"));
 });
