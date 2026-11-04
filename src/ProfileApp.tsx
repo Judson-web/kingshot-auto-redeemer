@@ -24,7 +24,7 @@ function readToken(){try{return sessionStorage.getItem("ks-profile-oauth-token")
 function saveToken(token:string){try{if(token)sessionStorage.setItem("ks-profile-oauth-token",token)}catch{}}
 function clearToken(){try{sessionStorage.removeItem("ks-profile-oauth-token")}catch{}}
 const DISCORD_PKCE_KEY="ks-discord-pkce-verifier";
-function base64Url(bytes:Uint8Array){const binary=Array.from(bytes,value=>String.fromCharCode(value)).join("");return btoa(binary).replace(/\\+/g,"-").replace(/\\//g,"_").replace(/=+$/g,"")}
+function base64Url(bytes:Uint8Array){const binary=Array.from(bytes,value=>String.fromCharCode(value)).join("");return btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"")}
 async function createDiscordPkcePair(){const random=new Uint8Array(32);crypto.getRandomValues(random);const verifier=base64Url(random);const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(verifier));return {verifier,challenge:base64Url(new Uint8Array(digest))}}
 function readDiscordPkceVerifier(){try{return sessionStorage.getItem(DISCORD_PKCE_KEY)||""}catch{return""}}
 function clearDiscordPkceVerifier(){try{sessionStorage.removeItem(DISCORD_PKCE_KEY)}catch{}}
