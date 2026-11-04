@@ -8,7 +8,7 @@ export function workerBucket(value, workerCount) {
   return (hash >>> 0) % workerCount;
 }
 
-export function selectWorkerShardBatch(players, slot, workerCount, cycleBucket, batchSize = 4) {
+export function selectWorkerShardBatch(players, slot, workerCount, cycleBucket, batchSize = 8) {
   const assigned = (Array.isArray(players) ? players : [])
     .filter(player => workerBucket(player?.player_id, workerCount) === slot)
     .slice()
@@ -17,7 +17,7 @@ export function selectWorkerShardBatch(players, slot, workerCount, cycleBucket, 
       const right = String(b?.player_id || "");
       return left.length - right.length || left.localeCompare(right);
     });
-  const size = Math.max(1, Math.min(10, Math.floor(Number(batchSize) || 4)));
+  const size = Math.max(1, Math.min(10, Math.floor(Number(batchSize) || 8)));
   const batchCount = Math.max(1, Math.ceil(assigned.length / size));
   const safeBucket = Number.isSafeInteger(cycleBucket) && cycleBucket >= 0 ? cycleBucket : 0;
   const batchIndex = assigned.length ? safeBucket % batchCount : 0;
