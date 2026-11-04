@@ -112,6 +112,9 @@ const supportWidgetCss=read("src/support-chat-polish.css");
 const navDrawer=read("src/components/MobileNavDrawer.jsx");
 const navDrawerCss=read("src/drawer-redesign.css");
 const developerAuth=read("lib/developer-auth.ts");
+const profileAuthUi=read("src/ProfileApp.tsx");
+const ownerAuthUi=read("src/PrivateDevApp.tsx");
+const accountState=read("src/shared/account-state.js");
 const discordInteractions=read("lib/discord-interactions.js");
 const health=read("lib/health.js");
 const logs=read("lib/health.js");
@@ -259,6 +262,18 @@ assertCheck("Legacy developer passkey endpoint cannot create sessions",
  legacyPasskeyMigration.includes("drop function if exists public.kingshot_developer_create_session_with_key(text,text)"));
 assertCheck("Modern admin authentication has request rate limiting",
  /const protectedAuthActions=new Set\(\[[\s\S]*?"profile-oauth"[\s\S]*?\]\);\s*if\(protectedAuthActions\.has\(action\)&&!rateLimit\(req,res,"developer-account-auth:"\+action,8,900000\)\)/.test(developerAuth) && developerAuth.indexOf("protectedAuthActions.has(action)") < developerAuth.indexOf('if(action==="profile-link-url")'));
+assertCheck("Discord OAuth uses a complete PKCE authorization-code exchange",
+ developerAuth.includes('/auth/v1/token?grant_type=pkce') &&
+ developerAuth.includes('code_challenge_method","s256"') &&
+ developerAuth.includes('auth_code:authCode') &&
+ developerAuth.includes('code_verifier:codeVerifier') &&
+ profileAuthUi.includes('action:"profile-oauth-exchange"') &&
+ ownerAuthUi.includes('action:"dev-oauth-exchange"') &&
+ profileAuthUi.includes('code_verifier:verifier') &&
+ ownerAuthUi.includes('code_verifier:verifier'));
+assertCheck("Account state waits for the PKCE callback before checking stale sessions",
+ accountState.includes('ks-discord-pkce-verifier') &&
+ accountState.includes('new URLSearchParams(window.location.search).has("code")'));
 assertCheck("Discord identity export is owner-session protected, minimized, uncached, and audited",
  adminData.includes('get("discordUsers")==="1"') &&
  adminData.includes('fetch(SUPABASE_URL+"/auth/v1/admin/users?page="+page+"&per_page=100"') &&
