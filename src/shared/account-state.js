@@ -178,8 +178,8 @@ export function subscribeAccountState(listener, options = {}) {
   listeners.add(listener);
   if (wasEmpty) attachListeners();
   if (wasEmpty || snapshot.status === "checking" || Date.now() - (snapshot.lastAttemptAt || 0) >= REFRESH_INTERVAL) {
-    // OAuth redirects carry a one-time access token in the fragment. Let the
-    // callback establish its server session before attempting profile-check.
+    // OAuth callbacks must finish their one-time PKCE exchange before the
+    // shared account store attempts a profile check.
     const oauthPending = typeof window !== "undefined" && (() => {
       if (new URLSearchParams(window.location.hash.slice(1)).has("access_token")) return true;
       const hasCode = new URLSearchParams(window.location.search).has("code");
