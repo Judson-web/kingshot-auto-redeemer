@@ -511,6 +511,11 @@ assertCheck("Public and administrator push subscriptions are audience-separated"
  bansMigration.includes("audience text not null default 'public'"));
 
 const discordIdentity = read("lib/discord-identity.js");
+assertCheck("Application authentication is Discord-only",
+ developerAuth.includes('authorizeUrl.searchParams.set("provider","discord")') &&
+ developerAuth.includes('hasProvider(user,"discord")') &&
+ developerAuth.includes('if(provider!=="discord"') &&
+ !/signInWithPassword|signInWithOtp|provider:\s*["']github["']/.test(developerAuth + profileAuthUi + ownerAuthUi));
 assertCheck("Browser-facing Supabase Auth never falls back to the service-role key",
   developerAuth.includes('const AUTH_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || "";') &&
   !developerAuth.includes("const AUTH_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || KEY;"));
