@@ -57,3 +57,14 @@ test("MightPulse request attempts share an overall deadline", async () => {
   assert.match(source, /deadline - Date\.now\(\)/);
   assert.match(source, /MightPulse lookup exceeded its overall time budget/);
 });
+
+test("alliance roster reads budget attempts across all six keys without serial usage preflights", async () => {
+  for (const path of [
+    "../internal/kingshot/alliance-sync-worker.ts",
+    "../internal/kingshot/alliance-sync-handler.ts",
+  ]) {
+    const source = await readFile(new URL(path, import.meta.url), "utf8");
+    assert.match(source, /timeoutMs:7000,totalTimeoutMs:50000,maxAttempts:6,skipUsageRefresh:true/,
+      path + " must allow bounded fallback across all six keys");
+  }
+});
