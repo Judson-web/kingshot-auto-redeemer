@@ -17,6 +17,10 @@ printf '%s' "$MAIN_SETTINGS" | jq -e '.success == true' >/dev/null
 printf '%s' "$SHARD_SETTINGS" | jq -e '.success == true' >/dev/null
 MAIN_EXISTING="$(printf '%s' "$MAIN_SETTINGS" | jq -r '.result.bindings[]? | select(.type == "secret_text") | .name')"
 SHARD_EXISTING="$(printf '%s' "$SHARD_SETTINGS" | jq -r '.result.bindings[]? | select(.type == "secret_text") | .name')"
+# Discord public keys are public by design. Preserve an existing plain-text binding
+# instead of trying to create a duplicate secret binding with the same name.
+MAIN_PUBLIC_VARIABLES="$(printf '%s' "$MAIN_SETTINGS" | jq -r '.result.bindings[]? | select(.type == "plain_text" and .name == "DISCORD_PUBLIC_KEY") | .name')"
+SHARD_PUBLIC_VARIABLES="$(printf '%s' "$SHARD_SETTINGS" | jq -r '.result.bindings[]? | select(.type == "plain_text" and .name == "DISCORD_PUBLIC_KEY") | .name')"
 
 MAIN_BOUND=()
 SHARD_BOUND=()
@@ -39,6 +43,8 @@ for name in "${NAMES[@]}"; do
   value="${!name:-}"
   if printf '%s\n' "$MAIN_EXISTING" | grep -Fxq "$name"; then
     MAIN_SKIPPED+=("$name")
+  elif [ "$name" = "DISCORD_PUBLIC_KEY" ] && printf '%s\n' "$MAIN_PUBLIC_VARIABLES" | grep -Fxq "$name"; then
+    MAIN_SKIPPED+=("$name")
   elif [ -n "$value" ]; then
     printf '%s' "$value" | npx --yes wrangler@4 secret put "$name" --name kingshot-autoredeemer-edge >/dev/null
     MAIN_BOUND+=("$name")
@@ -47,6 +53,8 @@ for name in "${NAMES[@]}"; do
   fi
 
   if printf '%s\n' "$SHARD_EXISTING" | grep -Fxq "$name"; then
+    SHARD_SKIPPED+=("$name")
+  elif [ "$name" = "DISCORD_PUBLIC_KEY" ] && printf '%s\n' "$SHARD_PUBLIC_VARIABLES" | grep -Fxq "$name"; then
     SHARD_SKIPPED+=("$name")
   elif [ -n "$value" ]; then
     printf '%s' "$value" | npx --yes wrangler@4 secret put "$name" --name kingshot-autoredeemer-shard >/dev/null
