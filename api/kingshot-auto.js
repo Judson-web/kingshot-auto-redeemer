@@ -19,8 +19,7 @@ const RETRYABLE_READ_RPCS=new Set([
  "list_kingshot_admin_gift_codes",
  "list_kingshot_autoredeem_players",
  "list_kingshot_player_redemptions",
- "list_kingshot_player_redemptions_bulk",
- "list_kingshot_expired_gift_codes",
+  "list_kingshot_expired_gift_codes",
  "list_kingshot_redemption_recovery_queue"
 ]);
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -65,7 +64,7 @@ async function rpc(name,body){
 }
 
 import {extractPageCodes, mergeCodes, normalizeCodes, isCredibleGiftCodeCandidate, isCanaryEligibleGiftCodeCandidate} from "../internal/kingshot/gift-codes.js";
-import { getHandledGiftCodes, selectNextOutstandingCode, filterPlayersWithOutstandingCodes } from "../internal/kingshot/redemption-history.js";
+import { getHandledGiftCodes, selectNextOutstandingCode } from "../internal/kingshot/redemption-history.js";
 const WORKER_COUNT=4;
 // Four durable shards process bounded eight-player pages. Handled history is bulk-filtered before batching; per-player execution stays serial.
 const PLAYER_CONCURRENCY=1;
@@ -393,28 +392,9 @@ export default async function handler(req,res){
    }
    const eligiblePlayers=shardBatch.players;
    const deferredPlayers=shardBatch.deferredPlayers;
-   const playerIds=[...new Set(eligiblePlayers.map(player=>String(player?.player_id||"").trim()).filter(Boolean))];
-   const historyRows=body?.historySnapshotProvided===true&&Array.isArray(body?.redemptionHistory)
-    ? body.redemptionHistory
-    : playerIds.length
-     ? await rpc("list_kingshot_player_redemptions_bulk",{p_player_ids:playerIds})
-     : [];
-   const historiesByPlayer=new Map();
-   for(const row of Array.isArray(historyRows)?historyRows:[]){
-    const id=String(row?.player_id||"");
-    if(!historiesByPlayer.has(id))historiesByPlayer.set(id,[]);
-    const {player_id,...history}=row;
-    historiesByPlayer.get(id).push(history);
-   }
-   const shardRpc=async(name,body)=>{
-    if(name==="list_kingshot_player_redemptions"){
-     const id=String(body?.p_player_id||"");
-     if(!historiesByPlayer.has(id))return [];
-     return historiesByPlayer.get(id);
-    }
-    return rpc(name,body);
-   };
-   const result=await runWorkerShard(slot,codes,eligiblePlayers,{rpc:shardRpc,redeemForPlayer:(player,codes)=>redeemForPlayer(player,codes,shardRpc),claimSlot:claimNeonWorkerSlot,finishSlot:finishNeonWorkerSlot},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
+   // Each player reads their own durable history immediately before deciding which code is outstanding.
+   // A failed history read throws for that player and is counted as an error, never as an empty history.
+   const result=await runWorkerShard(slot,codes,eligiblePlayers,{rpc,redeemForPlayer:(player,codes)=>redeemForPlayer(player,codes,rpc),claimSlot:claimNeonWorkerSlot,finishSlot:finishNeonWorkerSlot},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
    return res.status(200).json({ok:true,...result,restrictedPlayersSkipped,bannedPlayersSkipped:restrictedPlayersSkipped,deferredPlayers,shardBatchIndex:shardBatch.batchIndex,shardBatchCount:shardBatch.batchCount});
   }catch(error){
    console.error("Kingshot worker shard:",slot,error);
@@ -743,22 +723,11 @@ export default async function handler(req,res){
   else throw Error("No internal worker authorization is configured.");
 
 
-  // Read redemption history for the eligible roster once, before selecting any
-  // shard pages. Fully handled players never enter a shard or consume upstream
-  // pacing slots. Transient failures remain eligible for a later retry.
-  currentStage="redemption-history-prefilter";
-  const rosterPlayerIds=[...new Set(dispatchPlayers.map(player=>String(player?.player_id||"").trim()).filter(Boolean))];
-  const rosterHistoryRows=rosterPlayerIds.length
-   ? await rpc("list_kingshot_player_redemptions_bulk",{p_player_ids:rosterPlayerIds})
-   : [];
-  const historyFilter=filterPlayersWithOutstandingCodes(dispatchPlayers,activeCodes,rosterHistoryRows);
-  const redemptionEligiblePlayers=historyFilter.eligiblePlayers;
-  const alreadyHandledPlayersFiltered=historyFilter.alreadyHandledPlayers.length;
+  // Assign the full eligible roster fairly. Each selected player checks their own
+  // redemption history inside the shard immediately before redemption.
   const cycleBucket=Math.floor(cycleStartedAt/60000);
   const assignments=Array.from({length:WORKER_COUNT},()=>[]);
-  for(const player of redemptionEligiblePlayers)assignments[workerBucket(player?.player_id,WORKER_COUNT)].push(player);
-  // Only outstanding players are rotated into bounded pages. The history
-  // snapshot for each page travels with it, eliminating another database read.
+  for(const player of dispatchPlayers)assignments[workerBucket(player?.player_id,WORKER_COUNT)].push(player);
   const shardBatches=assignments.map((assigned,workerIndex)=>
    selectWorkerShardBatch(assigned,workerIndex,WORKER_COUNT,cycleBucket,MAX_PLAYERS_PER_SHARD)
   );
@@ -775,7 +744,6 @@ export default async function handler(req,res){
      body:JSON.stringify({
       codes:activeCodes,players:batchPlayers,verifiedCodes:true,banFilterApplied:true,
       batchSelected:true,cycleBucket,deferredPlayers:shardBatch.deferredPlayers,
-      historySnapshotProvided:true,redemptionHistory:batchPlayers.flatMap(player=>{const id=String(player?.player_id||"").trim();return (historyFilter.historiesByPlayer.get(id)||[]).map(row=>({...row,player_id:id}));}),
       shardBatchIndex:shardBatch.batchIndex,shardBatchCount:shardBatch.batchCount
      }),
      signal:AbortSignal.timeout(WORKER_MAX_RUNTIME_MS+15000)
@@ -855,10 +823,9 @@ export default async function handler(req,res){
   },{})).sort((x,y)=>y.count-x.count).slice(0,8);
   const noWorkReason=totals.attempted>0?null
    :activeCodes.length===0?"NO_ELIGIBLE_VERIFIED_UNSUPPRESSED_UNEXPIRED_CODES"
-   :dispatchPlayers.length>0&&alreadyHandledPlayersFiltered===dispatchPlayers.length?"ALL_ELIGIBLE_CODES_ALREADY_HANDLED"
    :"NO_REDEMPTION_ATTEMPTS_RECORDED";
   console.log("Kingshot auto worker pool:",{workers:WORKER_COUNT,assignments:assignments.map(x=>x.length),workerFailures:workerFailures.length,attempted:totals.attempted,success:totals.success,noWorkReason,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures});
-  const summary={source:"kingshot.net",sources:sourceResults.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,dispatchEligiblePlayers:redemptionEligiblePlayers.length,alreadyHandledPlayersFiltered,excludedPlayersFiltered,noWorkReason,...totals,workerFailures:workerFailures.length,shardFailureDiagnostics,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures,codeTelemetry};
+  const summary={source:"kingshot.net",sources:sourceResults.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,dispatchEligiblePlayers:dispatchPlayers.length,excludedPlayersFiltered,noWorkReason,...totals,workerFailures:workerFailures.length,shardFailureDiagnostics,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures,codeTelemetry};
   await rpc("finish_kingshot_worker_run",{p_token:workerToken,p_status:totals.errors||totals.stale||kingdomSummary.errors||kingdomSummary.deferred||workerFailures.length?"COMPLETED_WITH_WARNINGS":"COMPLETED",p_error:null,p_summary:summary}).catch(error=>console.error("Worker state update failed:",error?.message||error));
   const anomalyReasons=[];
   if(totals.errors||workerFailures.length)anomalyReasons.push("worker errors");
