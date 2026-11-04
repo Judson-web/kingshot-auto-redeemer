@@ -25,3 +25,18 @@ test("Retry-After parses delta seconds and clamps past HTTP dates", () => {
   assert.equal(parseRetryAfter("invalid", 0), 60);
   assert.equal(parseRetryAfter("Thu, 01 Jan 1970 00:00:10 GMT", 15000), 0);
 });
+
+test("manual redemption rejects IDs with embedded non-digits rather than silently changing their identity", async () => {
+  for (const fields of [
+    {playerId:"12345abc6789",code:"ABCDEF",kid:"7"},
+    {playerId:"123456789",code:"ABCDEF",kid:"7xyz"},
+    {playerId:123456789,code:"ABCDEF",kid:"7"},
+    {playerId:"123456789",code:"ABCDEF",kid:7},
+  ]) {
+    const r=await handleNativeRedemption(new Request("https://worker.test/api/kingshot-redeem", {
+      method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(fields),
+    }),{SUPABASE_WRITE_MODE:"enabled"});
+    assert.equal(r.status,400);
+    assert.match((await r.json()).code,/^invalid_(player_id|kingdom_id)$/);
+  }
+});
