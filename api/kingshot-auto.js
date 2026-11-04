@@ -7,7 +7,7 @@ import { buildNewGiftCodeAlert, buildGiftCodeValidationAlert, buildGiftCodeVerif
 
 const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supabase.co";
 const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
-const APP_ORIGIN=String(process.env.PUBLIC_APP_URL||"https://kingshot-autoredeemer-edge.sajijudsa.workers.dev").replace(/\/+$/,"");
+const APP_ORIGIN=String(process.env.PUBLIC_APP_URL||"https://app.ks-redeemer.workers.dev").replace(/\/+$/,"");
 const GIFT_SOURCE_URL="https://kingshot.net/api/gift-codes";
 
 
