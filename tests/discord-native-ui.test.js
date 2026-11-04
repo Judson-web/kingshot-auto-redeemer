@@ -267,3 +267,19 @@ test("alliance registration preview is private, confirmed by its initiating user
   assert.ok(interactions.includes("toUpperCase() === String(tag || \"\").trim().toUpperCase()"), "status lookup must ignore alliance-tag casing");
   assert.ok(handler.includes("Automatic roster sync") === false);
 });
+
+
+test("operational Discord webhook probe is protected and bypasses player/redemption work", async () => {
+  const handler = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
+  const auth = handler.indexOf('if(!authorized)return res.status(401).json({error:"Unauthorized"});');
+  const probe = handler.indexOf('if(mode==="discord-webhook-test"){');
+  const playerCheck = handler.indexOf('if(mode==="kingdom-check"){');
+  assert.ok(auth >= 0 && probe > auth, "webhook probe must require cron/scheduler authorization");
+  assert.ok(playerCheck > probe, "webhook probe must run before player diagnostic mode");
+  const probeBlock = handler.slice(probe, playerCheck);
+  assert.ok(probeBlock.includes("await sendDiscordEvent("));
+  assert.ok(probeBlock.includes("delivered?200:502"));
+  assert.ok(probeBlock.includes('mode:"discord-webhook-test"'));
+  assert.ok(!probeBlock.includes("claim_kingshot_worker_run"));
+  assert.ok(!probeBlock.includes("redeemForPlayer"));
+});
