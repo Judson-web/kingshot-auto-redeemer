@@ -157,6 +157,28 @@ async function recordRedemptionSafely(rpcClient,payload){
 const NEON_RECOVERY_URL=String(process.env.NEON_RECOVERY_DATABASE_URL||"").trim();
 const neonJournal=NEON_RECOVERY_URL?neon(NEON_RECOVERY_URL):null;
 const REDEMPTION_SOURCE_URL="https://kingshot-giftcode.centurygame.com/api/gift_code";
+ 
+// Operational worker leases live in Neon, separating shard coordination from
+// Supabase's player and redemption authority.
+async function claimNeonWorkerSlot(slot){
+ if(!neonJournal)throw new Error("Independent Neon database is required for worker-slot coordination.");
+ const safeSlot=Number(slot);
+ if(!Number.isInteger(safeSlot)||safeSlot<0||safeSlot>=WORKER_COUNT)return {claimed:false,reason:"INVALID_SLOT"};
+ const rows=await neonJournal.query(
+  "insert into public.worker_slot_leases(slot,lease_token,locked_until,last_started_at,last_status,last_error,updated_at) values($1,gen_random_uuid(),now()+interval '2 minutes',now(),'RUNNING',null,now()) on conflict(slot) do update set lease_token=gen_random_uuid(),locked_until=now()+interval '2 minutes',last_started_at=now(),last_status='RUNNING',last_error=null,updated_at=now() where public.worker_slot_leases.locked_until is null or public.worker_slot_leases.locked_until<now() returning lease_token::text as token,last_started_at as started_at",
+  [safeSlot]
+ );
+ return rows.length?{claimed:true,slot:safeSlot,token:rows[0].token,started_at:rows[0].started_at}:{claimed:false,reason:"SLOT_ALREADY_RUNNING"};
+}
+async function finishNeonWorkerSlot(payload){
+ if(!neonJournal)throw new Error("Independent Neon database is required for worker-slot coordination.");
+ const rows=await neonJournal.query(
+  "update public.worker_slot_leases set lease_token=null,locked_until=null,last_finished_at=now(),last_status=left(coalesce($3,'COMPLETED'),32),last_error=left($4,1000),last_summary=$5::jsonb,updated_at=now() where slot=$1 and lease_token=$2::uuid returning slot",
+  [Number(payload?.p_slot),String(payload?.p_token||""),String(payload?.p_status||"COMPLETED"),payload?.p_error??null,JSON.stringify(payload?.p_summary??{})]
+ );
+ return rows.length>0;
+}
+
 
 // Provider-wide pacing lives beside the independent recovery journal in Neon.
 // One atomic statement reserves the next slot across every Worker instance.
@@ -376,7 +398,7 @@ export default async function handler(req,res){
     }
     return rpc(name,body);
    };
-   const result=await runWorkerShard(slot,codes,eligiblePlayers,{rpc:shardRpc,redeemForPlayer:(player,codes)=>redeemForPlayer(player,codes,shardRpc)},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
+   const result=await runWorkerShard(slot,codes,eligiblePlayers,{rpc:shardRpc,redeemForPlayer:(player,codes)=>redeemForPlayer(player,codes,shardRpc),claimSlot:claimNeonWorkerSlot,finishSlot:finishNeonWorkerSlot},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
    return res.status(200).json({ok:true,...result,restrictedPlayersSkipped,bannedPlayersSkipped:restrictedPlayersSkipped,deferredPlayers,shardBatchIndex:shardBatch.batchIndex,shardBatchCount:shardBatch.batchCount});
   }catch(error){
    console.error("Kingshot worker shard:",slot,error);
