@@ -17,6 +17,9 @@
   "services": [
     { "binding": "SHARD_WORKER", "service": "kingshot-autoredeemer-shard", "remote": true }
   ],
+  "vpc_networks": [
+    { "binding": "EGRESS", "network_id": "cf1:network", "remote": true }
+  ],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
