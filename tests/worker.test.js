@@ -56,7 +56,7 @@ test("hybrid shard execution uses one coordinator eligibility snapshot", () => {
 
 test("coordinator sends only the bounded page to each private shard", () => {
   assert.match(autoSource, /const shardBatchesByRound=Array\.from/);
-  assert.match(autoSource, /selectWorkerShardBatch\(assigned,workerIndex,WORKER_COUNT,cycleBucket\+roundIndex,MAX_PLAYERS_PER_SHARD\)/);
+  assert.match(autoSource, /selectWorkerShardBatch\(assigned,workerIndex,WORKER_COUNT,pageIndex,MAX_PLAYERS_PER_SHARD\)/);
   assert.match(autoSource, /players:batchPlayers/);
   assert.match(autoSource, /batchSelected:true/);
   assert.match(autoSource, /allEligiblePlayers\.length>MAX_PLAYERS_PER_SHARD/);
@@ -153,7 +153,7 @@ test("Cloudflare redemption shards keep four-player invocations and process four
   assert.ok(autoSource.includes("const MAX_PLAYERS_PER_SHARD=4;"));
   assert.ok(autoSource.includes("const MAX_SHARD_PAGES_PER_CYCLE=4;"));
   assert.ok(autoSource.includes("const PLAYER_CONCURRENCY=4;"));
-  assert.ok(autoSource.includes("cycleBucket+roundIndex"));
+  assert.ok(autoSource.includes("shardPageStarts[workerIndex]+roundIndex"));
   assert.ok(autoSource.includes("for(let roundIndex=0;roundIndex<shardBatchesByRound.length;roundIndex++)"));
   assert.ok(workerSource.includes("const safeConcurrency = Math.min(4"));
   assert.ok(workerSource.includes("safeConcurrency, { deadline }"));
@@ -168,9 +168,11 @@ test("deferred player totals count only the final page once", () => {
   assert.ok(autoSource.includes("batch.deferredPlayers=Math.max(0,assignments[slotIndex].length-selectedBySlot[slotIndex])"));
 });
 
-test("multi-page worker cycles advance the cursor without repeating prior-minute pages", () => {
-  assert.ok(autoSource.includes("Math.floor(cycleStartedAt/60000)*MAX_SHARD_PAGES_PER_CYCLE"));
-  assert.ok(autoSource.includes("Math.min(count,pageRounds)-1"));
+test("multi-page worker cycles rotate complete shard sweeps without wrapping into duplicate pages", () => {
+  assert.ok(autoSource.includes("const minuteCycle=Math.floor(cycleStartedAt/60000)"));
+  assert.ok(autoSource.includes("const sweepCycles=Math.max(1,Math.ceil(count/MAX_SHARD_PAGES_PER_CYCLE))"));
+  assert.ok(autoSource.includes("(minuteCycle%sweepCycles)*MAX_SHARD_PAGES_PER_CYCLE"));
+  assert.ok(autoSource.includes("const finalPageBySlot=shardPageRounds.map(count=>count-1)"));
   assert.ok(autoSource.includes("drainRecoveryQueue:roundIndex===0"));
   assert.ok(autoSource.includes("const selectedBySlot=assignments.map"));
 });
