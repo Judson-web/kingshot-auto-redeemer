@@ -153,7 +153,7 @@ test("Cloudflare redemption shards keep four-player invocations and process four
   assert.ok(autoSource.includes("const MAX_PLAYERS_PER_SHARD=4;"));
   assert.ok(autoSource.includes("const MAX_SHARD_PAGES_PER_CYCLE=4;"));
   assert.ok(autoSource.includes("const PLAYER_CONCURRENCY=4;"));
-  assert.ok(autoSource.includes("cycleBucket+roundIndex"));
+  assert.ok(autoSource.includes("shardPageStarts[workerIndex]+roundIndex"));
   assert.ok(autoSource.includes("for(let roundIndex=0;roundIndex<shardBatchesByRound.length;roundIndex++)"));
   assert.ok(workerSource.includes("const safeConcurrency = Math.min(4"));
   assert.ok(workerSource.includes("safeConcurrency, { deadline }"));
