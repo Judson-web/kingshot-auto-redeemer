@@ -168,9 +168,11 @@ test("deferred player totals count only the final page once", () => {
   assert.ok(autoSource.includes("batch.deferredPlayers=Math.max(0,assignments[slotIndex].length-selectedBySlot[slotIndex])"));
 });
 
-test("multi-page worker cycles advance the cursor without repeating prior-minute pages", () => {
-  assert.ok(autoSource.includes("Math.floor(cycleStartedAt/60000)*MAX_SHARD_PAGES_PER_CYCLE"));
-  assert.ok(autoSource.includes("Math.min(count,pageRounds)-1"));
+test("multi-page worker cycles rotate complete shard sweeps without wrapping into duplicate pages", () => {
+  assert.ok(autoSource.includes("const minuteCycle=Math.floor(cycleStartedAt/60000)"));
+  assert.ok(autoSource.includes("const sweepCycles=Math.max(1,Math.ceil(count/MAX_SHARD_PAGES_PER_CYCLE))"));
+  assert.ok(autoSource.includes("(minuteCycle%sweepCycles)*MAX_SHARD_PAGES_PER_CYCLE"));
+  assert.ok(autoSource.includes("const finalPageBySlot=shardPageRounds.map(count=>count-1)"));
   assert.ok(autoSource.includes("drainRecoveryQueue:roundIndex===0"));
   assert.ok(autoSource.includes("const selectedBySlot=assignments.map"));
 });
