@@ -71,8 +71,9 @@ const WORKER_COUNT=4;
 // Keep each invocation below Cloudflare Free's 50 external-subrequest ceiling.
 const PLAYER_CONCURRENCY=4;
 const MAX_PLAYERS_PER_SHARD=4;
-// Four sequential pages per shard yield up to 64 players per one-minute coordinator cycle.
-const MAX_SHARD_PAGES_PER_CYCLE=4;
+// Eight sequential pages per shard yield up to 128 players per coordinator cycle.
+// Per-invocation size, concurrency, global upstream pacing, and retry safety remain unchanged.
+const MAX_SHARD_PAGES_PER_CYCLE=8;
 const KINGDOM_VALIDATION_CONCURRENCY=1;
 const KINGDOM_SCHEDULED_VALIDATION_BATCH_SIZE=2;
 // Temporary operational switch: disable background Kingdom Check without disabling redemption.
@@ -746,7 +747,7 @@ export default async function handler(req,res){
   for(const player of dispatchPlayers)assignments[workerBucket(player?.player_id,WORKER_COUNT)].push(player);
   // Keep each child invocation to four players so its redemption path stays
   // inside Cloudflare Free's 50 external-subrequest budget. Reuse the durable
-  // slot sequentially across four pages to increase cycle throughput safely.
+  // slot sequentially across eight bounded pages to increase cycle throughput safely.
   const shardPageCounts=assignments.map(assigned=>Math.ceil(assigned.length/MAX_PLAYERS_PER_SHARD));
   const shardPageStarts=shardPageCounts.map(count=>{
    const sweepCycles=Math.max(1,Math.ceil(count/MAX_SHARD_PAGES_PER_CYCLE));
