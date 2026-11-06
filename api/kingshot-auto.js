@@ -762,8 +762,12 @@ export default async function handler(req,res){
   const finalPageBySlot=shardPageCounts.map(count=>Math.min(count,pageRounds)-1);
   for(let roundIndex=0;roundIndex<shardBatchesByRound.length;roundIndex++){
    for(let slotIndex=0;slotIndex<WORKER_COUNT;slotIndex++){
+    const batch=shardBatchesByRound[roundIndex][slotIndex];
+    // selectWorkerShardBatch reports all unselected roster members; only the
+    // final page may contribute deferred players to the cycle-wide total.
+    batch.deferredPlayers=0;
     if(finalPageBySlot[slotIndex]===roundIndex){
-     shardBatchesByRound[roundIndex][slotIndex].deferredPlayers=Math.max(0,assignments[slotIndex].length-selectedBySlot[slotIndex]);
+     batch.deferredPlayers=Math.max(0,assignments[slotIndex].length-selectedBySlot[slotIndex]);
     }
    }
   }

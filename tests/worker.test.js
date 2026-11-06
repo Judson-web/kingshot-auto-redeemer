@@ -163,6 +163,11 @@ test("Cloudflare redemption shards keep four-player invocations and process four
   assert.ok(autoSource.includes("setNeonRedemptionCooldown"));
 });
 
+test("deferred player totals count only the final page once", () => {
+  assert.ok(autoSource.includes("batch.deferredPlayers=0;"));
+  assert.ok(autoSource.includes("batch.deferredPlayers=Math.max(0,assignments[slotIndex].length-selectedBySlot[slotIndex])"));
+});
+
 test("multi-page worker cycles advance the cursor without repeating prior-minute pages", () => {
   assert.ok(autoSource.includes("Math.floor(cycleStartedAt/60000)*MAX_SHARD_PAGES_PER_CYCLE"));
   assert.ok(autoSource.includes("Math.min(count,pageRounds)-1"));
