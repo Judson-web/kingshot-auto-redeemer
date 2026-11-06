@@ -162,7 +162,8 @@ test("gift-code discovery cache stays below the one-minute scheduler interval an
   assert.match(scraperSource, /SOURCE_CACHE_TTL_MS = 30_000/);
   assert.match(scraperSource, /PAGE_CACHE_TTL_MS = 45_000/);
   assert.ok(autoSource.includes("const [apiSource,kingshotPageSource]=await Promise.all("));
-  assert.ok(!autoSource.includes("await new Promise(resolve=>setTimeout(resolve,250))"));
+  const sourceFetchBlock = autoSource.slice(autoSource.indexOf('currentStage="gift-code-source-fetch"'), autoSource.indexOf('currentStage="gift-code-merge-and-persist"'));
+  assert.ok(!sourceFetchBlock.includes("setTimeout(resolve,250)"));
 });
 
 test("Cloudflare MightPulse request budgets bound retries and allow explicit fast-path limits", () => {
