@@ -1,20 +1,30 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { getActiveScraperSources, safeScraper, SCRAPER_STALE_AFTER_MS } from "../lib/scraper-health.js";
+import { fetchSource } from "../internal/kingshot/scraper.ts";
 
-test("active scraper inventory excludes retired historical sources", () => {
-  assert.deepEqual(
-    getActiveScraperSources({}).sort(),
-    ["beebom", "kingshot-api", "kingshot-page", "pocketgamer"].sort()
-  );
-  const withAggregator = getActiveScraperSources({
+test("only the Kingshot.net API is an active discovery source", () => {
+  assert.deepEqual(getActiveScraperSources({}), ["kingshot-api"]);
+  assert.deepEqual(getActiveScraperSources({
     KINGSHOT_AGGREGATOR_URL: "https://aggregator.example/codes",
     KINGSHOT_AGGREGATOR_API_KEY: "configured"
-  });
-  assert.ok(withAggregator.includes("whiteout-bot-aggregator"));
-  assert.ok(!getActiveScraperSources({
-    KINGSHOT_AGGREGATOR_URL: "https://aggregator.example/codes"
-  }).includes("whiteout-bot-aggregator"));
+  }), ["kingshot-api"]);
+});
+
+test("retired discovery endpoints are rejected without making network requests", async () => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => { calls++; throw new Error("unexpected network request"); };
+  try {
+    const page = await fetchSource(async () => null, "https://kingshot.net/gift-codes", "page");
+    const thirdParty = await fetchSource(async () => null, "https://example.com/codes", "aggregator");
+    assert.equal(page.ok, false);
+    assert.equal(thirdParty.ok, false);
+    assert.match(page.error, /sole source/i);
+    assert.equal(calls, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("fresh and successful scraper runs are healthy", () => {
