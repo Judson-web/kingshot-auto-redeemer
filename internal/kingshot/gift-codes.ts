@@ -9,9 +9,32 @@ export function isLikelyGiftCode(value: unknown): boolean {
  const blocked=new Set(["ACTIVE","EXPIRED","CONTINUE","COPYCODE","SIGNINTOREDEEM","SHARELINK","GIFTCODES","REDEEMGIFTCODE","GIFTCODE","LOADING","COMMUNITY","FEATURES","LATEST","CURRENT","POPULAR","PROFILE","PLAYER","KINGDOM","SERVER","MESSAGE","SETTINGS","HEIGHT","GUIDES","MASTERY","OPERATINGSYSTEM","QUESTION","ANSWER","BREADCRUMBLIST","DIRECTLY","HIDDEN","BEFORE","ACCOUNT","EXACTLY","TOGETHER","OPENING","RESULT","PENDING","SCREEN","ACCOUNTS","CAMPAIGN","CONTENT","SCHEMA","CLASSNAME","CHILDREN","FOREGROUND","LEADING","HEADING","MASTERS","HEROES","EVENTS","CHECKED","REWARDS","VERIFIED","IMPORT","COMMON","RECHECK","COMPLETE","UPGRADE","ITEMLISTELEMENT","BOTTOM","ARTICLE","INLINE","MARGIN","BACKGROUND","FIGURE","BUTTONS","BORDER","WEIGHT","PADDING","ABSOLUTE","DISPLAY","BUILDINGS","SHARED","WEBSITE","ONCLICK","DEFAULT","CLIPBOARD","COPIED","MINUTE","STATIC","QUALITY","MISTAKES","PREVENT","ASSETS"]);
  return !blocked.has(code.toUpperCase());
 }
+function sourceTimestamp(value: unknown): number | null {
+ if (typeof value === "number" && Number.isFinite(value)) return value > 0 && value < 1e12 ? value * 1000 : value;
+ if (typeof value !== "string" || !value.trim()) return null;
+ const numeric = Number(value);
+ if (Number.isFinite(numeric) && numeric > 0) return numeric < 1e12 ? numeric * 1000 : numeric;
+ const parsed = Date.parse(value);
+ return Number.isFinite(parsed) ? parsed : null;
+}
+
 export function normalizeCodes(data: GiftCodeApiData | null | undefined): GiftCodeRow[] {
- const rows=Array.isArray(data?.data?.giftCodes)?data.data.giftCodes:[]; const now=Date.now(); const seen=new Set<string>();
- return rows.map((row): GiftCodeRow | null => { const code=String(row?.code??"").trim(); const expiresAt=row?.expiresAt?Date.parse(row.expiresAt):null; const createdAt=row?.createdAt?Date.parse(row.createdAt):null; if(!isLikelyGiftCode(code)|| (expiresAt && !Number.isNaN(expiresAt) && expiresAt<=now)||seen.has(code.toUpperCase())) return null; seen.add(code.toUpperCase()); return {code,expiresAt,createdAt}; }).filter((row): row is GiftCodeRow=>row!==null).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+ const payload = data as any;
+ const rows = Array.isArray(payload?.data?.giftCodes) ? payload.data.giftCodes
+  : Array.isArray(payload?.data?.gift_codes) ? payload.data.gift_codes
+  : Array.isArray(payload?.giftCodes) ? payload.giftCodes
+  : Array.isArray(payload?.gift_codes) ? payload.gift_codes : [];
+ const now = Date.now();
+ const seen = new Set<string>();
+ return rows.map((row: any): GiftCodeRow | null => {
+  const code = String(typeof row === "string" ? row : row?.code ?? row?.giftCode ?? row?.gift_code ?? row?.cdk ?? "").trim();
+  const expiresAt = sourceTimestamp(typeof row === "object" && row ? row.expiresAt ?? row.expires_at ?? row.expiryDate ?? row.expireTime : null);
+  const createdAt = sourceTimestamp(typeof row === "object" && row ? row.createdAt ?? row.created_at ?? row.createdTime : null);
+  const key = code.toUpperCase();
+  if (!isLikelyGiftCode(code) || (expiresAt !== null && expiresAt <= now) || seen.has(key)) return null;
+  seen.add(key);
+  return { code, expiresAt, createdAt };
+ }).filter((row): row is GiftCodeRow => row !== null).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
 }
 export function decodeHtml(value: unknown): string { return String(value??"").replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;/gi,"'").replace(/&lt;/gi,"<").replace(/&gt;/gi,">"); }
 export function cleanPageLines(html: unknown): string[] { const text=decodeHtml(String(html??"").replace(/<script[\s\S]*?<\/script>/gi," ").replace(/<style[\s\S]*?<\/style>/gi," ").replace(/<\/(?:p|div|section|article|li|h[1-6]|button|a|br|tr|td|header|footer)>/gi,"\n").replace(/<[^>]+>/g," ")); return text.split(/\r?\n/).map(line=>line.replace(/\s+/g," ").trim()).filter(Boolean); }
@@ -59,8 +82,8 @@ export function extractPublicSourceCodes(html: unknown, sourceName: string): Gif
 type SourceEvidence = { group: string; weight: number };
 const sourceEvidence: Record<string, SourceEvidence> = {
   // These are endpoints of the same unfinished community site, not independent evidence.
-  "kingshot-api": { group: "kingshot.net", weight: 0.35 },
-  "kingshot-net-api": { group: "kingshot.net", weight: 0.35 },
+  "kingshot-api": { group: "kingshot.net", weight: 0.65 },
+  "kingshot-net-api": { group: "kingshot.net", weight: 0.65 },
   "page": { group: "kingshot.net", weight: 0.35 },
   "kingshot-page": { group: "kingshot.net", weight: 0.35 },
   "kingshot-net-page": { group: "kingshot.net", weight: 0.35 },

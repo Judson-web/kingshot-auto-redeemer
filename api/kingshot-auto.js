@@ -64,7 +64,7 @@ async function rpc(name,body){
  throw lastError||Error("Supabase RPC "+name+" failed after retries.");
 }
 
-import {extractPageCodes, mergeCodes, normalizeCodes, isCredibleGiftCodeCandidate, isCanaryEligibleGiftCodeCandidate} from "../internal/kingshot/gift-codes.js";
+import {mergeCodes, normalizeCodes, isCredibleGiftCodeCandidate} from "../internal/kingshot/gift-codes.js";
 import { getHandledGiftCodes, selectNextOutstandingCode } from "../internal/kingshot/redemption-history.js";
 const WORKER_COUNT=4;
 // Four durable shards process four-player pages with four player pipelines active per shard.
@@ -532,18 +532,15 @@ export default async function handler(req,res){
   if(!lock?.claimed)return res.status(200).json({ok:true,skipped:true,reason:"WORKER_ALREADY_RUNNING"});
   workerToken=lock.token;
   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
-  // Fetch the two independent first-party discovery endpoints concurrently to reduce detection latency.
-  // Each source retains its own cache, in-flight deduplication, and shared cooldown.
+  // One canonical feed only: Kingshot.net JSON API. No secondary page,
+  // aggregator, or third-party scraper participates in discovery.
   currentStage="gift-code-source-fetch";
-  const [apiSource,kingshotPageSource]=await Promise.all([
-   fetchSource(rpc,GIFT_SOURCE_URL,"api"),
-   fetchSource(rpc,"https://kingshot.net/gift-codes","page")
-  ]);
+  const apiSource=await fetchSource(rpc,GIFT_SOURCE_URL,"api");
   currentStage="gift-code-merge-and-persist";
   const adminRows=await rpc("list_kingshot_admin_gift_codes",{});
   const data=apiSource.data;
   const apiCodes=apiSource.codes;
-  const kingshotPageCodes=kingshotPageSource.codes;
+  const kingshotPageCodes=[];
   const suppressedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.suppressed===true).map(row=>String(row?.code||"").trim().toUpperCase()).filter(Boolean));
   // Discovery is intentionally restricted to the two official Kingshot.net endpoints.
   // Admin records remain available only for suppression and existing validation metadata.
@@ -582,7 +579,7 @@ export default async function handler(req,res){
    remaining:activeCodes.map(x=>x.code)
   });
   const newCodes=activeCodes.filter(item=>!knownCodes.has(String(item.code).toUpperCase()));
-  for(const item of newCodes.filter(isCredibleGiftCodeCandidate))await sendDiscordEvent(buildNewGiftCodeAlert(item),{botAlert:true});
+  for(const item of newCodes.filter(isCredibleGiftCodeCandidate))await sendDiscordEvent(buildNewGiftCodeAlert(item));
   const players=await rpc("list_kingshot_autoredeem_players",{});
   const list=Array.isArray(players)?players:[];
   // The reset can make every account due at once. Validate a small rotating
@@ -663,8 +660,7 @@ export default async function handler(req,res){
    validPlayers:validPlayers.length
   });
   // One canary per cycle. The real endpoint can consume the reward on this player.
-  const apiCandidateKeys=new Set(apiCodes.map(item=>String(item.code||"").trim().toUpperCase()));
-  const pageCandidateKeys=new Set(kingshotPageCodes.map(item=>String(item.code||"").trim().toUpperCase()));
+
 
   // Verification is advisory only. Codes discovered from Kingshot.net remain
   // eligible for the normal redemption queue regardless of validation_status.
@@ -877,7 +873,7 @@ export default async function handler(req,res){
    return map;
   },{});
   for(const value of Object.values(codeTelemetry)){value.avgRedemptionLatencyMs=value.attempts?Math.round(value.totalRedemptionLatencyMs/value.attempts):null;delete value.totalRedemptionLatencyMs;}
-  const sourceResults=[apiSource,kingshotPageSource];
+  const sourceResults=[apiSource];
   const healthySources=sourceResults.filter(x=>x?.ok).length;
   const sourceCount=sourceResults.length;
   const sourceHealthPct=sourceCount?Math.round(healthySources/sourceCount*100):0;

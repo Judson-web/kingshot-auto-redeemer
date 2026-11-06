@@ -28,8 +28,8 @@ type CachedResult = { expiresAt: number; result: ScraperResult };
 const sourceCache = new Map<string, CachedResult>();
 const sourceInFlight = new Map<string, Promise<ScraperResult>>();
 const sourceCooldowns = new Map<string, number>();
-const SOURCE_CACHE_TTL_MS = 30_000;
-const PAGE_CACHE_TTL_MS = 45_000;
+const SOURCE_CACHE_TTL_MS = 10_000;
+const PAGE_CACHE_TTL_MS = 10_000;
 const STALE_IF_THROTTLED_MS = 6 * 60 * 60_000;
 
 function retryAfterMs(response: Response): number | null {
@@ -170,12 +170,15 @@ async function fetchSourceUncached(rpc: Rpc, url: string, kind: string, source: 
     if (apiLike) {
       let data: any = null;
       try { data = JSON.parse(body); } catch {}
-      const valid = Boolean(data && (kind === "api" ? data?.status === "success" : Array.isArray(data?.codes)));
-      const codes = valid ? (kind === "api" ? normalizeCodes(data).map(row => ({ ...row, source: "kingshot-net-api" })) : extractAggregatorCodes(data)) : [];
-      const parseError = valid ? null : Error("Invalid API response");
-      result = { source, data, codes, ok: valid, httpStatus: response.status, error: parseError?.message || null };
+      const valid = Boolean(data && data?.status === "success" && Array.isArray(data?.data?.giftCodes));
+      const codes = valid ? normalizeCodes(data).map(row => ({ ...row, source: "kingshot-net-api" })) : [];
+      const advertisedCount = Number(data?.data?.activeCount);
+      const countMismatch = valid && Number.isFinite(advertisedCount) && advertisedCount > 0 && codes.length === 0;
+      const parseError = !valid ? Error("Invalid Kingshot.net gift-code API response")
+        : countMismatch ? Error("Kingshot.net reported active codes but none could be normalized") : null;
+      result = { source, data, codes, ok: !parseError, httpStatus: response.status, error: parseError?.message || null };
       await updateHealth(rpc, source, codes.length, parseError?.message || null);
-      await recordRun(rpc, source, response.status, codes, valid, parseError);
+      await recordRun(rpc, source, response.status, codes, !parseError, parseError);
     } else {
       const codes = kind === "page" ? extractPageCodes(body, "kingshot-net-page") : extractPublicSourceCodes(body, source);
       const parseError = codes.length ? null : Error("No active gift codes parsed");
@@ -204,7 +207,12 @@ async function fetchSourceUncached(rpc: Rpc, url: string, kind: string, source: 
 }
 
 export async function fetchSource(rpc: Rpc, url: string, kind: string): Promise<ScraperResult> {
-  const source = kind === "api" ? "kingshot-api" : kind === "page" ? "kingshot-page" : kind === "aggregator" ? "whiteout-bot-aggregator" : kind.slice(7);
+  // Kingshot.net JSON feed is the only permitted gift-code discovery source.
+  // Retired page/aggregator callers fail closed without making an upstream request.
+  if (kind !== "api" || url !== "https://kingshot.net/api/gift-codes") {
+    return emptyResult("retired-source", false, null, "Discovery source disabled; Kingshot.net API is the sole source.");
+  }
+  const source = "kingshot-api";
   const apiLike = kind === "api" || kind === "aggregator";
   const cached = sourceCache.get(url);
   if (cached && cached.expiresAt > Date.now()) return { ...cached.result, codes: [...cached.result.codes] };

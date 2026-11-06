@@ -177,12 +177,13 @@ test("multi-page worker cycles rotate complete shard sweeps without wrapping int
   assert.ok(autoSource.includes("const selectedBySlot=assignments.map"));
 });
 
-test("gift-code discovery cache stays below the one-minute scheduler interval and fetches sources concurrently", () => {
-  assert.match(scraperSource, /SOURCE_CACHE_TTL_MS = 30_000/);
-  assert.match(scraperSource, /PAGE_CACHE_TTL_MS = 45_000/);
-  assert.ok(autoSource.includes("const [apiSource,kingshotPageSource]=await Promise.all("));
+test("gift-code discovery uses one Kingshot.net API feed with a short cache", () => {
+  assert.match(scraperSource, /SOURCE_CACHE_TTL_MS = 10_000/);
+  assert.ok(scraperSource.includes('url !== "https://kingshot.net/api/gift-codes"'));
   const sourceFetchBlock = autoSource.slice(autoSource.indexOf('currentStage="gift-code-source-fetch"'), autoSource.indexOf('currentStage="gift-code-merge-and-persist"'));
-  assert.ok(!sourceFetchBlock.includes("setTimeout(resolve,250)"));
+  assert.ok(sourceFetchBlock.includes('fetchSource(rpc,GIFT_SOURCE_URL,"api")'));
+  assert.ok(!sourceFetchBlock.includes("kingshot.net/gift-codes"));
+  assert.ok(!sourceFetchBlock.includes("Promise.all"));
 });
 
 test("Cloudflare MightPulse request budgets bound retries and allow explicit fast-path limits", () => {

@@ -230,12 +230,13 @@ test("scheduled website announcements use durable claims, validated roles, and p
   assert.ok(cronCutover.includes("'*/5 * * * *'"));
 });
 
-test("gift-code alerts use bot channels without replacing the worker logs webhook", async () => {
+test("new gift-code detections go directly to the official worker logs webhook", async () => {
   const worker = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
   assert.ok(worker.includes("async function sendDiscordEvent({title,description,fields=[],color=0x5865F2},{botAlert=false}={})"));
   assert.ok(worker.includes("if(botAlert&&DISCORD_BOT_TOKEN)"));
   assert.ok(worker.includes("if(!DISCORD_WEBHOOK_URL)return false;"));
-  assert.ok(worker.includes('sendDiscordEvent(buildNewGiftCodeAlert(item),{botAlert:true})'));
+  assert.ok(worker.includes("sendDiscordEvent(buildNewGiftCodeAlert(item))"));
+  assert.ok(!worker.includes("sendDiscordEvent(buildNewGiftCodeAlert(item),{botAlert:true})"));
   assert.ok(worker.includes("Kingshot gift-code verification advisory:"), "verification must remain advisory telemetry");
   assert.ok(!worker.includes("set_kingshot_gift_code_validation"), "scheduled discovery must not mutate validation status");
   assert.ok(worker.includes('sendDiscordEvent({title:"📊 Auto-redeem cycle"'), "worker cycle summaries must still be sent");

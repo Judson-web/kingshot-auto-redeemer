@@ -1,20 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { getActiveScraperSources, safeScraper, SCRAPER_STALE_AFTER_MS } from "../lib/scraper-health.js";
+import { readFile } from "node:fs/promises";
 
-test("active scraper inventory excludes retired historical sources", () => {
-  assert.deepEqual(
-    getActiveScraperSources({}).sort(),
-    ["beebom", "kingshot-api", "kingshot-page", "pocketgamer"].sort()
-  );
-  const withAggregator = getActiveScraperSources({
+test("only the Kingshot.net API is an active discovery source", () => {
+  assert.deepEqual(getActiveScraperSources({}), ["kingshot-api"]);
+  assert.deepEqual(getActiveScraperSources({
     KINGSHOT_AGGREGATOR_URL: "https://aggregator.example/codes",
     KINGSHOT_AGGREGATOR_API_KEY: "configured"
-  });
-  assert.ok(withAggregator.includes("whiteout-bot-aggregator"));
-  assert.ok(!getActiveScraperSources({
-    KINGSHOT_AGGREGATOR_URL: "https://aggregator.example/codes"
-  }).includes("whiteout-bot-aggregator"));
+  }), ["kingshot-api"]);
+});
+
+test("retired discovery endpoints are blocked before network access", async () => {
+  const source = await readFile(new URL("../internal/kingshot/scraper.ts", import.meta.url), "utf8");
+  assert.ok(source.includes('kind !== "api" || url !== "https://kingshot.net/api/gift-codes"'));
+  assert.ok(source.includes("Discovery source disabled; Kingshot.net API is the sole source."));
 });
 
 test("fresh and successful scraper runs are healthy", () => {
