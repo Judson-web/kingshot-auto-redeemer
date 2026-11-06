@@ -67,11 +67,12 @@ async function rpc(name,body){
 import {extractPageCodes, mergeCodes, normalizeCodes, isCredibleGiftCodeCandidate, isCanaryEligibleGiftCodeCandidate} from "../internal/kingshot/gift-codes.js";
 import { getHandledGiftCodes, selectNextOutstandingCode } from "../internal/kingshot/redemption-history.js";
 const WORKER_COUNT=4;
-// Four durable shards process ten-player pages with four player pipelines active per shard.
-// Each player's code sequence remains ordered; shared Neon reservations pace distinct accounts globally.
+// Four durable shards process four-player pages with four player pipelines active per shard.
+// Keep each invocation below Cloudflare Free's 50 external-subrequest ceiling.
 const PLAYER_CONCURRENCY=4;
-// Ten players per shard gives up to forty accounts a fresh-code attempt each scheduler cycle.
-const MAX_PLAYERS_PER_SHARD=10;
+const MAX_PLAYERS_PER_SHARD=4;
+// Four sequential pages per shard yield up to 64 players per one-minute coordinator cycle.
+const MAX_SHARD_PAGES_PER_CYCLE=4;
 const KINGDOM_VALIDATION_CONCURRENCY=1;
 const KINGDOM_SCHEDULED_VALIDATION_BATCH_SIZE=2;
 // Temporary operational switch: disable background Kingdom Check without disabling redemption.
@@ -745,49 +746,83 @@ export default async function handler(req,res){
   const cycleBucket=Math.floor(cycleStartedAt/60000);
   const assignments=Array.from({length:WORKER_COUNT},()=>[]);
   for(const player of dispatchPlayers)assignments[workerBucket(player?.player_id,WORKER_COUNT)].push(player);
-  // Slice before crossing the service binding. Sending a whole shard roster
-  // forced the child Worker to parse and sort hundreds of players just to use two.
-  const shardBatches=assignments.map((assigned,workerIndex)=>
-   selectWorkerShardBatch(assigned,workerIndex,WORKER_COUNT,cycleBucket,MAX_PLAYERS_PER_SHARD)
+  // Keep each child invocation to four players so its redemption path stays
+  // inside Cloudflare Free's 50 external-subrequest budget. Reuse the durable
+  // slot sequentially across four pages to increase cycle throughput safely.
+  const shardPageCounts=assignments.map(assigned=>Math.ceil(assigned.length/MAX_PLAYERS_PER_SHARD));
+  const pageRounds=Math.min(MAX_SHARD_PAGES_PER_CYCLE,Math.max(1,...shardPageCounts));
+  const shardBatchesByRound=Array.from({length:pageRounds},(_,roundIndex)=>
+   assignments.map((assigned,workerIndex)=>roundIndex<shardPageCounts[workerIndex]
+    ? selectWorkerShardBatch(assigned,workerIndex,WORKER_COUNT,cycleBucket+roundIndex,MAX_PLAYERS_PER_SHARD)
+    : {players:[],deferredPlayers:0,batchIndex:roundIndex,batchCount:shardPageCounts[workerIndex]})
   );
+  const selectedBySlot=assignments.map((_,slot)=>shardBatchesByRound.reduce((count,round)=>count+round[slot].players.length,0));
+  const finalPageBySlot=shardPageCounts.map(count=>count-1);
+  for(let roundIndex=0;roundIndex<shardBatchesByRound.length;roundIndex++){
+   for(let slotIndex=0;slotIndex<WORKER_COUNT;slotIndex++){
+    if(finalPageBySlot[slotIndex]===roundIndex){
+     shardBatchesByRound[roundIndex][slotIndex].deferredPlayers=Math.max(0,assignments[slotIndex].length-selectedBySlot[slotIndex]);
+    }
+   }
+  }
+  const shardBatches=shardBatchesByRound.flat();
   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
   currentStage="worker-shard-fanout";
-  const workerRuns=await Promise.all(assignments.map(async(assigned,workerIndex)=>{
-   const shardStartedAt=Date.now();
-   const shardBatch=shardBatches[workerIndex];
-   const batchPlayers=shardBatch.players;
-   try{
-    const response=await shardService.fetch(new Request("https://shard.internal/api/kingshot-auto?mode=worker&slot="+workerIndex,{
-     method:"POST",
-     headers:childHeaders,
-     body:JSON.stringify({
-      codes:activeCodes,players:batchPlayers,verifiedCodes:true,banFilterApplied:true,
-      batchSelected:true,cycleBucket,deferredPlayers:shardBatch.deferredPlayers,
-      shardBatchIndex:shardBatch.batchIndex,shardBatchCount:shardBatch.batchCount
-     }),
-     signal:AbortSignal.timeout(WORKER_MAX_RUNTIME_MS+15000)
-    }));
-    const payload=await response.json().catch(()=>({}));
-    if(!response.ok)throw Error(payload?.error||"Worker shard returned HTTP "+response.status);
-    const shardDurationMs=Date.now()-shardStartedAt;
-    if(shardDurationMs>=5000)console.warn("Kingshot worker shard slow:",{
-     slot:workerIndex,durationMs:shardDurationMs,status:response.status,
-     assignedPlayers:assigned.length,batchPlayers:batchPlayers.length,deferredPlayers:shardBatch.deferredPlayers
-    });
-    return {...payload,assignedPlayers:assigned.length};
-   }catch(error){
-    console.error("Kingshot worker fan-out failed:",{
-     slot:workerIndex,durationMs:Date.now()-shardStartedAt,
-     assignedPlayers:assigned.length,batchPlayers:batchPlayers.length,
-     deferredPlayers:shardBatch.deferredPlayers,errorName:error?.name||null,message:error?.message||String(error)
-    });
-    return {
-     slot:workerIndex,claimed:false,error:error?.message||"Worker shard failed.",
-     errorCategory:classifyScraperError(error),players:batchPlayers.length,
-     assignedPlayers:assigned.length,deferredPlayers:shardBatch.deferredPlayers
+  const workerRuns=[];
+  for(let roundIndex=0;roundIndex<shardBatchesByRound.length;roundIndex++){
+   const roundBatches=shardBatchesByRound[roundIndex];
+   const roundRuns=await Promise.all(assignments.map(async(assigned,workerIndex)=>{
+    const shardBatch=roundBatches[workerIndex];
+    const batchPlayers=shardBatch.players;
+    if(!batchPlayers.length)return {
+     slot:workerIndex,claimed:true,players:0,attempted:0,success:0,alreadyHandled:0,
+     alreadyReceived:0,skipped:0,errors:0,stale:0,deadlineSkipped:0,deferredPlayers:0,
+     redemptionStatuses:{},codeCounts:{},codeTelemetry:{},redemptionFailures:[],workerErrors:[]
     };
-   }
-  }));
+    const shardStartedAt=Date.now();
+    try{
+     const response=await shardService.fetch(new Request("https://shard.internal/api/kingshot-auto?mode=worker&slot="+workerIndex,{
+      method:"POST",
+      headers:childHeaders,
+      body:JSON.stringify({
+       codes:activeCodes,players:batchPlayers,verifiedCodes:true,banFilterApplied:true,
+       batchSelected:true,cycleBucket:cycleBucket+roundIndex,deferredPlayers:shardBatch.deferredPlayers,
+       shardBatchIndex:shardBatch.batchIndex,shardBatchCount:shardBatch.batchCount
+      }),
+      signal:AbortSignal.timeout(WORKER_MAX_RUNTIME_MS+15000)
+     }));
+     const payload=await response.json().catch(()=>({}));
+     if(!response.ok)throw Error(payload?.error||"Worker shard returned HTTP "+response.status);
+     const shardDurationMs=Date.now()-shardStartedAt;
+     if(shardDurationMs>=5000)console.warn("Kingshot worker shard slow:",{
+      slot:workerIndex,round:roundIndex,durationMs:shardDurationMs,status:response.status,
+      assignedPlayers:assigned.length,batchPlayers:batchPlayers.length,deferredPlayers:shardBatch.deferredPlayers
+     });
+     return {...payload,assignedPlayers:assigned.length,round:roundIndex};
+    }catch(error){
+     console.error("Kingshot worker fan-out failed:",{
+      slot:workerIndex,round:roundIndex,durationMs:Date.now()-shardStartedAt,
+      assignedPlayers:assigned.length,batchPlayers:batchPlayers.length,
+      deferredPlayers:shardBatch.deferredPlayers,errorName:error?.name||null,message:error?.message||String(error)
+     });
+     return {
+      slot:workerIndex,claimed:false,error:error?.message||"Worker shard failed.",
+      errorCategory:classifyScraperError(error),players:batchPlayers.length,
+      assignedPlayers:assigned.length,deferredPlayers:shardBatch.deferredPlayers,round:roundIndex
+     };
+    }
+   }));
+   workerRuns.push(...roundRuns);
+   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
+  }
+  // Failed pages must be counted as deferred too, even though their players
+  // were selected for this cycle and will be retried on a later rotation.
+  for(let slotIndex=0;slotIndex<WORKER_COUNT;slotIndex++){
+   const failedPlayers=workerRuns.filter(result=>result?.slot===slotIndex&&result?.error).reduce((count,result)=>count+Number(result?.players||0),0);
+   const remaining=Math.max(0,assignments[slotIndex].length-selectedBySlot[slotIndex]+failedPlayers);
+   const lastSlotRun=[...workerRuns].reverse().find(result=>result?.slot===slotIndex);
+   if(lastSlotRun)lastSlotRun.deferredPlayers=remaining;
+  }
   const workerFailures=workerRuns.filter(result=>result?.error||result?.claimed===false&&result?.reason!=="SLOT_ALREADY_RUNNING");
   // Keep coordinator/shard failures visible separately from per-player errors.
   // These failures were previously counted but omitted from worker diagnostics.
