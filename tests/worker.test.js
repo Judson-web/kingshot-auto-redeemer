@@ -159,7 +159,7 @@ test("Cloudflare redemption shards keep four-player invocations within the coord
   assert.ok(autoSource.includes("const PLAYER_CONCURRENCY=4;"));
   assert.ok(autoSource.includes("shardPageStarts[workerIndex]+roundIndex"));
   assert.ok(autoSource.includes("for(let roundIndex=0;roundIndex<shardBatchesByRound.length;roundIndex++)"));
-  const fanoutStart = autoSource.indexOf("for(let roundIndex=0;roundIndex<shardBatchesByRound.length;roundIndex++){");
+  const fanoutStart = autoSource.indexOf("  const workerRuns=[];");
   const fanoutEnd = autoSource.indexOf("// Failed pages must be counted as deferred too", fanoutStart);
   assert.ok(fanoutStart >= 0 && fanoutEnd > fanoutStart);
   assert.doesNotMatch(autoSource.slice(fanoutStart, fanoutEnd), /heartbeat_kingshot_worker_run/);
