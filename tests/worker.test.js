@@ -154,7 +154,7 @@ test("Cloudflare redemption shards process bounded ten-player pages with four co
   assert.ok(workerSource.includes("safeConcurrency, { deadline }"));
   assert.ok(autoSource.includes("reserveNeonRedemptionRequest(200)"));
   assert.ok(autoSource.includes("const waitMs=Math.max(0,reservationTime-Date.now())"));
-  assert.doesNotMatch(autoSource, /Math\\.min\\(10000,reservationTime-Date\\.now\\(\\)\\)/);
+  assert.ok(!autoSource.includes("Math.min(10000,reservationTime-Date.now())"));
   assert.ok(autoSource.includes("setNeonRedemptionCooldown"));
 });
 
@@ -162,7 +162,7 @@ test("gift-code discovery cache stays below the one-minute scheduler interval an
   assert.match(scraperSource, /SOURCE_CACHE_TTL_MS = 30_000/);
   assert.match(scraperSource, /PAGE_CACHE_TTL_MS = 45_000/);
   assert.match(autoSource, /const \\[apiSource,kingshotPageSource\\]=await Promise\\.all\\(/);
-  assert.doesNotMatch(autoSource, /await new Promise\\(resolve=>setTimeout\\(resolve,250\\)\\)/);
+  assert.ok(!autoSource.includes("await new Promise(resolve=>setTimeout(resolve,250))"));
 });
 
 test("Cloudflare MightPulse request budgets bound retries and allow explicit fast-path limits", () => {
