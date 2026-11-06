@@ -124,8 +124,10 @@ test("MightPulse usage preflight tracks each key separately and respects actual 
   assert.ok(mightPulseUsageMigration.includes("record_mightpulse_api_usage"));
 });
 
-test("global recovery queue is drained by one designated shard, not all four", () => {
+test("global recovery queue and bounded Neon journal recovery are drained by one designated shard", () => {
   assert.match(autoSource, /if\s*\(slot\s*===\s*0\)\s*await\s+drainRedemptionRecoveryQueue\(rpc\)/);
+  assert.match(autoSource, /await drainNeonRecoveryJournal\(rpcClient\)\.catch/);
+  assert.doesNotMatch(autoSource, /if\s*\(Array\.isArray\(rows\)&&rows\.length\)\s*\{\s*await drainNeonRecoveryJournal/);
 });
 
 test("transient Supabase failures retry idempotent reads but never replay redemption writes", () => {
