@@ -529,8 +529,8 @@ export default async function handler(req,res){
   if(!lock?.claimed)return res.status(200).json({ok:true,skipped:true,reason:"WORKER_ALREADY_RUNNING"});
   workerToken=lock.token;
   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
-  // Keep community-source requests sequential instead of bursting all providers at once.
-  // This reduces 429 risk without rotating identities or bypassing upstream quotas.
+  // Fetch the two independent first-party discovery endpoints concurrently to reduce detection latency.
+  // Each source retains its own cache, in-flight deduplication, and shared cooldown.
   currentStage="gift-code-source-fetch";
   const [apiSource,kingshotPageSource]=await Promise.all([
    fetchSource(rpc,GIFT_SOURCE_URL,"api"),
