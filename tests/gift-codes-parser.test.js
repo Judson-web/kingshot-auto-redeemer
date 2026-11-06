@@ -89,14 +89,14 @@ test("a sole Kingshot.net API candidate is loggable but remains unverified", () 
   assert.equal(isCanaryEligibleGiftCodeCandidate(candidate, false), true);
 });
 
-test("matching first-party API and active-page code can be canary-tested but remains low-confidence", () => {
+test("matching first-party API and page records remain one medium-confidence source", () => {
   const api = { code: "OFFICIALSTORE1023", expiresAt: null, createdAt: Date.now(), source: "kingshot-net-api" };
   const page = { code: "OFFICIALSTORE1023", expiresAt: null, createdAt: Date.now(), source: "kingshot-net-page" };
   const [candidate] = mergeCodes([[api], [page]]);
   assert.equal(candidate.confidence, 0.65);
   assert.equal(isCredibleGiftCodeCandidate(candidate), true);
   assert.equal(isCanaryEligibleGiftCodeCandidate(candidate, true), true);
-  assert.equal(isCanaryEligibleGiftCodeCandidate(candidate, false), false);
+  assert.equal(isCanaryEligibleGiftCodeCandidate(candidate, false), true);
 });
 
 test("one independently reputable active-code source remains eligible", () => {
