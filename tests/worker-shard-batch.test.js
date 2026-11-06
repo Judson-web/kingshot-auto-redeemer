@@ -30,3 +30,13 @@ test("worker shard batch remains deterministic for a given cycle bucket", () => 
   assert.ok(first.players.length <= 4);
   assert.equal(first.deferredPlayers, players.filter(p => workerBucket(p.player_id, 4) === 2).length - first.players.length);
 });
+
+
+test("worker shard can select the maximum ten-player page without losing deterministic ownership", () => {
+  const players = Array.from({ length: 200 }, (_, index) => ({ player_id: String(index + 1) }));
+  const batch = selectWorkerShardBatch(players, 1, 4, 17, 10);
+  const assigned = players.filter(player => workerBucket(player.player_id, 4) === 1);
+  assert.equal(batch.players.length, 10);
+  assert.equal(batch.deferredPlayers, assigned.length - 10);
+  assert.ok(batch.players.every(player => workerBucket(player.player_id, 4) === 1));
+});
