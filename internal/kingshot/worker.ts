@@ -170,7 +170,7 @@ export async function runWorkerShard(
     const deadline = Date.now() + options.maxRuntimeMs;
     // Shared database reservations pace requests across all serverless shards.
     // Four shards may process up to eight players, while the shared database reservation paces upstream requests.
-    const safeConcurrency = Math.min(2, Math.max(1, Math.floor(options.concurrency || 1)));
+    const safeConcurrency = Math.min(4, Math.max(1, Math.floor(options.concurrency || 1)));
     const results = await runWithConcurrency(assigned, player => redeemForPlayer(player, codes), safeConcurrency, { deadline });
     const totals: Omit<WorkerSummary, "slot" | "players" | "deadlineSkipped"> & { deadlineSkipped: number } = {
       ...summarizeWorkerResults(results),
