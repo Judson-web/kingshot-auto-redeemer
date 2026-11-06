@@ -149,18 +149,29 @@ test("zero-attempt cycles explain when verified codes are already handled or una
 
 
 
-test("Cloudflare redemption shards keep four-player invocations and process four pages per cycle", () => {
+test("Cloudflare redemption shards keep four-player invocations and process eight pages per cycle", () => {
   assert.ok(autoSource.includes("const MAX_PLAYERS_PER_SHARD=4;"));
-  assert.ok(autoSource.includes("const MAX_SHARD_PAGES_PER_CYCLE=4;"));
+  assert.ok(autoSource.includes("const MAX_SHARD_PAGES_PER_CYCLE=8;"));
+  assert.ok(autoSource.includes("const MAX_PLAYERS_PER_SHARD=4;"));
+  assert.ok(autoSource.includes("const PLAYER_CONCURRENCY=4;"));
+  assert.ok(autoSource.includes("const WORKER_COUNT=4;"));
+  assert.equal(4 * 8 * 4, 128, "maximum bounded player slots per cycle");
   assert.ok(autoSource.includes("const PLAYER_CONCURRENCY=4;"));
   assert.ok(autoSource.includes("shardPageStarts[workerIndex]+roundIndex"));
   assert.ok(autoSource.includes("for(let roundIndex=0;roundIndex<shardBatchesByRound.length;roundIndex++)"));
   assert.ok(workerSource.includes("const safeConcurrency = Math.min(4"));
   assert.ok(workerSource.includes("safeConcurrency, { deadline }"));
-  assert.ok(autoSource.includes("reserveNeonRedemptionRequest(200)"));
+  assert.ok(autoSource.includes("reserveNeonRedemptionRequest(200)"), "global upstream pacing must remain unchanged");
   assert.ok(autoSource.includes("const waitMs=Math.max(0,reservationTime-Date.now())"));
   assert.ok(!autoSource.includes("Math.min(10000,reservationTime-Date.now())"));
   assert.ok(autoSource.includes("setNeonRedemptionCooldown"));
+});
+
+test("unresolved journal pairs are filtered before code selection without weakening the journal guard", () => {
+  assert.ok(autoSource.includes("select player_id,gift_code from public.redemption_journal where player_id = any($1::text[]) and state in ('in_flight','needs_review','result_recorded')"));
+  assert.ok(autoSource.includes("const eligibleCodes=codes.filter(item=>!unresolved.has"));
+  assert.ok(autoSource.includes("unresolvedAttempts,recoveryBlocked:unresolvedAttempts>0"));
+  assert.ok(autoSource.includes("where public.redemption_journal.state in ('supabase_recorded','cancelled')"));
 });
 
 test("deferred player totals count only the final page once", () => {
