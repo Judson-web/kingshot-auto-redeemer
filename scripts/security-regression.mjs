@@ -141,8 +141,8 @@ assertCheck(
 );
 const newestCodeChecks={
  comment:auto.includes("newest outstanding code for each player per run"),
- selection:/selectNextOutstandingCode\\(eligibleCodes,handled\\)/.test(auto),
- unresolvedPrefilter:/const eligibleCodes=codes\\.filter\\(item=>!unresolved\\.has/.test(auto),
+ selection:auto.includes("selectNextOutstandingCode(eligibleCodes,handled)"),
+ unresolvedPrefilter:auto.includes("const eligibleCodes=codes.filter(item=>!unresolved.has"),
  helper:redemptionHistory.includes("selectNextOutstandingCode")
 };
 assertCheck(
