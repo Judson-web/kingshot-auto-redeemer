@@ -55,8 +55,8 @@ test("hybrid shard execution uses one coordinator eligibility snapshot", () => {
 });
 
 test("coordinator sends only the bounded page to each private shard", () => {
-  assert.match(autoSource, /const shardBatches=assignments\.map/);
-  assert.match(autoSource, /selectWorkerShardBatch\(assigned,workerIndex,WORKER_COUNT,cycleBucket,MAX_PLAYERS_PER_SHARD\)/);
+  assert.match(autoSource, /const shardBatchesByRound=Array\.from/);
+  assert.match(autoSource, /selectWorkerShardBatch\(assigned,workerIndex,WORKER_COUNT,cycleBucket\+roundIndex,MAX_PLAYERS_PER_SHARD\)/);
   assert.match(autoSource, /players:batchPlayers/);
   assert.match(autoSource, /batchSelected:true/);
   assert.match(autoSource, /allEligiblePlayers\.length>MAX_PLAYERS_PER_SHARD/);
@@ -70,7 +70,7 @@ test("main and private shard Workers share the same automatic Kingdom Check swit
 
 test("hybrid distribution keeps four bounded shards and does not add a polling trigger", () => {
   assert.match(autoSource, /const WORKER_COUNT=4/);
-  assert.match(autoSource, /const MAX_PLAYERS_PER_SHARD=10/);
+  assert.match(autoSource, /const MAX_PLAYERS_PER_SHARD=4/);
   assert.match(autoSource, /Promise\.all\(assignments\.map/);
   assert.doesNotMatch(autoSource, /setInterval\s*\(/);
 });
@@ -125,7 +125,7 @@ test("MightPulse usage preflight tracks each key separately and respects actual 
 });
 
 test("global recovery queue and bounded Neon journal recovery are drained by one designated shard", () => {
-  assert.match(autoSource, /if\s*\(slot\s*===\s*0\)\s*await\s+drainRedemptionRecoveryQueue\(rpc\)/);
+  assert.match(autoSource, /if\(slot===0&&body\?\.drainRecoveryQueue!==false\)await\s+drainRedemptionRecoveryQueue\(rpc\)/);
   assert.match(autoSource, /await drainNeonRecoveryJournal\(rpcClient\)\.catch/);
   assert.doesNotMatch(autoSource, /if\s*\(Array\.isArray\(rows\)&&rows\.length\)\s*\{\s*await drainNeonRecoveryJournal/);
 });
@@ -149,15 +149,25 @@ test("zero-attempt cycles explain when verified codes are already handled or una
 
 
 
-test("Cloudflare redemption shards process bounded ten-player pages with four concurrent player pipelines", () => {
-  assert.ok(autoSource.includes("const MAX_PLAYERS_PER_SHARD=10;"));
+test("Cloudflare redemption shards keep four-player invocations and process four pages per cycle", () => {
+  assert.ok(autoSource.includes("const MAX_PLAYERS_PER_SHARD=4;"));
+  assert.ok(autoSource.includes("const MAX_SHARD_PAGES_PER_CYCLE=4;"));
   assert.ok(autoSource.includes("const PLAYER_CONCURRENCY=4;"));
+  assert.ok(autoSource.includes("cycleBucket+roundIndex"));
+  assert.ok(autoSource.includes("for(let roundIndex=0;roundIndex<shardBatchesByRound.length;roundIndex++)"));
   assert.ok(workerSource.includes("const safeConcurrency = Math.min(4"));
   assert.ok(workerSource.includes("safeConcurrency, { deadline }"));
   assert.ok(autoSource.includes("reserveNeonRedemptionRequest(200)"));
   assert.ok(autoSource.includes("const waitMs=Math.max(0,reservationTime-Date.now())"));
   assert.ok(!autoSource.includes("Math.min(10000,reservationTime-Date.now())"));
   assert.ok(autoSource.includes("setNeonRedemptionCooldown"));
+});
+
+test("multi-page worker cycles advance the cursor without repeating prior-minute pages", () => {
+  assert.ok(autoSource.includes("Math.floor(cycleStartedAt/60000)*MAX_SHARD_PAGES_PER_CYCLE"));
+  assert.ok(autoSource.includes("Math.min(count,pageRounds)-1"));
+  assert.ok(autoSource.includes("drainRecoveryQueue:roundIndex===0"));
+  assert.ok(autoSource.includes("const selectedBySlot=assignments.map"));
 });
 
 test("gift-code discovery cache stays below the one-minute scheduler interval and fetches sources concurrently", () => {
