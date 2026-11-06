@@ -142,7 +142,8 @@ assertCheck(
 assertCheck(
  "Worker processes only the newest outstanding code per player",
  auto.includes("newest outstanding code for each player per run") &&
- auto.includes("selectNextOutstandingCode(codes,handled)") &&
+ auto.includes("selectNextOutstandingCode(eligibleCodes,handled)") &&
+ auto.includes("const eligibleCodes=codes.filter(item=>!unresolved.has") &&
  redemptionHistory.includes("selectNextOutstandingCode")
 );
 assertCheck(
@@ -190,6 +191,9 @@ assertCheck(
  auto.includes('heartbeat_kingshot_worker_run') &&
  auto.includes('workerToken')
 );
+const fanoutStart=auto.indexOf("  const workerRuns=[];");
+const fanoutEnd=auto.indexOf("// Failed pages must be counted as deferred too",fanoutStart);
+assertCheck("Coordinator does not spend subrequests on per-round heartbeats",fanoutStart>=0&&fanoutEnd>fanoutStart&&!auto.slice(fanoutStart,fanoutEnd).includes("heartbeat_kingshot_worker_run"));
 assertCheck(
  "Worker summaries include per-code handling diagnostics",
  workerCode.includes("handledCodeCounts") &&
