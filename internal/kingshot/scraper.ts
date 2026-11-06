@@ -28,8 +28,8 @@ type CachedResult = { expiresAt: number; result: ScraperResult };
 const sourceCache = new Map<string, CachedResult>();
 const sourceInFlight = new Map<string, Promise<ScraperResult>>();
 const sourceCooldowns = new Map<string, number>();
-const SOURCE_CACHE_TTL_MS = 30_000;
-const PAGE_CACHE_TTL_MS = 45_000;
+const SOURCE_CACHE_TTL_MS = 10_000;
+const PAGE_CACHE_TTL_MS = 10_000;
 const STALE_IF_THROTTLED_MS = 6 * 60 * 60_000;
 
 function retryAfterMs(response: Response): number | null {
@@ -204,7 +204,12 @@ async function fetchSourceUncached(rpc: Rpc, url: string, kind: string, source: 
 }
 
 export async function fetchSource(rpc: Rpc, url: string, kind: string): Promise<ScraperResult> {
-  const source = kind === "api" ? "kingshot-api" : kind === "page" ? "kingshot-page" : kind === "aggregator" ? "whiteout-bot-aggregator" : kind.slice(7);
+  // Kingshot.net JSON feed is the only permitted gift-code discovery source.
+  // Retired page/aggregator callers fail closed without making an upstream request.
+  if (kind !== "api" || url !== "https://kingshot.net/api/gift-codes") {
+    return emptyResult("retired-source", false, null, "Discovery source disabled; Kingshot.net API is the sole source.");
+  }
+  const source = "kingshot-api";
   const apiLike = kind === "api" || kind === "aggregator";
   const cached = sourceCache.get(url);
   if (cached && cached.expiresAt > Date.now()) return { ...cached.result, codes: [...cached.result.codes] };
