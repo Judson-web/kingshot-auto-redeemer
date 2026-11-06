@@ -743,7 +743,7 @@ export default async function handler(req,res){
   else throw Error("No internal worker authorization is configured.");
 
 
-  const cycleBucket=Math.floor(cycleStartedAt/60000);
+  const cycleBucket=Math.floor(cycleStartedAt/60000)*MAX_SHARD_PAGES_PER_CYCLE;
   const assignments=Array.from({length:WORKER_COUNT},()=>[]);
   for(const player of dispatchPlayers)assignments[workerBucket(player?.player_id,WORKER_COUNT)].push(player);
   // Keep each child invocation to four players so its redemption path stays
@@ -757,7 +757,7 @@ export default async function handler(req,res){
     : {players:[],deferredPlayers:0,batchIndex:roundIndex,batchCount:shardPageCounts[workerIndex]})
   );
   const selectedBySlot=assignments.map((_,slot)=>shardBatchesByRound.reduce((count,round)=>count+round[slot].players.length,0));
-  const finalPageBySlot=shardPageCounts.map(count=>count-1);
+  const finalPageBySlot=shardPageCounts.map(count=>Math.min(count,pageRounds)-1);
   for(let roundIndex=0;roundIndex<shardBatchesByRound.length;roundIndex++){
    for(let slotIndex=0;slotIndex<WORKER_COUNT;slotIndex++){
     if(finalPageBySlot[slotIndex]===roundIndex){
