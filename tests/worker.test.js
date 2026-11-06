@@ -147,9 +147,12 @@ test("zero-attempt cycles explain when verified codes are already handled or una
 
 
 
-test("Cloudflare redemption shards process bounded ten-player pages with four concurrent player pipelines", () => {
-  assert.ok(autoSource.includes("const MAX_PLAYERS_PER_SHARD=10;"));
+test("Cloudflare redemption shards keep four-player invocations and process four pages per cycle", () => {
+  assert.ok(autoSource.includes("const MAX_PLAYERS_PER_SHARD=4;"));
+  assert.ok(autoSource.includes("const MAX_SHARD_PAGES_PER_CYCLE=4;"));
   assert.ok(autoSource.includes("const PLAYER_CONCURRENCY=4;"));
+  assert.ok(autoSource.includes("cycleBucket+roundIndex"));
+  assert.ok(autoSource.includes("for(let roundIndex=0;roundIndex<shardBatchesByRound.length;roundIndex++)"));
   assert.ok(workerSource.includes("const safeConcurrency = Math.min(4"));
   assert.ok(workerSource.includes("safeConcurrency, { deadline }"));
   assert.ok(autoSource.includes("reserveNeonRedemptionRequest(200)"));
