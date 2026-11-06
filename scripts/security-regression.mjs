@@ -139,12 +139,16 @@ assertCheck(
  redemptionHistory.includes('"USER INFO ERROR"') &&
  fs.existsSync(path.join(root,"tests","redemption-history.test.js"))
 );
+const newestCodeChecks={
+ comment:auto.includes("newest outstanding code for each player per run"),
+ selection:/selectNextOutstandingCode\\(eligibleCodes,handled\\)/.test(auto),
+ unresolvedPrefilter:/const eligibleCodes=codes\\.filter\\(item=>!unresolved\\.has/.test(auto),
+ helper:redemptionHistory.includes("selectNextOutstandingCode")
+};
 assertCheck(
  "Worker processes only the newest outstanding code per player",
- auto.includes("newest outstanding code for each player per run") &&
- auto.includes("selectNextOutstandingCode(eligibleCodes,handled)") &&
- auto.includes("const eligibleCodes=codes.filter(item=>!unresolved.has") &&
- redemptionHistory.includes("selectNextOutstandingCode")
+ Object.values(newestCodeChecks).every(Boolean),
+ JSON.stringify(newestCodeChecks)
 );
 assertCheck(
  "Worker pool fans redemption work across four internal shards",
