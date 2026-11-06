@@ -865,7 +865,7 @@ export default async function handler(req,res){
    return map;
   },{});
   for(const value of Object.values(codeTelemetry)){value.avgRedemptionLatencyMs=value.attempts?Math.round(value.totalRedemptionLatencyMs/value.attempts):null;delete value.totalRedemptionLatencyMs;}
-  const sourceResults=[apiSource,kingshotPageSource];
+  const sourceResults=[apiSource];
   const healthySources=sourceResults.filter(x=>x?.ok).length;
   const sourceCount=sourceResults.length;
   const sourceHealthPct=sourceCount?Math.round(healthySources/sourceCount*100):0;
