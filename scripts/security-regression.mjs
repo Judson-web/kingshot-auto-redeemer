@@ -176,7 +176,8 @@ assertCheck(
  auto.includes("const PLAYER_CONCURRENCY=4;") &&
  auto.includes("const MAX_PLAYERS_PER_SHARD=4;") &&
  auto.includes("const MAX_SHARD_PAGES_PER_CYCLE=4;") &&
- auto.includes("cycleBucket+roundIndex") &&
+ auto.includes("shardPageStarts") &&
+ auto.includes("(minuteCycle%sweepCycles)*MAX_SHARD_PAGES_PER_CYCLE") &&
  workerCode.includes("selectWorkerShardBatch") &&
  workerCode.includes("const safeConcurrency = Math.min(4") &&
  workerCode.includes("runWithConcurrency(assigned, player => redeemForPlayer(player, codes), safeConcurrency, { deadline })") &&
