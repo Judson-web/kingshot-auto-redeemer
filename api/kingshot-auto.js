@@ -745,21 +745,29 @@ export default async function handler(req,res){
   else throw Error("No internal worker authorization is configured.");
 
 
-  const cycleBucket=Math.floor(cycleStartedAt/60000)*MAX_SHARD_PAGES_PER_CYCLE;
+  const minuteCycle=Math.floor(cycleStartedAt/60000);
   const assignments=Array.from({length:WORKER_COUNT},()=>[]);
   for(const player of dispatchPlayers)assignments[workerBucket(player?.player_id,WORKER_COUNT)].push(player);
   // Keep each child invocation to four players so its redemption path stays
   // inside Cloudflare Free's 50 external-subrequest budget. Reuse the durable
   // slot sequentially across four pages to increase cycle throughput safely.
   const shardPageCounts=assignments.map(assigned=>Math.ceil(assigned.length/MAX_PLAYERS_PER_SHARD));
-  const pageRounds=Math.min(MAX_SHARD_PAGES_PER_CYCLE,Math.max(1,...shardPageCounts));
+  const shardPageStarts=shardPageCounts.map(count=>{
+   const sweepCycles=Math.max(1,Math.ceil(count/MAX_SHARD_PAGES_PER_CYCLE));
+   return (minuteCycle%sweepCycles)*MAX_SHARD_PAGES_PER_CYCLE;
+  });
+  const shardPageRounds=shardPageCounts.map((count,slot)=>Math.min(MAX_SHARD_PAGES_PER_CYCLE,Math.max(0,count-shardPageStarts[slot])));
+  const pageRounds=Math.max(1,...shardPageRounds);
   const shardBatchesByRound=Array.from({length:pageRounds},(_,roundIndex)=>
-   assignments.map((assigned,workerIndex)=>roundIndex<shardPageCounts[workerIndex]
-    ? selectWorkerShardBatch(assigned,workerIndex,WORKER_COUNT,cycleBucket+roundIndex,MAX_PLAYERS_PER_SHARD)
-    : {players:[],deferredPlayers:0,batchIndex:roundIndex,batchCount:shardPageCounts[workerIndex]})
+   assignments.map((assigned,workerIndex)=>{
+    const pageIndex=shardPageStarts[workerIndex]+roundIndex;
+    return roundIndex<shardPageRounds[workerIndex]
+     ? selectWorkerShardBatch(assigned,workerIndex,WORKER_COUNT,pageIndex,MAX_PLAYERS_PER_SHARD)
+     : {players:[],deferredPlayers:0,batchIndex:pageIndex,batchCount:shardPageCounts[workerIndex]};
+   })
   );
   const selectedBySlot=assignments.map((_,slot)=>shardBatchesByRound.reduce((count,round)=>count+round[slot].players.length,0));
-  const finalPageBySlot=shardPageCounts.map(count=>Math.min(count,pageRounds)-1);
+  const finalPageBySlot=shardPageRounds.map(count=>count-1);
   for(let roundIndex=0;roundIndex<shardBatchesByRound.length;roundIndex++){
    for(let slotIndex=0;slotIndex<WORKER_COUNT;slotIndex++){
     const batch=shardBatchesByRound[roundIndex][slotIndex];
@@ -792,7 +800,7 @@ export default async function handler(req,res){
       headers:childHeaders,
       body:JSON.stringify({
        codes:activeCodes,players:batchPlayers,verifiedCodes:true,banFilterApplied:true,
-       batchSelected:true,cycleBucket:cycleBucket+roundIndex,drainRecoveryQueue:roundIndex===0,deferredPlayers:shardBatch.deferredPlayers,
+       batchSelected:true,cycleBucket:shardBatch.batchIndex,drainRecoveryQueue:roundIndex===0,deferredPlayers:shardBatch.deferredPlayers,
        shardBatchIndex:shardBatch.batchIndex,shardBatchCount:shardBatch.batchCount
       }),
       signal:AbortSignal.timeout(WORKER_MAX_RUNTIME_MS+15000)
