@@ -62,29 +62,30 @@ test("known webpage words are never accepted as gift codes", () => {
 });
 
 
-test("Kingshot.net API and page endpoints count as one low-confidence source", () => {
+test("Kingshot.net API remains one medium-confidence source even if the page is also observed", () => {
   const api = { code: "lwaL5ZKx5", expiresAt: null, createdAt: Date.now(), source: "kingshot-net-api" };
   const page = { code: "lwaL5ZKx5", expiresAt: null, createdAt: Date.now(), source: "kingshot-net-page" };
   const [candidate] = mergeCodes([[api], [page]]);
-  assert.equal(candidate.confidence, 0.35);
-  assert.equal(candidate.confidenceTier, "low");
-  assert.equal(isCredibleGiftCodeCandidate(candidate), false);
+  assert.equal(candidate.confidence, 0.65);
+  assert.equal(candidate.confidenceTier, "medium");
+  assert.equal(isCredibleGiftCodeCandidate(candidate), true);
 });
 
-test("an uncorroborated Kingshot.net candidate is not eligible for announcement or player canary", () => {
+test("a sole Kingshot.net API candidate is loggable but remains unverified", () => {
   const [candidate] = mergeCodes([[
     { code: "lwaL5ZKx5", expiresAt: null, createdAt: Date.now(), source: "kingshot-net-api" }
   ]]);
-  assert.equal(isCredibleGiftCodeCandidate(candidate), false);
-  assert.equal(isCanaryEligibleGiftCodeCandidate(candidate, false), false);
+  assert.equal(isCredibleGiftCodeCandidate(candidate), true);
+  assert.equal(candidate.validationStatus, undefined);
+  assert.equal(isCanaryEligibleGiftCodeCandidate(candidate, false), true);
 });
 
 test("matching first-party API and active-page code can be canary-tested but remains low-confidence", () => {
   const api = { code: "OFFICIALSTORE1023", expiresAt: null, createdAt: Date.now(), source: "kingshot-net-api" };
   const page = { code: "OFFICIALSTORE1023", expiresAt: null, createdAt: Date.now(), source: "kingshot-net-page" };
   const [candidate] = mergeCodes([[api], [page]]);
-  assert.equal(candidate.confidence, 0.35);
-  assert.equal(isCredibleGiftCodeCandidate(candidate), false);
+  assert.equal(candidate.confidence, 0.65);
+  assert.equal(isCredibleGiftCodeCandidate(candidate), true);
   assert.equal(isCanaryEligibleGiftCodeCandidate(candidate, true), true);
   assert.equal(isCanaryEligibleGiftCodeCandidate(candidate, false), false);
 });
