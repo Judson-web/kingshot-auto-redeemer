@@ -59,8 +59,8 @@ export function extractPublicSourceCodes(html: unknown, sourceName: string): Gif
 type SourceEvidence = { group: string; weight: number };
 const sourceEvidence: Record<string, SourceEvidence> = {
   // These are endpoints of the same unfinished community site, not independent evidence.
-  "kingshot-api": { group: "kingshot.net", weight: 0.35 },
-  "kingshot-net-api": { group: "kingshot.net", weight: 0.35 },
+  "kingshot-api": { group: "kingshot.net", weight: 0.65 },
+  "kingshot-net-api": { group: "kingshot.net", weight: 0.65 },
   "page": { group: "kingshot.net", weight: 0.35 },
   "kingshot-page": { group: "kingshot.net", weight: 0.35 },
   "kingshot-net-page": { group: "kingshot.net", weight: 0.35 },
