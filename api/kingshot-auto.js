@@ -71,9 +71,10 @@ const WORKER_COUNT=4;
 // Keep each invocation below Cloudflare Free's 50 external-subrequest ceiling.
 const PLAYER_CONCURRENCY=4;
 const MAX_PLAYERS_PER_SHARD=4;
-// Eight sequential pages per shard yield up to 128 players per coordinator cycle.
-// Per-invocation size, concurrency, global upstream pacing, and retry safety remain unchanged.
-const MAX_SHARD_PAGES_PER_CYCLE=8;
+// Seven sequential pages per shard cap coordinator fan-out at 28 service calls.
+// The prior eighth round exhausted Cloudflare's 50-subrequest invocation budget
+// before the coordinator could finalize its durable run state.
+const MAX_SHARD_PAGES_PER_CYCLE=7;
 const KINGDOM_VALIDATION_CONCURRENCY=1;
 const KINGDOM_SCHEDULED_VALIDATION_BATCH_SIZE=2;
 // Temporary operational switch: disable background Kingdom Check without disabling redemption.
@@ -843,7 +844,6 @@ export default async function handler(req,res){
     }
    }));
    workerRuns.push(...roundRuns);
-   await rpc("heartbeat_kingshot_worker_run",{p_token:workerToken}).catch(()=>{});
   }
   // Failed pages must be counted as deferred too, even though their players
   // were selected for this cycle and will be retried on a later rotation.
