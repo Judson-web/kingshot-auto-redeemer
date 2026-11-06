@@ -139,11 +139,16 @@ assertCheck(
  redemptionHistory.includes('"USER INFO ERROR"') &&
  fs.existsSync(path.join(root,"tests","redemption-history.test.js"))
 );
+const newestCodeChecks={
+ comment:auto.includes("newest outstanding code for each player per run"),
+ selection:auto.includes("selectNextOutstandingCode(eligibleCodes,handled)"),
+ unresolvedPrefilter:auto.includes("const eligibleCodes=codes.filter(item=>!unresolved.has"),
+ helper:redemptionHistory.includes("selectNextOutstandingCode")
+};
 assertCheck(
  "Worker processes only the newest outstanding code per player",
- auto.includes("newest outstanding code for each player per run") &&
- auto.includes("selectNextOutstandingCode(codes,handled)") &&
- redemptionHistory.includes("selectNextOutstandingCode")
+ Object.values(newestCodeChecks).every(Boolean),
+ JSON.stringify(newestCodeChecks)
 );
 assertCheck(
  "Worker pool fans redemption work across four internal shards",
@@ -172,10 +177,10 @@ assertCheck(
  auto.includes('if(!workerAuthorized)return res.status(401).json({error:"Unauthorized"});')
 );
 assertCheck(
- "Worker pool runs four player pipelines across eight free-tier-safe pages per shard",
+ "Worker pool runs four player pipelines across seven subrequest-safe pages per shard",
  auto.includes("const PLAYER_CONCURRENCY=4;") &&
  auto.includes("const MAX_PLAYERS_PER_SHARD=4;") &&
- auto.includes("const MAX_SHARD_PAGES_PER_CYCLE=8;") &&
+ auto.includes("const MAX_SHARD_PAGES_PER_CYCLE=7;") &&
  auto.includes("const MAX_PLAYERS_PER_SHARD=4;") &&
  auto.includes("const PLAYER_CONCURRENCY=4;") &&
  auto.includes("shardPageStarts") &&
@@ -190,6 +195,9 @@ assertCheck(
  auto.includes('heartbeat_kingshot_worker_run') &&
  auto.includes('workerToken')
 );
+const fanoutStart=auto.indexOf("  const workerRuns=[];");
+const fanoutEnd=auto.indexOf("// Failed pages must be counted as deferred too",fanoutStart);
+assertCheck("Coordinator does not spend subrequests on per-round heartbeats",fanoutStart>=0&&fanoutEnd>fanoutStart&&!auto.slice(fanoutStart,fanoutEnd).includes("heartbeat_kingshot_worker_run"));
 assertCheck(
  "Worker summaries include per-code handling diagnostics",
  workerCode.includes("handledCodeCounts") &&

@@ -149,16 +149,20 @@ test("zero-attempt cycles explain when verified codes are already handled or una
 
 
 
-test("Cloudflare redemption shards keep four-player invocations and process eight pages per cycle", () => {
+test("Cloudflare redemption shards keep four-player invocations within the coordinator subrequest budget", () => {
   assert.ok(autoSource.includes("const MAX_PLAYERS_PER_SHARD=4;"));
-  assert.ok(autoSource.includes("const MAX_SHARD_PAGES_PER_CYCLE=8;"));
+  assert.ok(autoSource.includes("const MAX_SHARD_PAGES_PER_CYCLE=7;"));
   assert.ok(autoSource.includes("const MAX_PLAYERS_PER_SHARD=4;"));
   assert.ok(autoSource.includes("const PLAYER_CONCURRENCY=4;"));
   assert.ok(autoSource.includes("const WORKER_COUNT=4;"));
-  assert.equal(4 * 8 * 4, 128, "maximum bounded player slots per cycle");
+  assert.equal(4 * 7 * 4, 112, "maximum bounded player slots per cycle");
   assert.ok(autoSource.includes("const PLAYER_CONCURRENCY=4;"));
   assert.ok(autoSource.includes("shardPageStarts[workerIndex]+roundIndex"));
   assert.ok(autoSource.includes("for(let roundIndex=0;roundIndex<shardBatchesByRound.length;roundIndex++)"));
+  const fanoutStart = autoSource.indexOf("  const workerRuns=[];");
+  const fanoutEnd = autoSource.indexOf("// Failed pages must be counted as deferred too", fanoutStart);
+  assert.ok(fanoutStart >= 0 && fanoutEnd > fanoutStart);
+  assert.doesNotMatch(autoSource.slice(fanoutStart, fanoutEnd), /heartbeat_kingshot_worker_run/);
   assert.ok(workerSource.includes("const safeConcurrency = Math.min(4"));
   assert.ok(workerSource.includes("safeConcurrency, { deadline }"));
   assert.ok(autoSource.includes("reserveNeonRedemptionRequest(200)"), "global upstream pacing must remain unchanged");
