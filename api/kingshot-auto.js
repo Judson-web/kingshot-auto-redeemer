@@ -369,7 +369,7 @@ export default async function handler(req,res){
   if(body?.verifiedCodes!==true||body?.banFilterApplied!==true)return res.status(400).json({error:"Incomplete coordinator execution envelope."});
   try{
    // Recovery queues are global, not shard-local. Slot 0 drains them once.
-   if(slot===0)await drainRedemptionRecoveryQueue(rpc);
+   if(slot===0&&body?.drainRecoveryQueue!==false)await drainRedemptionRecoveryQueue(rpc);
    const codes=requestedCodes.filter(item=>item&&typeof item.code==="string"&&item.code.trim().length>0);
    // The coordinator partitions players and applies bans once; retain a
    // deterministic ownership check at this worker boundary.
@@ -786,7 +786,7 @@ export default async function handler(req,res){
       headers:childHeaders,
       body:JSON.stringify({
        codes:activeCodes,players:batchPlayers,verifiedCodes:true,banFilterApplied:true,
-       batchSelected:true,cycleBucket:cycleBucket+roundIndex,deferredPlayers:shardBatch.deferredPlayers,
+       batchSelected:true,cycleBucket:cycleBucket+roundIndex,drainRecoveryQueue:roundIndex===0,deferredPlayers:shardBatch.deferredPlayers,
        shardBatchIndex:shardBatch.batchIndex,shardBatchCount:shardBatch.batchCount
       }),
       signal:AbortSignal.timeout(WORKER_MAX_RUNTIME_MS+15000)
