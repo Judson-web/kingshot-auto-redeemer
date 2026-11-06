@@ -172,11 +172,11 @@ assertCheck(
  auto.includes('if(!workerAuthorized)return res.status(401).json({error:"Unauthorized"});')
 );
 assertCheck(
- "Worker pool runs two player pipelines per shard within the bounded page",
- auto.includes("const PLAYER_CONCURRENCY=2;") &&
- auto.includes("const MAX_PLAYERS_PER_SHARD=4;") &&
+ "Worker pool runs four player pipelines per shard within the ten-player page",
+ auto.includes("const PLAYER_CONCURRENCY=4;") &&
+ auto.includes("const MAX_PLAYERS_PER_SHARD=10;") &&
  workerCode.includes("selectWorkerShardBatch") &&
- workerCode.includes("const safeConcurrency = Math.min(2") &&
+ workerCode.includes("const safeConcurrency = Math.min(4") &&
  workerCode.includes("runWithConcurrency(assigned, player => redeemForPlayer(player, codes), safeConcurrency, { deadline })") &&
  auto.includes("WORKER_MAX_RUNTIME_MS=3*60*1000")
 );
