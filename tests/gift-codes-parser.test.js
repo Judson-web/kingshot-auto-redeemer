@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { extractPageCodes, extractPublicSourceCodes, mergeCodes, isCredibleGiftCodeCandidate, isCanaryEligibleGiftCodeCandidate } from "../internal/kingshot/gift-codes.ts";
+import { extractPageCodes, extractPublicSourceCodes, normalizeCodes, mergeCodes, isCredibleGiftCodeCandidate, isCanaryEligibleGiftCodeCandidate } from "../internal/kingshot/gift-codes.ts";
 
 test("does not infer gift codes from generic copy/redeem page text", () => {
   const html = `
@@ -53,6 +53,15 @@ test("official page parser ignores arbitrary markup tokens and only reads active
     <p>Active</p><p>OLDGIFT99</p>
   `;
   assert.deepEqual(extractPageCodes(html).map(row => row.code), ["WELLDONE"]);
+});
+
+test("normalizes alternate Kingshot.net code fields and epoch timestamps", () => {
+  const [row] = normalizeCodes({ data: { gift_codes: [
+    { gift_code: "FRESHCODE2026", expires_at: 1798761600, created_at: 1793404800 }
+  ] } });
+  assert.equal(row.code, "FRESHCODE2026");
+  assert.equal(row.expiresAt, 1798761600000);
+  assert.equal(row.createdAt, 1793404800000);
 });
 
 test("known webpage words are never accepted as gift codes", () => {
