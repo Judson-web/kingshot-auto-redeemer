@@ -172,10 +172,12 @@ assertCheck(
  auto.includes('if(!workerAuthorized)return res.status(401).json({error:"Unauthorized"});')
 );
 assertCheck(
- "Worker pool runs four player pipelines across four free-tier-safe pages per shard",
+ "Worker pool runs four player pipelines across eight free-tier-safe pages per shard",
  auto.includes("const PLAYER_CONCURRENCY=4;") &&
  auto.includes("const MAX_PLAYERS_PER_SHARD=4;") &&
- auto.includes("const MAX_SHARD_PAGES_PER_CYCLE=4;") &&
+ auto.includes("const MAX_SHARD_PAGES_PER_CYCLE=8;") &&
+ auto.includes("const MAX_PLAYERS_PER_SHARD=4;") &&
+ auto.includes("const PLAYER_CONCURRENCY=4;") &&
  auto.includes("shardPageStarts") &&
  auto.includes("(minuteCycle%sweepCycles)*MAX_SHARD_PAGES_PER_CYCLE") &&
  workerCode.includes("selectWorkerShardBatch") &&
