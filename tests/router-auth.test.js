@@ -61,7 +61,7 @@ test("coordinator applies one fail-closed ban snapshot before shard dispatch", a
   assert.doesNotMatch(shardSource, /list_kingshot_admin_gift_codes/);
   assert.match(source, /runWorkerShard\(slot,codes,eligiblePlayers/);
   assert.match(source, /restrictedPlayersSkipped/);
-  assert.match(source, /MAX_PLAYERS_PER_SHARD=4/);
+  assert.match(source, /MAX_PLAYERS_PER_SHARD=10/);
   assert.match(source, /selectWorkerShardBatch/);
 });
 

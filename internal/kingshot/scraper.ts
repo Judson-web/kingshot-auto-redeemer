@@ -28,8 +28,8 @@ type CachedResult = { expiresAt: number; result: ScraperResult };
 const sourceCache = new Map<string, CachedResult>();
 const sourceInFlight = new Map<string, Promise<ScraperResult>>();
 const sourceCooldowns = new Map<string, number>();
-const SOURCE_CACHE_TTL_MS = 90_000;
-const PAGE_CACHE_TTL_MS = 180_000;
+const SOURCE_CACHE_TTL_MS = 30_000;
+const PAGE_CACHE_TTL_MS = 45_000;
 const STALE_IF_THROTTLED_MS = 6 * 60 * 60_000;
 
 function retryAfterMs(response: Response): number | null {
