@@ -170,9 +170,12 @@ async function fetchSourceUncached(rpc: Rpc, url: string, kind: string, source: 
     if (apiLike) {
       let data: any = null;
       try { data = JSON.parse(body); } catch {}
-      const valid = Boolean(data && (kind === "api" ? data?.status === "success" : Array.isArray(data?.codes)));
-      const codes = valid ? (kind === "api" ? normalizeCodes(data).map(row => ({ ...row, source: "kingshot-net-api" })) : extractAggregatorCodes(data)) : [];
-      const parseError = valid ? null : Error("Invalid API response");
+      const valid = Boolean(data && data?.status === "success" && Array.isArray(data?.data?.giftCodes));
+      const codes = valid ? normalizeCodes(data).map(row => ({ ...row, source: "kingshot-net-api" })) : [];
+      const advertisedCount = Number(data?.data?.activeCount);
+      const countMismatch = valid && Number.isFinite(advertisedCount) && advertisedCount > 0 && codes.length === 0;
+      const parseError = !valid ? Error("Invalid Kingshot.net gift-code API response")
+        : countMismatch ? Error("Kingshot.net reported active codes but none could be normalized") : null;
       result = { source, data, codes, ok: valid, httpStatus: response.status, error: parseError?.message || null };
       await updateHealth(rpc, source, codes.length, parseError?.message || null);
       await recordRun(rpc, source, response.status, codes, valid, parseError);
