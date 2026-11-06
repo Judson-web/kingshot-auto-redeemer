@@ -271,7 +271,7 @@ async function drainRedemptionRecoveryQueue(rpcClient){
  return {recovered,failed};
 }
 
-async function redeemForPlayer(player,codes,rpcClient=rpc){
+async function redeemForPlayer(player,codes,rpcClient=rpc,unresolvedJournalCodes=[]){
 const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
  ? await revalidatePlayer(player,{rpc:rpcClient,notify:sendDiscordEvent})
  : {player,revalidated:false,kingdomChanged:false,stale:false,automaticCheckDisabled:true};
@@ -282,17 +282,23 @@ const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
  player=kingdomState.player;
  const history=await rpcClient("list_kingshot_player_redemptions",{p_player_id:player.player_id});
  const handled=getHandledGiftCodes(history);
+ // Quarantine unresolved attempts before selection. Keep the atomic journal
+ // insert as the final guard, but don't repeatedly surface expected conflicts.
+ const unresolved=new Set((Array.isArray(unresolvedJournalCodes)?unresolvedJournalCodes:[])
+  .map(code=>String(code||"").trim().toUpperCase()).filter(Boolean));
+ const eligibleCodes=codes.filter(item=>!unresolved.has(String(item?.code||"").trim().toUpperCase()));
 
  // Process only the newest outstanding code for each player per run.
  // This keeps the request comfortably below pg_net's 5s HTTP timeout and
  // respects Kingshot's per-player TOO FREQUENT rate limit. Older missed
  // active codes are picked up on subsequent runs.
  if(!codes.length)return {attempted:0,success:0,alreadyHandled:0,skipped:1,kingdomCheck,kingdomChanged,handledCodeCounts:{}};
- const item=selectNextOutstandingCode(codes,handled);
+ const item=selectNextOutstandingCode(eligibleCodes,handled);
  if(!item){
   const handledCodeCounts={};
-  for(const code of codes)if(handled.has(code.code.toUpperCase()))handledCodeCounts[code.code]=(handledCodeCounts[code.code]||0)+1;
-  return {attempted:0,success:0,alreadyHandled:codes.length,skipped:0,kingdomCheck,kingdomChanged,handledCodeCounts};
+  for(const code of eligibleCodes)if(handled.has(code.code.toUpperCase()))handledCodeCounts[code.code]=(handledCodeCounts[code.code]||0)+1;
+  const unresolvedAttempts=codes.length-eligibleCodes.length;
+  return {attempted:0,success:0,alreadyHandled:eligibleCodes.length,skipped:unresolvedAttempts?1:0,unresolvedAttempts,recoveryBlocked:unresolvedAttempts>0,kingdomCheck,kingdomChanged,handledCodeCounts};
  }
 
  // Reserve a globally shared request slot before touching the upstream API.
@@ -408,6 +414,19 @@ export default async function handler(req,res){
     const {player_id,...history}=row;
     historiesByPlayer.get(id).push(history);
    }
+   // One bounded journal read per shard page, not one query per player/code.
+   // Include result_recorded until its recovery write is fully acknowledged.
+   const unresolvedJournalRows=playerIds.length&&neonJournal
+    ? await neonJournal.query("select player_id,gift_code from public.redemption_journal where player_id = any($1::text[]) and state in ('in_flight','needs_review','result_recorded')",[playerIds])
+    : [];
+   const unresolvedCodesByPlayer=new Map();
+   for(const row of Array.isArray(unresolvedJournalRows)?unresolvedJournalRows:[]){
+    const id=String(row?.player_id||"");
+    const code=String(row?.gift_code||"").trim().toUpperCase();
+    if(!id||!code)continue;
+    if(!unresolvedCodesByPlayer.has(id))unresolvedCodesByPlayer.set(id,[]);
+    unresolvedCodesByPlayer.get(id).push(code);
+   }
    const shardRpc=async(name,body)=>{
     if(name==="list_kingshot_player_redemptions"){
      const id=String(body?.p_player_id||"");
@@ -416,7 +435,7 @@ export default async function handler(req,res){
     }
     return rpc(name,body);
    };
-   const result=await runWorkerShard(slot,codes,eligiblePlayers,{rpc:shardRpc,redeemForPlayer:(player,codes)=>redeemForPlayer(player,codes,shardRpc),claimSlot:claimNeonWorkerSlot,finishSlot:finishNeonWorkerSlot},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
+   const result=await runWorkerShard(slot,codes,eligiblePlayers,{rpc:shardRpc,redeemForPlayer:(player,codes)=>redeemForPlayer(player,codes,shardRpc,unresolvedCodesByPlayer.get(String(player?.player_id||''))||[]),claimSlot:claimNeonWorkerSlot,finishSlot:finishNeonWorkerSlot},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
    return res.status(200).json({ok:true,...result,restrictedPlayersSkipped,bannedPlayersSkipped:restrictedPlayersSkipped,deferredPlayers,shardBatchIndex:shardBatch.batchIndex,shardBatchCount:shardBatch.batchCount});
   }catch(error){
    console.error("Kingshot worker shard:",slot,error);
