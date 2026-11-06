@@ -176,9 +176,9 @@ async function fetchSourceUncached(rpc: Rpc, url: string, kind: string, source: 
       const countMismatch = valid && Number.isFinite(advertisedCount) && advertisedCount > 0 && codes.length === 0;
       const parseError = !valid ? Error("Invalid Kingshot.net gift-code API response")
         : countMismatch ? Error("Kingshot.net reported active codes but none could be normalized") : null;
-      result = { source, data, codes, ok: valid, httpStatus: response.status, error: parseError?.message || null };
+      result = { source, data, codes, ok: !parseError, httpStatus: response.status, error: parseError?.message || null };
       await updateHealth(rpc, source, codes.length, parseError?.message || null);
-      await recordRun(rpc, source, response.status, codes, valid, parseError);
+      await recordRun(rpc, source, response.status, codes, !parseError, parseError);
     } else {
       const codes = kind === "page" ? extractPageCodes(body, "kingshot-net-page") : extractPublicSourceCodes(body, source);
       const parseError = codes.length ? null : Error("No active gift codes parsed");
