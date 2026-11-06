@@ -161,7 +161,7 @@ test("Cloudflare redemption shards process bounded ten-player pages with four co
 test("gift-code discovery cache stays below the one-minute scheduler interval and fetches sources concurrently", () => {
   assert.match(scraperSource, /SOURCE_CACHE_TTL_MS = 30_000/);
   assert.match(scraperSource, /PAGE_CACHE_TTL_MS = 45_000/);
-  assert.match(autoSource, /const \\[apiSource,kingshotPageSource\\]=await Promise\\.all\\(/);
+  assert.ok(autoSource.includes("const [apiSource,kingshotPageSource]=await Promise.all("));
   assert.ok(!autoSource.includes("await new Promise(resolve=>setTimeout(resolve,250))"));
 });
 
