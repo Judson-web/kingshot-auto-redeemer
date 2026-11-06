@@ -125,7 +125,7 @@ test("MightPulse usage preflight tracks each key separately and respects actual 
 });
 
 test("global recovery queue is drained by one designated shard, not all four", () => {
-  assert.match(autoSource, /if\s*\(slot\s*===\s*0\)\s*await\s+drainRedemptionRecoveryQueue\(rpc\)/);
+  assert.match(autoSource, /if\(slot===0&&body\?\.drainRecoveryQueue!==false\)await\s+drainRedemptionRecoveryQueue\(rpc\)/);
 });
 
 test("transient Supabase failures retry idempotent reads but never replay redemption writes", () => {
