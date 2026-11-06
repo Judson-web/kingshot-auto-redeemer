@@ -70,7 +70,7 @@ test("main and private shard Workers share the same automatic Kingdom Check swit
 
 test("hybrid distribution keeps four bounded shards and does not add a polling trigger", () => {
   assert.match(autoSource, /const WORKER_COUNT=4/);
-  assert.match(autoSource, /const MAX_PLAYERS_PER_SHARD=4/);
+  assert.match(autoSource, /const MAX_PLAYERS_PER_SHARD=10/);
   assert.match(autoSource, /Promise\.all\(assignments\.map/);
   assert.doesNotMatch(autoSource, /setInterval\s*\(/);
 });
@@ -147,13 +147,22 @@ test("zero-attempt cycles explain when verified codes are already handled or una
 
 
 
-test("Cloudflare redemption shards process bounded four-player pages with two concurrent player pipelines", () => {
-  assert.ok(autoSource.includes("const MAX_PLAYERS_PER_SHARD=4;"));
-  assert.ok(autoSource.includes("const PLAYER_CONCURRENCY=2;"));
-  assert.ok(workerSource.includes("const safeConcurrency = Math.min(2"));
+test("Cloudflare redemption shards process bounded ten-player pages with four concurrent player pipelines", () => {
+  assert.ok(autoSource.includes("const MAX_PLAYERS_PER_SHARD=10;"));
+  assert.ok(autoSource.includes("const PLAYER_CONCURRENCY=4;"));
+  assert.ok(workerSource.includes("const safeConcurrency = Math.min(4"));
   assert.ok(workerSource.includes("safeConcurrency, { deadline }"));
-  assert.ok(autoSource.includes("reserveNeonRedemptionRequest"));
+  assert.ok(autoSource.includes("reserveNeonRedemptionRequest(200)"));
+  assert.ok(autoSource.includes("const waitMs=Math.max(0,reservationTime-Date.now())"));
+  assert.doesNotMatch(autoSource, /Math\\.min\\(10000,reservationTime-Date\\.now\\(\\)\\)/);
   assert.ok(autoSource.includes("setNeonRedemptionCooldown"));
+});
+
+test("gift-code discovery cache stays below the one-minute scheduler interval and fetches sources concurrently", () => {
+  assert.match(scraperSource, /SOURCE_CACHE_TTL_MS = 30_000/);
+  assert.match(scraperSource, /PAGE_CACHE_TTL_MS = 45_000/);
+  assert.match(autoSource, /const \\[apiSource,kingshotPageSource\\]=await Promise\\.all\\(/);
+  assert.doesNotMatch(autoSource, /await new Promise\\(resolve=>setTimeout\\(resolve,250\\)\\)/);
 });
 
 test("Cloudflare MightPulse request budgets bound retries and allow explicit fast-path limits", () => {
