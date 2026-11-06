@@ -167,6 +167,13 @@ test("Cloudflare redemption shards keep four-player invocations and process eigh
   assert.ok(autoSource.includes("setNeonRedemptionCooldown"));
 });
 
+test("unresolved journal pairs are filtered before code selection without weakening the journal guard", () => {
+  assert.match(autoSource, /select player_id,gift_code from public\\.redemption_journal where player_id = any\\(\\$1::text\\[\\]\\) and state in \\('in_flight','needs_review','result_recorded'\\)/);
+  assert.match(autoSource, /const eligibleCodes=codes\\.filter\\(item=>!unresolved\\.has/);
+  assert.match(autoSource, /unresolvedAttempts,recoveryBlocked:unresolvedAttempts>0/);
+  assert.match(autoSource, /where public\\.redemption_journal\\.state in \\('supabase_recorded','cancelled'\\)/);
+});
+
 test("deferred player totals count only the final page once", () => {
   assert.ok(autoSource.includes("batch.deferredPlayers=0;"));
   assert.ok(autoSource.includes("batch.deferredPlayers=Math.max(0,assignments[slotIndex].length-selectedBySlot[slotIndex])"));
