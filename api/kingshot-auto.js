@@ -252,9 +252,10 @@ async function drainRedemptionRecoveryQueue(rpcClient){
   await drainNeonRecoveryJournal(rpcClient).catch(neonError=>console.error("Neon recovery drain failed:",neonError?.message||neonError));
   throw error;
  }
- if(Array.isArray(rows)&&rows.length){
-  await drainNeonRecoveryJournal(rpcClient).catch(error=>console.error("Neon recovery drain failed:",error?.message||error));
- }
+ // The independent journal is also authoritative for outcomes captured before a
+ // Supabase write outage. Drain a tiny bounded page every coordinator cycle so
+ // result_recorded rows cannot remain stranded when the Supabase queue is empty.
+ await drainNeonRecoveryJournal(rpcClient).catch(error=>console.error("Neon recovery drain failed:",error?.message||error));
  let recovered=0,failed=0;
  for(const row of Array.isArray(rows)?rows:[]){
   try{
