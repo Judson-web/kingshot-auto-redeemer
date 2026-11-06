@@ -161,6 +161,13 @@ test("Cloudflare redemption shards keep four-player invocations and process four
   assert.ok(autoSource.includes("setNeonRedemptionCooldown"));
 });
 
+test("multi-page worker cycles advance the cursor without repeating prior-minute pages", () => {
+  assert.ok(autoSource.includes("Math.floor(cycleStartedAt/60000)*MAX_SHARD_PAGES_PER_CYCLE"));
+  assert.ok(autoSource.includes("Math.min(count,pageRounds)-1"));
+  assert.ok(autoSource.includes("drainRecoveryQueue:roundIndex===0"));
+  assert.ok(autoSource.includes("const selectedBySlot=assignments.map"));
+});
+
 test("gift-code discovery cache stays below the one-minute scheduler interval and fetches sources concurrently", () => {
   assert.match(scraperSource, /SOURCE_CACHE_TTL_MS = 30_000/);
   assert.match(scraperSource, /PAGE_CACHE_TTL_MS = 45_000/);
