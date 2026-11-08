@@ -149,9 +149,9 @@ test("zero-attempt cycles explain when verified codes are already handled or una
 
 
 
-test("Cloudflare redemption shards keep four-player invocations within the coordinator subrequest budget", () => {
-  assert.ok(autoSource.includes("const MAX_PLAYERS_PER_SHARD=4;"));
-  assert.ok(autoSource.includes("const MAX_SHARD_PAGES_PER_CYCLE=7;"));
+test("Cloudflare redemption shards select up to 100 players with bounded coordinator fan-out", () => {
+  assert.ok(autoSource.includes("const MAX_PLAYERS_PER_SHARD=5;"));
+  assert.ok(autoSource.includes("const MAX_SHARD_PAGES_PER_CYCLE=5;"));
   assert.ok(autoSource.includes("const MAX_PLAYERS_PER_SHARD=4;"));
   assert.ok(autoSource.includes("const PLAYER_CONCURRENCY=4;"));
   assert.ok(autoSource.includes("const WORKER_COUNT=4;"));
