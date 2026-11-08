@@ -51,6 +51,8 @@ test("new gift-code candidates are prioritized before older verified codes", asy
   assert.ok(source.includes("const priorityCodeKeys=new Set(activeCodes.filter"));
   assert.ok(source.includes("activeCodes=[...activeCodes.filter(item=>priorityCodeKeys.has"));
   assert.ok(source.includes("codes:activeCodes,players:batchPlayers"));
+  assert.ok(source.includes("const blockedValidationCodes=activeCodes.filter"));
+  assert.ok(source.includes('["invalid","expired","usage_limit"]'));
   assert.ok(source.includes("set_kingshot_gift_codes_validation"));
 });
 
