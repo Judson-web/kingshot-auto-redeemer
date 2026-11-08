@@ -564,10 +564,22 @@ export default async function handler(req,res){
   const apiCodes=apiSource.codes;
   const kingshotPageCodes=[];
   const suppressedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.suppressed===true).map(row=>String(row?.code||"").trim().toUpperCase()).filter(Boolean));
-  // Discovery is intentionally restricted to the two official Kingshot.net endpoints.
-  // Admin records remain available only for suppression and existing validation metadata.
-  const adminCodes=[];
-  let codes=mergeCodes([apiCodes,kingshotPageCodes]).filter(item=>!suppressedCodes.has(String(item.code||"").trim().toUpperCase()));
+  // Keep official Kingshot discovery, but also rehydrate durable pending codes
+  // that were discovered in earlier cycles and may no longer appear in the
+  // upstream feed. Manually approved active codes are included as trusted input.
+  const adminCodes=(Array.isArray(adminRows)?adminRows:[]).filter(row=>{
+   if(row?.suppressed===true)return false;
+   const status=String(row?.validation_status||"").trim().toLowerCase();
+   const expiry=row?.expires_at?Date.parse(String(row.expires_at)):NaN;
+   if(Number.isFinite(expiry)&&expiry<=Date.now())return false;
+   return ["pending","indeterminate"].includes(status)||(status==="verified"&&row?.active===true);
+  }).map(row=>({
+   code:String(row.code||"").trim(),
+   expiresAt:row.expires_at?Date.parse(String(row.expires_at)):null,
+   createdAt:row.first_seen_at?Date.parse(String(row.first_seen_at)):row.source_date?Date.parse(String(row.source_date)):0,
+   source:row.admin_added===true?"admin":"kingshot-net-api"
+  })).filter(row=>row.code);
+  let codes=mergeCodes([apiCodes,kingshotPageCodes,adminCodes]).filter(item=>!suppressedCodes.has(String(item.code||"").trim().toUpperCase()));
   if(!codes.length)throw Error("Kingshot gift-code sources returned no active codes.");
   const codesDiscoveredAt=Date.now();
   console.log("Kingshot auto feed:",{apiActive:data?.data?.activeCount??null,apiCodes:apiCodes.map(x=>x.code),kingshotPageCodes:kingshotPageCodes.map(x=>x.code),adminCodes:adminCodes.map(x=>x.code),merged:codes.map(x=>x.code)});
@@ -608,7 +620,7 @@ export default async function handler(req,res){
   const priorityCodeKeys=new Set(activeCodes.filter(item=>{
    const key=String(item?.code||"").trim().toUpperCase();
    const row=initialCodeRowsByCode.get(key);
-   return !knownCodes.has(key)||!row||["pending","indeterminate"].includes(String(row?.validation_status||"").toLowerCase());
+   return !knownCodes.has(key)||!row||row?.admin_added===true||["pending","indeterminate"].includes(String(row?.validation_status||"").toLowerCase());
   }).map(item=>String(item?.code||"").trim().toUpperCase()));
   activeCodes=[...activeCodes.filter(item=>priorityCodeKeys.has(String(item?.code||"").trim().toUpperCase())),...activeCodes.filter(item=>!priorityCodeKeys.has(String(item?.code||"").trim().toUpperCase()))];
   for(const item of newCodes.filter(isCredibleGiftCodeCandidate))await sendDiscordEvent(buildNewGiftCodeAlert(item));
