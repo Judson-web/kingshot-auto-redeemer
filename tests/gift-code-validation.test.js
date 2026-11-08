@@ -32,9 +32,12 @@ test("player-specific and transport failures never establish global code validit
   }
 });
 
-test("negative evidence does not overwrite an existing definitive status", () => {
+test("definitive validation is stable while later positive evidence can correct a prior negative", () => {
   assert.equal(resolveGiftCodeValidationStatus({ "CODE_status_CDK NOT FOUND": 1 }, "code", "verified"), null);
+  assert.equal(resolveGiftCodeValidationStatus({ "CODE_status_SUCCESS": 1 }, "code", "verified"), null);
   assert.equal(resolveGiftCodeValidationStatus({ "CODE_status_USAGE LIMIT": 1 }, "code", "expired"), null);
+  assert.equal(resolveGiftCodeValidationStatus({ "CODE_status_SUCCESS": 1 }, "code", "invalid")?.status, "verified");
+  assert.equal(resolveGiftCodeValidationStatus({ "CODE_status_SUCCESS": 1 }, "code", "usage_limit")?.status, "verified");
 });
 
 test("code matching is case-insensitive and ignores non-positive counts", () => {
