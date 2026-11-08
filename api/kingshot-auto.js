@@ -385,6 +385,10 @@ const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
 
  const recoveryClaim=await rpcClient("begin_kingshot_redemption_recovery",{p_player_id:String(player.player_id),p_code:item.code});
  if(!recoveryClaim){await journalCancel(player.player_id,item.code,"Supabase recovery claim declined");return {attempted:0,success:0,alreadyHandled:1,skipped:1,kingdomCheck,kingdomChanged,recoveryBlocked:true};}
+ // Completed upstream results are measured during reconciliation. Keep the shared
+ // redemptionTelemetry contract (codeTelemetry, firstResultLatencyMs,
+ // avgRedemptionLatencyMs, discoveryToResultMs) intact without counting queued
+ // work as an actual redemption attempt.
  // Cloudflare is only the coordinator. The secondary Supabase database owns
  // the upstream HTTP call. Both primary claims and the Neon intent exist first.
  const handoff=await fetch(SECONDARY_SUPABASE_URL+"/rest/v1/rpc/redemption_enqueue_batch",{
