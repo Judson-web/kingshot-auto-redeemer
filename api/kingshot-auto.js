@@ -9,6 +9,25 @@ const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supab
 const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
 const APP_ORIGIN=String(process.env.PUBLIC_APP_URL||"https://app.ks-redeemer.workers.dev").replace(/\/+$/,"");
 const GIFT_SOURCE_URL="https://kingshot.net/api/gift-codes";
+const SECONDARY_SUPABASE_URL=String(process.env.SECONDARY_SUPABASE_URL||"https://sfntksruilzncahytxve.supabase.co").replace(/\\/+$/,"");
+const SECONDARY_SUPABASE_KEY=process.env.SECONDARY_SUPABASE_SERVICE_ROLE_KEY||"";
+const SECONDARY_REDEMPTION_ENABLED=String(process.env.SECONDARY_REDEMPTION_ENABLED??"false").trim().toLowerCase()==="true";
+async function syncSecondaryRoster(){
+ if(!SECONDARY_REDEMPTION_ENABLED)return {enabled:false,skipped:true};
+ if(!SECONDARY_SUPABASE_KEY)throw new Error("Secondary Supabase is enabled but SECONDARY_SUPABASE_SERVICE_ROLE_KEY is missing.");
+ const roster=await rpc("list_kingshot_autoredeem_roster",{});
+ const players=Array.isArray(roster)?roster:[];
+ let synced=0;
+ for(let offset=0;offset<players.length;offset+=500){
+  const page=players.slice(offset,offset+500).map(player=>({player_id:String(player.player_id),kingdom_id:player.kingdom_id==null?null:String(player.kingdom_id),enabled:player.enabled===true,stale:player.stale===true,updated_at:player.updated_at||null}));
+  const response=await fetch(SECONDARY_SUPABASE_URL+"/rest/v1/rpc/redemption_sync_roster",{method:"POST",headers:{apikey:SECONDARY_SUPABASE_KEY,authorization:"Bearer "+SECONDARY_SUPABASE_KEY,"content-type":"application/json"},body:JSON.stringify({p_players:page}),signal:AbortSignal.timeout(15000)});
+  const result=await response.json().catch(()=>null);
+  if(!response.ok)throw Error("Secondary Supabase roster sync failed (HTTP "+response.status+"): "+String(result?.message||result?.error||"request rejected").slice(0,180));
+  synced+=Number(result?.received||0);
+ }
+ return {enabled:true,players:players.length,synced};
+}
+
 
 
 // Retry only known idempotent reads. Redemption claims, result writes, worker
@@ -614,6 +633,9 @@ export default async function handler(req,res){
   for(const item of newCodes.filter(isCredibleGiftCodeCandidate))await sendDiscordEvent(buildNewGiftCodeAlert(item));
   const players=await rpc("list_kingshot_autoredeem_players",{});
   const list=Array.isArray(players)?players:[];
+  currentStage="secondary-roster-sync";
+  const secondaryRosterSync=await syncSecondaryRoster();
+  if(secondaryRosterSync.enabled)console.log("Secondary Supabase roster refreshed:",secondaryRosterSync);
   // The reset can make every account due at once. Validate a small rotating
   // batch per minute so a slow provider cannot push this whole redemption cycle
   // beyond pg_net's 30-second request timeout. Future retry deadlines are
