@@ -414,7 +414,7 @@ const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
  // items are intentionally not counted as completed upstream attempts.
  // Stage only after both authoritative claims and the Neon intent succeed.
  // The shard submits staged work as one bounded RPC batch.
- secondaryBatch.push({player_id:String(player.player_id),gift_code:item.code,kingdom_id:String(player.kingdom_id)});
+ secondaryBatch.push({player_id:String(player.player_id),gift_code:item.code,kingdom_id:String(player.kingdom_id),available_at:new Date(reservationTime).toISOString()});
  return {attempted:0,success:0,alreadyReceived:0,alreadyHandled:0,skipped:0,queued:1,kingdomCheck,kingdomChanged,redemptionCode:item.code,redemptionStatus:"QUEUED"};
  if(d?.errorCategory==="HTTP_RATE_LIMIT"){
   const cooldownSeconds=Math.min(3600,Math.max(30,Number(d?.retryAfterSeconds)||60));
