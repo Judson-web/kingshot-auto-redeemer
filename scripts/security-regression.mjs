@@ -181,8 +181,8 @@ assertCheck(
  auto.includes("const PLAYER_CONCURRENCY=1;") &&
  auto.includes("const MAX_PLAYERS_PER_SHARD=1;") &&
  auto.includes("const MAX_SHARD_PAGES_PER_CYCLE=7;") &&
- auto.includes("const MAX_PLAYERS_PER_SHARD=4;") &&
- auto.includes("const PLAYER_CONCURRENCY=4;") &&
+ auto.includes("const MAX_PLAYERS_PER_SHARD=1;") &&
+ auto.includes("const PLAYER_CONCURRENCY=1;") &&
  auto.includes("shardPageStarts") &&
  auto.includes("(minuteCycle%sweepCycles)*MAX_SHARD_PAGES_PER_CYCLE") &&
  workerCode.includes("selectWorkerShardBatch") &&
