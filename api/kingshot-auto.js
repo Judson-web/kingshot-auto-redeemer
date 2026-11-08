@@ -66,6 +66,7 @@ async function rpc(name,body){
 
 import {mergeCodes, normalizeCodes, isCredibleGiftCodeCandidate} from "../internal/kingshot/gift-codes.js";
 import { getHandledGiftCodes, selectNextOutstandingCode } from "../internal/kingshot/redemption-history.js";
+import { resolveGiftCodeValidationStatus } from "../internal/kingshot/gift-code-validation.js";
 const WORKER_COUNT=4;
 // Four durable shards process four-player pages with four player pipelines active per shard.
 // Keep each invocation below Cloudflare Free's 50 external-subrequest ceiling.
@@ -894,25 +895,13 @@ export default async function handler(req,res){
   // evidence wins; player-specific failures and transport errors never
   // invalidate a code globally.
   const validationGroups=new Map();
-  const normalizedCodeStatus=status=>String(status||"").trim().toUpperCase().replace(/_/g," ").replace(/\\s+/g," ");
   for(const item of activeCodes){
    const code=String(item?.code||"").trim().toUpperCase();
    const row=validationRowsByCode.get(code);
-   const current=String(row?.validation_status||"pending").toLowerCase();
-   const prefix=code+"_status_";
-   const observed=Object.entries(codeCounts).filter(([key,count])=>key.startsWith(prefix)&&Number(count)>0)
-    .map(([key,count])=>({status:normalizedCodeStatus(key.slice(prefix.length)),count:Number(count)}));
-   if(!observed.length)continue;
-   let validationStatus=null;
-   if(observed.some(x=>["SUCCESS","RECEIVED","SAME TYPE EXCHANGE"].includes(x.status)))validationStatus="verified";
-   else if(observed.some(x=>x.status==="USAGE LIMIT"))validationStatus="usage_limit";
-   else if(observed.some(x=>x.status==="CDK NOT FOUND"))validationStatus="invalid";
-   else if(observed.some(x=>x.status==="TIME ERROR"))validationStatus="expired";
-   if(!validationStatus)continue;
-   if(validationStatus!=="verified"&&!["pending","indeterminate"].includes(current))continue;
-   if(current==="verified"&&validationStatus!=="verified")continue;
-   if(!validationGroups.has(validationStatus))validationGroups.set(validationStatus,[]);
-   validationGroups.get(validationStatus).push({code:item.code,observed});
+   const resolved=resolveGiftCodeValidationStatus(codeCounts,code,row?.validation_status||"pending");
+   if(!resolved)continue;
+   if(!validationGroups.has(resolved.status))validationGroups.set(resolved.status,[]);
+   validationGroups.get(resolved.status).push({code:item.code,observed:resolved.observed});
   }
   for(const [validationStatus,entries] of validationGroups){
    const codesToUpdate=entries.map(entry=>entry.code);
