@@ -62,6 +62,7 @@ export function summarizeWorkerResults(results: WorkerResult[]) {
   const workerErrorDiagnostics: Record<string, any> = {};
   const codeTelemetry: Record<string, any> = {};
   const codeCounts: Record<string, number> = {};
+  const codeBreakdown: Record<string, { attempts: number; successes: number; alreadyReceived: number; alreadyHandled: number; failures: number; statuses: Record<string, number> }> = {};
 
   for (const result of results) {
     if (result?.redemptionStatus) {
@@ -104,12 +105,22 @@ export function summarizeWorkerResults(results: WorkerResult[]) {
       codeTelemetry[code] = existing;
     }
 
-    for (const [code, count] of Object.entries(result?.handledCodeCounts || {})) codeCounts[code] = (codeCounts[code] || 0) + Number(count || 0);
+    for (const [code, count] of Object.entries(result?.handledCodeCounts || {})) {
+      codeCounts[code] = (codeCounts[code] || 0) + Number(count || 0);
+      const breakdown = codeBreakdown[code] || (codeBreakdown[code] = { attempts: 0, successes: 0, alreadyReceived: 0, alreadyHandled: 0, failures: 0, statuses: {} });
+      breakdown.alreadyHandled += Number(count || 0);
+    }
     if (result?.redemptionCode) {
       const code = String(result.redemptionCode);
       const status = String(result.redemptionStatus || "UNKNOWN").toUpperCase();
       codeCounts[code] = codeCounts[code] || 0;
       codeCounts[code + "_status_" + status] = (codeCounts[code + "_status_" + status] || 0) + 1;
+      const breakdown = codeBreakdown[code] || (codeBreakdown[code] = { attempts: 0, successes: 0, alreadyReceived: 0, alreadyHandled: 0, failures: 0, statuses: {} });
+      breakdown.attempts++;
+      breakdown.statuses[status] = (breakdown.statuses[status] || 0) + 1;
+      if (status === "SUCCESS") breakdown.successes++;
+      else if (status === "RECEIVED" || status === "SAME TYPE EXCHANGE") breakdown.alreadyReceived++;
+      else breakdown.failures++;
     }
   }
 
@@ -128,6 +139,7 @@ export function summarizeWorkerResults(results: WorkerResult[]) {
     stale: results.reduce((n, r) => n + (r?.stale ? 1 : 0), 0),
     redemptionStatuses: statusCounts,
     codeCounts,
+    codeBreakdown,
     codeTelemetry,
     redemptionFailures: Object.values(redemptionDiagnostics).sort((x, y) => y.count - x.count).slice(0, 8),
     workerErrors: Object.values(workerErrorDiagnostics).sort((a, b) => b.count - a.count).slice(0, 8)
@@ -146,6 +158,7 @@ export interface WorkerSummary {
   stale: number;
   redemptionStatuses: Record<string, number>;
   codeCounts: Record<string, number>;
+  codeBreakdown: Record<string, { attempts: number; successes: number; alreadyReceived: number; alreadyHandled: number; failures: number; statuses: Record<string, number> }>;
   codeTelemetry: Record<string, any>;
   redemptionFailures: any[];
   workerErrors: any[];
