@@ -295,6 +295,48 @@ async function drainRedemptionRecoveryQueue(rpcClient){
  return {recovered,failed};
 }
 
+async function reconcileSecondaryResults(rpcClient=rpc){
+ if(!SECONDARY_SUPABASE_KEY||!neonJournal)return {skipped:true,reconciled:0,uncertain:0};
+ const response=await fetch(SECONDARY_SUPABASE_URL+"/rest/v1/rpc/redemption_get_reconciliation_batch",{
+  method:"POST",headers:{apikey:SECONDARY_SUPABASE_KEY,authorization:"Bearer "+SECONDARY_SUPABASE_KEY,"content-type":"application/json"},
+  body:JSON.stringify({p_limit:100}),signal:AbortSignal.timeout(15000)
+ });
+ if(!response.ok)throw new Error("Secondary reconciliation read failed (HTTP "+response.status+").");
+ const rows=await response.json().catch(()=>[]);
+ let reconciled=0,uncertain=0,failed=0;
+ for(const row of Array.isArray(rows)?rows:[]){
+  try{
+   if(row.state==="uncertain"){
+    const reason=String(row.last_error||"Secondary executor could not establish the upstream outcome").slice(0,240);
+    await neonJournal.query("update public.redemption_journal set state='needs_review',last_error=$3,updated_at=now() where player_id=$1 and upper(gift_code)=upper($2) and state='in_flight'",[String(row.player_id),String(row.gift_code),reason]);
+    await rpcClient("mark_kingshot_redemption_recovery_uncertain",{p_player_id:String(row.player_id),p_code:String(row.gift_code),p_error:reason});
+    uncertain++;
+   }else{
+    const result=row.result||{};
+    const status=String(result.status||row.last_status||"ERROR").toUpperCase();
+    const errCode=result.err_code==null?null:Number(result.err_code);
+    const message=String(result.message||row.last_error||"Secondary Supabase redemption result");
+    const persistencePayload={p_player_id:String(row.player_id),p_code:String(row.gift_code),p_status:status,p_err_code:Number.isFinite(errCode)?errCode:null,p_message:"[SECONDARY_EXECUTOR] "+message};
+    await journalResult(row.player_id,row.gift_code,status,persistencePayload.p_err_code,persistencePayload.p_message);
+    await rpcClient("complete_kingshot_redemption_recovery",{p_player_id:String(row.player_id),p_code:String(row.gift_code),p_status:status,p_err_code:persistencePayload.p_err_code,p_message:persistencePayload.p_message});
+    await recordRedemptionSafely(rpcClient,persistencePayload);
+    await rpcClient("resolve_kingshot_redemption_recovery",{p_player_id:String(row.player_id),p_code:String(row.gift_code)});
+    await neonJournal.query("update public.redemption_journal set state='supabase_recorded',attempts=attempts+1,last_error=null,updated_at=now() where player_id=$1 and upper(gift_code)=upper($2) and state='result_recorded'",[String(row.player_id),String(row.gift_code)]);
+   }
+   const ack=await fetch(SECONDARY_SUPABASE_URL+"/rest/v1/rpc/redemption_mark_reconciled",{
+    method:"POST",headers:{apikey:SECONDARY_SUPABASE_KEY,authorization:"Bearer "+SECONDARY_SUPABASE_KEY,"content-type":"application/json"},
+    body:JSON.stringify({p_id:Number(row.id)}),signal:AbortSignal.timeout(10000)
+   });
+   if(!ack.ok)throw new Error("Secondary reconciliation acknowledgement failed (HTTP "+ack.status+").");
+   reconciled++;
+  }catch(error){
+   failed++;
+   console.error("Secondary redemption reconciliation deferred:",{queueId:row.id,error:String(error?.message||error).slice(0,200)});
+  }
+ }
+ return {reconciled,uncertain,failed};
+}
+
 async function redeemForPlayer(player,codes,rpcClient=rpc,unresolvedJournalCodes=[]){
 const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
  ? await revalidatePlayer(player,{rpc:rpcClient,notify:sendDiscordEvent})
@@ -483,6 +525,11 @@ export default async function handler(req,res){
   try{authorized=Boolean(await rpc("verify_kingshot_scheduler_token",{p_token:String(schedulerToken)}))}catch{}
  }
  if(!authorized)return res.status(401).json({error:"Unauthorized"});
+ try{
+  const reconciliation=await reconcileSecondaryResults(rpc);
+  if(reconciliation.reconciled||reconciliation.uncertain||reconciliation.failed)console.log("Secondary redemption reconciliation:",reconciliation);
+ }catch(error){console.error("Secondary redemption reconciliation unavailable:",String(error?.message||error).slice(0,200));}
+
 
  // Protected, side-effect-free operational webhook probe. It sends one harmless
  // diagnostic embed and reports the actual Discord webhook HTTP outcome without
