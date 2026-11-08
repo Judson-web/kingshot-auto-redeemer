@@ -968,8 +968,8 @@ export default async function handler(req,res){
    deferredPlayers:Number.isFinite(result?.deferredPlayers)?result.deferredPlayers:null
   }));
   const totals=workerRuns.reduce((a,r)=>{
-   a.attempted+=(r?.attempted||0);a.deferredPlayers+=(r?.deferredPlayers||0);a.success+=(r?.success||0);a.alreadyReceived+=(r?.alreadyReceived||0);a.alreadyHandled+=(r?.alreadyHandled||0);a.skipped+=(r?.skipped||0);a.errors+=(r?.errors||0)+(r?.error?1:0);a.deadlineSkipped+=(r?.deadlineSkipped||0);return a;
-  },{attempted:0,deferredPlayers:0,success:0,alreadyReceived:0,alreadyHandled:0,skipped:0,errors:0,stale:0,deadlineSkipped:0,kingdomChecks:kingdomSummary.checked,kingdomChanges:kingdomSummary.changed});
+   a.attempted+=(r?.attempted||0);a.queued+=(r?.queued||0);a.deferredPlayers+=(r?.deferredPlayers||0);a.success+=(r?.success||0);a.alreadyReceived+=(r?.alreadyReceived||0);a.alreadyHandled+=(r?.alreadyHandled||0);a.skipped+=(r?.skipped||0);a.errors+=(r?.errors||0)+(r?.error?1:0);a.deadlineSkipped+=(r?.deadlineSkipped||0);return a;
+  },{attempted:0,queued:0,deferredPlayers:0,success:0,alreadyReceived:0,alreadyHandled:0,skipped:0,errors:0,stale:0,deadlineSkipped:0,kingdomChecks:kingdomSummary.checked,kingdomChanges:kingdomSummary.changed});
   const topRedemptionFailures=workerRuns.flatMap(result=>Array.isArray(result?.redemptionFailures)?result.redemptionFailures:[]);
   const workerErrorDiagnostics=Object.values(workerRuns.flatMap(result=>Array.isArray(result?.workerErrors)?result.workerErrors:[])
    .reduce((map,item)=>{
@@ -1054,7 +1054,7 @@ export default async function handler(req,res){
   },{})).sort((x,y)=>y.count-x.count).slice(0,8);
   const batchPlayersSelected=shardBatches.reduce((count,batch)=>count+batch.players.length,0);
   const batchFullyHandled=batchPlayersSelected>0&&totals.alreadyHandled>=batchPlayersSelected*activeCodes.length;
-  const noWorkReason=totals.attempted>0?null
+  const noWorkReason=totals.attempted>0||totals.queued>0?null
    :activeCodes.length===0?"NO_ELIGIBLE_UNSUPPRESSED_UNEXPIRED_CODES"
    :batchFullyHandled&&totals.deferredPlayers>0?"CURRENT_BATCH_ALREADY_HANDLED_MORE_PLAYERS_QUEUED"
    :batchFullyHandled?"ALL_ELIGIBLE_CODES_ALREADY_HANDLED"
