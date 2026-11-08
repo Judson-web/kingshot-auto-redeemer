@@ -141,7 +141,7 @@ test("transient Supabase failures retry idempotent reads but never replay redemp
 
 test("zero-attempt cycles explain when verified codes are already handled or unavailable", () => {
   assert.match(autoSource, /ALL_ELIGIBLE_CODES_ALREADY_HANDLED/);
-  assert.match(autoSource, /NO_ELIGIBLE_VERIFIED_UNSUPPRESSED_UNEXPIRED_CODES/);
+  assert.match(autoSource, /NO_ELIGIBLE_UNSUPPRESSED_UNEXPIRED_CODES/);
   assert.match(autoSource, /noWorkReason/);
   assert.match(healthSource, /noWorkReason/);
   assert.match(healthSource, /coordinatorRows/);
