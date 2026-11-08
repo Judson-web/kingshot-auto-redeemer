@@ -237,8 +237,10 @@ test("new gift-code detections go directly to the official worker logs webhook",
   assert.ok(worker.includes("if(!DISCORD_WEBHOOK_URL)return false;"));
   assert.ok(worker.includes("sendDiscordEvent(buildNewGiftCodeAlert(item))"));
   assert.ok(!worker.includes("sendDiscordEvent(buildNewGiftCodeAlert(item),{botAlert:true})"));
-  assert.ok(worker.includes("Kingshot gift-code verification advisory:"), "verification must remain advisory telemetry");
-  assert.ok(!worker.includes("set_kingshot_gift_code_validation"), "scheduled discovery must not mutate validation status");
+  assert.ok(worker.includes("Kingshot gift-code verification advisory:"), "discovery remains separate from validation");
+  assert.ok(worker.includes("set_kingshot_gift_codes_validation"), "conclusive redemption outcomes must persist validation in batches");
+  assert.ok(worker.includes("buildGiftCodeValidationAlert"), "validation outcomes must be announced");
+  assert.ok(worker.includes("resolveGiftCodeValidationStatus"), "validation must use the evidence resolver");
   assert.ok(worker.includes('sendDiscordEvent({title:"📊 Auto-redeem cycle"'), "worker cycle summaries must still be sent");
   assert.ok(worker.includes('sendDiscordEvent({title:"🚨 Auto-redeem anomaly detected"'), "worker anomalies must still be sent");
   assert.ok(worker.includes("const DISCORD_WEBHOOK_URL=process.env.DISCORD_KINGSHOT_WEBHOOK_URL||process.env.DISCORD_SCRAPER_WEBHOOK_URL"));

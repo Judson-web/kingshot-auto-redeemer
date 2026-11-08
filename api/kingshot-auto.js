@@ -64,8 +64,9 @@ async function rpc(name,body){
  throw lastError||Error("Supabase RPC "+name+" failed after retries.");
 }
 
-import {mergeCodes, normalizeCodes, isCredibleGiftCodeCandidate} from "../internal/kingshot/gift-codes.js";
+import {mergeCodes, normalizeCodes, normalizeStoredGiftCodes, isCredibleGiftCodeCandidate} from "../internal/kingshot/gift-codes.js";
 import { getHandledGiftCodes, selectNextOutstandingCode } from "../internal/kingshot/redemption-history.js";
+import { resolveGiftCodeValidationStatus } from "../internal/kingshot/gift-code-validation.js";
 const WORKER_COUNT=4;
 // Four durable shards process four-player pages with four player pipelines active per shard.
 // Keep each invocation below Cloudflare Free's 50 external-subrequest ceiling.
@@ -563,15 +564,15 @@ export default async function handler(req,res){
   const apiCodes=apiSource.codes;
   const kingshotPageCodes=[];
   const suppressedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.suppressed===true).map(row=>String(row?.code||"").trim().toUpperCase()).filter(Boolean));
-  // Discovery is intentionally restricted to the two official Kingshot.net endpoints.
-  // Admin records remain available only for suppression and existing validation metadata.
-  const adminCodes=[];
-  let codes=mergeCodes([apiCodes,kingshotPageCodes]).filter(item=>!suppressedCodes.has(String(item.code||"").trim().toUpperCase()));
+  // Keep official Kingshot discovery, but also rehydrate durable pending codes
+  // that were discovered in earlier cycles and may no longer appear in the
+  // upstream feed. Manually approved active codes are included as trusted input.
+  const adminCodes=normalizeStoredGiftCodes(adminRows);
+  let codes=mergeCodes([apiCodes,kingshotPageCodes,adminCodes]).filter(item=>!suppressedCodes.has(String(item.code||"").trim().toUpperCase()));
   if(!codes.length)throw Error("Kingshot gift-code sources returned no active codes.");
   const codesDiscoveredAt=Date.now();
   console.log("Kingshot auto feed:",{apiActive:data?.data?.activeCount??null,apiCodes:apiCodes.map(x=>x.code),kingshotPageCodes:kingshotPageCodes.map(x=>x.code),adminCodes:adminCodes.map(x=>x.code),merged:codes.map(x=>x.code)});
   const knownCodes=new Set((Array.isArray(adminRows)?adminRows:[]).map(row=>String(row?.code||"").toUpperCase()));
-  const previouslyVerifiedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.validation_status==="verified"&&row?.active!==false&&row?.suppressed!==true).map(row=>String(row?.code||"").trim().toUpperCase()).filter(Boolean));
 
   const persistedCodeRows=await Promise.all(codes.map(item=>rpc("upsert_kingshot_gift_code",{
    p_code:item.code,
@@ -600,6 +601,16 @@ export default async function handler(req,res){
    remaining:activeCodes.map(x=>x.code)
   });
   const newCodes=activeCodes.filter(item=>!knownCodes.has(String(item.code).toUpperCase()));
+  // Prioritize newly discovered and not-yet-verified codes in this same
+  // coordinator cycle. Existing shard leases and per-player history remain
+  // authoritative; this is ordering, not a second worker trigger.
+  const initialCodeRowsByCode=new Map((Array.isArray(adminRows)?adminRows:[]).map(row=>[String(row?.code||"").trim().toUpperCase(),row]));
+  const priorityCodeKeys=new Set(activeCodes.filter(item=>{
+   const key=String(item?.code||"").trim().toUpperCase();
+   const row=initialCodeRowsByCode.get(key);
+   return !knownCodes.has(key)||!row||row?.admin_added===true||["pending","indeterminate"].includes(String(row?.validation_status||"").toLowerCase());
+  }).map(item=>String(item?.code||"").trim().toUpperCase()));
+  activeCodes=[...activeCodes.filter(item=>priorityCodeKeys.has(String(item?.code||"").trim().toUpperCase())),...activeCodes.filter(item=>!priorityCodeKeys.has(String(item?.code||"").trim().toUpperCase()))];
   for(const item of newCodes.filter(isCredibleGiftCodeCandidate))await sendDiscordEvent(buildNewGiftCodeAlert(item));
   const players=await rpc("list_kingshot_autoredeem_players",{});
   const list=Array.isArray(players)?players:[];
@@ -683,11 +694,21 @@ export default async function handler(req,res){
   // One canary per cycle. The real endpoint can consume the reward on this player.
 
 
-  // Verification is advisory only. Codes discovered from Kingshot.net remain
-  // eligible for the normal redemption queue regardless of validation_status.
-  // The game's response is recorded per player; it does not gate dispatch.
+  // Pending candidates enter the normal redemption queue for live verification.
+  // Only definitive invalid/expired/usage-limit states are excluded from dispatch.
   const latestCodeRows=await rpc("list_kingshot_admin_gift_codes",{});
   const validationRowsByCode=new Map((Array.isArray(latestCodeRows)?latestCodeRows:[]).map(row=>[String(row?.code||"").trim().toUpperCase(),row]));
+  // Pending/indeterminate candidates enter the normal worker pool so real
+  // redemptions can verify them. Definitive negative states are excluded.
+  const blockedValidationCodes=activeCodes.filter(item=>{
+   const row=validationRowsByCode.get(String(item?.code||"").trim().toUpperCase());
+   return ["invalid","expired","usage_limit"].includes(String(row?.validation_status||"").toLowerCase());
+  });
+  if(blockedValidationCodes.length){
+   const blockedKeys=new Set(blockedValidationCodes.map(item=>String(item?.code||"").trim().toUpperCase()));
+   activeCodes=activeCodes.filter(item=>!blockedKeys.has(String(item?.code||"").trim().toUpperCase()));
+   console.log("Kingshot gift-code validation gate:",{eligible:activeCodes.length,blocked:blockedValidationCodes.map(item=>item.code)});
+  }
   const verificationAudit=activeCodes.map(item=>{
    const row=validationRowsByCode.get(String(item.code||"").trim().toUpperCase());
    return {code:item.code,validationStatus:row?.validation_status||"pending",active:row?.active??null,suppressed:row?.suppressed===true};
@@ -720,21 +741,7 @@ export default async function handler(req,res){
    }
    return {checked:activeCodes.length,consistent,review,expiryKnown};
   })();
-  const newlyAvailableCodes=activeCodes.filter(item=>!previouslyVerifiedCodes.has(item.code.toUpperCase()));
-  if(newlyAvailableCodes.length){
-   // Stable tags make repeat delivery of the same verified batch replace, rather than stack, alerts.
-   const uniqueCodes=[...new Map(newlyAvailableCodes.map(item=>[String(item.code).trim().toUpperCase(),item])).values()];
-   const listed=uniqueCodes.map(item=>item.code).slice(0,3),extra=uniqueCodes.length-listed.length;
-   const sortedKey=uniqueCodes.map(item=>String(item.code).trim().toUpperCase()).sort().join("|");
-   let tagHash=2166136261;for(let i=0;i<sortedKey.length;i++){tagHash^=sortedKey.charCodeAt(i);tagHash=Math.imul(tagHash,16777619)}
-   const tag="gift-codes-"+(tagHash>>>0).toString(36);
-   const title=uniqueCodes.length===1?"🎁 Verified gift code ready":"🎁 "+uniqueCodes.length+" verified gift codes ready";
-   const body=uniqueCodes.length===1
-    ?"Kingshot verification passed for "+listed[0]+". Tap View code to open redemption with the code filled in."
-    :"Ready to redeem: "+listed.join(", ")+(extra>0?" and "+extra+" more":"")+". Tap View codes to redeem.";
-   try{await broadcastPush({title,body,url:"/manual?code="+encodeURIComponent(listed[0]),image:APP_ORIGIN+"/api/og",tag,actions:[{action:"view-codes",title:uniqueCodes.length===1?"View code":"View codes"},{action:"dismiss",title:"Dismiss"}]})}
-   catch(error){console.error("New gift-code push notification failed:",error instanceof Error?error.message:error)}
-  }
+
 
 
   if(kingdomSummary.checked||kingdomSummary.changed||kingdomSummary.stale||kingdomSummary.errors||kingdomSummary.deferred){
@@ -880,6 +887,50 @@ export default async function handler(req,res){
  for(const [key,count] of Object.entries(r?.codeCounts||{}))map[key]=(map[key]||0)+Number(count||0);
  return map;
 },{});
+  // Verify only from definitive Kingshot redemption responses. Positive
+  // evidence wins; player-specific failures and transport errors never
+  // invalidate a code globally.
+  const validationGroups=new Map();
+  const newlyVerifiedCodes=[];
+  for(const item of activeCodes){
+   const code=String(item?.code||"").trim().toUpperCase();
+   const row=validationRowsByCode.get(code);
+   const resolved=resolveGiftCodeValidationStatus(codeCounts,code,row?.validation_status||"pending");
+   if(!resolved)continue;
+   if(!validationGroups.has(resolved.status))validationGroups.set(resolved.status,[]);
+   validationGroups.get(resolved.status).push({code:item.code,observed:resolved.observed});
+  }
+  for(const [validationStatus,entries] of validationGroups){
+   const codesToUpdate=entries.map(entry=>entry.code);
+   const evidence=entries.map(entry=>entry.code+": "+entry.observed.map(x=>x.status+" x"+x.count).join(", ")).join("; ").slice(0,240);
+   try{
+    const updatedCount=await rpc("set_kingshot_gift_codes_validation",{p_codes:codesToUpdate,p_status:validationStatus,p_player_id:null,p_message:"Automatic verification from definitive Kingshot redemption responses. "+evidence});
+    if(validationStatus==="verified"&&Number(updatedCount)>0)newlyVerifiedCodes.push(...codesToUpdate);
+    await sendDiscordEvent(buildGiftCodeValidationAlert({
+     code:codesToUpdate.join(", "),
+     status:validationStatus==="verified"
+      ?(entries.flatMap(entry=>entry.observed).find(x=>["SUCCESS","RECEIVED","SAME TYPE EXCHANGE"].includes(x.status))?.status||"SUCCESS")
+      :validationStatus==="usage_limit"?"USAGE_LIMIT":validationStatus==="invalid"?"CDK_NOT_FOUND":"TIME_ERROR",
+     validationStatus,
+     message:evidence
+    }),{botAlert:true});
+   }catch(error){
+    console.error("Gift-code validation persistence failed:",{status:validationStatus,count:codesToUpdate.length,message:String(error?.message||error).slice(0,180)});
+   }
+  }
+  if(newlyVerifiedCodes.length){
+   const uniqueCodes=[...new Set(newlyVerifiedCodes.map(code=>String(code).trim().toUpperCase()))];
+   const listed=uniqueCodes.slice(0,3),extra=uniqueCodes.length-listed.length;
+   const sortedKey=uniqueCodes.slice().sort().join("|");
+   let tagHash=2166136261;for(let i=0;i<sortedKey.length;i++){tagHash^=sortedKey.charCodeAt(i);tagHash=Math.imul(tagHash,16777619)}
+   const tag="gift-codes-"+(tagHash>>>0).toString(36);
+   const title=uniqueCodes.length===1?"🎁 Verified gift code ready":"🎁 "+uniqueCodes.length+" verified gift codes ready";
+   const body=uniqueCodes.length===1
+    ?"Kingshot confirmed "+listed[0]+" through a real player redemption response. Tap View code to open redemption with the code filled in."
+    :"Kingshot confirmed: "+listed.join(", ")+(extra>0?" and "+extra+" more":"")+". Tap View codes to redeem.";
+   try{await broadcastPush({title,body,url:"/manual?code="+encodeURIComponent(listed[0]),image:APP_ORIGIN+"/api/og",tag,actions:[{action:"view-codes",title:uniqueCodes.length===1?"View code":"View codes"},{action:"dismiss",title:"Dismiss"}]})}
+   catch(error){console.error("New verified gift-code push notification failed:",error instanceof Error?error.message:error)}
+  }
   const codeTelemetry=workerRuns.reduce((map,r)=>{
    for(const [code,value] of Object.entries(r?.codeTelemetry||{})){
     const existing=map[code]||{attempts:0,successes:0,firstResultAt:null,firstSuccessAt:null,firstResultLatencyMs:null,totalRedemptionLatencyMs:0};
@@ -908,7 +959,7 @@ export default async function handler(req,res){
   const batchPlayersSelected=shardBatches.reduce((count,batch)=>count+batch.players.length,0);
   const batchFullyHandled=batchPlayersSelected>0&&totals.alreadyHandled>=batchPlayersSelected*activeCodes.length;
   const noWorkReason=totals.attempted>0?null
-   :activeCodes.length===0?"NO_ELIGIBLE_VERIFIED_UNSUPPRESSED_UNEXPIRED_CODES"
+   :activeCodes.length===0?"NO_ELIGIBLE_UNSUPPRESSED_UNEXPIRED_CODES"
    :batchFullyHandled&&totals.deferredPlayers>0?"CURRENT_BATCH_ALREADY_HANDLED_MORE_PLAYERS_QUEUED"
    :batchFullyHandled?"ALL_ELIGIBLE_CODES_ALREADY_HANDLED"
    :totals.deferredPlayers>0?"MORE_PLAYERS_QUEUED"
@@ -934,7 +985,7 @@ export default async function handler(req,res){
     ...shardFailureDiagnostics.map(x=>"SHARD "+(x.slot??"?")+" · "+x.category+" · "+x.message+(x.players!=null?" · "+x.players+" players":""))
    ].join("\n").slice(0,1024)||"None",inline:false}
   ],color:0xED4245});
-  if(totals.attempted||totals.errors||totals.stale||workerFailures.length||newCodes.length)await sendDiscordEvent({title:"📊 Auto-redeem cycle",description:"Scheduled Kingshot worker pool completed a cycle with activity.",fields:[{name:"Players",value:String(list.length),inline:true},{name:"Validated",value:String(validPlayers.length),inline:true},{name:"Workers",value:String(WORKER_COUNT),inline:true},{name:"Verified & available codes",value:String(activeCodes.length),inline:true},{name:"Second-pass code audit",value:giftCodeAudit.checked?("Checked: "+giftCodeAudit.checked+" · Consistent: "+giftCodeAudit.consistent+" · Review flags: "+giftCodeAudit.review+" · Expiry metadata: "+giftCodeAudit.expiryKnown+"/"+giftCodeAudit.checked+"\nAdvisory only · no codes blocked or changed"):"No eligible codes to audit · advisory only",inline:false},{name:"Attempts",value:String(totals.attempted),inline:true},{name:"Successes",value:String(totals.success),inline:true},{name:"Already received",value:String(totals.alreadyReceived),inline:true},{name:"Already redeemed/handled",value:String(totals.alreadyHandled),inline:true},{name:"Errors",value:String(totals.errors),inline:true},{name:"Stale",value:String(totals.stale),inline:true},{name:"Worker failures",value:String(workerFailures.length),inline:true},{name:"Deferred by deadline",value:String(totals.deadlineSkipped),inline:true},{name:"Runtime",value:(cycleDurationMs/1000).toFixed(1)+"s",inline:true},{name:"Sources",value:healthySources+"/"+sourceCount+" healthy",inline:true},{name:"Verified code list",value:activeCodes.map(item=>item.code).slice(0,16).join(", ")||"No verified codes currently eligible",inline:false},{name:"Redemption statuses",value:Object.entries(workerRuns.reduce((map,r)=>{for(const [status,count] of Object.entries(r?.redemptionStatuses||{}))map[status]=(map[status]||0)+count;return map},{})).map(([status,count])=>`${status}: ${count}`).join("\n").slice(0,1024)||"None",inline:false},{name:"Code breakdown",value:Object.entries(codeCounts).filter(([k])=>!k.includes("_status_")).map(([code,count])=>`${code}: ${count} handled`).join("\n").slice(0,1024)||"None",inline:false},{name:"Speed telemetry",value:Object.entries(codeTelemetry).filter(([,t])=>Number(t?.attempts||0)>0).map(([code,t])=>code+": first result "+(t.firstResultLatencyMs!=null?(t.firstResultLatencyMs/1000).toFixed(1)+"s":"—")+" · "+(t.avgRedemptionLatencyMs!=null?(t.avgRedemptionLatencyMs/1000).toFixed(1)+"s avg API":"—")+(t.firstSuccessAt?" · first SUCCESS":" · no SUCCESS")).join("\n").slice(0,1024)||"None",inline:false},{name:"Redemption failures",value:mergedFailures.length?mergedFailures.map(x=>`${x.category}/${x.errCode}/${x.status}: ${x.count}`).join("\n").slice(0,1024):"None",inline:false},{name:"Worker diagnostics",value:[
+  if(totals.attempted||totals.errors||totals.stale||workerFailures.length||newCodes.length)await sendDiscordEvent({title:"📊 Auto-redeem cycle",description:"Scheduled Kingshot worker pool completed a cycle with activity.",fields:[{name:"Players",value:String(list.length),inline:true},{name:"Validated",value:String(validPlayers.length),inline:true},{name:"Workers",value:String(WORKER_COUNT),inline:true},{name:"Eligible codes",value:String(activeCodes.length),inline:true},{name:"Second-pass code audit",value:giftCodeAudit.checked?("Checked: "+giftCodeAudit.checked+" · Consistent: "+giftCodeAudit.consistent+" · Review flags: "+giftCodeAudit.review+" · Expiry metadata: "+giftCodeAudit.expiryKnown+"/"+giftCodeAudit.checked+"\nAdvisory only · no codes blocked or changed"):"No eligible codes to audit · advisory only",inline:false},{name:"Attempts",value:String(totals.attempted),inline:true},{name:"Successes",value:String(totals.success),inline:true},{name:"Already received",value:String(totals.alreadyReceived),inline:true},{name:"Already redeemed/handled",value:String(totals.alreadyHandled),inline:true},{name:"Errors",value:String(totals.errors),inline:true},{name:"Stale",value:String(totals.stale),inline:true},{name:"Worker failures",value:String(workerFailures.length),inline:true},{name:"Deferred by deadline",value:String(totals.deadlineSkipped),inline:true},{name:"Runtime",value:(cycleDurationMs/1000).toFixed(1)+"s",inline:true},{name:"Sources",value:healthySources+"/"+sourceCount+" healthy",inline:true},{name:"Eligible code list",value:activeCodes.map(item=>item.code).slice(0,16).join(", ")||"No eligible codes currently available",inline:false},{name:"Redemption statuses",value:Object.entries(workerRuns.reduce((map,r)=>{for(const [status,count] of Object.entries(r?.redemptionStatuses||{}))map[status]=(map[status]||0)+count;return map},{})).map(([status,count])=>`${status}: ${count}`).join("\n").slice(0,1024)||"None",inline:false},{name:"Code breakdown",value:Object.entries(codeCounts).filter(([k])=>!k.includes("_status_")).map(([code,count])=>`${code}: ${count} handled`).join("\n").slice(0,1024)||"None",inline:false},{name:"Speed telemetry",value:Object.entries(codeTelemetry).filter(([,t])=>Number(t?.attempts||0)>0).map(([code,t])=>code+": first result "+(t.firstResultLatencyMs!=null?(t.firstResultLatencyMs/1000).toFixed(1)+"s":"—")+" · "+(t.avgRedemptionLatencyMs!=null?(t.avgRedemptionLatencyMs/1000).toFixed(1)+"s avg API":"—")+(t.firstSuccessAt?" · first SUCCESS":" · no SUCCESS")).join("\n").slice(0,1024)||"None",inline:false},{name:"Redemption failures",value:mergedFailures.length?mergedFailures.map(x=>`${x.category}/${x.errCode}/${x.status}: ${x.count}`).join("\n").slice(0,1024):"None",inline:false},{name:"Worker diagnostics",value:[
     ...workerErrorDiagnostics.map(x=>x.category+" · "+x.message+" · x"+x.count),
     ...shardFailureDiagnostics.map(x=>"SHARD "+(x.slot??"?")+" · "+x.category+" · "+x.message+(x.players!=null?" · "+x.players+" players":""))
    ].join("\n").slice(0,1024)||"None",inline:false}],color:totals.errors||totals.stale||workerFailures.length?0xFEE75C:0x57F287});

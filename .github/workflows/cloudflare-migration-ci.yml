@@ -85,6 +85,12 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261103120000_v4_native_redemption_idempotency.sql
       - name: Apply V4 webhook delivery migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261103150000_v4_secure_webhook_delivery.sql
+      - name: Create disposable gift-code validation fixture
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/gift-code-validation-fixture.sql
+      - name: Apply batch gift-code validation migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261108120000_batch_gift_code_validation.sql
+      - name: Verify gift-code validation outcomes and RPC privileges
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/gift-code-validation-assertions.sql
       - name: Verify RPC behavior, leases, privileges and retry ceiling
         run: psql -v ON_ERROR_STOP=1 -f tests/sql/native-v4-migration-assertions.sql
 
