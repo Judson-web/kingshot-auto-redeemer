@@ -342,18 +342,32 @@ const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
 
  const recoveryClaim=await rpcClient("begin_kingshot_redemption_recovery",{p_player_id:String(player.player_id),p_code:item.code});
  if(!recoveryClaim){await journalCancel(player.player_id,item.code,"Supabase recovery claim declined");return {attempted:0,success:0,alreadyHandled:1,skipped:1,kingdomCheck,kingdomChanged,recoveryBlocked:true};}
- const redemptionStartedAt=Date.now();
- let d;
- try{
-  d=await redeemKingshot({playerId:player.player_id,code:item.code,kid:player.kingdom_id});
- }catch(error){
-  // The upstream may have accepted the request before the connection failed.
-  // Preserve an explicit review marker; never automatically replay this attempt.
-  await neonJournal?.query("update public.redemption_journal set state='needs_review',last_error=$3,updated_at=now() where player_id=$1 and upper(gift_code)=upper($2) and state='in_flight'",[String(player.player_id),String(item.code),String(error?.message||error).slice(0,240)]).catch(queueError=>console.error("Could not mark Neon outcome uncertain:",queueError?.message||queueError));
-  await rpcClient("mark_kingshot_redemption_recovery_uncertain",{p_player_id:String(player.player_id),p_code:item.code,p_error:String(error?.message||error).slice(0,240)}).catch(queueError=>console.error("Could not mark uncertain redemption:",queueError?.message||queueError));
-  throw error;
+ // Cloudflare is only the coordinator. The secondary Supabase database owns
+ // the upstream HTTP call. Both primary claims and the Neon intent exist first.
+ if(!SECONDARY_SUPABASE_KEY)throw new Error("Secondary Supabase service key is missing; redemption handoff refused.");
+ const handoff=await fetch(SECONDARY_SUPABASE_URL+"/rest/v1/rpc/redemption_enqueue_batch",{
+  method:"POST",
+  headers:{apikey:SECONDARY_SUPABASE_KEY,authorization:"Bearer "+SECONDARY_SUPABASE_KEY,"content-type":"application/json"},
+  body:JSON.stringify({p_items:[{player_id:String(player.player_id),gift_code:item.code,kingdom_id:String(player.kingdom_id)}]}),
+  signal:AbortSignal.timeout(10000)
+ });
+ const handoffBody=await handoff.json().catch(()=>null);
+ if(!handoff.ok) {
+  await neonJournal?.query("update public.redemption_journal set state='needs_review',last_error=$3,updated_at=now() where player_id=$1 and upper(gift_code)=upper($2) and state='in_flight'",[String(player.player_id),String(item.code),"Secondary queue handoff failed: HTTP "+handoff.status]).catch(()=>{});
+  await rpcClient("mark_kingshot_redemption_recovery_uncertain",{p_player_id:String(player.player_id),p_code:item.code,p_error:"Secondary queue handoff failed; operator reconciliation required"}).catch(()=>{});
+  throw new Error("Secondary redemption queue handoff failed (HTTP "+handoff.status+").");
  }
- const completedAt=Date.now();
+ const queuedCount=Number(handoffBody||0);
+ if(queuedCount===0) {
+  // A duplicate queue key may already exist. Never issue another upstream call.
+  const existing=await fetch(SECONDARY_SUPABASE_URL+"/rest/v1/rpc/redemption_get_item_state",{
+   method:"POST",headers:{apikey:SECONDARY_SUPABASE_KEY,authorization:"Bearer "+SECONDARY_SUPABASE_KEY,"content-type":"application/json"},
+   body:JSON.stringify({p_player_id:String(player.player_id),p_gift_code:item.code}),signal:AbortSignal.timeout(10000)
+  });
+  const existingRows=existing.ok?await existing.json().catch(()=>[]):[];
+  if(!Array.isArray(existingRows)||!existingRows.length)throw new Error("Secondary queue did not confirm the redemption handoff; recovery journal remains protective.");
+ }
+ return {attempted:0,success:0,alreadyReceived:0,alreadyHandled:0,skipped:0,queued:1,kingdomCheck,kingdomChanged,redemptionCode:item.code,redemptionStatus:"QUEUED"};
  if(d?.errorCategory==="HTTP_RATE_LIMIT"){
   const cooldownSeconds=Math.min(3600,Math.max(30,Number(d?.retryAfterSeconds)||60));
   await setNeonRedemptionCooldown(cooldownSeconds,Number(d?.upstreamHttpStatus)||429).catch(error=>console.error("Could not persist Neon Kingshot redemption cooldown:",String(error?.message||error).slice(0,180)));
