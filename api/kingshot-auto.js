@@ -1,5 +1,4 @@
 import { neon } from "@neondatabase/serverless";
-import {redeemKingshot} from"../internal/kingshot/redeem.js";
 import { revalidatePlayer, needsKingdomResetCheck } from "../internal/kingshot/kingdom-validation.js";
 import { selectKingdomCheckBatch, selectScheduledKingdomCheckBatch, summarizeKingdomCheckResults } from "../internal/kingshot/kingdom-check-flow.js";
 import { broadcastPush } from "../internal/push-notifications.js";
@@ -496,7 +495,14 @@ export default async function handler(req,res){
    if(secondaryBatch.length){
     const items=secondaryBatch.slice(0,100);
     const queued=await fetch(SECONDARY_SUPABASE_URL+"/rest/v1/rpc/redemption_enqueue_batch",{method:"POST",headers:{apikey:SECONDARY_SUPABASE_KEY,authorization:"Bearer "+SECONDARY_SUPABASE_KEY,"content-type":"application/json"},body:JSON.stringify({p_items:items}),signal:AbortSignal.timeout(15000)});
-    if(!queued.ok)throw new Error("Secondary batch handoff failed (HTTP "+queued.status+").");
+    if(!queued.ok){
+     for(const item of secondaryBatch){
+      const reason="Secondary batch handoff failed (HTTP "+queued.status+"); operator reconciliation required";
+      await neonJournal?.query("update public.redemption_journal set state='needs_review',last_error=$3,updated_at=now() where player_id=$1 and upper(gift_code)=upper($2) and state='in_flight'",[item.player_id,item.gift_code,reason]).catch(()=>{});
+      await rpc("mark_kingshot_redemption_recovery_uncertain",{p_player_id:item.player_id,p_code:item.gift_code,p_error:reason}).catch(()=>{});
+     }
+     throw new Error("Secondary batch handoff failed (HTTP "+queued.status+").");
+    }
     const accepted=Number(await queued.json().catch(()=>0));
     if(accepted<0||accepted>items.length)throw new Error("Secondary batch handoff returned an invalid accepted count.");
     console.log("Secondary redemption batch handed off:",{slot,items:items.length,accepted});
