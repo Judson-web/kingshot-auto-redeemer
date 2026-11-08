@@ -77,13 +77,25 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Worker authorization unavailable", detail: String(error).slice(0, 180) }, 503);
   }
 
-  const limit = Math.max(1, Math.min(Number(input.limit ?? 12), 13));
-  const slot = Math.max(0, Math.min(Number(input.slot ?? 0), 3));
-  const worker = `edge-redemption-${slot}-${crypto.randomUUID()}`;
-  const stats = { claimed: 0, completed: 0, uncertain: 0, deferred: 0, rate_limited: false };
+  const limit = Math.max(1, Math.min(Number(input.limit ?? 50), 50));
+  const slot = 0;
+  const worker = `edge-redemption-single-${crypto.randomUUID()}`;
+  const startedAt = Date.now();
+  const softDeadlineMs = 100_000;
+  const stats: {
+    claimed: number;
+    completed: number;
+    uncertain: number;
+    deferred: number;
+    rate_limited: boolean;
+    statuses: Record<string, number>;
+  } = { claimed: 0, completed: 0, uncertain: 0, deferred: 0, rate_limited: false, statuses: {} };
+  const countStatus = (status: string) => {
+    stats.statuses[status] = (stats.statuses[status] ?? 0) + 1;
+  };
 
   try {
-    for (let i = 0; i < limit; i++) {
+    for (let i = 0; i < limit && Date.now() - startedAt < softDeadlineMs; i++) {
       const claimed = await rpc("redemption_claim_batch", {
         p_worker: worker, p_shard: 0, p_shards: 1, p_limit: 1, p_lease_seconds: 180,
       });
@@ -100,6 +112,8 @@ Deno.serve(async (req: Request) => {
           p_err_code: null, p_message: "Invalid player, kingdom, or gift-code format",
           p_result: { status: "INVALID_INPUT" }, p_journal_state: "recorded",
         });
+        countStatus("INVALID_INPUT");
+        stats.completed++;
         continue;
       }
 
@@ -145,6 +159,7 @@ Deno.serve(async (req: Request) => {
           p_journal_state: "uncertain",
         });
         stats.uncertain++;
+        countStatus("UPSTREAM_UNCERTAIN");
         continue;
       }
 
@@ -167,6 +182,7 @@ Deno.serve(async (req: Request) => {
           p_journal_state: "recorded",
         });
         stats.completed++;
+        countStatus(status);
         stats.rate_limited = true;
         break;
       }
@@ -179,6 +195,7 @@ Deno.serve(async (req: Request) => {
           p_journal_state: "uncertain",
         });
         stats.uncertain++;
+        countStatus("UPSTREAM_UNCERTAIN");
         continue;
       }
 
@@ -190,9 +207,14 @@ Deno.serve(async (req: Request) => {
         p_journal_state: "recorded",
       });
       stats.completed++;
+      countStatus(status);
     }
-    return json({ ok: true, worker_slot: slot, ...stats });
+    const elapsedMs = Date.now() - startedAt;
+    console.info("redemption-worker-summary", JSON.stringify({ worker_slot: slot, elapsed_ms: elapsedMs, limit, ...stats }));
+    return json({ ok: true, worker_slot: slot, elapsed_ms: elapsedMs, ...stats });
   } catch (error) {
-    return json({ ok: false, worker_slot: slot, ...stats, error: String(error).slice(0, 300) }, 500);
+    const elapsedMs = Date.now() - startedAt;
+    console.error("redemption-worker-failed", JSON.stringify({ worker_slot: slot, elapsed_ms: elapsedMs, ...stats, error: String(error).slice(0, 300) }));
+    return json({ ok: false, worker_slot: slot, elapsed_ms: elapsedMs, ...stats, error: String(error).slice(0, 300) }, 500);
   }
 });
