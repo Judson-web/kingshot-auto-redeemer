@@ -1,6 +1,24 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { resolveGiftCodeValidationStatus } from "../internal/kingshot/gift-code-validation.ts";
+import { normalizeStoredGiftCodes } from "../internal/kingshot/gift-codes.ts";
+
+test("stored pending codes are rehydrated while suppressed and definitive negatives stay out", () => {
+  const rows = normalizeStoredGiftCodes([
+    { code: "11OFFICIALSTORE08", active: false, suppressed: false, validation_status: "pending" },
+    { code: "INDETERMINATE01", active: false, suppressed: false, validation_status: "indeterminate" },
+    { code: "APPROVED01", active: true, suppressed: false, validation_status: "verified", admin_added: true },
+    { code: "BLOCKED01", active: false, suppressed: true, validation_status: "pending" },
+    { code: "INVALID01", active: false, suppressed: false, validation_status: "invalid" },
+    { code: "EXPIRED01", active: false, suppressed: false, validation_status: "expired" },
+    { code: "LIMITED01", active: false, suppressed: false, validation_status: "usage_limit" },
+    { code: "OLD01", active: false, suppressed: false, validation_status: "pending", expires_at: "2000-01-01T00:00:00Z" },
+    { code: "DISABLED01", active: false, suppressed: false, validation_status: "verified" }
+  ]);
+  assert.deepEqual(rows.map(row => row.code).sort(), ["11OFFICIALSTORE08", "APPROVED01", "INDETERMINATE01"]);
+  assert.equal(rows.find(row => row.code === "11OFFICIALSTORE08")?.source, "kingshot-net-api");
+  assert.equal(rows.find(row => row.code === "APPROVED01")?.source, "admin");
+});
 
 test("successful or already-received redemption verifies a code", () => {
   for (const status of ["SUCCESS", "RECEIVED", "SAME TYPE EXCHANGE"]) {
