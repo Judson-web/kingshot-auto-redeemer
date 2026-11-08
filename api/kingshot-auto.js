@@ -694,11 +694,21 @@ export default async function handler(req,res){
   // One canary per cycle. The real endpoint can consume the reward on this player.
 
 
-  // Verification is advisory only. Codes discovered from Kingshot.net remain
-  // eligible for the normal redemption queue regardless of validation_status.
-  // The game's response is recorded per player; it does not gate dispatch.
+  // Pending candidates enter the normal redemption queue for live verification.
+  // Only definitive invalid/expired/usage-limit states are excluded from dispatch.
   const latestCodeRows=await rpc("list_kingshot_admin_gift_codes",{});
   const validationRowsByCode=new Map((Array.isArray(latestCodeRows)?latestCodeRows:[]).map(row=>[String(row?.code||"").trim().toUpperCase(),row]));
+  // Pending/indeterminate candidates enter the normal worker pool so real
+  // redemptions can verify them. Definitive negative states are excluded.
+  const blockedValidationCodes=activeCodes.filter(item=>{
+   const row=validationRowsByCode.get(String(item?.code||"").trim().toUpperCase());
+   return ["invalid","expired","usage_limit"].includes(String(row?.validation_status||"").toLowerCase());
+  });
+  if(blockedValidationCodes.length){
+   const blockedKeys=new Set(blockedValidationCodes.map(item=>String(item?.code||"").trim().toUpperCase()));
+   activeCodes=activeCodes.filter(item=>!blockedKeys.has(String(item?.code||"").trim().toUpperCase()));
+   console.log("Kingshot gift-code validation gate:",{eligible:activeCodes.length,blocked:blockedValidationCodes.map(item=>item.code)});
+  }
   const verificationAudit=activeCodes.map(item=>{
    const row=validationRowsByCode.get(String(item.code||"").trim().toUpperCase());
    return {code:item.code,validationStatus:row?.validation_status||"pending",active:row?.active??null,suppressed:row?.suppressed===true};
@@ -948,7 +958,7 @@ export default async function handler(req,res){
   const batchPlayersSelected=shardBatches.reduce((count,batch)=>count+batch.players.length,0);
   const batchFullyHandled=batchPlayersSelected>0&&totals.alreadyHandled>=batchPlayersSelected*activeCodes.length;
   const noWorkReason=totals.attempted>0?null
-   :activeCodes.length===0?"NO_ELIGIBLE_VERIFIED_UNSUPPRESSED_UNEXPIRED_CODES"
+   :activeCodes.length===0?"NO_ELIGIBLE_UNSUPPRESSED_UNEXPIRED_CODES"
    :batchFullyHandled&&totals.deferredPlayers>0?"CURRENT_BATCH_ALREADY_HANDLED_MORE_PLAYERS_QUEUED"
    :batchFullyHandled?"ALL_ELIGIBLE_CODES_ALREADY_HANDLED"
    :totals.deferredPlayers>0?"MORE_PLAYERS_QUEUED"
