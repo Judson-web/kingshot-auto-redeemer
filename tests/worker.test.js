@@ -1,5 +1,5 @@
 import { resolveMightPulseRequestBudget } from "../cloudflare/mightpulse.ts";
-import { summarizeWorkerResults } from "../internal/kingshot/worker.ts";
+import { summarizeCodeBreakdown } from "../internal/kingshot/code-accounting.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -328,12 +328,12 @@ test("each redemption shard reads player history individually and fails closed",
 });
 
 test("per-code redemption accounting keeps queued work separate from attempts", () => {
-  const summary = summarizeWorkerResults([
+  const breakdown = summarizeCodeBreakdown([
     {queued:1,redemptionCode:"VIP777",redemptionStatus:"QUEUED"},
     {attempted:1,success:1,redemptionCode:"VIP777",redemptionStatus:"SUCCESS"},
     {alreadyHandled:2,handledCodeCounts:{VIP777:2}},
   ]);
-  assert.deepEqual(summary.codeBreakdown.VIP777, {
+  assert.deepEqual(breakdown.VIP777, {
     attempts:1,successes:1,alreadyReceived:0,alreadyHandled:2,queued:1,failures:0,
     statuses:{QUEUED:1,SUCCESS:1},
   });
