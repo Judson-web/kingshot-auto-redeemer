@@ -210,9 +210,9 @@ async function reserveNeonRedemptionRequest(spacingMs=200){
  const spacing=Math.max(100,Math.min(Number(spacingMs)||500,5000));
  const rows=await neonJournal.query(`
   insert into public.redemption_source_state(source_url,next_request_at,cooldown_until,last_http_status,updated_at)
-  values($1,now()+($2::text||' milliseconds')::interval,now(),0,now())
+  values($1,now()+make_interval(secs => $2::numeric/1000.0),now(),0,now())
   on conflict(source_url) do update
-   set next_request_at=greatest(now(),public.redemption_source_state.next_request_at)+($2::text||' milliseconds')::interval,
+   set next_request_at=greatest(now(),public.redemption_source_state.next_request_at)+make_interval(secs => $2::numeric/1000.0),
        updated_at=now()
    where public.redemption_source_state.cooldown_until<=now()
   returning next_request_at-($2::text||' milliseconds')::interval as reserved_at
@@ -359,7 +359,7 @@ async function reconcileSecondaryResults(rpcClient=rpc){
  return {reconciled,uncertain,failed};
 }
 
-async function redeemForPlayer(player,codes,rpcClient=rpc,unresolvedJournalCodes=[],secondaryBatch=[],pacingPool=null){
+async function redeemForPlayer(player,codes,rpcClient=rpc,unresolvedJournalCodes=[],secondaryBatch=[]){
 const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
  ? await revalidatePlayer(player,{rpc:rpcClient,notify:sendDiscordEvent})
  : {player,revalidated:false,kingdomChanged:false,stale:false,automaticCheckDisabled:true};
@@ -390,16 +390,13 @@ const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
  }
 
  if(!SECONDARY_REDEMPTION_ENABLED||!SECONDARY_SUPABASE_KEY)return {attempted:0,success:0,alreadyHandled:0,skipped:1,executorDisabled:true,kingdomCheck,kingdomChanged};
- // Reserve a globally shared request slot before touching the upstream API.
- // The database serializes all four shards and refuses new work during a
- // provider-wide HTTP cooldown. Reservations are spaced to avoid burst traffic.
- const reservation=pacingPool?pacingPool.slots.shift():await reserveNeonRedemptionRequest(200);
- if(pacingPool?.blocked||!reservation)return {attempted:0,success:0,alreadyHandled:0,skipped:1,kingdomCheck,kingdomChanged,upstreamCooldown:true};
+ // Reserve one global slot only after this player's next code is confirmed outstanding.
+ // Do not sleep in the coordinator: the secondary database executor waits for this
+ // timestamp immediately before the upstream request. Neon remains the sole pacer.
+ const reservation=await reserveNeonRedemptionRequest(200);
+ if(!reservation)return {attempted:0,success:0,alreadyHandled:0,skipped:1,kingdomCheck,kingdomChanged,upstreamCooldown:true};
  const reservationTime=Date.parse(String(reservation));
- if(Number.isFinite(reservationTime)){
-  const waitMs=Math.max(0,reservationTime-Date.now());
-  if(waitMs)await new Promise(resolve=>setTimeout(resolve,waitMs));
- }
+ if(!Number.isFinite(reservationTime))throw new Error("Neon returned an invalid global pacing reservation.");
  const neonIntentId=await journalStart(player.player_id,item.code);
  let claimed;
  try{claimed=await rpcClient("claim_kingshot_redemption",{p_player_id:player.player_id,p_code:item.code});}catch(error){await journalCancel(player.player_id,item.code,"Supabase claim unavailable: "+String(error?.message||error).slice(0,180));throw error;}
@@ -517,8 +514,7 @@ export default async function handler(req,res){
     return rpc(name,body);
    };
    const secondaryBatch=[];
-   const pacingPool=eligiblePlayers.length?await reserveNeonRedemptionBatch(eligiblePlayers.length,200):{blocked:false,slots:[]};
-   const result=await runWorkerShard(slot,codes,eligiblePlayers,{rpc:shardRpc,redeemForPlayer:(player,codes)=>redeemForPlayer(player,codes,shardRpc,unresolvedCodesByPlayer.get(String(player?.player_id||''))||[],secondaryBatch,pacingPool),claimSlot:claimNeonWorkerSlot,finishSlot:finishNeonWorkerSlot},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
+   const result=await runWorkerShard(slot,codes,eligiblePlayers,{rpc:shardRpc,redeemForPlayer:(player,codes)=>redeemForPlayer(player,codes,shardRpc,unresolvedCodesByPlayer.get(String(player?.player_id||''))||[],secondaryBatch),claimSlot:claimNeonWorkerSlot,finishSlot:finishNeonWorkerSlot},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
    for(let offset=0;offset<secondaryBatch.length;offset+=100){
     const items=secondaryBatch.slice(offset,offset+100);
     const queued=await fetch(SECONDARY_SUPABASE_URL+"/rest/v1/rpc/redemption_enqueue_batch",{method:"POST",headers:{apikey:SECONDARY_SUPABASE_KEY,authorization:"Bearer "+SECONDARY_SUPABASE_KEY,"content-type":"application/json"},body:JSON.stringify({p_items:items}),signal:AbortSignal.timeout(15000)});
