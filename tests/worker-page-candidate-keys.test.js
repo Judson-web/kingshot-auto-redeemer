@@ -8,8 +8,8 @@ test("worker combines the official Kingshot feed with durable pending and approv
   assert.ok(source.includes('const GIFT_SOURCE_URL="https://kingshot.net/api/gift-codes"'));
   assert.ok(source.includes('fetchSource(rpc,GIFT_SOURCE_URL,"api")'));
   assert.ok(source.includes("const kingshotPageCodes=[]"));
-  assert.ok(source.includes("const adminCodes=(Array.isArray(adminRows)?adminRows:[]).filter(row=>"));
-  assert.ok(source.includes('["pending","indeterminate"].includes(status)||(status==="verified"&&row?.active===true)'));
+  assert.ok(source.includes("const adminCodes=normalizeStoredGiftCodes(adminRows)"));
+  assert.ok(source.includes("normalizeStoredGiftCodes"));
   assert.ok(source.includes("mergeCodes([apiCodes,kingshotPageCodes,adminCodes])"));
   assert.ok(!source.includes("kingshotPageSource"));
   assert.ok(!source.includes("kingshot.net/gift-codes"));
