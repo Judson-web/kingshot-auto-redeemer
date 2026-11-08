@@ -332,8 +332,10 @@ const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
   throw error;
  }
  const completedAt=Date.now();
- if(d?.errorCategory==="HTTP_RATE_LIMIT"){
-  const cooldownSeconds=Math.min(3600,Math.max(30,Number(d?.retryAfterSeconds)||60));
+ if(d?.errorCategory==="HTTP_RATE_LIMIT"||d?.errorCategory==="RATE_LIMIT"){
+  // Kingshot's application-level TOO FREQUENT / TIMEOUT_RETRY responses
+  // are shared provider throttles too. Pause every shard, not just this player.
+  const cooldownSeconds=Math.min(3600,Math.max(30,Number(d?.retryAfterSeconds)||30));
   await setNeonRedemptionCooldown(cooldownSeconds,Number(d?.upstreamHttpStatus)||429).catch(error=>console.error("Could not persist Neon Kingshot redemption cooldown:",String(error?.message||error).slice(0,180)));
  }
  const status=String(d?.status||"ERROR").toUpperCase();
@@ -931,6 +933,15 @@ export default async function handler(req,res){
    try{await broadcastPush({title,body,url:"/manual?code="+encodeURIComponent(listed[0]),image:APP_ORIGIN+"/api/og",tag,actions:[{action:"view-codes",title:uniqueCodes.length===1?"View code":"View codes"},{action:"dismiss",title:"Dismiss"}]})}
    catch(error){console.error("New verified gift-code push notification failed:",error instanceof Error?error.message:error)}
   }
+  const codeBreakdown=workerRuns.reduce((map,r)=>{
+   for(const [code,value] of Object.entries(r?.codeBreakdown||{})){
+    const existing=map[code]||{attempts:0,successes:0,alreadyReceived:0,alreadyHandled:0,failures:0,statuses:{}};
+    for(const key of ["attempts","successes","alreadyReceived","alreadyHandled","failures"])existing[key]+=Number(value?.[key]||0);
+    for(const [status,count] of Object.entries(value?.statuses||{}))existing.statuses[status]=(existing.statuses[status]||0)+Number(count||0);
+    map[code]=existing;
+   }
+   return map;
+  },{});
   const codeTelemetry=workerRuns.reduce((map,r)=>{
    for(const [code,value] of Object.entries(r?.codeTelemetry||{})){
     const existing=map[code]||{attempts:0,successes:0,firstResultAt:null,firstSuccessAt:null,firstResultLatencyMs:null,totalRedemptionLatencyMs:0};
@@ -964,8 +975,8 @@ export default async function handler(req,res){
    :batchFullyHandled?"ALL_ELIGIBLE_CODES_ALREADY_HANDLED"
    :totals.deferredPlayers>0?"MORE_PLAYERS_QUEUED"
    :"NO_REDEMPTION_ATTEMPTS_RECORDED";
-  console.log("Kingshot auto worker pool:",{workers:WORKER_COUNT,assignments:assignments.map(x=>x.length),batchPlayersSelected,workerFailures:workerFailures.length,attempted:totals.attempted,success:totals.success,noWorkReason,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures});
-  const summary={source:"kingshot.net",sources:sourceResults.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,dispatchEligiblePlayers:dispatchPlayers.length,batchPlayersSelected,excludedPlayersFiltered,noWorkReason,...totals,workerFailures:workerFailures.length,shardFailureDiagnostics,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures,codeTelemetry};
+  console.log("Kingshot auto worker pool:",{workers:WORKER_COUNT,assignments:assignments.map(x=>x.length),batchPlayersSelected,workerFailures:workerFailures.length,attempted:totals.attempted,success:totals.success,noWorkReason,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures,codeBreakdown});
+  const summary={source:"kingshot.net",sources:sourceResults.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,dispatchEligiblePlayers:dispatchPlayers.length,batchPlayersSelected,excludedPlayersFiltered,noWorkReason,...totals,workerFailures:workerFailures.length,shardFailureDiagnostics,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures,codeTelemetry,codeBreakdown};
   await rpc("finish_kingshot_worker_run",{p_token:workerToken,p_status:totals.errors||totals.stale||kingdomSummary.errors||kingdomSummary.deferred||workerFailures.length?"COMPLETED_WITH_WARNINGS":"COMPLETED",p_error:null,p_summary:summary}).catch(error=>console.error("Worker state update failed:",error?.message||error));
   const anomalyReasons=[];
   if(totals.errors||workerFailures.length)anomalyReasons.push("worker errors");
