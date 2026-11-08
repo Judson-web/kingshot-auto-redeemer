@@ -177,9 +177,9 @@ assertCheck(
  auto.includes('if(!workerAuthorized)return res.status(401).json({error:"Unauthorized"});')
 );
 assertCheck(
- "Worker pool runs four player pipelines across seven subrequest-safe pages per shard",
- auto.includes("const PLAYER_CONCURRENCY=4;") &&
- auto.includes("const MAX_PLAYERS_PER_SHARD=4;") &&
+ "Worker pool uses single-player invocations to reduce Cloudflare CPU pressure across seven subrequest-safe pages per shard",
+ auto.includes("const PLAYER_CONCURRENCY=1;") &&
+ auto.includes("const MAX_PLAYERS_PER_SHARD=1;") &&
  auto.includes("const MAX_SHARD_PAGES_PER_CYCLE=7;") &&
  auto.includes("const MAX_PLAYERS_PER_SHARD=4;") &&
  auto.includes("const PLAYER_CONCURRENCY=4;") &&
