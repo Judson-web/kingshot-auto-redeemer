@@ -70,8 +70,8 @@ import { resolveGiftCodeValidationStatus } from "../internal/kingshot/gift-code-
 const WORKER_COUNT=4;
 // Four durable shards process four-player pages with four player pipelines active per shard.
 // Keep each invocation below Cloudflare Free's 50 external-subrequest ceiling.
-const PLAYER_CONCURRENCY=4;
-const MAX_PLAYERS_PER_SHARD=4;
+const PLAYER_CONCURRENCY=1;
+const MAX_PLAYERS_PER_SHARD=1;
 // Seven sequential pages per shard cap coordinator fan-out at 28 service calls.
 // The prior eighth round exhausted Cloudflare's 50-subrequest invocation budget
 // before the coordinator could finalize its durable run state.
