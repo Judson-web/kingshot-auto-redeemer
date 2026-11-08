@@ -130,7 +130,7 @@ test("verified gift-code pushes are explicit, actionable, and deduplicate stable
   const worker = await readFile(new URL("../api/kingshot-auto.js", import.meta.url), "utf8");
   const push = await readFile(new URL("../internal/push-notifications.ts", import.meta.url), "utf8");
   const sw = await readFile(new URL("../public/sw.js", import.meta.url), "utf8");
-  assert.match(worker, /Kingshot confirmed /);
+  assert.match(worker, /Kingshot confirmed [^"]+ through a real player redemption response/);
   assert.match(worker, /verified gift codes ready/);
   assert.match(worker, /const sortedKey=uniqueCodes\.map\(item=>String\(item\.code\)\.trim\(\)\.toUpperCase\(\)\)\.sort\(\)\.join\("\\|"/);
   assert.match(worker, /tag="gift-codes-"\+\(tagHash>>>0\)\.toString\(36\)/);
