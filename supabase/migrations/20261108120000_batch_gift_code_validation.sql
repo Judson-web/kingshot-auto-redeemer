@@ -10,7 +10,7 @@ create or replace function public.set_kingshot_gift_codes_validation(
 returns integer
 language plpgsql
 security definer
-set search_path to public
+set search_path = ''
 as $function$
 declare
  v_status text:=lower(trim(coalesce(p_status,'')));
