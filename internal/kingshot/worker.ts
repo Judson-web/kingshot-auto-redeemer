@@ -115,7 +115,7 @@ export function summarizeWorkerResults(results: WorkerResult[]) {
     }
   }
 
-  const codeBreakdown = summarizeCodeBreakdown(results);
+  const codeBreakdown = summarizeCodeBreakdown(results) as WorkerSummary["codeBreakdown"];
 
   for (const value of Object.values(codeTelemetry)) {
     value.avgRedemptionLatencyMs = value.attempts ? Math.round(value.totalRedemptionLatencyMs / value.attempts) : null;
