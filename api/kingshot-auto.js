@@ -9,13 +9,13 @@ const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supab
 const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
 const APP_ORIGIN=String(process.env.PUBLIC_APP_URL||"https://app.ks-redeemer.workers.dev").replace(/\/+$/,"");
 const GIFT_SOURCE_URL="https://kingshot.net/api/gift-codes";
-const SECONDARY_SUPABASE_URL=String(process.env.SECONDARY_SUPABASE_URL||"https://sfntksruilzncahytxve.supabase.co").replace(/\\/+$/,"");
+const SECONDARY_SUPABASE_URL=String(process.env.SECONDARY_SUPABASE_URL||"https://sfntksruilzncahytxve.supabase.co").replace(/\/+$/,"");
 const SECONDARY_SUPABASE_KEY=process.env.SECONDARY_SUPABASE_SERVICE_ROLE_KEY||"";
 const SECONDARY_REDEMPTION_ENABLED=String(process.env.SECONDARY_REDEMPTION_ENABLED??"false").trim().toLowerCase()==="true";
 async function syncSecondaryRoster(env){
  const enabled=String(env?.SECONDARY_REDEMPTION_ENABLED??process.env.SECONDARY_REDEMPTION_ENABLED??"false").trim().toLowerCase()==="true";
  const key=String(env?.SECONDARY_SUPABASE_SERVICE_ROLE_KEY??process.env.SECONDARY_SUPABASE_SERVICE_ROLE_KEY??"");
- const base=String(env?.SECONDARY_SUPABASE_URL??SECONDARY_SUPABASE_URL).replace(/\\/+$/,"");
+ const base=String(env?.SECONDARY_SUPABASE_URL??SECONDARY_SUPABASE_URL).replace(/\/+$/,"");
  if(!enabled)return {enabled:false,skipped:true};
  if(!key)throw new Error("Secondary Supabase is enabled but SECONDARY_SUPABASE_SERVICE_ROLE_KEY is missing.");
  const roster=await rpc("list_kingshot_autoredeem_roster",{});
