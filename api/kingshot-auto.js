@@ -522,13 +522,13 @@ export default async function handler(req,res){
    const secondaryBatch=[];
    const pacingPool=eligiblePlayers.length?await reserveNeonRedemptionBatch(eligiblePlayers.length,200):{blocked:false,slots:[]};
    const result=await runWorkerShard(slot,codes,eligiblePlayers,{rpc:shardRpc,redeemForPlayer:(player,codes)=>redeemForPlayer(player,codes,shardRpc,unresolvedCodesByPlayer.get(String(player?.player_id||''))||[],secondaryBatch,pacingPool),claimSlot:claimNeonWorkerSlot,finishSlot:finishNeonWorkerSlot},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
-   if(secondaryBatch.length){
-    const items=secondaryBatch.slice(0,100);
+   for(let offset=0;offset<secondaryBatch.length;offset+=100){
+    const items=secondaryBatch.slice(offset,offset+100);
     const queued=await fetch(SECONDARY_SUPABASE_URL+"/rest/v1/rpc/redemption_enqueue_batch",{method:"POST",headers:{apikey:SECONDARY_SUPABASE_KEY,authorization:"Bearer "+SECONDARY_SUPABASE_KEY,"content-type":"application/json"},body:JSON.stringify({p_items:items}),signal:AbortSignal.timeout(15000)});
     if(!queued.ok){
-     // Keep the Neon intent and primary claims unresolved. A transport failure
-     // cannot prove whether PostgREST committed the batch, so never release or replay it.
-     for(const item of secondaryBatch)await neonJournal?.query("update public.redemption_journal set last_error=$3,updated_at=now() where player_id=$1 and upper(gift_code)=upper($2) and state='in_flight'",[item.player_id,item.gift_code,"Secondary batch handoff transport failed; outcome unknown"]).catch(()=>{});
+     // Keep unresolved Neon intents and primary claims. A transport failure
+     // cannot prove whether PostgREST committed this chunk, so never replay it.
+     for(const item of items)await neonJournal?.query("update public.redemption_journal set last_error=$3,updated_at=now() where player_id=$1 and upper(gift_code)=upper($2) and state='in_flight'",[item.player_id,item.gift_code,"Secondary batch handoff transport failed; outcome unknown"]).catch(()=>{});
      throw new Error("Secondary batch handoff failed (HTTP "+queued.status+"); unresolved claims retained.");
     }
     const accepted=Number(await queued.json().catch(()=>0));
