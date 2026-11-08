@@ -41,7 +41,7 @@ export function resolveGiftCodeValidationStatus(
     status = "expired";
   }
 
-  if (!status) return null;
+  if (!status || current === "verified") return null;
   if (status !== "verified" && !["pending", "indeterminate"].includes(current)) return null;
   return { status, observed };
 }
