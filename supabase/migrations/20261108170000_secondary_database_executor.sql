@@ -89,3 +89,30 @@ begin
 end $$;
 revoke all on function public.redemption_execute_batch(integer) from public,anon,authenticated;
 grant execute on function public.redemption_execute_batch(integer) to service_role;
+
+
+create or replace function public.redemption_get_reconciliation_batch(p_limit integer default 100)
+returns table(id bigint,player_id text,gift_code text,kingdom_id text,state text,last_status text,last_error text,result jsonb,attempts integer)
+language sql security definer set search_path=pg_catalog,public,redemption as $$
+ select q.id,q.player_id,q.gift_code,q.kingdom_id,q.state,q.last_status,q.last_error,q.result,q.attempts
+ from redemption.queue q where q.state in ('completed','uncertain') and q.reconciled_at is null
+ order by q.id limit greatest(1,least(coalesce(p_limit,100),100))
+$$;
+create or replace function public.redemption_mark_reconciled(p_id bigint)
+returns boolean language plpgsql security definer set search_path=pg_catalog,public,redemption as $$
+begin
+ update redemption.queue set reconciled_at=now(),updated_at=now() where id=p_id and state in ('completed','uncertain') and reconciled_at is null;
+ return found;
+end $$;
+create or replace function public.redemption_get_item_state(p_player_id text,p_gift_code text)
+returns table(id bigint,state text,last_status text,result jsonb)
+language sql security definer set search_path=pg_catalog,public,redemption as $$
+ select q.id,q.state,q.last_status,q.result from redemption.queue q
+ where q.player_id=p_player_id and upper(q.gift_code)=upper(p_gift_code) order by q.id desc limit 1
+$$;
+revoke all on function public.redemption_get_reconciliation_batch(integer) from public,anon,authenticated;
+revoke all on function public.redemption_mark_reconciled(bigint) from public,anon,authenticated;
+revoke all on function public.redemption_get_item_state(text,text) from public,anon,authenticated;
+grant execute on function public.redemption_get_reconciliation_batch(integer) to service_role;
+grant execute on function public.redemption_mark_reconciled(bigint) to service_role;
+grant execute on function public.redemption_get_item_state(text,text) to service_role;
