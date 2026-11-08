@@ -42,12 +42,17 @@ test("returns no candidate when all available codes are handled, including persi
   assert.equal(selectNextOutstandingCode(codes, handled), undefined);
 });
 
-test("keeps transient failures eligible for a later retry", () => {
+test("retries only definitive upstream rate-limit responses and quarantines uncertain outcomes", () => {
   const handled = getHandledGiftCodes([
-    { gift_code: "Hangul2026", status: "TIMEOUT_RETRY" },
-    { gift_code: "WELLDONE", status: "ERROR" }
+    { gift_code: "RATE_LIMIT", status: "TIMEOUT_RETRY", err_code: 40019 },
+    { gift_code: "NETWORK_TIMEOUT", status: "TIMEOUT RETRY", err_code: 40004 },
+    { gift_code: "PROCESSING", status: "PROCESSING" },
+    { gift_code: "UNKNOWN_ERROR", status: "ERROR" }
   ]);
-  assert.equal(selectNextOutstandingCode([{ code: "Hangul2026" }, { code: "WELLDONE" }], handled)?.code, "Hangul2026");
+  assert.equal(selectNextOutstandingCode([{ code: "RATE_LIMIT" }, { code: "NETWORK_TIMEOUT" }], handled)?.code, "RATE_LIMIT");
+  assert.equal(handled.has("NETWORK_TIMEOUT"), true);
+  assert.equal(handled.has("PROCESSING"), true);
+  assert.equal(handled.has("UNKNOWN_ERROR"), true);
 });
 
 test("ignores malformed candidate entries rather than selecting an empty code", () => {
