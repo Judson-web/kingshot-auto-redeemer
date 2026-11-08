@@ -337,6 +337,7 @@ async function reconcileSecondaryResults(rpcClient=rpc){
     const status=String(result.status||row.last_status||"ERROR").toUpperCase();
     const errCode=result.err_code==null?null:Number(result.err_code);
     const message=String(result.message||row.last_error||"Secondary Supabase redemption result");
+    if(status==="TIMEOUT_RETRY")await setNeonRedemptionCooldown(30,Number(result.http_status)||429).catch(error=>console.error("Could not persist secondary executor cooldown:",String(error?.message||error).slice(0,180)));
     const persistencePayload={p_player_id:String(row.player_id),p_code:String(row.gift_code),p_status:status,p_err_code:Number.isFinite(errCode)?errCode:null,p_message:"[SECONDARY_EXECUTOR] "+message};
     const journalRows=await neonJournal.query("select state,status,err_code from public.redemption_journal where player_id=$1 and upper(gift_code)=upper($2) limit 1",[String(row.player_id),String(row.gift_code)]);
     const journalState=journalRows[0]?.state;
