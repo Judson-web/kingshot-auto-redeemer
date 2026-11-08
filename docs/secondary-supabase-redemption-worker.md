@@ -15,11 +15,14 @@ primary roster project.
 
 ## Scheduling
 
-Production currently uses four independent pg_cron jobs, each invoking
-`/functions/v1/redemption-worker` with a distinct slot (0-3). The limits are
-13, 13, 12, and 12 queue items, respectively, for a nominal maximum of 50
-claims per minute. The cron request body obtains the shared secret from Vault
-at execution time. Never commit the secret or any service key.
+Production uses one pg_cron job invoking
+`/functions/v1/redemption-worker` with a maximum of 50 queue items per run.
+The Edge Function has a 100-second soft execution budget and stops claiming
+new work before the scheduler's 120-second HTTP timeout. Queue claims remain
+atomic and upstream requests remain globally paced at 500 ms. This single
+scheduler entry avoids simultaneous pg_cron worker startup contention.
+The cron request body obtains the shared secret from Vault at execution time.
+Never commit the secret or any service key.
 
 The previous SQL executor cron must remain disabled while these Edge worker
 schedules are active. Do not enable both execution paths simultaneously.
@@ -37,7 +40,7 @@ schedules are active. Do not enable both execution paths simultaneously.
 
 ## Operational verification
 
-Check `cron.job` and `cron.job_run_details` for all four worker jobs.
+Check `cron.job` and `cron.job_run_details` for the single active Edge worker job. Inspect Edge Function summary logs for claimed/completed/uncertain counts and per-status totals.
 Inspect `redemption.journal`, `redemption.queue`, and
 `redemption.source_pacing` together. A successful cron invocation only proves
 the Edge request returned successfully; it does not prove every claimed item
