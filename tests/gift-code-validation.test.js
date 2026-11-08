@@ -13,7 +13,8 @@ test("stored pending codes are rehydrated while suppressed and definitive negati
     { code: "EXPIRED01", active: false, suppressed: false, validation_status: "expired" },
     { code: "LIMITED01", active: false, suppressed: false, validation_status: "usage_limit" },
     { code: "OLD01", active: false, suppressed: false, validation_status: "pending", expires_at: "2000-01-01T00:00:00Z" },
-    { code: "DISABLED01", active: false, suppressed: false, validation_status: "verified" }
+    { code: "DISABLED01", active: false, suppressed: false, validation_status: "verified" },
+    { code: "ACTIVE", active: true, suppressed: false, validation_status: "verified" }
   ]);
   assert.deepEqual(rows.map(row => row.code).sort(), ["11OFFICIALSTORE08", "APPROVED01", "INDETERMINATE01"]);
   assert.equal(rows.find(row => row.code === "11OFFICIALSTORE08")?.source, "kingshot-net-api");
