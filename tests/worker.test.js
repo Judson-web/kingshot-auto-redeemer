@@ -335,3 +335,10 @@ test("Kingshot application-level rate-limit responses pause the shared redemptio
   assert.match(autoSource, /Math\.max\(30,Number\(d\?\.retryAfterSeconds\)\|\|30\)/);
   assert.match(autoSource, /setNeonRedemptionCooldown\(cooldownSeconds/);
 });
+
+
+test("Kingshot TOO FREQUENT and TIMEOUT RETRY responses normalize to shared rate limiting", async () => {
+  const redeemSource = await readFile(new URL("../internal/kingshot/redeem.ts", import.meta.url), "utf8");
+  assert.match(redeemSource, /msg === "TOO FREQUENT" \|\| code === "40019" \|\| msg === "TIMEOUT RETRY" \|\| code === "40004"/);
+  assert.match(redeemSource, /"TIMEOUT RETRY":"RATE_LIMIT"/);
+});
