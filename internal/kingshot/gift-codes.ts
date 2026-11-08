@@ -51,7 +51,7 @@ export function normalizeStoredGiftCodes(rows: unknown): GiftCodeRow[] {
   const suppressed=row?.suppressed===true;
   const expiresAt=sourceTimestamp(row?.expires_at);
   const eligible=["pending","indeterminate"].includes(status)||(status==="verified"&&row?.active===true);
-  if(!code||suppressed||!eligible||(expiresAt!==null&&expiresAt<=now))return [];
+  if(!isLikelyGiftCode(code)||suppressed||!eligible||(expiresAt!==null&&expiresAt<=now))return [];
   const createdAt=sourceTimestamp(row?.first_seen_at??row?.source_date);
   return [{
    code,
