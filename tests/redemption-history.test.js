@@ -9,7 +9,7 @@ test("normalizes persisted statuses and code keys without changing display casin
     { gift_code: "VIP777", status: "stove_lv error" },
     { gift_code: "KS1025", status: "STOVE LV ERROR" },
     { gift_code: "PROFILE1", status: "user_info_error" },
-    { gift_code: "Kingshot888", status: "TIMEOUT_RETRY" },
+    { gift_code: "Kingshot888", status: "TIMEOUT_RETRY", err_code: 40019 },
     null
   ]);
   assert.deepEqual([...handled].sort(), ["HANGUL2026", "KS1025", "PROFILE1", "VIP777", "WELLDONE"]);
