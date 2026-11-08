@@ -337,7 +337,7 @@ async function reconcileSecondaryResults(rpcClient=rpc){
  return {reconciled,uncertain,failed};
 }
 
-async function redeemForPlayer(player,codes,rpcClient=rpc,unresolvedJournalCodes=[]){
+async function redeemForPlayer(player,codes,rpcClient=rpc,unresolvedJournalCodes=[],secondaryBatch=[]){
 const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
  ? await revalidatePlayer(player,{rpc:rpcClient,notify:sendDiscordEvent})
  : {player,revalidated:false,kingdomChanged:false,stale:false,automaticCheckDisabled:true};
@@ -385,34 +385,9 @@ const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
 
  const recoveryClaim=await rpcClient("begin_kingshot_redemption_recovery",{p_player_id:String(player.player_id),p_code:item.code});
  if(!recoveryClaim){await journalCancel(player.player_id,item.code,"Supabase recovery claim declined");return {attempted:0,success:0,alreadyHandled:1,skipped:1,kingdomCheck,kingdomChanged,recoveryBlocked:true};}
- // Completed upstream results are measured during reconciliation. Keep the shared
- // redemptionTelemetry contract (codeTelemetry, firstResultLatencyMs,
- // avgRedemptionLatencyMs, discoveryToResultMs) intact without counting queued
- // work as an actual redemption attempt.
- // Cloudflare is only the coordinator. The secondary Supabase database owns
- // the upstream HTTP call. Both primary claims and the Neon intent exist first.
- const handoff=await fetch(SECONDARY_SUPABASE_URL+"/rest/v1/rpc/redemption_enqueue_batch",{
-  method:"POST",
-  headers:{apikey:SECONDARY_SUPABASE_KEY,authorization:"Bearer "+SECONDARY_SUPABASE_KEY,"content-type":"application/json"},
-  body:JSON.stringify({p_items:[{player_id:String(player.player_id),gift_code:item.code,kingdom_id:String(player.kingdom_id)}]}),
-  signal:AbortSignal.timeout(10000)
- });
- const handoffBody=await handoff.json().catch(()=>null);
- if(!handoff.ok) {
-  await neonJournal?.query("update public.redemption_journal set state='needs_review',last_error=$3,updated_at=now() where player_id=$1 and upper(gift_code)=upper($2) and state='in_flight'",[String(player.player_id),String(item.code),"Secondary queue handoff failed: HTTP "+handoff.status]).catch(()=>{});
-  await rpcClient("mark_kingshot_redemption_recovery_uncertain",{p_player_id:String(player.player_id),p_code:item.code,p_error:"Secondary queue handoff failed; operator reconciliation required"}).catch(()=>{});
-  throw new Error("Secondary redemption queue handoff failed (HTTP "+handoff.status+").");
- }
- const queuedCount=Number(handoffBody||0);
- if(queuedCount===0) {
-  // A duplicate queue key may already exist. Never issue another upstream call.
-  const existing=await fetch(SECONDARY_SUPABASE_URL+"/rest/v1/rpc/redemption_get_item_state",{
-   method:"POST",headers:{apikey:SECONDARY_SUPABASE_KEY,authorization:"Bearer "+SECONDARY_SUPABASE_KEY,"content-type":"application/json"},
-   body:JSON.stringify({p_player_id:String(player.player_id),p_gift_code:item.code}),signal:AbortSignal.timeout(10000)
-  });
-  const existingRows=existing.ok?await existing.json().catch(()=>[]):[];
-  if(!Array.isArray(existingRows)||!existingRows.length)throw new Error("Secondary queue did not confirm the redemption handoff; recovery journal remains protective.");
- }
+ // Stage only after both authoritative claims and the Neon intent succeed.
+ // The shard submits staged work as one bounded RPC batch.
+ secondaryBatch.push({player_id:String(player.player_id),gift_code:item.code,kingdom_id:String(player.kingdom_id)});
  return {attempted:0,success:0,alreadyReceived:0,alreadyHandled:0,skipped:0,queued:1,kingdomCheck,kingdomChanged,redemptionCode:item.code,redemptionStatus:"QUEUED"};
  if(d?.errorCategory==="HTTP_RATE_LIMIT"){
   const cooldownSeconds=Math.min(3600,Math.max(30,Number(d?.retryAfterSeconds)||60));
@@ -516,7 +491,16 @@ export default async function handler(req,res){
     }
     return rpc(name,body);
    };
-   const result=await runWorkerShard(slot,codes,eligiblePlayers,{rpc:shardRpc,redeemForPlayer:(player,codes)=>redeemForPlayer(player,codes,shardRpc,unresolvedCodesByPlayer.get(String(player?.player_id||''))||[]),claimSlot:claimNeonWorkerSlot,finishSlot:finishNeonWorkerSlot},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
+   const secondaryBatch=[];
+   const result=await runWorkerShard(slot,codes,eligiblePlayers,{rpc:shardRpc,redeemForPlayer:(player,codes)=>redeemForPlayer(player,codes,shardRpc,unresolvedCodesByPlayer.get(String(player?.player_id||''))||[],secondaryBatch),claimSlot:claimNeonWorkerSlot,finishSlot:finishNeonWorkerSlot},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
+   if(secondaryBatch.length){
+    const items=secondaryBatch.slice(0,100);
+    const queued=await fetch(SECONDARY_SUPABASE_URL+"/rest/v1/rpc/redemption_enqueue_batch",{method:"POST",headers:{apikey:SECONDARY_SUPABASE_KEY,authorization:"Bearer "+SECONDARY_SUPABASE_KEY,"content-type":"application/json"},body:JSON.stringify({p_items:items}),signal:AbortSignal.timeout(15000)});
+    if(!queued.ok)throw new Error("Secondary batch handoff failed (HTTP "+queued.status+").");
+    const accepted=Number(await queued.json().catch(()=>0));
+    if(accepted<0||accepted>items.length)throw new Error("Secondary batch handoff returned an invalid accepted count.");
+    console.log("Secondary redemption batch handed off:",{slot,items:items.length,accepted});
+   }
    return res.status(200).json({ok:true,...result,restrictedPlayersSkipped,bannedPlayersSkipped:restrictedPlayersSkipped,deferredPlayers,shardBatchIndex:shardBatch.batchIndex,shardBatchCount:shardBatch.batchCount});
   }catch(error){
    console.error("Kingshot worker shard:",slot,error);
