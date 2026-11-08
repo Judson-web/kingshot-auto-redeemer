@@ -15,7 +15,7 @@
   "vars": {
     "SUPABASE_URL": "https://wocxvtptqapietlteshr.supabase.co",
     "SECONDARY_SUPABASE_URL": "https://sfntksruilzncahytxve.supabase.co",
-    "SECONDARY_REDEMPTION_ENABLED": "true",
+    "SECONDARY_REDEMPTION_ENABLED": "false",
     "PUBLIC_APP_URL": "https://app.ks-redeemer.workers.dev",
     "SUPABASE_WRITE_MODE": "enabled",
     "KINGDOM_AUTO_CHECK_ENABLED": "false"
