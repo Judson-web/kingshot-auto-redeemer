@@ -910,7 +910,9 @@ export default async function handler(req,res){
     await rpc("set_kingshot_gift_codes_validation",{p_codes:codesToUpdate,p_status:validationStatus,p_player_id:null,p_message:"Automatic verification from definitive Kingshot redemption responses. "+evidence});
     await sendDiscordEvent(buildGiftCodeValidationAlert({
      code:codesToUpdate.join(", "),
-     status:validationStatus==="verified"?"SUCCESS":validationStatus==="usage_limit"?"USAGE_LIMIT":validationStatus==="invalid"?"CDK_NOT_FOUND":"TIME_ERROR",
+     status:validationStatus==="verified"
+      ?(entries.flatMap(entry=>entry.observed).find(x=>["SUCCESS","RECEIVED","SAME TYPE EXCHANGE"].includes(x.status))?.status||"SUCCESS")
+      :validationStatus==="usage_limit"?"USAGE_LIMIT":validationStatus==="invalid"?"CDK_NOT_FOUND":"TIME_ERROR",
      validationStatus,
      message:evidence
     }),{botAlert:true});
