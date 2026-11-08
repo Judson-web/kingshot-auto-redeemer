@@ -70,7 +70,7 @@ test("main and private shard Workers share the same automatic Kingdom Check swit
 
 test("hybrid distribution keeps four bounded shards and does not add a polling trigger", () => {
   assert.match(autoSource, /const WORKER_COUNT=4/);
-  assert.match(autoSource, /const MAX_PLAYERS_PER_SHARD=4/);
+  assert.match(autoSource, /const MAX_PLAYERS_PER_SHARD=5/);
   assert.match(autoSource, /Promise\.all\(assignments\.map/);
   assert.doesNotMatch(autoSource, /setInterval\s*\(/);
 });
