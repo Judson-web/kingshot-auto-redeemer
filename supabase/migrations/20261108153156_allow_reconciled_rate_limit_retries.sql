@@ -8,7 +8,7 @@ begin
   raise exception 'p_items must be an array with at most 100 items';
  end if;
  insert into redemption.queue(player_id,gift_code,kingdom_id,available_at)
- select trim(x->>'player_id'),trim(x->>'gift_code'),nullif(trim(x->>'kingdom_id'),''),
+ select trim(x->>'player_id'),upper(trim(x->>'gift_code')),nullif(trim(x->>'kingdom_id'),''),
         coalesce(nullif(x->>'available_at','')::timestamptz,now())
  from jsonb_array_elements(p_items) x
  where coalesce(trim(x->>'player_id'),'')<>'' and coalesce(trim(x->>'gift_code'),'')<>''
