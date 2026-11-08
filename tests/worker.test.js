@@ -323,7 +323,7 @@ test("per-code accounting distinguishes attempts, success, received, handled, an
   assert.match(source, /breakdown\.attempts\+\+/);
   assert.match(source, /breakdown\.successes\+\+/);
   assert.match(source, /breakdown\.alreadyReceived\+\+/);
-  assert.match(source, /breakdown\\.alreadyHandled\\s*\\+=Number\\(count \\|\\| 0\\)/);
+  assert.match(source, /breakdown\\.alreadyHandled\\s*\\+=\\s*Number\\(count \\|\\| 0\\)/);
   assert.match(source, /breakdown\.failures\+\+/);
   assert.match(autoSource, /value\.attempts\+\+.*value\.successes/s);
   assert.match(autoSource, /codeBreakdown/);
