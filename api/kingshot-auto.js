@@ -316,7 +316,10 @@ async function reconcileSecondaryResults(rpcClient=rpc){
     const errCode=result.err_code==null?null:Number(result.err_code);
     const message=String(result.message||row.last_error||"Secondary Supabase redemption result");
     const persistencePayload={p_player_id:String(row.player_id),p_code:String(row.gift_code),p_status:status,p_err_code:Number.isFinite(errCode)?errCode:null,p_message:"[SECONDARY_EXECUTOR] "+message};
-    await journalResult(row.player_id,row.gift_code,status,persistencePayload.p_err_code,persistencePayload.p_message);
+    const journalRows=await neonJournal.query("select state,status,err_code from public.redemption_journal where player_id=$1 and upper(gift_code)=upper($2) limit 1",[String(row.player_id),String(row.gift_code)]);
+    const journalState=journalRows[0]?.state;
+    if(journalState==="in_flight")await journalResult(row.player_id,row.gift_code,status,persistencePayload.p_err_code,persistencePayload.p_message);
+    else if(!["result_recorded","supabase_recorded"].includes(journalState))throw new Error("Neon journal is not in a reconcilable state: "+String(journalState||"missing"));
     await rpcClient("complete_kingshot_redemption_recovery",{p_player_id:String(row.player_id),p_code:String(row.gift_code),p_status:status,p_err_code:persistencePayload.p_err_code,p_message:persistencePayload.p_message});
     await recordRedemptionSafely(rpcClient,persistencePayload);
     await rpcClient("resolve_kingshot_redemption_recovery",{p_player_id:String(row.player_id),p_code:String(row.gift_code)});
