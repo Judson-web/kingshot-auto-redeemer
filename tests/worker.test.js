@@ -315,3 +315,23 @@ test("Cloudflare Worker serves the canonical /api/health route natively", () => 
   assert.match(mainWorkerSource, /return handlePublicHealth\(request, env\)/);
   assert.match(mainWorkerSource, /async function handlePublicHealth\(request: Request, env: Env\)/);
 });
+
+
+test("per-code accounting distinguishes attempts, success, received, handled, and failures", () => {
+  const source = workerSource;
+  assert.match(source, /const codeBreakdown: Record<string/);
+  assert.match(source, /breakdown\.attempts\+\+/);
+  assert.match(source, /breakdown\.successes\+\+/);
+  assert.match(source, /breakdown\.alreadyReceived\+\+/);
+  assert.match(source, /breakdown\.alreadyHandled\+=Number\(count \|\| 0\)/);
+  assert.match(source, /breakdown\.failures\+\+/);
+  assert.match(autoSource, /value\.attempts\+\+.*value\.successes/s);
+  assert.match(autoSource, /codeBreakdown/);
+  assert.match(autoSource, /previously handled/);
+});
+
+test("Kingshot application-level rate-limit responses pause the shared redemption pool", () => {
+  assert.match(autoSource, /d\?\.errorCategory===\"HTTP_RATE_LIMIT\"\|\|d\?\.errorCategory===\"RATE_LIMIT\"/);
+  assert.match(autoSource, /Math\.max\(30,Number\(d\?\.retryAfterSeconds\)\|\|30\)/);
+  assert.match(autoSource, /setNeonRedemptionCooldown\(cooldownSeconds/);
+});
