@@ -229,15 +229,15 @@ async function reserveNeonRedemptionBatch(count,spacingMs=200){
  const rows=await neonJournal.query(`
   with reserved as (
    insert into public.redemption_source_state(source_url,next_request_at,cooldown_until,last_http_status,updated_at)
-   values($1,now()+($2::text||' milliseconds')::interval*$3,now(),0,now())
+   values($1,now()+make_interval(secs => ($2::numeric/1000.0)*$3::numeric),now(),0,now())
    on conflict(source_url) do update
-    set next_request_at=greatest(now(),public.redemption_source_state.next_request_at)+($2::text||' milliseconds')::interval*$3,
+    set next_request_at=greatest(now(),public.redemption_source_state.next_request_at)+make_interval(secs => ($2::numeric/1000.0)*$3::numeric),
         updated_at=now()
     where public.redemption_source_state.cooldown_until<=now()
-   returning next_request_at-(($2::text||' milliseconds')::interval*$3) as first_at
+   returning next_request_at-make_interval(secs => ($2::numeric/1000.0)*$3::numeric) as first_at
   )
-  select first_at+(g.n::text||' milliseconds')::interval as reserved_at
-  from reserved cross join generate_series(0,($3-1)*$2,$2) as g(n)
+  select first_at+make_interval(secs => g.n::double precision/1000.0) as reserved_at
+  from reserved cross join generate_series(0,(($3::integer-1)*$2::integer),$2::integer) as g(n)
   order by g.n
  `,[REDEMPTION_SOURCE_URL,spacing,n]);
  if(!rows.length)return {blocked:true,slots:[]};
