@@ -165,8 +165,9 @@ test("Cloudflare redemption shards select up to 100 players with bounded coordin
   assert.ok(workerSource.includes("const safeConcurrency = Math.min(4"));
   assert.ok(workerSource.includes("safeConcurrency, { deadline }"));
   assert.ok(autoSource.includes("reserveNeonRedemptionRequest(200)"), "global upstream pacing must remain unchanged");
-  assert.ok(autoSource.includes("const waitMs=Math.max(0,reservationTime-Date.now())"));
-  assert.ok(!autoSource.includes("Math.min(10000,reservationTime-Date.now())"));
+  assert.ok(autoSource.includes("available_at:new Date(reservationTime).toISOString()"), "Neon reservation timestamp must travel with the queue item");
+  assert.ok(!autoSource.includes("const waitMs=Math.max(0,reservationTime-Date.now())"), "the coordinator must not consume the reserved wait before handoff");
+  assert.ok(autoSource.includes("Reserve one global slot only after this player's next code is confirmed outstanding"));
   assert.ok(autoSource.includes("setNeonRedemptionCooldown"));
 });
 
