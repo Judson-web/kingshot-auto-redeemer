@@ -16,7 +16,7 @@ export interface RedeemKingshotResult {
 }
 
 const clean=s=>String(s??"").replace(/[^\x20-\x7E]/g,"").trim();
-const errorCategories={SUCCESS:"SUCCESS",RECEIVED:"ALREADY_REDEEMED", "SAME TYPE EXCHANGE":"ALREADY_REDEEMED",TIME_ERROR:"EXPIRED",CDK_NOT_FOUND:"INVALID_CODE",USAGE_LIMIT:"USAGE_LIMIT",ROLE_NOT_EXIST:"PLAYER_NOT_FOUND",STATE_MISMATCH:"KINGDOM_MISMATCH",SIGN_ERROR:"UPSTREAM_AUTH",TIMEOUT_RETRY:"RATE_LIMIT",LOGIN_EXPIRED_MID_PROCESS:"UPSTREAM_AUTH"};
+const errorCategories={SUCCESS:"SUCCESS",RECEIVED:"ALREADY_REDEEMED", "SAME TYPE EXCHANGE":"ALREADY_REDEEMED",TIME_ERROR:"EXPIRED",CDK_NOT_FOUND:"INVALID_CODE",USAGE_LIMIT:"USAGE_LIMIT",ROLE_NOT_EXIST:"PLAYER_NOT_FOUND",STATE_MISMATCH:"KINGDOM_MISMATCH",SIGN_ERROR:"UPSTREAM_AUTH",TIMEOUT_RETRY:"RATE_LIMIT","TIMEOUT RETRY":"RATE_LIMIT",LOGIN_EXPIRED_MID_PROCESS:"UPSTREAM_AUTH"};
 const labels={
  SUCCESS:["Redeemed successfully.","Your gift rewards should be available in-game."],
  RECEIVED:["Already claimed.","This account has already redeemed this code."],
@@ -55,7 +55,7 @@ export function normalizeKingshotStatus(message: unknown, errCode: unknown): str
  if (msg === "SAME TYPE EXCHANGE" || (code === "40011" && msg.includes("SAME TYPE"))) return "SAME TYPE EXCHANGE";
  if (msg === "TIME ERROR" || code === "40007") return "TIME_ERROR";
  if (msg === "USED" && code === "40005") return "USAGE_LIMIT";
- if (msg === "TOO FREQUENT" || code === "40019") return "TIMEOUT_RETRY";
+ if (msg === "TOO FREQUENT" || code === "40019" || msg === "TIMEOUT RETRY" || code === "40004") return "TIMEOUT_RETRY";
  if (msg === "NOT LOGIN") return "LOGIN_EXPIRED_MID_PROCESS";
  if (code === "40001" && msg.includes("NOT EXIST")) return "ROLE_NOT_EXIST";
  if (msg === "ROLE NOT EXIST") return "ROLE_NOT_EXIST";
