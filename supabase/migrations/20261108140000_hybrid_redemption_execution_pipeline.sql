@@ -69,7 +69,7 @@ begin
  return query
  with picked as (
   select q.id from redemption.queue q
-  where ((q.state='pending' and q.available_at<=now()) or (q.state='leased' and q.lease_until<now()))
+  where (q.state='pending' or (q.state='leased' and q.lease_until<now()))
    and mod(hashtextextended(q.player_id,0) & 9223372036854775807,p_shards)=p_shard
   order by q.available_at,q.id for update skip locked
   limit greatest(1,least(coalesce(p_limit,25),100))
