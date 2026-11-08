@@ -308,3 +308,10 @@ test("Cloudflare Worker preserves the public and authenticated admin-data rewrit
   assert.match(adapter, /handler: adminToolsHandler, queryPath: \["data"\], rewritePath: "\/api\/admin-tools\/data"/);
   assert.match(router, /dispatchLegacyApi\(request/);
 });
+
+
+test("Cloudflare Worker serves the canonical /api/health route natively", () => {
+  assert.match(mainWorkerSource, /incoming\.pathname === "\/api\/health" \|\| incoming\.pathname === "\/api\/ops-tools\/health"/);
+  assert.match(mainWorkerSource, /return handlePublicHealth\(request, env\)/);
+  assert.match(mainWorkerSource, /async function handlePublicHealth\(request: Request, env: Env\)/);
+});

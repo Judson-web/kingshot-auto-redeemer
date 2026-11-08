@@ -744,7 +744,7 @@ export default {
       return handleNativeAllianceLookup(request, env);
     }
 
-    if (incoming.pathname === "/api/ops-tools/health") return handlePublicHealth(request, env);
+    if (incoming.pathname === "/api/health" || incoming.pathname === "/api/ops-tools/health") return handlePublicHealth(request, env);
     if (incoming.pathname === "/api/ops-tools/shard-health") {
       if (!env.CRON_SECRET || request.headers.get("authorization") !== "Bearer " + env.CRON_SECRET) {
         return jsonError(401, "unauthorized", "Unauthorized");
