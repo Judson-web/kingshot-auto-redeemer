@@ -320,11 +320,11 @@ test("Cloudflare Worker serves the canonical /api/health route natively", () => 
 test("per-code accounting distinguishes attempts, success, received, handled, and failures", () => {
   const source = workerSource;
   assert.match(source, /const codeBreakdown: Record<string/);
-  assert.match(source, /breakdown\.alreadyHandled\s*\+=\s*Number\(count \|\| 0\)/);
-  assert.match(source, /breakdown\.alreadyHandled\s*\+=\s*Number\(count \|\| 0\)/);
-  assert.match(source, /breakdown\.alreadyHandled\s*\+=\s*Number\(count \|\| 0\)/);
-  assert.match(source, /breakdown\.alreadyHandled\s*\+=\s*Number\(count \|\| 0\)/);
-  assert.match(source, /breakdown\.alreadyHandled\s*\+=\s*Number\(count \|\| 0\)/);
+  assert.ok(source.includes("breakdown.alreadyHandled += Number(count || 0)"));
+  assert.ok(source.includes("breakdown.alreadyHandled += Number(count || 0)"));
+  assert.ok(source.includes("breakdown.alreadyHandled += Number(count || 0)"));
+  assert.ok(source.includes("breakdown.alreadyHandled += Number(count || 0)"));
+  assert.ok(source.includes("breakdown.alreadyHandled += Number(count || 0)"));
   assert.match(autoSource, /value\.attempts\+\+.*value\.successes/s);
   assert.match(autoSource, /codeBreakdown/);
   assert.match(autoSource, /previously handled/);
