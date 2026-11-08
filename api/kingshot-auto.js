@@ -89,14 +89,11 @@ import {mergeCodes, normalizeCodes, normalizeStoredGiftCodes, isCredibleGiftCode
 import { getHandledGiftCodes, selectNextOutstandingCode } from "../internal/kingshot/redemption-history.js";
 import { resolveGiftCodeValidationStatus } from "../internal/kingshot/gift-code-validation.js";
 const WORKER_COUNT=4;
-// Four durable shards process four-player pages with four player pipelines active per shard.
-// Keep each invocation below Cloudflare Free's 50 external-subrequest ceiling.
+// Four durable shards process five-player pages with four player pipelines active per shard.
+// Five rounds keep coordinator fan-out to twenty child calls while selecting up to 100 players.
 const PLAYER_CONCURRENCY=4;
-const MAX_PLAYERS_PER_SHARD=4;
-// Seven sequential pages per shard cap coordinator fan-out at 28 service calls.
-// The prior eighth round exhausted Cloudflare's 50-subrequest invocation budget
-// before the coordinator could finalize its durable run state.
-const MAX_SHARD_PAGES_PER_CYCLE=7;
+const MAX_PLAYERS_PER_SHARD=5;
+const MAX_SHARD_PAGES_PER_CYCLE=5;
 const KINGDOM_VALIDATION_CONCURRENCY=1;
 const KINGDOM_SCHEDULED_VALIDATION_BATCH_SIZE=2;
 // Temporary operational switch: disable background Kingdom Check without disabling redemption.
@@ -877,9 +874,7 @@ export default async function handler(req,res){
   const minuteCycle=Math.floor(cycleStartedAt/60000);
   const assignments=Array.from({length:WORKER_COUNT},()=>[]);
   for(const player of dispatchPlayers)assignments[workerBucket(player?.player_id,WORKER_COUNT)].push(player);
-  // Keep each child invocation to four players so its redemption path stays
-  // inside Cloudflare Free's 50 external-subrequest budget. Reuse the durable
-  // slot sequentially across eight bounded pages to increase cycle throughput safely.
+  // Keep child pages bounded and cap total coordinator fan-out to twenty calls per cycle.
   const shardPageCounts=assignments.map(assigned=>Math.ceil(assigned.length/MAX_PLAYERS_PER_SHARD));
   const shardPageStarts=shardPageCounts.map(count=>{
    const sweepCycles=Math.max(1,Math.ceil(count/MAX_SHARD_PAGES_PER_CYCLE));
