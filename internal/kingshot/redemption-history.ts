@@ -26,7 +26,7 @@ export function getHandledGiftCodes(history: unknown): Set<string> {
     history
       .filter((row) => {
         const status = normalizeRedemptionStatus(row?.status);
-        const errCode = Number(row?.err_code);
+        const errCode = row?.err_code == null ? null : Number(row.err_code);
         // Only the explicit Kingshot TOO FREQUENT response (40019) is safe to
         // retry after the shared cooldown. Network timeouts (40004), abandoned
         // PROCESSING claims, and unclassified ERROR rows are uncertain outcomes.
