@@ -1,4 +1,5 @@
 import { resolveMightPulseRequestBudget } from "../cloudflare/mightpulse.ts";
+import { summarizeCodeBreakdown } from "../internal/kingshot/code-accounting.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -314,4 +315,26 @@ test("Cloudflare Worker serves the canonical /api/health route natively", () => 
   assert.match(mainWorkerSource, /incoming\.pathname === "\/api\/health" \|\| incoming\.pathname === "\/api\/ops-tools\/health"/);
   assert.match(mainWorkerSource, /return handlePublicHealth\(request, env\)/);
   assert.match(mainWorkerSource, /async function handlePublicHealth\(request: Request, env: Env\)/);
+});
+
+test("each redemption shard reads player history individually and fails closed", () => {
+  const start = autoSource.indexOf('if(mode==="worker")');
+  const end = autoSource.indexOf('let authorized=', start);
+  const shard = autoSource.slice(start, end);
+  assert.match(shard, /const shardRpc=rpc/);
+  assert.match(shard, /redeemForPlayer\(player,codes,shardRpc/);
+  assert.doesNotMatch(shard, /historiesByPlayer|list_kingshot_player_redemptions_bulk/);
+  assert.match(autoSource, /const history=await rpcClient\("list_kingshot_player_redemptions"/);
+});
+
+test("per-code redemption accounting keeps queued work separate from attempts", () => {
+  const breakdown = summarizeCodeBreakdown([
+    {queued:1,redemptionCode:"VIP777",redemptionStatus:"QUEUED"},
+    {attempted:1,success:1,redemptionCode:"VIP777",redemptionStatus:"SUCCESS"},
+    {alreadyHandled:2,handledCodeCounts:{VIP777:2}},
+  ]);
+  assert.deepEqual(breakdown.VIP777, {
+    attempts:1,successes:1,alreadyReceived:0,alreadyHandled:2,queued:1,failures:0,
+    statuses:{QUEUED:1,SUCCESS:1},
+  });
 });

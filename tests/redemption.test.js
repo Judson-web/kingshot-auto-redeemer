@@ -39,3 +39,26 @@ test("secondary executor claims future Neon reservations in one batch and waits 
   assert.match(executorMigration, /pg_sleep\(least\(v_wait,600\)\)/);
   assert.doesNotMatch(executorMigration, /pg_sleep\(0\.1\)/);
 });
+
+test("manual redemption rejects malformed or non-string identifiers before storage writes", async () => {
+  const cases = [
+    [{playerId:"12345abc6789",code:"ABCDEF",kid:"7"}, "invalid_player_id"],
+    [{playerId:123456789,code:"ABCDEF",kid:"7"}, "invalid_player_id"],
+    [{playerId:"123456789",code:"ABCDEF",kid:7}, "invalid_kingdom_id"],
+    [{playerId:"123456789",code:123456, kid:"7"}, "invalid_gift_code"],
+    [{playerId:"123456789",code:"ABCDEF",kid:"7xyz"}, "invalid_kingdom_id"],
+  ];
+  for (const [payload, expected] of cases) {
+    const response = await handleNativeRedemption(new Request("https://worker.test/api/kingshot-redeem", {
+      method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload),
+    }),{SUPABASE_WRITE_MODE:"enabled"});
+    assert.equal(response.status,400);
+    assert.equal((await response.json()).code,expected);
+  }
+});
+
+test("manual redemption never returns upstream infrastructure diagnostics to public callers", async () => {
+  const source = readFileSync(new URL("../cloudflare/redemption.ts", import.meta.url), "utf8");
+  assert.match(source, /console\.info\("\[kingshot-redemption-upstream\]"/);
+  assert.doesNotMatch(source, /upstreamDiagnostics:result\.upstreamDiagnostics/);
+});

@@ -40,7 +40,6 @@ const RETRYABLE_READ_RPCS=new Set([
  "list_kingshot_admin_gift_codes",
  "list_kingshot_autoredeem_players",
  "list_kingshot_player_redemptions",
- "list_kingshot_player_redemptions_bulk",
  "list_kingshot_expired_gift_codes",
  "list_kingshot_redemption_recovery_queue"
 ]);
@@ -482,16 +481,8 @@ export default async function handler(req,res){
    const eligiblePlayers=shardBatch.players;
    const deferredPlayers=shardBatch.deferredPlayers;
    const playerIds=[...new Set(eligiblePlayers.map(player=>String(player?.player_id||"").trim()).filter(Boolean))];
-   const historyRows=playerIds.length
-    ? await rpc("list_kingshot_player_redemptions_bulk",{p_player_ids:playerIds})
-    : [];
-   const historiesByPlayer=new Map();
-   for(const row of Array.isArray(historyRows)?historyRows:[]){
-    const id=String(row?.player_id||"");
-    if(!historiesByPlayer.has(id))historiesByPlayer.set(id,[]);
-    const {player_id,...history}=row;
-    historiesByPlayer.get(id).push(history);
-   }
+   // Each player reads their own history immediately before selecting a code.
+   // Failed history reads fail closed in redeemForPlayer instead of looking empty.
    // One bounded journal read per shard page, not one query per player/code.
    // Include result_recorded until its recovery write is fully acknowledged.
    const unresolvedJournalRows=playerIds.length&&neonJournal
@@ -505,14 +496,7 @@ export default async function handler(req,res){
     if(!unresolvedCodesByPlayer.has(id))unresolvedCodesByPlayer.set(id,[]);
     unresolvedCodesByPlayer.get(id).push(code);
    }
-   const shardRpc=async(name,body)=>{
-    if(name==="list_kingshot_player_redemptions"){
-     const id=String(body?.p_player_id||"");
-     if(!historiesByPlayer.has(id))return [];
-     return historiesByPlayer.get(id);
-    }
-    return rpc(name,body);
-   };
+   const shardRpc=rpc;
    const secondaryBatch=[];
    const result=await runWorkerShard(slot,codes,eligiblePlayers,{rpc:shardRpc,redeemForPlayer:(player,codes)=>redeemForPlayer(player,codes,shardRpc,unresolvedCodesByPlayer.get(String(player?.player_id||''))||[],secondaryBatch),claimSlot:claimNeonWorkerSlot,finishSlot:finishNeonWorkerSlot},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
    for(let offset=0;offset<secondaryBatch.length;offset+=100){
@@ -525,7 +509,10 @@ export default async function handler(req,res){
      throw new Error("Secondary batch handoff failed (HTTP "+queued.status+"); unresolved claims retained.");
     }
     const accepted=Number(await queued.json().catch(()=>0));
-    if(accepted<0||accepted>items.length)throw new Error("Secondary batch handoff returned an invalid accepted count.");
+    if(accepted!==items.length){
+     for(const item of items)await neonJournal?.query("update public.redemption_journal set last_error=$3,updated_at=now() where player_id=$1 and upper(gift_code)=upper($2) and state='in_flight'",[item.player_id,item.gift_code,"Secondary executor accepted "+accepted+" of "+items.length+" queue items; reconciliation required"]).catch(()=>{});
+     throw new Error("Secondary batch handoff accepted "+accepted+" of "+items.length+" items; unresolved claims retained for reconciliation.");
+    }
     console.log("Secondary redemption batch handed off:",{slot,items:items.length,accepted});
    }
    return res.status(200).json({ok:true,...result,restrictedPlayersSkipped,bannedPlayersSkipped:restrictedPlayersSkipped,deferredPlayers,shardBatchIndex:shardBatch.batchIndex,shardBatchCount:shardBatch.batchCount});
@@ -1027,6 +1014,15 @@ export default async function handler(req,res){
    try{await broadcastPush({title,body,url:"/manual?code="+encodeURIComponent(listed[0]),image:APP_ORIGIN+"/api/og",tag,actions:[{action:"view-codes",title:uniqueCodes.length===1?"View code":"View codes"},{action:"dismiss",title:"Dismiss"}]})}
    catch(error){console.error("New verified gift-code push notification failed:",error instanceof Error?error.message:error)}
   }
+  const codeBreakdown=workerRuns.reduce((map,r)=>{
+   for(const [code,value] of Object.entries(r?.codeBreakdown||{})){
+    const existing=map[code]||{attempts:0,successes:0,alreadyReceived:0,alreadyHandled:0,queued:0,failures:0,statuses:{}};
+    for(const key of ["attempts","successes","alreadyReceived","alreadyHandled","queued","failures"])existing[key]+=Number(value?.[key]||0);
+    for(const [status,count] of Object.entries(value?.statuses||{}))existing.statuses[status]=(existing.statuses[status]||0)+Number(count||0);
+    map[code]=existing;
+   }
+   return map;
+  },{});
   const codeTelemetry=workerRuns.reduce((map,r)=>{
    for(const [code,value] of Object.entries(r?.codeTelemetry||{})){
     const existing=map[code]||{attempts:0,successes:0,firstResultAt:null,firstSuccessAt:null,firstResultLatencyMs:null,totalRedemptionLatencyMs:0};
@@ -1060,8 +1056,8 @@ export default async function handler(req,res){
    :batchFullyHandled?"ALL_ELIGIBLE_CODES_ALREADY_HANDLED"
    :totals.deferredPlayers>0?"MORE_PLAYERS_QUEUED"
    :"NO_REDEMPTION_ATTEMPTS_RECORDED";
-  console.log("Kingshot auto worker pool:",{workers:WORKER_COUNT,assignments:assignments.map(x=>x.length),batchPlayersSelected,workerFailures:workerFailures.length,attempted:totals.attempted,success:totals.success,noWorkReason,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures});
-  const summary={source:"kingshot.net",sources:sourceResults.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,dispatchEligiblePlayers:dispatchPlayers.length,batchPlayersSelected,excludedPlayersFiltered,noWorkReason,...totals,workerFailures:workerFailures.length,shardFailureDiagnostics,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures,codeTelemetry};
+  console.log("Kingshot auto worker pool:",{workers:WORKER_COUNT,assignments:assignments.map(x=>x.length),batchPlayersSelected,workerFailures:workerFailures.length,attempted:totals.attempted,success:totals.success,noWorkReason,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures,codeBreakdown});
+  const summary={source:"kingshot.net",sources:sourceResults.length,workers:WORKER_COUNT,codes:activeCodes.length,discoveredCodes:codes.length,expiredCodesFiltered:codes.length-activeCodes.length,players:list.length,validatedPlayers:validPlayers.length,dispatchEligiblePlayers:dispatchPlayers.length,batchPlayersSelected,excludedPlayersFiltered,noWorkReason,...totals,workerFailures:workerFailures.length,shardFailureDiagnostics,workerErrors:workerErrorDiagnostics,redemptionFailures:mergedFailures,codeTelemetry,codeBreakdown};
   await rpc("finish_kingshot_worker_run",{p_token:workerToken,p_status:totals.errors||totals.stale||kingdomSummary.errors||kingdomSummary.deferred||workerFailures.length?"COMPLETED_WITH_WARNINGS":"COMPLETED",p_error:null,p_summary:summary}).catch(error=>console.error("Worker state update failed:",error?.message||error));
   const anomalyReasons=[];
   if(totals.errors||workerFailures.length)anomalyReasons.push("worker errors");

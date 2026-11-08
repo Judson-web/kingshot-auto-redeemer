@@ -1,3 +1,4 @@
+import { summarizeCodeBreakdown } from "./code-accounting.js";
 import { classifyScraperError } from "./scraper.js";
 import { workerBucket, selectWorkerShardBatch } from "./worker-shard-batch.js";
 export { workerBucket, selectWorkerShardBatch };
@@ -63,6 +64,7 @@ export function summarizeWorkerResults(results: WorkerResult[]) {
   const codeTelemetry: Record<string, any> = {};
   const codeCounts: Record<string, number> = {};
 
+
   for (const result of results) {
     if (result?.redemptionStatus) {
       const status = String(result.redemptionStatus).toUpperCase();
@@ -113,6 +115,8 @@ export function summarizeWorkerResults(results: WorkerResult[]) {
     }
   }
 
+  const codeBreakdown = summarizeCodeBreakdown(results) as WorkerSummary["codeBreakdown"];
+
   for (const value of Object.values(codeTelemetry)) {
     value.avgRedemptionLatencyMs = value.attempts ? Math.round(value.totalRedemptionLatencyMs / value.attempts) : null;
     delete value.totalRedemptionLatencyMs;
@@ -129,6 +133,7 @@ export function summarizeWorkerResults(results: WorkerResult[]) {
     stale: results.reduce((n, r) => n + (r?.stale ? 1 : 0), 0),
     redemptionStatuses: statusCounts,
     codeCounts,
+    codeBreakdown,
     codeTelemetry,
     redemptionFailures: Object.values(redemptionDiagnostics).sort((x, y) => y.count - x.count).slice(0, 8),
     workerErrors: Object.values(workerErrorDiagnostics).sort((a, b) => b.count - a.count).slice(0, 8)
@@ -148,6 +153,7 @@ export interface WorkerSummary {
   stale: number;
   redemptionStatuses: Record<string, number>;
   codeCounts: Record<string, number>;
+  codeBreakdown?: Record<string, { attempts:number; successes:number; alreadyReceived:number; alreadyHandled:number; queued:number; failures:number; statuses:Record<string,number> }>;
   codeTelemetry: Record<string, any>;
   redemptionFailures: any[];
   workerErrors: any[];
@@ -174,7 +180,7 @@ export async function runWorkerShard(
     // Four shards may process up to sixteen player pipelines, while shared reservations pace upstream requests.
     const safeConcurrency = Math.min(4, Math.max(1, Math.floor(options.concurrency || 1)));
     const results = await runWithConcurrency(assigned, player => redeemForPlayer(player, codes), safeConcurrency, { deadline });
-    const totals: Omit<WorkerSummary, "slot" | "players" | "deadlineSkipped"> & { deadlineSkipped: number } = {
+    const totals = {
       ...summarizeWorkerResults(results),
       deadlineSkipped: 0
     };
