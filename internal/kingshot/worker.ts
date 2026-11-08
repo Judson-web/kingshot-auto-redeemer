@@ -3,7 +3,7 @@ import { workerBucket, selectWorkerShardBatch } from "./worker-shard-batch.js";
 export { workerBucket, selectWorkerShardBatch };
 
 export interface WorkerResult {
-  attempted?: number; success?: number; alreadyHandled?: number; alreadyReceived?: number; skipped?: number;
+  attempted?: number; queued?: number; success?: number; alreadyHandled?: number; alreadyReceived?: number; skipped?: number;
   stale?: number; deadlineSkipped?: number; error?: string; errorCategory?: string;
   redemptionStatus?: string; redemptionErrorCategory?: string; redemptionErrCode?: string | number | null;
   redemptionMessage?: string | null; redemptionCode?: string; redemptionTelemetry?: any; handledCodeCounts?: Record<string, number>;
@@ -120,6 +120,7 @@ export function summarizeWorkerResults(results: WorkerResult[]) {
 
   return {
     attempted: results.reduce((n, r) => n + (r?.attempted || 0), 0),
+    queued: results.reduce((n, r) => n + (r?.queued || 0), 0),
     success: results.reduce((n, r) => n + (r?.success || 0), 0),
     alreadyHandled: results.reduce((n, r) => n + (r?.alreadyHandled || 0), 0),
     alreadyReceived: results.reduce((n, r) => n + (r?.alreadyReceived || 0), 0),
@@ -138,6 +139,7 @@ export interface WorkerSummary {
   slot: number;
   players: number;
   attempted: number;
+  queued: number;
   success: number;
   alreadyHandled: number;
   alreadyReceived: number;
