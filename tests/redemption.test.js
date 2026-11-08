@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { kingshotSignature, parseRetryAfter, handleNativeRedemption } from "../cloudflare/redemption.ts";
 
 test("Kingshot MD5 signing uses sorted form fields and MD5", async () => {
@@ -24,4 +25,17 @@ test("Retry-After parses delta seconds and clamps past HTTP dates", () => {
   assert.equal(parseRetryAfter("45", 0), 45);
   assert.equal(parseRetryAfter("invalid", 0), 60);
   assert.equal(parseRetryAfter("Thu, 01 Jan 1970 00:00:10 GMT", 15000), 0);
+});
+
+test("secondary executor claims future Neon reservations in one batch and waits only at the database executor", () => {
+  const claimMigration = readFileSync("supabase/migrations/20261108140000_hybrid_redemption_execution_pipeline.sql", "utf8");
+  const executorMigration = readFileSync("supabase/migrations/20261108170000_secondary_database_executor.sql", "utf8");
+  const claimStart = claimMigration.indexOf("create or replace function public.redemption_claim_batch");
+  const claimEnd = claimMigration.indexOf("create or replace function public.redemption_complete_batch", claimStart);
+  const claimSql = claimMigration.slice(claimStart, claimEnd);
+  assert.match(claimSql, /q\.state='pending'/);
+  assert.doesNotMatch(claimSql, /available_at\s*<=\s*now\(\)/);
+  assert.match(executorMigration, /v_wait:=extract\(epoch from \(v_item\.available_at-clock_timestamp\(\)\)\)/);
+  assert.match(executorMigration, /pg_sleep\(least\(v_wait,600\)\)/);
+  assert.doesNotMatch(executorMigration, /pg_sleep\(0\.1\)/);
 });
