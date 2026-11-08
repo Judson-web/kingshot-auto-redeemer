@@ -600,6 +600,16 @@ export default async function handler(req,res){
    remaining:activeCodes.map(x=>x.code)
   });
   const newCodes=activeCodes.filter(item=>!knownCodes.has(String(item.code).toUpperCase()));
+  // Prioritize newly discovered and not-yet-verified codes in this same
+  // coordinator cycle. Existing shard leases and per-player history remain
+  // authoritative; this is ordering, not a second worker trigger.
+  const initialCodeRowsByCode=new Map((Array.isArray(adminRows)?adminRows:[]).map(row=>[String(row?.code||"").trim().toUpperCase(),row]));
+  const priorityCodeKeys=new Set(activeCodes.filter(item=>{
+   const key=String(item?.code||"").trim().toUpperCase();
+   const row=initialCodeRowsByCode.get(key);
+   return !knownCodes.has(key)||!row||["pending","indeterminate"].includes(String(row?.validation_status||"").toLowerCase());
+  }).map(item=>String(item?.code||"").trim().toUpperCase()));
+  activeCodes=[...activeCodes.filter(item=>priorityCodeKeys.has(String(item?.code||"").trim().toUpperCase())),...activeCodes.filter(item=>!priorityCodeKeys.has(String(item?.code||"").trim().toUpperCase()))];
   for(const item of newCodes.filter(isCredibleGiftCodeCandidate))await sendDiscordEvent(buildNewGiftCodeAlert(item));
   const players=await rpc("list_kingshot_autoredeem_players",{});
   const list=Array.isArray(players)?players:[];
@@ -880,6 +890,45 @@ export default async function handler(req,res){
  for(const [key,count] of Object.entries(r?.codeCounts||{}))map[key]=(map[key]||0)+Number(count||0);
  return map;
 },{});
+  // Verify only from definitive Kingshot redemption responses. Positive
+  // evidence wins; player-specific failures and transport errors never
+  // invalidate a code globally.
+  const validationGroups=new Map();
+  const normalizedCodeStatus=status=>String(status||"").trim().toUpperCase().replace(/_/g," ").replace(/\\s+/g," ");
+  for(const item of activeCodes){
+   const code=String(item?.code||"").trim().toUpperCase();
+   const row=validationRowsByCode.get(code);
+   const current=String(row?.validation_status||"pending").toLowerCase();
+   const prefix=code+"_status_";
+   const observed=Object.entries(codeCounts).filter(([key,count])=>key.startsWith(prefix)&&Number(count)>0)
+    .map(([key,count])=>({status:normalizedCodeStatus(key.slice(prefix.length)),count:Number(count)}));
+   if(!observed.length)continue;
+   let validationStatus=null;
+   if(observed.some(x=>["SUCCESS","RECEIVED","SAME TYPE EXCHANGE"].includes(x.status)))validationStatus="verified";
+   else if(observed.some(x=>x.status==="USAGE LIMIT"))validationStatus="usage_limit";
+   else if(observed.some(x=>x.status==="CDK NOT FOUND"))validationStatus="invalid";
+   else if(observed.some(x=>x.status==="TIME ERROR"))validationStatus="expired";
+   if(!validationStatus)continue;
+   if(validationStatus!=="verified"&&!["pending","indeterminate"].includes(current))continue;
+   if(current==="verified"&&validationStatus!=="verified")continue;
+   if(!validationGroups.has(validationStatus))validationGroups.set(validationStatus,[]);
+   validationGroups.get(validationStatus).push({code:item.code,observed});
+  }
+  for(const [validationStatus,entries] of validationGroups){
+   const codesToUpdate=entries.map(entry=>entry.code);
+   const evidence=entries.map(entry=>entry.code+": "+entry.observed.map(x=>x.status+" x"+x.count).join(", ")).join("; ").slice(0,240);
+   try{
+    await rpc("set_kingshot_gift_codes_validation",{p_codes:codesToUpdate,p_status:validationStatus,p_player_id:null,p_message:"Automatic verification from definitive Kingshot redemption responses. "+evidence});
+    await sendDiscordEvent(buildGiftCodeValidationAlert({
+     code:codesToUpdate.join(", "),
+     status:validationStatus==="verified"?"SUCCESS":validationStatus==="usage_limit"?"USAGE_LIMIT":validationStatus==="invalid"?"CDK_NOT_FOUND":"TIME_ERROR",
+     validationStatus,
+     message:evidence
+    }),{botAlert:true});
+   }catch(error){
+    console.error("Gift-code validation persistence failed:",{status:validationStatus,count:codesToUpdate.length,message:String(error?.message||error).slice(0,180)});
+   }
+  }
   const codeTelemetry=workerRuns.reduce((map,r)=>{
    for(const [code,value] of Object.entries(r?.codeTelemetry||{})){
     const existing=map[code]||{attempts:0,successes:0,firstResultAt:null,firstSuccessAt:null,firstResultLatencyMs:null,totalRedemptionLatencyMs:0};
