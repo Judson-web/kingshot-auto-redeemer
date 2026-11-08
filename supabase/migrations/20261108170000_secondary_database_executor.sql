@@ -116,3 +116,10 @@ revoke all on function public.redemption_get_item_state(text,text) from public,a
 grant execute on function public.redemption_get_reconciliation_batch(integer) to service_role;
 grant execute on function public.redemption_mark_reconciled(bigint) to service_role;
 grant execute on function public.redemption_get_item_state(text,text) to service_role;
+
+do $$
+begin
+ if not exists(select 1 from cron.job where jobname='secondary-kingshot-redemption-executor') then
+  perform cron.schedule('secondary-kingshot-redemption-executor','* * * * *','select public.redemption_execute_batch(100);');
+ end if;
+end $$;
