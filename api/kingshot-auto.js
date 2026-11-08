@@ -367,6 +367,7 @@ const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
   return {attempted:0,success:0,alreadyHandled:eligibleCodes.length,skipped:unresolvedAttempts?1:0,unresolvedAttempts,recoveryBlocked:unresolvedAttempts>0,kingdomCheck,kingdomChanged,handledCodeCounts};
  }
 
+ if(!SECONDARY_REDEMPTION_ENABLED||!SECONDARY_SUPABASE_KEY)return {attempted:0,success:0,alreadyHandled:0,skipped:1,executorDisabled:true,kingdomCheck,kingdomChanged};
  // Reserve a globally shared request slot before touching the upstream API.
  // The database serializes all four shards and refuses new work during a
  // provider-wide HTTP cooldown. Reservations are spaced to avoid burst traffic.
@@ -386,8 +387,6 @@ const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
  if(!recoveryClaim){await journalCancel(player.player_id,item.code,"Supabase recovery claim declined");return {attempted:0,success:0,alreadyHandled:1,skipped:1,kingdomCheck,kingdomChanged,recoveryBlocked:true};}
  // Cloudflare is only the coordinator. The secondary Supabase database owns
  // the upstream HTTP call. Both primary claims and the Neon intent exist first.
- if(!SECONDARY_REDEMPTION_ENABLED)throw new Error("Secondary database executor is disabled; refusing Cloudflare-side redemption.");
- if(!SECONDARY_SUPABASE_KEY)throw new Error("Secondary Supabase service key is missing; redemption handoff refused.");
  const handoff=await fetch(SECONDARY_SUPABASE_URL+"/rest/v1/rpc/redemption_enqueue_batch",{
   method:"POST",
   headers:{apikey:SECONDARY_SUPABASE_KEY,authorization:"Bearer "+SECONDARY_SUPABASE_KEY,"content-type":"application/json"},
