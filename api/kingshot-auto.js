@@ -1,5 +1,4 @@
 import { neon } from "@neondatabase/serverless";
-import {redeemKingshot} from"../internal/kingshot/redeem.js";
 import { revalidatePlayer, needsKingdomResetCheck } from "../internal/kingshot/kingdom-validation.js";
 import { selectKingdomCheckBatch, selectScheduledKingdomCheckBatch, summarizeKingdomCheckResults } from "../internal/kingshot/kingdom-check-flow.js";
 import { broadcastPush } from "../internal/push-notifications.js";
@@ -9,6 +8,28 @@ const SUPABASE_URL=process.env.SUPABASE_URL||"https://wocxvtptqapietlteshr.supab
 const SUPABASE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SECRET_KEY;
 const APP_ORIGIN=String(process.env.PUBLIC_APP_URL||"https://app.ks-redeemer.workers.dev").replace(/\/+$/,"");
 const GIFT_SOURCE_URL="https://kingshot.net/api/gift-codes";
+const SECONDARY_SUPABASE_URL=String(process.env.SECONDARY_SUPABASE_URL||"https://sfntksruilzncahytxve.supabase.co").replace(/\/+$/,"");
+const SECONDARY_SUPABASE_KEY=process.env.SECONDARY_SUPABASE_SERVICE_ROLE_KEY||"";
+const SECONDARY_REDEMPTION_ENABLED=String(process.env.SECONDARY_REDEMPTION_ENABLED??"false").trim().toLowerCase()==="true";
+async function syncSecondaryRoster(env){
+ const enabled=String(env?.SECONDARY_REDEMPTION_ENABLED??process.env.SECONDARY_REDEMPTION_ENABLED??"false").trim().toLowerCase()==="true";
+ const key=String(env?.SECONDARY_SUPABASE_SERVICE_ROLE_KEY??process.env.SECONDARY_SUPABASE_SERVICE_ROLE_KEY??"");
+ const base=String(env?.SECONDARY_SUPABASE_URL??SECONDARY_SUPABASE_URL).replace(/\/+$/,"");
+ if(!enabled)return {enabled:false,skipped:true};
+ if(!key)throw new Error("Secondary Supabase is enabled but SECONDARY_SUPABASE_SERVICE_ROLE_KEY is missing.");
+ const roster=await rpc("list_kingshot_autoredeem_roster",{});
+ const players=Array.isArray(roster)?roster:[];
+ let synced=0;
+ for(let offset=0;offset<players.length;offset+=500){
+  const page=players.slice(offset,offset+500).map(player=>({player_id:String(player.player_id),kingdom_id:player.kingdom_id==null?null:String(player.kingdom_id),enabled:player.enabled===true,stale:player.stale===true,updated_at:player.updated_at||null}));
+  const response=await fetch(base+"/rest/v1/rpc/redemption_sync_roster",{method:"POST",headers:{apikey:key,authorization:"Bearer "+key,"content-type":"application/json"},body:JSON.stringify({p_players:page}),signal:AbortSignal.timeout(15000)});
+  const result=await response.json().catch(()=>null);
+  if(!response.ok)throw Error("Secondary Supabase roster sync failed (HTTP "+response.status+"): "+String(result?.message||result?.error||"request rejected").slice(0,180));
+  synced+=Number(result?.received||0);
+ }
+ return {enabled:true,players:players.length,synced};
+}
+
 
 
 // Retry only known idempotent reads. Redemption claims, result writes, worker
@@ -201,6 +222,28 @@ async function reserveNeonRedemptionRequest(spacingMs=200){
  `,[REDEMPTION_SOURCE_URL,spacing]);
  return rows[0]?.reserved_at??null;
 }
+async function reserveNeonRedemptionBatch(count,spacingMs=200){
+ if(!neonJournal)throw new Error("Independent Neon recovery database is required for redemption pacing.");
+ const n=Math.max(1,Math.min(100,Number(count)||1));
+ const spacing=Math.max(100,Math.min(Number(spacingMs)||200,5000));
+ const rows=await neonJournal.query(`
+  with reserved as (
+   insert into public.redemption_source_state(source_url,next_request_at,cooldown_until,last_http_status,updated_at)
+   values($1,now()+($2::text||' milliseconds')::interval*$3,now(),0,now())
+   on conflict(source_url) do update
+    set next_request_at=greatest(now(),public.redemption_source_state.next_request_at)+($2::text||' milliseconds')::interval*$3,
+        updated_at=now()
+    where public.redemption_source_state.cooldown_until<=now()
+   returning next_request_at-(($2::text||' milliseconds')::interval*$3) as first_at
+  )
+  select first_at+(g.n::text||' milliseconds')::interval as reserved_at
+  from reserved cross join generate_series(0,($3-1)*$2,$2) as g(n)
+  order by g.n
+ `,[REDEMPTION_SOURCE_URL,spacing,n]);
+ if(!rows.length)return {blocked:true,slots:[]};
+ return {blocked:false,slots:rows.map(row=>row.reserved_at)};
+}
+
 async function setNeonRedemptionCooldown(seconds,httpStatus=429){
  if(!neonJournal)throw new Error("Independent Neon recovery database is required for redemption cooldowns.");
  const duration=Math.max(30,Math.min(3600,Number(seconds)||60));
@@ -273,7 +316,53 @@ async function drainRedemptionRecoveryQueue(rpcClient){
  return {recovered,failed};
 }
 
-async function redeemForPlayer(player,codes,rpcClient=rpc,unresolvedJournalCodes=[]){
+async function reconcileSecondaryResults(rpcClient=rpc){
+ if(!SECONDARY_SUPABASE_KEY||!neonJournal)return {skipped:true,reconciled:0,uncertain:0};
+ const response=await fetch(SECONDARY_SUPABASE_URL+"/rest/v1/rpc/redemption_get_reconciliation_batch",{
+  method:"POST",headers:{apikey:SECONDARY_SUPABASE_KEY,authorization:"Bearer "+SECONDARY_SUPABASE_KEY,"content-type":"application/json"},
+  body:JSON.stringify({p_limit:100}),signal:AbortSignal.timeout(15000)
+ });
+ if(!response.ok)throw new Error("Secondary reconciliation read failed (HTTP "+response.status+").");
+ const rows=await response.json().catch(()=>[]);
+ let reconciled=0,uncertain=0,failed=0;
+ for(const row of Array.isArray(rows)?rows:[]){
+  try{
+   if(row.state==="uncertain"){
+    const reason=String(row.last_error||"Secondary executor could not establish the upstream outcome").slice(0,240);
+    await neonJournal.query("update public.redemption_journal set state='needs_review',last_error=$3,updated_at=now() where player_id=$1 and upper(gift_code)=upper($2) and state='in_flight'",[String(row.player_id),String(row.gift_code),reason]);
+    await rpcClient("mark_kingshot_redemption_recovery_uncertain",{p_player_id:String(row.player_id),p_code:String(row.gift_code),p_error:reason});
+    uncertain++;
+   }else{
+    const result=row.result||{};
+    const status=String(result.status||row.last_status||"ERROR").toUpperCase();
+    const errCode=result.err_code==null?null:Number(result.err_code);
+    const message=String(result.message||row.last_error||"Secondary Supabase redemption result");
+    if(status==="TIMEOUT_RETRY")await setNeonRedemptionCooldown(30,Number(result.http_status)||429).catch(error=>console.error("Could not persist secondary executor cooldown:",String(error?.message||error).slice(0,180)));
+    const persistencePayload={p_player_id:String(row.player_id),p_code:String(row.gift_code),p_status:status,p_err_code:Number.isFinite(errCode)?errCode:null,p_message:"[SECONDARY_EXECUTOR] "+message};
+    const journalRows=await neonJournal.query("select state,status,err_code from public.redemption_journal where player_id=$1 and upper(gift_code)=upper($2) limit 1",[String(row.player_id),String(row.gift_code)]);
+    const journalState=journalRows[0]?.state;
+    if(journalState==="in_flight")await journalResult(row.player_id,row.gift_code,status,persistencePayload.p_err_code,persistencePayload.p_message);
+    else if(!["result_recorded","supabase_recorded"].includes(journalState))throw new Error("Neon journal is not in a reconcilable state: "+String(journalState||"missing"));
+    await rpcClient("complete_kingshot_redemption_recovery",{p_player_id:String(row.player_id),p_code:String(row.gift_code),p_status:status,p_err_code:persistencePayload.p_err_code,p_message:persistencePayload.p_message});
+    await recordRedemptionSafely(rpcClient,persistencePayload);
+    await rpcClient("resolve_kingshot_redemption_recovery",{p_player_id:String(row.player_id),p_code:String(row.gift_code)});
+    await neonJournal.query("update public.redemption_journal set state='supabase_recorded',attempts=attempts+1,last_error=null,updated_at=now() where player_id=$1 and upper(gift_code)=upper($2) and state='result_recorded'",[String(row.player_id),String(row.gift_code)]);
+   }
+   const ack=await fetch(SECONDARY_SUPABASE_URL+"/rest/v1/rpc/redemption_mark_reconciled",{
+    method:"POST",headers:{apikey:SECONDARY_SUPABASE_KEY,authorization:"Bearer "+SECONDARY_SUPABASE_KEY,"content-type":"application/json"},
+    body:JSON.stringify({p_id:Number(row.id)}),signal:AbortSignal.timeout(10000)
+   });
+   if(!ack.ok)throw new Error("Secondary reconciliation acknowledgement failed (HTTP "+ack.status+").");
+   reconciled++;
+  }catch(error){
+   failed++;
+   console.error("Secondary redemption reconciliation deferred:",{queueId:row.id,error:String(error?.message||error).slice(0,200)});
+  }
+ }
+ return {reconciled,uncertain,failed};
+}
+
+async function redeemForPlayer(player,codes,rpcClient=rpc,unresolvedJournalCodes=[],secondaryBatch=[],pacingPool=null){
 const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
  ? await revalidatePlayer(player,{rpc:rpcClient,notify:sendDiscordEvent})
  : {player,revalidated:false,kingdomChanged:false,stale:false,automaticCheckDisabled:true};
@@ -303,11 +392,12 @@ const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
   return {attempted:0,success:0,alreadyHandled:eligibleCodes.length,skipped:unresolvedAttempts?1:0,unresolvedAttempts,recoveryBlocked:unresolvedAttempts>0,kingdomCheck,kingdomChanged,handledCodeCounts};
  }
 
+ if(!SECONDARY_REDEMPTION_ENABLED||!SECONDARY_SUPABASE_KEY)return {attempted:0,success:0,alreadyHandled:0,skipped:1,executorDisabled:true,kingdomCheck,kingdomChanged};
  // Reserve a globally shared request slot before touching the upstream API.
  // The database serializes all four shards and refuses new work during a
  // provider-wide HTTP cooldown. Reservations are spaced to avoid burst traffic.
- const reservation=await reserveNeonRedemptionRequest(200);
- if(!reservation)return {attempted:0,success:0,alreadyHandled:0,skipped:1,kingdomCheck,kingdomChanged,upstreamCooldown:true};
+ const reservation=pacingPool?pacingPool.slots.shift():await reserveNeonRedemptionRequest(200);
+ if(pacingPool?.blocked||!reservation)return {attempted:0,success:0,alreadyHandled:0,skipped:1,kingdomCheck,kingdomChanged,upstreamCooldown:true};
  const reservationTime=Date.parse(String(reservation));
  if(Number.isFinite(reservationTime)){
   const waitMs=Math.max(0,reservationTime-Date.now());
@@ -320,18 +410,13 @@ const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
 
  const recoveryClaim=await rpcClient("begin_kingshot_redemption_recovery",{p_player_id:String(player.player_id),p_code:item.code});
  if(!recoveryClaim){await journalCancel(player.player_id,item.code,"Supabase recovery claim declined");return {attempted:0,success:0,alreadyHandled:1,skipped:1,kingdomCheck,kingdomChanged,recoveryBlocked:true};}
- const redemptionStartedAt=Date.now();
- let d;
- try{
-  d=await redeemKingshot({playerId:player.player_id,code:item.code,kid:player.kingdom_id});
- }catch(error){
-  // The upstream may have accepted the request before the connection failed.
-  // Preserve an explicit review marker; never automatically replay this attempt.
-  await neonJournal?.query("update public.redemption_journal set state='needs_review',last_error=$3,updated_at=now() where player_id=$1 and upper(gift_code)=upper($2) and state='in_flight'",[String(player.player_id),String(item.code),String(error?.message||error).slice(0,240)]).catch(queueError=>console.error("Could not mark Neon outcome uncertain:",queueError?.message||queueError));
-  await rpcClient("mark_kingshot_redemption_recovery_uncertain",{p_player_id:String(player.player_id),p_code:item.code,p_error:String(error?.message||error).slice(0,240)}).catch(queueError=>console.error("Could not mark uncertain redemption:",queueError?.message||queueError));
-  throw error;
- }
- const completedAt=Date.now();
+ // Reconciled results retain the redemptionTelemetry contract: codeTelemetry,
+ // firstResultLatencyMs, avgRedemptionLatencyMs and discoveryToResultMs. Queued
+ // items are intentionally not counted as completed upstream attempts.
+ // Stage only after both authoritative claims and the Neon intent succeed.
+ // The shard submits staged work as one bounded RPC batch.
+ secondaryBatch.push({player_id:String(player.player_id),gift_code:item.code,kingdom_id:String(player.kingdom_id),available_at:new Date(reservationTime).toISOString()});
+ return {attempted:0,success:0,alreadyReceived:0,alreadyHandled:0,skipped:0,queued:1,kingdomCheck,kingdomChanged,redemptionCode:item.code,redemptionStatus:"QUEUED"};
  if(d?.errorCategory==="HTTP_RATE_LIMIT"){
   const cooldownSeconds=Math.min(3600,Math.max(30,Number(d?.retryAfterSeconds)||60));
   await setNeonRedemptionCooldown(cooldownSeconds,Number(d?.upstreamHttpStatus)||429).catch(error=>console.error("Could not persist Neon Kingshot redemption cooldown:",String(error?.message||error).slice(0,180)));
@@ -345,9 +430,6 @@ const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
  await rpcClient("resolve_kingshot_redemption_recovery",{p_player_id:String(player.player_id),p_code:item.code}).catch(error=>console.error("Recovery queue resolve failed:",error?.message||error));
  await neonJournal.query("update public.redemption_journal set state='supabase_recorded',attempts=attempts+1,last_error=null,updated_at=now() where player_id=$1 and upper(gift_code)=upper($2) and state='result_recorded'",[String(player.player_id),String(item.code)]).catch(error=>console.error("Neon journal acknowledgement failed:",error?.message||error));
 
- const discoveryAt=Number.isFinite(item.discoveredAt)?item.discoveredAt:null;
- const redemptionTelemetry={code:item.code,resultAt:new Date(completedAt).toISOString(),status,redemptionLatencyMs:Math.max(0,completedAt-redemptionStartedAt),discoveryToResultMs:discoveryAt==null?null:Math.max(0,completedAt-discoveryAt)};
- return {attempted:1,success:status==="SUCCESS"?1:0,alreadyReceived:status==="RECEIVED"?1:0,alreadyHandled:0,skipped:0,kingdomCheck,kingdomChanged,redemptionCode:item.code,redemptionStatus:status,redemptionErrorCategory:d?.errorCategory||null,redemptionErrCode:d?.errCode??null,redemptionMessage:message?String(message).slice(0,240):null,redemptionTelemetry};
 }
 
 export default async function handler(req,res){
@@ -437,7 +519,22 @@ export default async function handler(req,res){
     }
     return rpc(name,body);
    };
-   const result=await runWorkerShard(slot,codes,eligiblePlayers,{rpc:shardRpc,redeemForPlayer:(player,codes)=>redeemForPlayer(player,codes,shardRpc,unresolvedCodesByPlayer.get(String(player?.player_id||''))||[]),claimSlot:claimNeonWorkerSlot,finishSlot:finishNeonWorkerSlot},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
+   const secondaryBatch=[];
+   const pacingPool=eligiblePlayers.length?await reserveNeonRedemptionBatch(eligiblePlayers.length,200):{blocked:false,slots:[]};
+   const result=await runWorkerShard(slot,codes,eligiblePlayers,{rpc:shardRpc,redeemForPlayer:(player,codes)=>redeemForPlayer(player,codes,shardRpc,unresolvedCodesByPlayer.get(String(player?.player_id||''))||[],secondaryBatch,pacingPool),claimSlot:claimNeonWorkerSlot,finishSlot:finishNeonWorkerSlot},{workerCount:WORKER_COUNT,concurrency:PLAYER_CONCURRENCY,maxRuntimeMs:WORKER_MAX_RUNTIME_MS});
+   for(let offset=0;offset<secondaryBatch.length;offset+=100){
+    const items=secondaryBatch.slice(offset,offset+100);
+    const queued=await fetch(SECONDARY_SUPABASE_URL+"/rest/v1/rpc/redemption_enqueue_batch",{method:"POST",headers:{apikey:SECONDARY_SUPABASE_KEY,authorization:"Bearer "+SECONDARY_SUPABASE_KEY,"content-type":"application/json"},body:JSON.stringify({p_items:items}),signal:AbortSignal.timeout(15000)});
+    if(!queued.ok){
+     // Keep unresolved Neon intents and primary claims. A transport failure
+     // cannot prove whether PostgREST committed this chunk, so never replay it.
+     for(const item of items)await neonJournal?.query("update public.redemption_journal set last_error=$3,updated_at=now() where player_id=$1 and upper(gift_code)=upper($2) and state='in_flight'",[item.player_id,item.gift_code,"Secondary batch handoff transport failed; outcome unknown"]).catch(()=>{});
+     throw new Error("Secondary batch handoff failed (HTTP "+queued.status+"); unresolved claims retained.");
+    }
+    const accepted=Number(await queued.json().catch(()=>0));
+    if(accepted<0||accepted>items.length)throw new Error("Secondary batch handoff returned an invalid accepted count.");
+    console.log("Secondary redemption batch handed off:",{slot,items:items.length,accepted});
+   }
    return res.status(200).json({ok:true,...result,restrictedPlayersSkipped,bannedPlayersSkipped:restrictedPlayersSkipped,deferredPlayers,shardBatchIndex:shardBatch.batchIndex,shardBatchCount:shardBatch.batchCount});
   }catch(error){
    console.error("Kingshot worker shard:",slot,error);
@@ -450,6 +547,11 @@ export default async function handler(req,res){
   try{authorized=Boolean(await rpc("verify_kingshot_scheduler_token",{p_token:String(schedulerToken)}))}catch{}
  }
  if(!authorized)return res.status(401).json({error:"Unauthorized"});
+ try{
+  const reconciliation=await reconcileSecondaryResults(rpc);
+  if(reconciliation.reconciled||reconciliation.uncertain||reconciliation.failed)console.log("Secondary redemption reconciliation:",reconciliation);
+ }catch(error){console.error("Secondary redemption reconciliation unavailable:",String(error?.message||error).slice(0,200));}
+
 
  // Protected, side-effect-free operational webhook probe. It sends one harmless
  // diagnostic embed and reports the actual Discord webhook HTTP outcome without
@@ -614,6 +716,9 @@ export default async function handler(req,res){
   for(const item of newCodes.filter(isCredibleGiftCodeCandidate))await sendDiscordEvent(buildNewGiftCodeAlert(item));
   const players=await rpc("list_kingshot_autoredeem_players",{});
   const list=Array.isArray(players)?players:[];
+  currentStage="secondary-roster-sync";
+  const secondaryRosterSync=await syncSecondaryRoster(req.workerEnv);
+  if(secondaryRosterSync.enabled)console.log("Secondary Supabase roster refreshed:",secondaryRosterSync);
   // The reset can make every account due at once. Validate a small rotating
   // batch per minute so a slow provider cannot push this whole redemption cycle
   // beyond pg_net's 30-second request timeout. Future retry deadlines are

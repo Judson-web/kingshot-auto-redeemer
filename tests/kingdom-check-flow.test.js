@@ -202,7 +202,11 @@ test("automatic Kingdom Check can be disabled without affecting manual checks or
   assert.match(apiSource, /const kingdomResults=KINGDOM_AUTO_CHECK_ENABLED[\s\S]*: \[\]/);
   const manualBranch = apiSource.slice(apiSource.indexOf('if(mode==="kingdom-check")'), apiSource.indexOf('let workerToken=null;'));
   assert.ok(manualBranch.includes("revalidatePlayer(player,{rpc,notify:sendDiscordEvent},{force:true})"));
-  assert.match(apiSource, /redeemKingshot\(\{playerId:player\.player_id,code:item\.code,kid:player\.kingdom_id\}\)/);
+  assert.match(apiSource, /redemption_enqueue_batch/);
+  assert.ok(apiSource.indexOf("begin_kingshot_redemption_recovery") < apiSource.indexOf("redemption_enqueue_batch"), "secondary queue handoff must follow primary recovery claim");
+  assert.match(apiSource, /redemption_get_reconciliation_batch/);
+  assert.match(apiSource, /redemption_mark_reconciled/);
+  assert.doesNotMatch(apiSource, /redeemKingshot\(\{playerId:player\.player_id,code:item\.code,kid:player\.kingdom_id\}\)/, "Cloudflare must not call the upstream redemption API");
 });
 
 
