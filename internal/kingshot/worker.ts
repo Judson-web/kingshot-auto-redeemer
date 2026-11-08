@@ -153,7 +153,7 @@ export interface WorkerSummary {
   stale: number;
   redemptionStatuses: Record<string, number>;
   codeCounts: Record<string, number>;
-  codeBreakdown: Record<string, { attempts:number; successes:number; alreadyReceived:number; alreadyHandled:number; queued:number; failures:number; statuses:Record<string,number> }>;
+  codeBreakdown?: Record<string, { attempts:number; successes:number; alreadyReceived:number; alreadyHandled:number; queued:number; failures:number; statuses:Record<string,number> }>;
   codeTelemetry: Record<string, any>;
   redemptionFailures: any[];
   workerErrors: any[];
