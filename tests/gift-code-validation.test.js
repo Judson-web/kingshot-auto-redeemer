@@ -73,6 +73,11 @@ test("new gift-code candidates are prioritized before older verified codes", asy
   assert.ok(source.includes("const blockedValidationCodes=activeCodes.filter"));
   assert.ok(source.includes('["invalid","expired","usage_limit"]'));
   assert.ok(source.includes("set_kingshot_gift_codes_validation"));
+  const validationWrite = source.indexOf('set_kingshot_gift_codes_validation');
+  const verifiedPush = source.indexOf('if(newlyVerifiedCodes.length)');
+  assert.ok(verifiedPush > validationWrite, "push notifications must follow persisted positive verification");
+  assert.ok(source.includes('if(validationStatus==="verified"&&Number(updatedCount)>0)newlyVerifiedCodes.push'));
+  assert.ok(!source.includes("const newlyAvailableCodes=activeCodes.filter"), "pending candidates must not be announced as verified");
 });
 
 test("batch validation migration protects verified results and limits negative updates", async () => {
