@@ -36,6 +36,34 @@ export function normalizeCodes(data: GiftCodeApiData | null | undefined): GiftCo
   return { code, expiresAt, createdAt };
  }).filter((row): row is GiftCodeRow => row !== null).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
 }
+/**
+ * Rehydrate codes already stored by the discovery/admin workflow.
+ * Pending and indeterminate rows remain eligible for real-player verification
+ * even when active=false; only verified active rows are treated as approved.
+ * Suppressed, expired, and definitively negative rows are never reintroduced.
+ */
+export function normalizeStoredGiftCodes(rows: unknown): GiftCodeRow[] {
+ const now=Date.now();
+ if(!Array.isArray(rows))return [];
+ return rows.flatMap((row:any)=>{
+  const code=String(row?.code??"").trim();
+  const status=String(row?.validation_status??"").trim().toLowerCase();
+  const suppressed=row?.suppressed===true;
+  const expiresAt=sourceTimestamp(row?.expires_at);
+  const eligible=["pending","indeterminate"].includes(status)||(status==="verified"&&row?.active===true);
+  if(!code||suppressed||!eligible||(expiresAt!==null&&expiresAt<=now))return [];
+  const createdAt=sourceTimestamp(row?.first_seen_at??row?.source_date);
+  return [{
+   code,
+   expiresAt,
+   createdAt,
+   source:row?.admin_added===true?"admin":"kingshot-net-api",
+   adminAdded:row?.admin_added===true,
+   firstSeenAt:typeof row?.first_seen_at==="string"?row.first_seen_at:null
+  }];
+ });
+}
+
 export function decodeHtml(value: unknown): string { return String(value??"").replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;/gi,"'").replace(/&lt;/gi,"<").replace(/&gt;/gi,">"); }
 export function cleanPageLines(html: unknown): string[] { const text=decodeHtml(String(html??"").replace(/<script[\s\S]*?<\/script>/gi," ").replace(/<style[\s\S]*?<\/style>/gi," ").replace(/<\/(?:p|div|section|article|li|h[1-6]|button|a|br|tr|td|header|footer)>/gi,"\n").replace(/<[^>]+>/g," ")); return text.split(/\r?\n/).map(line=>line.replace(/\s+/g," ").trim()).filter(Boolean); }
 export function parseExternalExpiry(value: unknown): number | null { const raw=String(value??"").replace(/(\d)(st|nd|rd|th)\b/gi,"$1").replace(/,/g,"").trim(); const parsed=Date.parse(raw+" 23:59:59 UTC"); return Number.isNaN(parsed)?null:parsed; }
