@@ -1,3 +1,4 @@
+import { summarizeCodeBreakdown } from "./code-accounting.js";
 import { classifyScraperError } from "./scraper.js";
 import { workerBucket, selectWorkerShardBatch } from "./worker-shard-batch.js";
 export { workerBucket, selectWorkerShardBatch };
@@ -62,7 +63,7 @@ export function summarizeWorkerResults(results: WorkerResult[]) {
   const workerErrorDiagnostics: Record<string, any> = {};
   const codeTelemetry: Record<string, any> = {};
   const codeCounts: Record<string, number> = {};
-  const codeBreakdown: Record<string, { attempts:number; successes:number; alreadyReceived:number; alreadyHandled:number; queued:number; failures:number; statuses:Record<string,number> }> = {};
+
 
   for (const result of results) {
     if (result?.redemptionStatus) {
@@ -105,28 +106,16 @@ export function summarizeWorkerResults(results: WorkerResult[]) {
       codeTelemetry[code] = existing;
     }
 
-    for (const [code, count] of Object.entries(result?.handledCodeCounts || {})) {
-      const handled = Number(count || 0);
-      codeCounts[code] = (codeCounts[code] || 0) + handled;
-      const breakdown = codeBreakdown[code] || (codeBreakdown[code] = { attempts:0, successes:0, alreadyReceived:0, alreadyHandled:0, queued:0, failures:0, statuses:{} });
-      breakdown.alreadyHandled += handled;
-    }
+    for (const [code, count] of Object.entries(result?.handledCodeCounts || {})) codeCounts[code] = (codeCounts[code] || 0) + Number(count || 0);
     if (result?.redemptionCode) {
       const code = String(result.redemptionCode);
       const status = String(result.redemptionStatus || "UNKNOWN").toUpperCase();
       codeCounts[code] = codeCounts[code] || 0;
       codeCounts[code + "_status_" + status] = (codeCounts[code + "_status_" + status] || 0) + 1;
-      const breakdown = codeBreakdown[code] || (codeBreakdown[code] = { attempts:0, successes:0, alreadyReceived:0, alreadyHandled:0, queued:0, failures:0, statuses:{} });
-      breakdown.statuses[status] = (breakdown.statuses[status] || 0) + 1;
-      if (status === "QUEUED") breakdown.queued++;
-      else {
-        breakdown.attempts++;
-        if (status === "SUCCESS") breakdown.successes++;
-        else if (status === "RECEIVED" || status === "SAME TYPE EXCHANGE") breakdown.alreadyReceived++;
-        else breakdown.failures++;
-      }
     }
   }
+
+  const codeBreakdown = summarizeCodeBreakdown(results);
 
   for (const value of Object.values(codeTelemetry)) {
     value.avgRedemptionLatencyMs = value.attempts ? Math.round(value.totalRedemptionLatencyMs / value.attempts) : null;
