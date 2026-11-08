@@ -180,7 +180,7 @@ export async function runWorkerShard(
     // Four shards may process up to sixteen player pipelines, while shared reservations pace upstream requests.
     const safeConcurrency = Math.min(4, Math.max(1, Math.floor(options.concurrency || 1)));
     const results = await runWithConcurrency(assigned, player => redeemForPlayer(player, codes), safeConcurrency, { deadline });
-    const totals: Omit<WorkerSummary, "slot" | "players" | "deadlineSkipped"> & { deadlineSkipped: number } = {
+    const totals = {
       ...summarizeWorkerResults(results),
       deadlineSkipped: 0
     };
