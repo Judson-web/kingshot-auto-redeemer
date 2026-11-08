@@ -90,7 +90,7 @@ begin
    if v_err=40008 and v_status like '%RECEIVED%' then v_status:='RECEIVED'; end if;
    if v_err=40011 and v_status like '%SAME TYPE%' then v_status:='SAME TYPE EXCHANGE'; end if;
    if v_err=40007 or v_status='TIME ERROR' then v_status:='TIME_ERROR'; end if;
-   if v_status='NOT LOGIN' then v_status:='LOGIN_EXPIRED_MID_PROCESS'; end if;
+   if v_status in ('NOT LOGIN','LOGIN EXPIRED MID PROCESS') then v_status:='LOGIN_EXPIRED_MID_PROCESS'; end if;
    if v_status='ROLE NOT EXIST' or (v_err=40001 and v_status like '%NOT EXIST%') then v_status:='ROLE_NOT_EXIST'; end if;
    if v_status='STATE MISMATCH' then v_status:='STATE_MISMATCH'; end if;
    if v_status='SIGN ERROR' then v_status:='SIGN_ERROR'; end if;
