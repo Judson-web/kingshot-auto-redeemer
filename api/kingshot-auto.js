@@ -384,6 +384,9 @@ const kingdomState=KINGDOM_AUTO_CHECK_ENABLED
 
  const recoveryClaim=await rpcClient("begin_kingshot_redemption_recovery",{p_player_id:String(player.player_id),p_code:item.code});
  if(!recoveryClaim){await journalCancel(player.player_id,item.code,"Supabase recovery claim declined");return {attempted:0,success:0,alreadyHandled:1,skipped:1,kingdomCheck,kingdomChanged,recoveryBlocked:true};}
+ // Reconciled results retain the redemptionTelemetry contract: codeTelemetry,
+ // firstResultLatencyMs, avgRedemptionLatencyMs and discoveryToResultMs. Queued
+ // items are intentionally not counted as completed upstream attempts.
  // Stage only after both authoritative claims and the Neon intent succeed.
  // The shard submits staged work as one bounded RPC batch.
  secondaryBatch.push({player_id:String(player.player_id),gift_code:item.code,kingdom_id:String(player.kingdom_id)});
