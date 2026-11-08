@@ -24,7 +24,16 @@ export function getHandledGiftCodes(history: unknown): Set<string> {
   if (!Array.isArray(history)) return new Set();
   return new Set(
     history
-      .filter((row) => HANDLED_REDEMPTION_STATUSES.has(normalizeRedemptionStatus(row?.status)))
+      .filter((row) => {
+        const status = normalizeRedemptionStatus(row?.status);
+        const errCode = Number(row?.err_code);
+        // Only the explicit Kingshot TOO FREQUENT response (40019) is safe to
+        // retry after the shared cooldown. Network timeouts (40004), abandoned
+        // PROCESSING claims, and unclassified ERROR rows are uncertain outcomes.
+        if (status === "TIMEOUT RETRY") return errCode !== 40019;
+        if (status === "PROCESSING" || status === "ERROR") return true;
+        return HANDLED_REDEMPTION_STATUSES.has(status);
+      })
       .map((row) => String(row?.gift_code ?? "").trim().toUpperCase())
       .filter(Boolean)
   );
