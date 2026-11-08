@@ -573,7 +573,6 @@ export default async function handler(req,res){
   const codesDiscoveredAt=Date.now();
   console.log("Kingshot auto feed:",{apiActive:data?.data?.activeCount??null,apiCodes:apiCodes.map(x=>x.code),kingshotPageCodes:kingshotPageCodes.map(x=>x.code),adminCodes:adminCodes.map(x=>x.code),merged:codes.map(x=>x.code)});
   const knownCodes=new Set((Array.isArray(adminRows)?adminRows:[]).map(row=>String(row?.code||"").toUpperCase()));
-  const previouslyVerifiedCodes=new Set((Array.isArray(adminRows)?adminRows:[]).filter(row=>row?.validation_status==="verified"&&row?.active!==false&&row?.suppressed!==true).map(row=>String(row?.code||"").trim().toUpperCase()).filter(Boolean));
 
   const persistedCodeRows=await Promise.all(codes.map(item=>rpc("upsert_kingshot_gift_code",{
    p_code:item.code,
@@ -742,21 +741,7 @@ export default async function handler(req,res){
    }
    return {checked:activeCodes.length,consistent,review,expiryKnown};
   })();
-  const newlyAvailableCodes=activeCodes.filter(item=>!previouslyVerifiedCodes.has(item.code.toUpperCase()));
-  if(newlyAvailableCodes.length){
-   // Stable tags make repeat delivery of the same verified batch replace, rather than stack, alerts.
-   const uniqueCodes=[...new Map(newlyAvailableCodes.map(item=>[String(item.code).trim().toUpperCase(),item])).values()];
-   const listed=uniqueCodes.map(item=>item.code).slice(0,3),extra=uniqueCodes.length-listed.length;
-   const sortedKey=uniqueCodes.map(item=>String(item.code).trim().toUpperCase()).sort().join("|");
-   let tagHash=2166136261;for(let i=0;i<sortedKey.length;i++){tagHash^=sortedKey.charCodeAt(i);tagHash=Math.imul(tagHash,16777619)}
-   const tag="gift-codes-"+(tagHash>>>0).toString(36);
-   const title=uniqueCodes.length===1?"🎁 Verified gift code ready":"🎁 "+uniqueCodes.length+" verified gift codes ready";
-   const body=uniqueCodes.length===1
-    ?"Kingshot verification passed for "+listed[0]+". Tap View code to open redemption with the code filled in."
-    :"Ready to redeem: "+listed.join(", ")+(extra>0?" and "+extra+" more":"")+". Tap View codes to redeem.";
-   try{await broadcastPush({title,body,url:"/manual?code="+encodeURIComponent(listed[0]),image:APP_ORIGIN+"/api/og",tag,actions:[{action:"view-codes",title:uniqueCodes.length===1?"View code":"View codes"},{action:"dismiss",title:"Dismiss"}]})}
-   catch(error){console.error("New gift-code push notification failed:",error instanceof Error?error.message:error)}
-  }
+
 
 
   if(kingdomSummary.checked||kingdomSummary.changed||kingdomSummary.stale||kingdomSummary.errors||kingdomSummary.deferred){
@@ -906,6 +891,7 @@ export default async function handler(req,res){
   // evidence wins; player-specific failures and transport errors never
   // invalidate a code globally.
   const validationGroups=new Map();
+  const newlyVerifiedCodes=[];
   for(const item of activeCodes){
    const code=String(item?.code||"").trim().toUpperCase();
    const row=validationRowsByCode.get(code);
@@ -918,7 +904,8 @@ export default async function handler(req,res){
    const codesToUpdate=entries.map(entry=>entry.code);
    const evidence=entries.map(entry=>entry.code+": "+entry.observed.map(x=>x.status+" x"+x.count).join(", ")).join("; ").slice(0,240);
    try{
-    await rpc("set_kingshot_gift_codes_validation",{p_codes:codesToUpdate,p_status:validationStatus,p_player_id:null,p_message:"Automatic verification from definitive Kingshot redemption responses. "+evidence});
+    const updatedCount=await rpc("set_kingshot_gift_codes_validation",{p_codes:codesToUpdate,p_status:validationStatus,p_player_id:null,p_message:"Automatic verification from definitive Kingshot redemption responses. "+evidence});
+    if(validationStatus==="verified"&&Number(updatedCount)>0)newlyVerifiedCodes.push(...codesToUpdate);
     await sendDiscordEvent(buildGiftCodeValidationAlert({
      code:codesToUpdate.join(", "),
      status:validationStatus==="verified"
@@ -930,6 +917,19 @@ export default async function handler(req,res){
    }catch(error){
     console.error("Gift-code validation persistence failed:",{status:validationStatus,count:codesToUpdate.length,message:String(error?.message||error).slice(0,180)});
    }
+  }
+  if(newlyVerifiedCodes.length){
+   const uniqueCodes=[...new Set(newlyVerifiedCodes.map(code=>String(code).trim().toUpperCase()))];
+   const listed=uniqueCodes.slice(0,3),extra=uniqueCodes.length-listed.length;
+   const sortedKey=uniqueCodes.slice().sort().join("|");
+   let tagHash=2166136261;for(let i=0;i<sortedKey.length;i++){tagHash^=sortedKey.charCodeAt(i);tagHash=Math.imul(tagHash,16777619)}
+   const tag="gift-codes-"+(tagHash>>>0).toString(36);
+   const title=uniqueCodes.length===1?"🎁 Verified gift code ready":"🎁 "+uniqueCodes.length+" verified gift codes ready";
+   const body=uniqueCodes.length===1
+    ?"Kingshot confirmed "+listed[0]+" through a real player redemption response. Tap View code to open redemption with the code filled in."
+    :"Kingshot confirmed: "+listed.join(", ")+(extra>0?" and "+extra+" more":"")+". Tap View codes to redeem.";
+   try{await broadcastPush({title,body,url:"/manual?code="+encodeURIComponent(listed[0]),image:APP_ORIGIN+"/api/og",tag,actions:[{action:"view-codes",title:uniqueCodes.length===1?"View code":"View codes"},{action:"dismiss",title:"Dismiss"}]})}
+   catch(error){console.error("New verified gift-code push notification failed:",error instanceof Error?error.message:error)}
   }
   const codeTelemetry=workerRuns.reduce((map,r)=>{
    for(const [code,value] of Object.entries(r?.codeTelemetry||{})){
