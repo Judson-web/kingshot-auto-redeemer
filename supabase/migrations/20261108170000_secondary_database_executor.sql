@@ -12,7 +12,7 @@ begin
   raise exception 'p_items must be an array with at most 100 items';
  end if;
  insert into redemption.queue(player_id,gift_code,kingdom_id,available_at)
- select trim(x->>'player_id'),upper(trim(x->>'gift_code')),nullif(trim(x->>'kingdom_id'),''),
+ select trim(x->>'player_id'),trim(x->>'gift_code'),nullif(trim(x->>'kingdom_id'),''),
         coalesce(nullif(x->>'available_at','')::timestamptz,now())
  from jsonb_array_elements(p_items) x
  where coalesce(trim(x->>'player_id'),'')<>'' and coalesce(trim(x->>'gift_code'),'')<>''
@@ -51,7 +51,7 @@ begin
  for v_item in select * from public.redemption_claim_batch(v_worker,0,1,least(p_limit,100),600)
  loop
   v_fid:=regexp_replace(v_item.player_id,'[^0-9]','','g');
-  v_code:=upper(trim(v_item.gift_code));
+  v_code:=trim(v_item.gift_code);
   v_kid:=regexp_replace(coalesce(v_item.kingdom_id,''),'[^0-9]','','g');
   v_wait:=extract(epoch from (v_item.available_at-clock_timestamp()));
   if v_wait>0 then perform pg_sleep(least(v_wait,600)); end if;
@@ -74,6 +74,9 @@ begin
     ARRAY[
      extensions.http_header('accept','application/json, text/plain, */*'),
      extensions.http_header('accept-language','en-US,en;q=0.9'),
+     extensions.http_header('sec-fetch-dest','empty'),
+     extensions.http_header('sec-fetch-mode','cors'),
+     extensions.http_header('sec-fetch-site','same-origin'),
      extensions.http_header('origin','https://kingshot-giftcode.centurygame.com'),
      extensions.http_header('referer','https://kingshot-giftcode.centurygame.com/'),
      extensions.http_header('user-agent','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36')
@@ -94,6 +97,7 @@ begin
    if v_status='ROLE NOT EXIST' or (v_err=40001 and v_status like '%NOT EXIST%') then v_status:='ROLE_NOT_EXIST'; end if;
    if v_status='STATE MISMATCH' then v_status:='STATE_MISMATCH'; end if;
    if v_status='SIGN ERROR' then v_status:='SIGN_ERROR'; end if;
+   if v_err=40020 or v_status='USER INFO ERROR' then v_status:='USER INFO ERROR'; end if;
    if v_status='TIMEOUT_RETRY' then
     update redemption.queue set state='completed',last_status=v_status,last_error='Upstream asked for retry',
      result=jsonb_build_object('status',v_status,'err_code',v_err,'message',coalesce(v_json->>'msg','Too frequent'),'http_status',v_http.status),
@@ -103,7 +107,7 @@ begin
      on conflict(player_id,gift_code,attempt_no) do update set state='recorded',upstream_status=excluded.upstream_status,err_code=excluded.err_code,message=excluded.message,finished_at=now();
     v_done:=v_done+1;
    elsif v_http.status<200 or v_http.status>=300 or v_json is null or v_status not in
-    ('SUCCESS','RECEIVED','SAME TYPE EXCHANGE','TIME_ERROR','CDK_NOT_FOUND','USAGE_LIMIT','ROLE_NOT_EXIST','STATE_MISMATCH','SIGN_ERROR','LOGIN_EXPIRED_MID_PROCESS') then
+    ('SUCCESS','RECEIVED','SAME TYPE EXCHANGE','TIME_ERROR','CDK_NOT_FOUND','USAGE_LIMIT','ROLE_NOT_EXIST','STATE_MISMATCH','SIGN_ERROR','LOGIN_EXPIRED_MID_PROCESS','USER INFO ERROR') then
     update redemption.queue set state='uncertain',last_status='UPSTREAM_UNCERTAIN',last_error='Unclassified upstream response; outcome requires reconciliation',
      result=jsonb_build_object('http_status',v_http.status,'response_text',left(coalesce(v_http.content,''),500)),
      lease_owner=null,lease_until=null,updated_at=now() where id=v_item.id and lease_owner=v_worker;
@@ -130,7 +134,6 @@ begin
     on conflict(player_id,gift_code,attempt_no) do update set state='uncertain',upstream_status=excluded.upstream_status,message=excluded.message,finished_at=now();
    v_uncertain:=v_uncertain+1;
   end;
-  perform pg_sleep(0.1);
  end loop;
  return jsonb_build_object('claimed',v_done+v_uncertain+v_failed,'completed',v_done,'uncertain',v_uncertain,'invalid',v_failed,'batch_limit',least(p_limit,100));
 end $$;
