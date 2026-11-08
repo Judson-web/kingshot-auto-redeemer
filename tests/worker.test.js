@@ -315,3 +315,13 @@ test("Cloudflare Worker serves the canonical /api/health route natively", () => 
   assert.match(mainWorkerSource, /return handlePublicHealth\(request, env\)/);
   assert.match(mainWorkerSource, /async function handlePublicHealth\(request: Request, env: Env\)/);
 });
+
+test("each redemption shard reads player history individually and fails closed", () => {
+  const start = autoSource.indexOf('if(mode==="worker")');
+  const end = autoSource.indexOf('let authorized=', start);
+  const shard = autoSource.slice(start, end);
+  assert.match(shard, /const shardRpc=rpc/);
+  assert.match(shard, /redeemForPlayer\(player,codes,shardRpc/);
+  assert.doesNotMatch(shard, /historiesByPlayer|list_kingshot_player_redemptions_bulk/);
+  assert.match(autoSource, /const history=await rpcClient\("list_kingshot_player_redemptions"/);
+});
