@@ -48,6 +48,9 @@ declare
  v_wait numeric;
 begin
  if p_limit is null or p_limit<1 then raise exception 'p_limit must be between 1 and 100'; end if;
+ -- Match the original client AbortSignal.timeout(30000) without changing the request signature.
+ perform extensions.http_set_curlopt('CURLOPT_CONNECTTIMEOUT_MS','5000');
+ perform extensions.http_set_curlopt('CURLOPT_TIMEOUT_MS','30000');
  for v_item in select * from public.redemption_claim_batch(v_worker,0,1,least(p_limit,100),600)
  loop
   v_fid:=regexp_replace(v_item.player_id,'[^0-9]','','g');
