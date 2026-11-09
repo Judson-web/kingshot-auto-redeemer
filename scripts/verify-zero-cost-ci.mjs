@@ -4,7 +4,8 @@ import { readFile } from "node:fs/promises";
 const workflow = await readFile(new URL("../.github/workflows/cloudflare-migration-ci.yml", import.meta.url), "utf8");
 const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 
-assert.match(workflow, /supabase\/setup-cli@v1/, "CI must use the local Supabase CLI");
+assert.match(workflow, /Install pinned Supabase CLI with transient-network retries/, "CI must install the pinned local Supabase CLI");
+assert.match(workflow, /supabase_linux_amd64\.tar\.gz/, "CI must install the pinned Linux Supabase CLI binary");
 assert.match(workflow, /supabase start --exclude/, "CI must start disposable local Supabase services");
 assert.match(workflow, /PGHOST: 127\.0\.0\.1/, "PostgreSQL tests must use loopback");
 assert.match(workflow, /PGPORT: 54322/, "Supabase integration must use the local database port");
