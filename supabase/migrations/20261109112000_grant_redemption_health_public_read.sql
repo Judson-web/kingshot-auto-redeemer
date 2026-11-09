@@ -1,0 +1,1 @@
+grant execute on function public.redemption_service_health() to anon;

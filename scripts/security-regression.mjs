@@ -239,7 +239,7 @@ assertCheck(
 assertCheck(
  "Worker health endpoint rejects stale worker state",
  health.includes('rpc/redemption_service_health') &&
- health.includes('SECONDARY_SUPABASE_SERVICE_ROLE_KEY') &&
+ health.includes('SECONDARY_SUPABASE_PUBLISHABLE_KEY') &&
  health.includes('health.healthy?200:503')
 );
 
