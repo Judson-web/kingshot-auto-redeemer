@@ -27,6 +27,9 @@
       "remote": true
     }
   ],
+  "vpc_networks": [
+    { "binding": "EGRESS", "network_id": "cf1:network", "remote": true }
+  ],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",

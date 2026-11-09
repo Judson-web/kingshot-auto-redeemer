@@ -94,7 +94,7 @@ try {
     body => body?.error?.code === "method_not_allowed", { method: "GET" });
   if (remote) {
     await checkJson("/api/internal/v4/webhooks/dispatch", 503,
-      body => body?.error === "secure_egress_unconfigured",
+      body => body?.error === "delivery_secrets_unconfigured",
       { method: "POST", headers: { "content-type": "application/json", authorization: "Bearer smoke-test-not-a-secret" }, body: "{}" });
   }
   if (remote) {
