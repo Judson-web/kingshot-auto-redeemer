@@ -238,8 +238,9 @@ assertCheck(
 );
 assertCheck(
  "Worker health endpoint rejects stale worker state",
- health.includes('state.last_status==="COMPLETED"||state.last_status==="RUNNING"') &&
- health.includes("ageMs<=12*60*1000")
+ health.includes('rpc/redemption_service_health') &&
+ health.includes('SECONDARY_SUPABASE_SERVICE_ROLE_KEY') &&
+ health.includes('health.healthy?200:503')
 );
 
 assertCheck("Worker uses server-only Supabase credential",
