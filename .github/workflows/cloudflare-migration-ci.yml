@@ -112,10 +112,7 @@ jobs:
         run: |
           set -euo pipefail
           archive="$RUNNER_TEMP/supabase-cli.tar.gz"
-          curl --fail --location --silent --show-error \\
-            --retry 6 --retry-all-errors --retry-delay 3 --retry-max-time 180 \\
-            "https://github.com/supabase/cli/releases/download/v2.119.0/supabase_linux_amd64.tar.gz" \\
-            --output "$archive"
+          curl --fail --location --silent --show-error --retry 6 --retry-all-errors --retry-delay 3 --retry-max-time 180 "https://github.com/supabase/cli/releases/download/v2.119.0/supabase_linux_amd64.tar.gz" --output "$archive"
           tar -xzf "$archive" -C "$RUNNER_TEMP"
           sudo install "$RUNNER_TEMP/supabase" /usr/local/bin/supabase
           supabase --version
