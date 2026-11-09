@@ -107,9 +107,18 @@ jobs:
       PGDATABASE: postgres
     steps:
       - uses: actions/checkout@v4
-      - uses: supabase/setup-cli@v1
-        with:
-          version: 2.119.0
+      - name: Install pinned Supabase CLI with transient-network retries
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/supabase-cli.tar.gz"
+          curl --fail --location --silent --show-error \\
+            --retry 6 --retry-all-errors --retry-delay 3 --retry-max-time 180 \\
+            "https://github.com/supabase/cli/releases/download/v2.119.0/supabase_linux_amd64.tar.gz" \\
+            --output "$archive"
+          tar -xzf "$archive" -C "$RUNNER_TEMP"
+          sudo install "$RUNNER_TEMP/supabase" /usr/local/bin/supabase
+          supabase --version
       - name: Isolate the incomplete historical migration chain
         run: |
           mkdir -p /tmp/kingshot-v4-migrations
@@ -133,4 +142,9 @@ jobs:
         run: node scripts/supabase-local-integration.mjs
       - name: Stop disposable Supabase services
         if: always()
-        run: supabase stop
+        run: |
+          if command -v supabase >/dev/null 2>&1; then
+            supabase stop
+          else
+            echo "Supabase CLI was not installed; no local stack was started."
+          fi
