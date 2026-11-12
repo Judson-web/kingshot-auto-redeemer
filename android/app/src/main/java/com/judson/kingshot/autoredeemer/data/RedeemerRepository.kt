@@ -45,6 +45,12 @@ class RedeemerRepository(
         return response.body() ?: throw ApiException("The sign-in service returned an empty response.", response.code())
     }
 
+    suspend fun discordLogout() {
+        val response = api.accountAuth(JsonObject().apply { addProperty("action", "profile-logout") })
+        if (!response.isSuccessful) throw apiException(response, "Could not revoke the Discord session.")
+        storage.remove(AppContainer.PROFILE_COOKIE_STORAGE)
+    }
+
     suspend fun discordProfile(): JsonObject {
         val response = api.accountAuth(JsonObject().apply { addProperty("action", "profile-check") })
         if (!response.isSuccessful) throw apiException(response, "Could not verify your Discord session.")
