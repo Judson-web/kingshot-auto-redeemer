@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
@@ -276,7 +277,18 @@ private fun RedeemScreen(container: AppContainer) {
                         successful = result.ok == true
                         message = result.message ?: result.statusLabel ?: result.status ?: "Request processed."
                     } catch (error: Exception) {
-                        message = error.message ?: "The outcome could not be confirmed. Retry this exact attempt."
+                        val apiError = error as? ApiException
+                        val definitiveFailure = apiError?.retryHint == "do_not_retry" ||
+                            apiError?.status in listOf(400, 401, 404, 415)
+                        if (definitiveFailure) {
+                            container.repository.clearPendingRedemption()
+                            pending = null
+                        }
+                        message = buildString {
+                            append(error.message ?: "The outcome could not be confirmed. Retry this exact attempt.")
+                            apiError?.requestId?.let { append("\nReference: ").append(it) }
+                            if (definitiveFailure) append("\nCorrect the issue before submitting again.")
+                        }
                         successful = false
                     } finally {
                         busy = false
@@ -430,8 +442,13 @@ private fun SettingsScreen(container: AppContainer, apiKeySet: Boolean, onChange
         Divider(color = PanelRaised)
         Text("Where to get a key", color = Ink, fontWeight = FontWeight.Bold)
         Text("Sign in with Discord on the official service website, open Developer API, and create a key. The app never embeds a shared key or asks for your Discord password.", color = Muted, fontSize = 13.sp, lineHeight = 19.sp)
-        Text("https://app.ks-redeemer.workers.dev/developer", color = Mint, fontSize = 12.sp)
+        TextButton(onClick = { runCatching { uriHandler.openUri("https://app.ks-redeemer.workers.dev/developer") } }) {
+            Icon(Icons.Outlined.OpenInNew, contentDescription = null, tint = Mint)
+            Spacer(Modifier.width(8.dp))
+            Text("Open Developer Portal", color = Mint)
+        }
         Divider(color = PanelRaised)
+        Text("App version 1.1.0 · Android", color = Muted, fontSize = 11.sp)
         Text("Production connection", color = Ink, fontWeight = FontWeight.Bold)
         Text(AppContainer.API_BASE_URL, color = Muted, fontSize = 12.sp)
         Text("Automatic redemption continues to run on the existing production workers. This app does not run background redemption jobs.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
