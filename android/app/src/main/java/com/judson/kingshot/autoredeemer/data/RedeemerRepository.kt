@@ -99,7 +99,7 @@ class RedeemerRepository(
                 ?: payload.get("history")
                 ?: root.get("items")
         }
-        val array = candidate?.takeIf(JsonElement::isJsonArray)?.asJsonArray ?: return emptyList()
+        val array = candidate?.takeIf { it.isJsonArray }?.asJsonArray ?: return emptyList()
         return array.mapNotNull { element ->
             if (!element.isJsonObject) return@mapNotNull null
             val item = element.asJsonObject
@@ -159,10 +159,10 @@ class RedeemerRepository(
     private fun apiException(response: Response<*>, fallback: String): ApiException {
         val raw = runCatching { response.errorBody()?.string() }.getOrNull()
         val root = runCatching {
-            raw?.takeIf(String::isNotBlank)?.let(JsonParser::parseString)?.takeIf(JsonElement::isJsonObject)?.asJsonObject
+            raw?.takeIf { it.isNotBlank() }?.let { JsonParser.parseString(it) }?.takeIf { it.isJsonObject }?.asJsonObject
         }.getOrNull()
-        val error = root?.get("error")?.takeIf(JsonElement::isJsonObject)?.asJsonObject
-        val meta = root?.get("meta")?.takeIf(JsonElement::isJsonObject)?.asJsonObject
+        val error = root?.get("error")?.takeIf { it.isJsonObject }?.asJsonObject
+        val meta = root?.get("meta")?.takeIf { it.isJsonObject }?.asJsonObject
         val message = error?.stringValue("message")
             ?: root?.stringValue("error", "message")
             ?: fallback
