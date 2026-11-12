@@ -20,6 +20,37 @@ class RedeemerRepository(
     private val storage: SecureStorage,
     private val gson: Gson
 ) {
+    suspend fun startDiscordSignIn(codeChallenge: String): String {
+        require(codeChallenge.matches(Regex("[A-Za-z0-9_-]{43}"))) { "Invalid sign-in challenge." }
+        val body = JsonObject().apply {
+            addProperty("action", "android-discord-url")
+            addProperty("code_challenge", codeChallenge)
+        }
+        val response = api.accountAuth(body)
+        if (!response.isSuccessful) throw apiException(response, "Could not start Discord sign-in.")
+        return response.body()?.get("url")?.takeIf { it.isJsonPrimitive }?.asString
+            ?: throw ApiException("The sign-in service did not return an authorization URL.", response.code())
+    }
+
+    suspend fun completeDiscordSignIn(code: String, verifier: String): JsonObject {
+        require(code.isNotBlank() && code.length <= 4096) { "Invalid Discord authorization code." }
+        require(verifier.matches(Regex("[A-Za-z0-9._~-]{43,128}"))) { "Sign-in attempt expired. Start again." }
+        val body = JsonObject().apply {
+            addProperty("action", "profile-oauth-exchange")
+            addProperty("code", code)
+            addProperty("code_verifier", verifier)
+        }
+        val response = api.accountAuth(body)
+        if (!response.isSuccessful) throw apiException(response, "Discord sign-in failed.")
+        return response.body() ?: throw ApiException("The sign-in service returned an empty response.", response.code())
+    }
+
+    suspend fun discordProfile(): JsonObject {
+        val response = api.accountAuth(JsonObject().apply { addProperty("action", "profile-check") })
+        if (!response.isSuccessful) throw apiException(response, "Could not verify your Discord session.")
+        return response.body() ?: throw ApiException("The account service returned an empty response.", response.code())
+    }
+
     suspend fun health(): ServiceHealth {
         val response = api.health()
         if (!response.isSuccessful) throw apiException(response, "Service health check failed.")
