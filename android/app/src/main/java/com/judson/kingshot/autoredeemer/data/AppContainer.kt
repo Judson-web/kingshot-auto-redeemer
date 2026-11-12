@@ -24,7 +24,7 @@ class AppContainer(context: Context) {
             val original = chain.request()
             val requestBuilder = original.newBuilder()
                 .header("Accept", "application/json")
-                .header("User-Agent", "KingshotAutoRedeemer-Android/1.2")
+                .header("User-Agent", "KingshotAutoRedeemer-Android/1.3")
             secureStorage.read(PROFILE_COOKIE_STORAGE)?.takeIf(String::isNotBlank)?.let { requestBuilder.header("Cookie", it) }
             if (original.url.encodedPath.startsWith("/api/v4/")) {
                 secureStorage.read(API_KEY_STORAGE)
