@@ -157,8 +157,8 @@ private fun RedeemerApp(container: AppContainer) {
                     IconButton(onClick = { tab = AppTab.HOME; scope.launch { refreshHealth() } }) {
                         Icon(Icons.Outlined.Refresh, contentDescription = "Refresh service status", tint = Muted)
                     }
-                    IconButton(onClick = { tab = AppTab.HOME; /* Settings opens from the home shortcut below. */ }) {
-                        Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = Muted)
+                    IconButton(onClick = { tab = AppTab.PLAYERS }) {
+                        Icon(Icons.Outlined.Settings, contentDescription = "Account and API key", tint = Muted)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Night)
