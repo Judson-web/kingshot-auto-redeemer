@@ -114,3 +114,11 @@ test("Android account UI handles OAuth callback failures and avoids exposing the
   assert.match(activity, /Retry account check/);
   assert.match(activity, /Administration/);
 });
+
+
+test("Android keeps the Discord profile cookie scoped to account endpoints", async () => {
+  const container = await readFile(new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/data/AppContainer.kt", import.meta.url), "utf8");
+  assert.match(container, /original\.url\.encodedPath == "\/api\/kingshot-player"/);
+  assert.match(container, /Set-Cookie/);
+  assert.match(container, /__Host-ks_profile_session=/);
+});
