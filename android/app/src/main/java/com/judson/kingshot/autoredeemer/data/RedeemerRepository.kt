@@ -23,13 +23,39 @@ class RedeemerRepository(
     suspend fun startDiscordSignIn(codeChallenge: String): String {
         require(codeChallenge.matches(Regex("[A-Za-z0-9_-]{43}"))) { "Invalid sign-in challenge." }
         val body = JsonObject().apply {
-            addProperty("action", "android-discord-url")
+            addProperty("action", "profile-discord-url")
             addProperty("code_challenge", codeChallenge)
         }
         val response = api.accountAuth(body)
         if (!response.isSuccessful) throw apiException(response, "Could not start Discord sign-in.")
-        return response.body()?.get("url")?.takeIf { it.isJsonPrimitive }?.asString
+        val rawUrl = response.body()?.get("url")?.takeIf { it.isJsonPrimitive }?.asString
             ?: throw ApiException("The sign-in service did not return an authorization URL.", response.code())
+        val authorization = android.net.Uri.parse(rawUrl)
+        require(authorization.scheme == "https" && authorization.path == "/auth/v1/authorize") {
+            "The sign-in service returned an unsafe authorization URL."
+        }
+        val redirectValue = authorization.getQueryParameter("redirect_to")
+            ?: throw ApiException("The sign-in service returned an incomplete callback URL.", response.code())
+        val redirect = android.net.Uri.parse(redirectValue)
+        require(
+            redirect.scheme == "https" &&
+                redirect.host == "app.ks-redeemer.workers.dev" &&
+                redirect.path == "/profile"
+        ) { "The sign-in service returned an unexpected callback destination." }
+        val nativeRedirect = redirect.buildUpon()
+            .appendQueryParameter("native", "1")
+            .build()
+            .toString()
+        val rebuilt = authorization.buildUpon().clearQuery()
+        authorization.queryParameterNames.forEach { name ->
+            authorization.getQueryParameters(name).forEach { value ->
+                rebuilt.appendQueryParameter(
+                    name,
+                    if (name == "redirect_to") nativeRedirect else value
+                )
+            }
+        }
+        return rebuilt.build().toString()
     }
 
     suspend fun completeDiscordSignIn(code: String, verifier: String): JsonObject {
