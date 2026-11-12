@@ -40,22 +40,11 @@ class RedeemerRepository(
         require(
             redirect.scheme == "https" &&
                 redirect.host == "app.ks-redeemer.workers.dev" &&
-                redirect.path == "/profile"
-        ) { "The sign-in service returned an unexpected callback destination." }
-        val nativeRedirect = redirect.buildUpon()
-            .appendQueryParameter("native", "1")
-            .build()
-            .toString()
-        val rebuilt = authorization.buildUpon().clearQuery()
-        authorization.queryParameterNames.forEach { name ->
-            authorization.getQueryParameters(name).forEach { value ->
-                rebuilt.appendQueryParameter(
-                    name,
-                    if (name == "redirect_to") nativeRedirect else value
-                )
-            }
-        }
-        return rebuilt.build().toString()
+                redirect.path == "/profile" &&
+                redirect.getQueryParameter("native") == "1" &&
+                redirect.getQueryParameter("provider") == "discord"
+        ) { "The sign-in service returned an unexpected native callback destination." }
+        return rawUrl
     }
 
     suspend fun completeDiscordSignIn(code: String, verifier: String): JsonObject {
