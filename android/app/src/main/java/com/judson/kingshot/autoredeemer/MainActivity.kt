@@ -53,17 +53,25 @@ private val Border = Color(0xFF263A2F)
 
 class MainActivity : ComponentActivity() {
     private var authCallback by mutableStateOf<String?>(null)
+    private var authCallbackError by mutableStateOf<String?>(null)
+
+    private fun readAuthCallback(data: Uri?) {
+        val callback = data?.takeIf { it.scheme == "ksredeemer" && it.host == "discord-callback" }
+        authCallback = callback?.getQueryParameter("code")
+        authCallbackError = callback?.getQueryParameter("error")
+            ?: callback?.getQueryParameter("error_description")
+    }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        authCallback = intent.data?.takeIf { it.scheme == "ksredeemer" && it.host == "discord-callback" }?.getQueryParameter("code")
+        readAuthCallback(intent.data)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val container = AppContainer(applicationContext)
-        authCallback = intent.data?.takeIf { it.scheme == "ksredeemer" && it.host == "discord-callback" }?.getQueryParameter("code")
+        readAuthCallback(intent.data)
         setContent {
             MaterialTheme(
                 colorScheme = darkColorScheme(
@@ -80,7 +88,10 @@ class MainActivity : ComponentActivity() {
                 )
             ) {
                 Surface(Modifier.fillMaxSize(), color = Night) {
-                    RedeemerApp(container, authCallback) { authCallback = null }
+                    RedeemerApp(container, authCallback, authCallbackError) {
+                        authCallback = null
+                        authCallbackError = null
+                    }
                 }
             }
         }
@@ -93,7 +104,7 @@ private enum class AppTab(val label: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RedeemerApp(container: AppContainer, authCode: String?, onAuthCodeConsumed: () -> Unit) {
+private fun RedeemerApp(container: AppContainer, authCode: String?, authError: String?, onAuthCodeConsumed: () -> Unit) {
     val scope = rememberCoroutineScope()
     var tab by remember { mutableStateOf(AppTab.HOME) }
     var healthText by remember { mutableStateOf("Connecting to production…") }
@@ -219,7 +230,7 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, onAuthCodeCo
                     apiKeySet = !container.secureStorage.read(AppContainer.API_KEY_STORAGE).isNullOrBlank()
                 }
                 AppTab.HISTORY -> HistoryScreen(container)
-                AppTab.ACCOUNT -> AccountScreen(container, authCode, onAuthCodeConsumed)
+                AppTab.ACCOUNT -> AccountScreen(container, authCode, authError, onAuthCodeConsumed)
             }
         }
     }
@@ -638,7 +649,7 @@ private fun ProfileMetric(label: String, value: String, modifier: Modifier = Mod
 
 
 @Composable
-private fun AccountScreen(container: AppContainer, authCode: String?, onAuthCodeConsumed: () -> Unit) {
+private fun AccountScreen(container: AppContainer, authCode: String?, authError: String?, onAuthCodeConsumed: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
@@ -661,7 +672,15 @@ private fun AccountScreen(container: AppContainer, authCode: String?, onAuthCode
         }
     }
 
-    LaunchedEffect(authCode) {
+    LaunchedEffect(authCode, authError) {
+        val callbackError = authError?.take(300)
+        if (!callbackError.isNullOrBlank()) {
+            error = callbackError
+            message = null
+            runCatching { container.secureStorage.remove(AppContainer.DISCORD_PKCE_STORAGE) }
+            onAuthCodeConsumed()
+            return@LaunchedEffect
+        }
         val code = authCode
         if (code.isNullOrBlank()) {
             refreshProfile()
