@@ -658,15 +658,18 @@ private fun AccountScreen(container: AppContainer, authCode: String?, authError:
     var message by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    suspend fun refreshProfile() {
+    suspend fun refreshProfile(): com.google.gson.JsonObject? {
         checking = true
-        try {
+        return try {
             val result = container.repository.discordProfile()
-            profile = result.takeIf { it.get("authenticated")?.asBoolean == true }
-            if (profile == null) message = "Your account is ready when you are. Connect Discord to continue."
+            val verified = result.takeIf { it.get("authenticated")?.asBoolean == true }
+            profile = verified
+            if (verified == null) message = "Connect Discord to securely link your account."
             error = null
+            verified
         } catch (e: Exception) {
             error = e.message ?: "We couldn't verify your account. Check your connection and retry."
+            null
         } finally {
             checking = false
         }
@@ -675,7 +678,9 @@ private fun AccountScreen(container: AppContainer, authCode: String?, authError:
     LaunchedEffect(authCode, authError) {
         val callbackError = authError?.take(300)
         if (!callbackError.isNullOrBlank()) {
-            error = callbackError
+            error = if (callbackError.contains("access_denied", true) ||
+                callbackError.contains("cancel", true)) "Sign-in was cancelled. You can try again whenever you're ready."
+                else "Discord sign-in could not be completed. $callbackError"
             message = null
             runCatching { container.secureStorage.remove(AppContainer.DISCORD_PKCE_STORAGE) }
             onAuthCodeConsumed()
@@ -689,20 +694,20 @@ private fun AccountScreen(container: AppContainer, authCode: String?, authError:
         busy = true
         checking = false
         error = null
-        message = "Verifying your Discord sign-in…"
+        message = "Verifying your Discord identity securely…"
         try {
             val verifier = container.secureStorage.read(AppContainer.DISCORD_PKCE_STORAGE)
                 ?: throw IllegalStateException("This sign-in attempt expired. Please connect Discord again.")
-            container.repository.completeDiscordSignIn(code, verifier)
-            container.secureStorage.remove(AppContainer.DISCORD_PKCE_STORAGE)
-            refreshProfile()
-            if (profile != null) message = "Discord connected. Your account permissions are verified."
-        } catch (e: Exception) {
-            error = when {
-                e.message?.contains("Only Discord OAuth sign-in", ignoreCase = true) == true ->
-                    "The account service needs its latest sign-in update. Please retry after the service update is deployed."
-                else -> e.message ?: "Discord sign-in could not be completed. Please try again."
+            val exchange = container.repository.completeDiscordSignIn(code, verifier)
+            if (exchange.get("ok")?.asBoolean != true) {
+                throw IllegalStateException(exchange.get("error")?.asString ?: "Discord could not verify this sign-in.")
             }
+            container.secureStorage.remove(AppContainer.DISCORD_PKCE_STORAGE)
+            val verified = refreshProfile()
+            if (verified == null) throw IllegalStateException("Discord signed in, but the account session could not be verified. Please retry.")
+            message = "Discord connected. Your permissions are verified by the production service."
+        } catch (e: Exception) {
+            error = e.message ?: "Discord sign-in could not be completed. Please try again."
             runCatching { container.secureStorage.remove(AppContainer.DISCORD_PKCE_STORAGE) }
         } finally {
             busy = false
@@ -711,74 +716,75 @@ private fun AccountScreen(container: AppContainer, authCode: String?, authError:
     }
 
     val user = profile?.getAsJsonObject("user")
-    val role = profile?.get("role")?.asString
-        ?: user?.get("role")?.asString
-        ?: "guest"
-    val displayName = user?.get("display_name")?.asString
-        ?: user?.get("username")?.asString
-        ?: "Discord user"
-    val discordName = user?.get("discord_username")?.asString
+    val role = profile?.get("role")?.takeUnless { it.isJsonNull }?.asString
+        ?: user?.get("role")?.takeUnless { it.isJsonNull }?.asString
+        ?: "user"
+    val displayName = user?.get("display_name")?.takeUnless { it.isJsonNull }?.asString
+        ?: user?.get("username")?.takeUnless { it.isJsonNull }?.asString
+        ?: "Discord member"
+    val discordName = user?.get("discord_username")?.takeUnless { it.isJsonNull }?.asString
     val roleLabel = when (role) {
         "admin" -> "PROJECT ADMIN"
         "developer" -> "DEVELOPER"
-        "user" -> "STANDARD MEMBER"
-        else -> "GUEST"
+        else -> "STANDARD MEMBER"
     }
 
     ScreenColumn {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text("ACCOUNT CENTRE", color = Mint, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.8.sp)
-                Text("Your account", fontSize = 29.sp, color = Ink, fontWeight = FontWeight.ExtraBold)
-                Text("One Discord identity. Access verified by the server.", fontSize = 13.sp, color = Muted, lineHeight = 19.sp)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("ACCOUNT / IDENTITY", color = Mint, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.6.sp)
+                Text("Your account", fontSize = 28.sp, color = Ink, fontWeight = FontWeight.ExtraBold)
+                Text("One Discord identity. Permissions verified server-side.", fontSize = 12.sp, color = Muted, lineHeight = 17.sp)
             }
             Surface(
-                shape = CircleShape,
-                color = if (profile != null) Color(0xFF173D2A) else PanelRaised,
-                border = androidx.compose.foundation.BorderStroke(1.dp, if (profile != null) Mint.copy(alpha = 0.35f) else Border)
+                shape = RoundedCornerShape(50),
+                color = if (profile != null) Color(0xFF153A29) else PanelRaised,
+                border = androidx.compose.foundation.BorderStroke(1.dp, if (profile != null) Mint.copy(alpha = 0.4f) else Border)
             ) {
                 Row(Modifier.padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(Modifier.size(7.dp).background(if (profile != null) Mint else Muted, CircleShape))
-                    Text(if (checking) "CHECKING" else if (profile != null) "VERIFIED" else "NOT CONNECTED",
-                        color = if (profile != null) Mint else Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    Box(Modifier.size(7.dp).background(if (checking) Warning else if (profile != null) Mint else Muted, CircleShape))
+                    Text(
+                        when { checking -> "CHECKING"; profile != null -> "VERIFIED"; else -> "GUEST" },
+                        color = if (profile != null) Mint else Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
 
         Card(
             colors = CardDefaults.cardColors(containerColor = Panel),
-            shape = RoundedCornerShape(25.dp),
+            shape = RoundedCornerShape(23.dp),
             border = androidx.compose.foundation.BorderStroke(1.dp, Border)
         ) {
-            Column(Modifier.fillMaxWidth().padding(19.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(Modifier.fillMaxWidth().padding(17.dp), verticalArrangement = Arrangement.spacedBy(13.dp)) {
                 if (checking && profile == null) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        CircularProgressIndicator(Modifier.size(24.dp), color = Mint, strokeWidth = 2.dp)
+                        CircularProgressIndicator(Modifier.size(25.dp), color = Mint, strokeWidth = 2.dp)
                         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Text("Checking your session", color = Ink, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                            Text("Securely confirming your account with the service.", color = Muted, fontSize = 12.sp)
+                            Text("Checking account session", color = Ink, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text("Contacting the secure account service.", color = Muted, fontSize = 12.sp)
                         }
                     }
                 } else if (profile == null) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Box(
-                            Modifier.size(48.dp).background(
-                                Brush.linearGradient(listOf(Mint.copy(alpha = 0.22f), Color(0xFF1B4432))),
-                                RoundedCornerShape(16.dp)
+                            Modifier.size(46.dp).background(
+                                Brush.linearGradient(listOf(Mint.copy(alpha = 0.25f), Color(0xFF1B4432))),
+                                RoundedCornerShape(15.dp)
                             ),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Outlined.AccountCircle, contentDescription = null, tint = Mint, modifier = Modifier.size(29.dp))
+                            Icon(Icons.Outlined.AccountCircle, contentDescription = null, tint = Mint, modifier = Modifier.size(28.dp))
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Text("Connect your Discord", color = Ink, fontSize = 19.sp, fontWeight = FontWeight.Bold)
-                            Text("Secure sign-in · No password stored in the app", color = Muted, fontSize = 11.sp)
+                            Text("Link your Discord", color = Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text("Secure OAuth · No password stored", color = Muted, fontSize = 11.sp)
                         }
                     }
                     Text(
-                        "Use Discord to identify your account. The backend checks your identity and assigns the correct access level automatically.",
-                        color = Muted, fontSize = 13.sp, lineHeight = 19.sp
+                        "Sign in with Discord to link your identity. Your access level is looked up from the verified account, never selected on this device.",
+                        color = Muted, fontSize = 12.sp, lineHeight = 18.sp
                     )
                     Button(
                         onClick = {
@@ -788,9 +794,7 @@ private fun AccountScreen(container: AppContainer, authCode: String?, authError:
                                 message = null
                                 try {
                                     val bytes = ByteArray(32).also { SecureRandom().nextBytes(it) }
-                                    val verifier = Base64.encodeToString(
-                                        bytes, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING
-                                    )
+                                    val verifier = Base64.encodeToString(bytes, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
                                     val challenge = Base64.encodeToString(
                                         MessageDigest.getInstance("SHA-256").digest(verifier.toByteArray(Charsets.US_ASCII)),
                                         Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING
@@ -798,7 +802,7 @@ private fun AccountScreen(container: AppContainer, authCode: String?, authError:
                                     container.secureStorage.write(AppContainer.DISCORD_PKCE_STORAGE, verifier)
                                     val url = container.repository.startDiscordSignIn(challenge)
                                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                                    message = "Finish signing in with Discord. You'll return here automatically."
+                                    message = "Continue in Discord. You'll return here automatically."
                                 } catch (e: Exception) {
                                     error = e.message ?: "Could not start Discord sign-in. Please retry."
                                     runCatching { container.secureStorage.remove(AppContainer.DISCORD_PKCE_STORAGE) }
@@ -808,49 +812,46 @@ private fun AccountScreen(container: AppContainer, authCode: String?, authError:
                             }
                         },
                         enabled = !busy && !checking,
-                        modifier = Modifier.fillMaxWidth().height(54.dp),
-                        shape = RoundedCornerShape(17.dp),
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = RoundedCornerShape(15.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Mint, contentColor = Night)
                     ) {
-                        if (busy) CircularProgressIndicator(Modifier.size(19.dp), color = Night, strokeWidth = 2.dp)
+                        if (busy) CircularProgressIndicator(Modifier.size(18.dp), color = Night, strokeWidth = 2.dp)
                         else Icon(Icons.Outlined.Chat, contentDescription = null)
                         Spacer(Modifier.width(9.dp))
                         Text(if (busy) "Preparing secure sign-in…" else "Continue with Discord", fontWeight = FontWeight.Bold)
                     }
-                    Text("You'll be redirected to Discord, then returned to the app after authorization.",
-                        color = Muted, fontSize = 11.sp, lineHeight = 16.sp)
+                    Text("Discord handles your password and authorization. The app receives only a one-time code.",
+                        color = Muted, fontSize = 10.sp, lineHeight = 15.sp)
                 } else {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Box(
-                            Modifier.size(54.dp).background(
-                                Brush.linearGradient(listOf(Mint, Color(0xFF3E9D70))),
-                                CircleShape
-                            ),
+                            Modifier.size(50.dp).background(Brush.linearGradient(listOf(Mint, Color(0xFF3E9D70))), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Outlined.AccountCircle, contentDescription = null, tint = Night, modifier = Modifier.size(35.dp))
+                            Icon(Icons.Outlined.AccountCircle, contentDescription = null, tint = Night, modifier = Modifier.size(32.dp))
                         }
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(displayName, color = Ink, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                            Text(discordName?.let { "@$it" } ?: "Discord identity verified", color = Muted, fontSize = 12.sp)
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(displayName, color = Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text(discordName?.let { "@$it" } ?: "Discord identity connected", color = Muted, fontSize = 11.sp)
                         }
-                        Icon(Icons.Outlined.VerifiedUser, contentDescription = "Verified account", tint = Mint, modifier = Modifier.size(25.dp))
+                        Icon(Icons.Outlined.VerifiedUser, contentDescription = "Verified account", tint = Mint, modifier = Modifier.size(23.dp))
                     }
                     Divider(color = Border)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Surface(color = Color(0xFF173D2A), shape = RoundedCornerShape(9.dp)) {
+                        Surface(color = Color(0xFF173D2A), shape = RoundedCornerShape(8.dp)) {
                             Text(roleLabel, Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                color = Mint, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.6.sp)
+                                color = Mint, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
                         }
-                        Text("Verified by production backend", color = Muted, fontSize = 11.sp)
+                        Text("Verified by production backend", color = Muted, fontSize = 10.sp)
                     }
                     Text(
                         when (role) {
-                            "admin" -> "Administrator permissions are confirmed for this Discord identity."
-                            "developer" -> "Developer access is active for this account."
-                            else -> "Your standard account is connected and ready to use."
+                            "admin" -> "Owner permissions are active for this verified Discord identity."
+                            "developer" -> "Developer access is active. API-key permissions remain controlled by the service."
+                            else -> "Your personal account is connected. Developer access is separate and requires an active API key."
                         },
-                        color = Muted, fontSize = 13.sp, lineHeight = 19.sp
+                        color = Muted, fontSize = 12.sp, lineHeight = 18.sp
                     )
                     OutlinedButton(
                         onClick = {
@@ -860,7 +861,7 @@ private fun AccountScreen(container: AppContainer, authCode: String?, authError:
                                 try {
                                     container.repository.discordLogout()
                                     profile = null
-                                    message = "You have been signed out."
+                                    message = "You have been securely signed out."
                                 } catch (e: Exception) {
                                     error = e.message ?: "Sign-out could not be confirmed. Please retry."
                                 } finally {
@@ -869,11 +870,11 @@ private fun AccountScreen(container: AppContainer, authCode: String?, authError:
                             }
                         },
                         enabled = !busy,
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(15.dp),
+                        modifier = Modifier.fillMaxWidth().height(46.dp),
+                        shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Ink)
                     ) {
-                        if (busy) CircularProgressIndicator(Modifier.size(17.dp), color = Mint, strokeWidth = 2.dp)
+                        if (busy) CircularProgressIndicator(Modifier.size(16.dp), color = Mint, strokeWidth = 2.dp)
                         else Icon(Icons.Outlined.Logout, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
                         Text(if (busy) "Signing out…" else "Sign out")
@@ -883,10 +884,10 @@ private fun AccountScreen(container: AppContainer, authCode: String?, authError:
         }
 
         if (role == "admin" && profile != null) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("ADMINISTRATION", color = Mint, fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 1.4.sp)
-                Text("Control centre", color = Ink, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                Text("Owner-only tools. Each console still verifies your server-side permissions.", color = Muted, fontSize = 12.sp, lineHeight = 17.sp)
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                Text("OWNER CONTROL", color = Mint, fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 1.4.sp)
+                Text("Administration", color = Ink, fontWeight = FontWeight.Bold, fontSize = 19.sp)
+                Text("Restricted tools. Every destination checks your server-side owner session.", color = Muted, fontSize = 11.sp, lineHeight = 16.sp)
                 AdminActionRow("Player database", "Player records and redemption activity", Icons.Outlined.Groups) {
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://app.ks-redeemer.workers.dev/admin/players")))
                 }
@@ -903,12 +904,11 @@ private fun AccountScreen(container: AppContainer, authCode: String?, authError:
         }
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Outlined.Shield, contentDescription = null, tint = Mint, modifier = Modifier.size(18.dp))
-            Text("Access levels are assigned by verified Discord identity. This app cannot grant itself admin privileges.",
-                color = Muted, fontSize = 11.sp, lineHeight = 16.sp)
+            Icon(Icons.Outlined.Shield, contentDescription = null, tint = Mint, modifier = Modifier.size(17.dp))
+            Text("Your role is checked by the backend. This app cannot grant itself administrator access.",
+                color = Muted, fontSize = 10.sp, lineHeight = 15.sp)
         }
-        if (checking) LinearProgressIndicator(Modifier.fillMaxWidth(), color = Mint, trackColor = PanelRaised)
-        message?.let { Text(it, color = Mint, fontSize = 12.sp, lineHeight = 17.sp) }
+        message?.let { Text(it, color = Mint, fontSize = 11.sp, lineHeight = 16.sp) }
         error?.let { NoticeCard(it, Danger) }
         if (!checking && profile == null) {
             TextButton(onClick = { scope.launch { refreshProfile() } }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
