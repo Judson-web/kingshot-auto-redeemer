@@ -22,9 +22,9 @@ The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Production integration
 
-The app connects to `https://app.ks-redeemer.workers.dev/` and uses the existing V4 Developer API for player lookup, manual redemption and redemption history. Public service health and player enrollment use their existing public endpoints.
+The app connects directly to the production Cloudflare origin, `https://app.ks-redeemer.workers.dev/`. It uses `GET /api/kingshot-health` for the live secondary-scheduler health summary, the authenticated V4 Developer API for player lookup, manual redemption and redemption history, and the public `POST /api/kingshot-register` route for enrollment. The Developer API key is attached only to `/api/v4/*` requests, never to public health or registration calls.
 
-Create a Developer API key on the official website at `/developer`, then save it in Settings. The key is encrypted with an AES-GCM key held by Android Keystore. It is never embedded in the APK, written to logs, or placed in a URL.
+Create a Developer API key on the official website at `/developer`, then save it in the Players screen's Developer API key section. The key is encrypted with an AES-GCM key held by Android Keystore. It is never embedded in the APK, written to logs, or placed in a URL.
 
 Manual redemptions use a persistent idempotency key. If the network outcome is ambiguous, the app retains the exact request and key and offers a retry of that same attempt. It does not silently create a second redemption.
 
@@ -40,7 +40,7 @@ Automatic redemption remains entirely server-side. The Android app does not call
 
 ## Automatic signed releases
 
-GitHub Actions publishes an installable, signed APK to GitHub Releases when a version tag matching `android-v*` is pushed (for example, `android-v1.1.0`). Pull requests continue to publish debug APK artifacts only.
+GitHub Actions publishes an installable, signed APK to GitHub Releases when a version tag matching `android-v*` is pushed (for example, `android-v1.2.0`). Pull requests continue to publish debug APK artifacts only.
 
 Kingshot uses its own dedicated release keystore, separate from Atomos Device Bridge. Use `Kingshot-Android-Release-Key.jks` with alias `kingshot-release`. Keep the keystore and a secure offline backup; never commit the keystore or passwords:
 
