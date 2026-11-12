@@ -317,6 +317,13 @@ export async function handleNativeDeveloperAccount(request: Request, env: Env, r
           : { authenticated: true, role, kind: role, activeKeyCount, user }, headers);
       }
 
+      if (action === "profile-logout") {
+        const token = cookie(request, PROFILE_COOKIE) || cookie(request, DEVELOPER_COOKIE);
+        if (token) await rpc(env, "kingshot_developer_account_session_delete", { p_token_hash: await sha(token) });
+        headers.append("Set-Cookie", PROFILE_COOKIE + "=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Strict");
+        return json(200, { ok: true }, headers);
+      }
+
       const pkceActions = new Set(["profile-oauth-exchange", "dev-oauth-exchange"]);
       const tokenActions = new Set(["oauth", "profile-oauth", "dev-verify"]);
       if (!pkceActions.has(action) && !tokenActions.has(action) && action !== "developer-enroll") {
