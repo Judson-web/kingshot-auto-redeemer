@@ -88,7 +88,7 @@ class MainActivity : ComponentActivity() {
 }
 
 private enum class AppTab(val label: String) {
-    HOME("Home"), REDEEM("Redeem"), PLAYERS("Players"), HISTORY("History")
+    HOME("Home"), REDEEM("Redeem"), PLAYERS("Players"), HISTORY("History"), ACCOUNT("Account")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -171,8 +171,8 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, onAuthCodeCo
                     IconButton(onClick = { tab = AppTab.HOME; scope.launch { refreshHealth() } }) {
                         Icon(Icons.Outlined.Refresh, contentDescription = "Refresh service status", tint = Muted)
                     }
-                    IconButton(onClick = { tab = AppTab.PLAYERS }) {
-                        Icon(Icons.Outlined.Settings, contentDescription = "Account and API key", tint = Muted)
+                    IconButton(onClick = { tab = AppTab.ACCOUNT }) {
+                        Icon(Icons.Outlined.AccountCircle, contentDescription = "Account and access", tint = Muted)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Night)
