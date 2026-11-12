@@ -16,20 +16,29 @@ class SecureStorage(context: Context) {
         Context.MODE_PRIVATE
     )
 
+    @Synchronized
     fun read(name: String): String? {
         val stored = preferences.getString(name, null) ?: return null
         return runCatching {
             val parts = stored.split(".")
-            require(parts.size == 2)
+            require(parts.size == 2) { "Invalid encrypted value." }
             val iv = Base64.decode(parts[0], Base64.NO_WRAP)
             val ciphertext = Base64.decode(parts[1], Base64.NO_WRAP)
+            require(iv.size == GCM_IV_LENGTH && ciphertext.isNotEmpty()) { "Invalid encrypted value." }
             val cipher = Cipher.getInstance(TRANSFORMATION)
-            cipher.init(Cipher.DECRYPT_MODE, getOrCreateKey(), GCMParameterSpec(128, iv))
+            cipher.init(Cipher.DECRYPT_MODE, getOrCreateKey(), GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
             String(cipher.doFinal(ciphertext), Charsets.UTF_8)
-        }.getOrNull()
+        }.getOrElse {
+            // A restored or invalidated Keystore key cannot decrypt old ciphertext.
+            // Remove only the unusable value so the user can safely save a fresh key.
+            preferences.edit().remove(name).commit()
+            null
+        }
     }
 
+    @Synchronized
     fun write(name: String, value: String) {
+        require(name.isNotBlank()) { "Storage key cannot be blank." }
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, getOrCreateKey())
         val encrypted = cipher.doFinal(value.toByteArray(Charsets.UTF_8))
@@ -40,8 +49,11 @@ class SecureStorage(context: Context) {
         }
     }
 
+    @Synchronized
     fun remove(name: String) {
-        preferences.edit().remove(name).apply()
+        check(preferences.edit().remove(name).commit()) {
+            "Could not remove the saved value."
+        }
     }
 
     private fun getOrCreateKey(): SecretKey {
@@ -66,5 +78,7 @@ class SecureStorage(context: Context) {
         const val ANDROID_KEY_STORE = "AndroidKeyStore"
         const val KEY_ALIAS = "kingshot_redeemer_secure_storage"
         const val TRANSFORMATION = "AES/GCM/NoPadding"
+        const val GCM_IV_LENGTH = 12
+        const val GCM_TAG_LENGTH_BITS = 128
     }
 }
