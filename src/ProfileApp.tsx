@@ -40,6 +40,10 @@ useEffect(()=>{
  const cleanCallback=()=>{params.delete("code");params.delete("state");params.delete("provider");history.replaceState(null,"",location.pathname+(params.toString()?"?"+params.toString():""))};
  const completeProfileSignIn=(d:any)=>{if(!live)return;const next=d.user?{...d.user,kind:(d.role==="admin"?"admin":d.kind==="developer"?"developer":"user") as "user"|"developer"|"admin",role:d.role||"user"}:null;setAccountState(next);setNotice(t("profile.copy024","Signed in with Discord."));if(["/devsupport","/message","/gift-codes","/admin/players","/admin/maintenance","/alliance-registration","/developer"].includes(returnTo||"")){try{sessionStorage.removeItem("ks-profile-return-to")}catch{}location.assign(returnTo)}};
  if(code){
+  if(new URLSearchParams(window.location.search).get("native")==="1" && code){
+   window.location.replace("ksredeemer://discord-callback?code="+encodeURIComponent(code));
+   return()=>{live=false};
+  }
   cleanCallback();
   if(!verifier){setError(t("profile.signInExpired","This Discord sign-in attempt expired. Please try again."));return()=>{live=false}}
   clearDiscordPkceVerifier();
