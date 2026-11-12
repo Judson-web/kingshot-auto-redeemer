@@ -61,6 +61,7 @@ jobs:
         run: gradle -p android testDebugUnitTest
 
       - name: Build signed release APK
+        id: version
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -72,13 +73,14 @@ jobs:
             VERSION="${{ inputs.version }}"
           fi
           [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]] || { echo "::error::Invalid Android version: $VERSION"; exit 1; }
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           gradle -p android assembleRelease -PappVersion="$VERSION" -PappVersionCode="$GITHUB_RUN_NUMBER"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Kingshot Auto Redeemer v${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'android-v') && github.ref_name || inputs.version }}
-          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('android-v{0}', inputs.version) }}
+          name: Kingshot Auto Redeemer v${{ steps.version.outputs.version }}
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('android-v{0}', steps.version.outputs.version) }}
           generate_release_notes: true
           make_latest: true
           files: android/app/build/outputs/apk/release/app-release.apk
