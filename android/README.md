@@ -42,7 +42,7 @@ Automatic redemption remains entirely server-side. The Android app does not call
 
 GitHub Actions publishes an installable, signed APK to GitHub Releases when a version tag matching `android-v*` is pushed (for example, `android-v1.1.0`). Pull requests continue to publish debug APK artifacts only.
 
-Before the first release, create a dedicated Android upload/release keystore and keep a secure offline backup. Never commit the keystore or passwords:
+Before the first release, reuse the existing Atomos Device Bridge release keystore (`Atomos-Device-Bridge-Release-Key.jks`) with alias `atomos-release`. Do not generate a new key for Kingshot. Keep the original keystore and a secure offline backup; never commit the keystore or passwords:
 
 ```bash
 base64 -w 0 Atomos-Device-Bridge-Release-Key.jks
