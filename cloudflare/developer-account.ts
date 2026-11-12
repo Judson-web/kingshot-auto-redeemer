@@ -206,7 +206,9 @@ function discordAuthorizeUrl(env: Env, action: string, challenge: string): strin
   const base = String(env.SUPABASE_URL || "").replace(/\/$/, "");
   const key = String(env.SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY || "");
   if (!base || !key || !/^[A-Za-z0-9_-]{43}$/.test(challenge)) return null;
-  const destination = action === "dev-oauth-url" || action === "dev-discord-oauth-url"
+  const destination = action === "android-discord-url"
+    ? "https://app.ks-redeemer.workers.dev/profile?provider=discord&native=1"
+    : action === "dev-oauth-url" || action === "dev-discord-oauth-url"
     ? "https://app.ks-redeemer.workers.dev/dev?provider=discord"
     : action === "oauth-url" || action === "discord-oauth-url"
       ? "https://app.ks-redeemer.workers.dev/developer?provider=discord"
@@ -290,7 +292,7 @@ export async function handleNativeDeveloperAccount(request: Request, env: Env, r
     try { body = await request.json() as Json; } catch { return json(400, { error: "Invalid JSON body." }, headers); }
     const action = String(body.action || "");
     try {
-      const startActions = new Set(["profile-discord-url", "site-discord-oauth-url", "dev-oauth-url",
+      const startActions = new Set(["profile-discord-url", "site-discord-oauth-url", "android-discord-url", "dev-oauth-url",
         "dev-discord-oauth-url", "oauth-url", "discord-oauth-url"]);
       if (startActions.has(action)) {
         const authorizeUrl = discordAuthorizeUrl(env, action, String(body.code_challenge || ""));
@@ -313,6 +315,13 @@ export async function handleNativeDeveloperAccount(request: Request, env: Env, r
         return json(200, action === "dev-check"
           ? { authenticated: true, user: { email: user.email, user_name: user.username, username: user.username } }
           : { authenticated: true, role, kind: role, activeKeyCount, user }, headers);
+      }
+
+      if (action === "profile-logout") {
+        const token = cookie(request, PROFILE_COOKIE) || cookie(request, DEVELOPER_COOKIE);
+        if (token) await rpc(env, "kingshot_developer_account_session_delete", { p_token_hash: await sha(token) });
+        headers.append("Set-Cookie", PROFILE_COOKIE + "=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Strict");
+        return json(200, { ok: true }, headers);
       }
 
       const pkceActions = new Set(["profile-oauth-exchange", "dev-oauth-exchange"]);

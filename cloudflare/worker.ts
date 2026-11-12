@@ -732,9 +732,9 @@ export default {
 
     if (incoming.pathname === "/api/kingshot-player") {
       const developerPath = incoming.searchParams.get("developerPath") || incoming.searchParams.get("developer") || "";
-      // Keep the shared profile OAuth/PKCE lifecycle on the legacy adapter until the native
-      // account handler implements profile-check and profile-oauth-exchange. API-key operations
-      // remain native and continue to accept the shared profile session cookie.
+      // Keep Discord profile OAuth and role verification on the native account handler.
+      // It shares the existing Supabase identity and server-side session RPCs.
+      if (developerPath === "account-auth") return handleNativeDeveloperAccount(request, env, "auth");
       if (developerPath === "account-keys") return handleNativeDeveloperAccount(request, env, "keys");
     }
 

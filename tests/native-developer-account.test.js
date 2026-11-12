@@ -2,12 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-test("Cloudflare Worker preserves PKCE profile auth through the legacy adapter while API keys remain native", async () => {
+test("Cloudflare Worker routes Discord PKCE profile auth and API keys through the native account adapter", async () => {
   const router = await readFile(new URL("../cloudflare/worker.ts", import.meta.url), "utf8");
   const legacyApi = await readFile(new URL("../api/kingshot-player.ts", import.meta.url), "utf8");
   const adapter = await readFile(new URL("../cloudflare/developer-account.ts", import.meta.url), "utf8");
   assert.match(router, /handleNativeDeveloperAccount/);
-  assert.doesNotMatch(router, /developerPath === "account-auth"/);
+  assert.match(router, /developerPath === "account-auth"\) return handleNativeDeveloperAccount\(request, env, "auth"\)/);
   assert.match(router, /developerPath === "account-keys"/);
   assert.match(router, /dispatchLegacyApi\(request/);
   assert.match(legacyApi, /developerPath === "account-auth"\) return developerAuth\(req, res\)/);
@@ -22,6 +22,7 @@ test("Cloudflare Worker preserves PKCE profile auth through the legacy adapter w
 test("native Cloudflare auth supports the app's Discord PKCE login and account checks", async () => {
   const adapter = await readFile(new URL("../cloudflare/developer-account.ts", import.meta.url), "utf8");
   assert.match(adapter, /profile-discord-url/);
+  assert.match(adapter, /android-discord-url/);
   assert.match(adapter, /profile-oauth-exchange/);
   assert.match(adapter, /dev-discord-oauth-url/);
   assert.match(adapter, /dev-oauth-exchange/);
@@ -88,4 +89,36 @@ test("native logout reports server-side revocation failures after clearing brows
   assert.match(adapter, /serverSessionRevoked = results\.every/);
   assert.match(adapter, /status: 503|json\(503/);
   assert.match(adapter, /localSessionCleared: true, serverSessionRevoked: false/);
+});
+
+test("Android Discord sign-in uses the dedicated native OAuth action and pins the native callback", async () => {
+  const repository = await readFile(new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/data/RedeemerRepository.kt", import.meta.url), "utf8");
+  const profile = await readFile(new URL("../src/ProfileApp.tsx", import.meta.url), "utf8");
+  assert.match(repository, /addProperty\("action", "android-discord-url"\)/);
+  assert.match(repository, /redirect\.host == "app\.ks-redeemer\.workers\.dev"/);
+  assert.match(repository, /redirect\.getQueryParameter\("native"\) == "1"/);
+  assert.match(repository, /redirect\.getQueryParameter\("provider"\) == "discord"/);
+  assert.match(profile, /nativeCallback && callbackError/);
+  assert.match(profile, /ksredeemer:\/\/discord-callback\?error=/);
+  assert.match(profile, /ksredeemer:\/\/discord-callback\?code=/);
+  assert.doesNotMatch(repository, /addProperty\("action", "profile-discord-url"\)/);
+});
+
+test("Android account UI handles OAuth callback failures and avoids exposing the legacy developer-only warning", async () => {
+  const activity = await readFile(new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/MainActivity.kt", import.meta.url), "utf8");
+  assert.match(activity, /authCallbackError/);
+  assert.match(activity, /LaunchedEffect\(authCode, authError\)/);
+  assert.match(activity, /LaunchedEffect\(Unit\)/);
+  assert.match(activity, /if \(authCode\.isNullOrBlank\(\) && authError\.isNullOrBlank\(\)\) return@LaunchedEffect/);
+  assert.match(activity, /Checking account session/);
+  assert.match(activity, /Retry account check/);
+  assert.match(activity, /Administration/);
+});
+
+
+test("Android keeps the Discord profile cookie scoped to account endpoints", async () => {
+  const container = await readFile(new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/data/AppContainer.kt", import.meta.url), "utf8");
+  assert.match(container, /original\.url\.encodedPath == "\/api\/kingshot-player"/);
+  assert.match(container, /Set-Cookie/);
+  assert.match(container, /__Host-ks_profile_session=/);
 });

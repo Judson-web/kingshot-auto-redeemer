@@ -39,7 +39,17 @@ useEffect(()=>{
  const returnTo=params.get("returnTo") || sessionStorage.getItem("ks-profile-return-to");
  const cleanCallback=()=>{params.delete("code");params.delete("state");params.delete("provider");history.replaceState(null,"",location.pathname+(params.toString()?"?"+params.toString():""))};
  const completeProfileSignIn=(d:any)=>{if(!live)return;const next=d.user?{...d.user,kind:(d.role==="admin"?"admin":d.kind==="developer"?"developer":"user") as "user"|"developer"|"admin",role:d.role||"user"}:null;setAccountState(next);setNotice(t("profile.copy024","Signed in with Discord."));if(["/devsupport","/message","/gift-codes","/admin/players","/admin/maintenance","/alliance-registration","/developer"].includes(returnTo||"")){try{sessionStorage.removeItem("ks-profile-return-to")}catch{}location.assign(returnTo)}};
+ const nativeCallback=params.get("native")==="1";
+ const callbackError=params.get("error_description")||params.get("error");
+ if(nativeCallback && callbackError){
+  window.location.replace("ksredeemer://discord-callback?error="+encodeURIComponent(callbackError.slice(0,300)));
+  return()=>{live=false};
+ }
  if(code){
+  if(nativeCallback){
+   window.location.replace("ksredeemer://discord-callback?code="+encodeURIComponent(code));
+   return()=>{live=false};
+  }
   cleanCallback();
   if(!verifier){setError(t("profile.signInExpired","This Discord sign-in attempt expired. Please try again."));return()=>{live=false}}
   clearDiscordPkceVerifier();
