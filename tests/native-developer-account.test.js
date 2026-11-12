@@ -2,12 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-test("Cloudflare Worker preserves PKCE profile auth through the legacy adapter while API keys remain native", async () => {
+test("Cloudflare Worker routes Discord PKCE profile auth and API keys through the native account adapter", async () => {
   const router = await readFile(new URL("../cloudflare/worker.ts", import.meta.url), "utf8");
   const legacyApi = await readFile(new URL("../api/kingshot-player.ts", import.meta.url), "utf8");
   const adapter = await readFile(new URL("../cloudflare/developer-account.ts", import.meta.url), "utf8");
   assert.match(router, /handleNativeDeveloperAccount/);
-  assert.doesNotMatch(router, /developerPath === "account-auth"/);
+  assert.match(router, /developerPath === "account-auth"\) return handleNativeDeveloperAccount\(request, env, "auth"\)/);
   assert.match(router, /developerPath === "account-keys"/);
   assert.match(router, /dispatchLegacyApi\(request/);
   assert.match(legacyApi, /developerPath === "account-auth"\) return developerAuth\(req, res\)/);
@@ -22,6 +22,7 @@ test("Cloudflare Worker preserves PKCE profile auth through the legacy adapter w
 test("native Cloudflare auth supports the app's Discord PKCE login and account checks", async () => {
   const adapter = await readFile(new URL("../cloudflare/developer-account.ts", import.meta.url), "utf8");
   assert.match(adapter, /profile-discord-url/);
+  assert.match(adapter, /android-discord-url/);
   assert.match(adapter, /profile-oauth-exchange/);
   assert.match(adapter, /dev-discord-oauth-url/);
   assert.match(adapter, /dev-oauth-exchange/);
