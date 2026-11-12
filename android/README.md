@@ -42,20 +42,20 @@ Automatic redemption remains entirely server-side. The Android app does not call
 
 GitHub Actions publishes an installable, signed APK to GitHub Releases when a version tag matching `android-v*` is pushed (for example, `android-v1.1.0`). Pull requests continue to publish debug APK artifacts only.
 
-Before the first release, reuse the existing Atomos Device Bridge release keystore (`Atomos-Device-Bridge-Release-Key.jks`) with alias `atomos-release`. Do not generate a new key for Kingshot. Keep the original keystore and a secure offline backup; never commit the keystore or passwords:
+Kingshot uses its own dedicated release keystore, separate from Atomos Device Bridge. Use `Kingshot-Android-Release-Key.jks` with alias `kingshot-release`. Keep the keystore and a secure offline backup; never commit the keystore or passwords:
 
 ```bash
-base64 -w 0 Atomos-Device-Bridge-Release-Key.jks
+base64 -w 0 Kingshot-Android-Release-Key.jks
 ```
 
 Add these four repository Actions secrets under **Settings → Secrets and variables → Actions**:
 
 - `ANDROID_SIGNING_KEY_BASE64`: the base64 output of the JKS file
 - `ANDROID_SIGNING_STORE_PASSWORD`: keystore password
-- `ANDROID_SIGNING_KEY_ALIAS`: `atomos-release`
+- `ANDROID_SIGNING_KEY_ALIAS`: `kingshot-release`
 - `ANDROID_SIGNING_KEY_PASSWORD`: key password
 
-Keep the keystore and passwords backed up securely. Losing the signing key can prevent users from installing updates over an existing installation. Use the exact same keystore bytes, alias and passwords already used by Atomos Utility Suite. GitHub repository secrets are scoped to a repository, so ensure these same values are configured for this Kingshot repository too, or make them available through an authorized organization-level Actions secret. Secret values cannot be copied or read back through the GitHub API.
+Keep the keystore and passwords backed up securely. Losing the signing key can prevent users from installing updates over an existing installation. Do not reuse the Atomos signing identity. The Kingshot keystore, alias and passwords must remain unique to this app. GitHub repository secrets are scoped to a repository. Secret values cannot be copied or read back through the GitHub API.
 
 After the secrets are configured, push a version tag:
 
