@@ -23,7 +23,7 @@ class RedeemerRepository(
     suspend fun startDiscordSignIn(codeChallenge: String): String {
         require(codeChallenge.matches(Regex("[A-Za-z0-9_-]{43}"))) { "Invalid sign-in challenge." }
         val body = JsonObject().apply {
-            addProperty("action", "profile-discord-url")
+            addProperty("action", "android-discord-url")
             addProperty("code_challenge", codeChallenge)
         }
         val response = api.accountAuth(body)
