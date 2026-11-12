@@ -67,3 +67,17 @@ git push origin android-v1.1.0
 The workflow runs tests, builds the minified release variant, signs it with the configured key, and attaches `app-release.apk` to the GitHub Release. The workflow can also be started manually with a version input. The release job intentionally fails with a clear message if signing secrets are missing; it never falls back to publishing an unsigned or debug APK as a production release.
 
 Version codes are generated from the GitHub Actions run number and version names come from the release tag.
+
+
+## Discord accounts and access levels
+
+Version 1.3 adds native Discord sign-in using the existing Supabase Auth Discord provider and the Cloudflare account service. The app creates a PKCE verifier locally, stores it with Android Keystore-backed encrypted storage, and receives the authorization code through the `ksredeemer://discord-callback` app link. The code is exchanged by the existing backend; the app never embeds the Supabase service-role credential or trusts a client-supplied role.
+
+- Guest: public service health and sign-in entry point.
+- User: verified Discord profile and standard account experience.
+- Developer: existing developer role, based on server-verified active API keys.
+- Admin: the existing owner Discord identity, determined by the backend.
+
+The profile session cookie is stored encrypted on-device and sent only to the configured HTTPS API origin. Signing out revokes the server-side session. Admin shortcuts open the existing web administration pages; those pages may require their own browser sign-in because Android app cookies are not shared with the browser.
+
+The native OAuth callback uses the already configured website profile redirect with a `native=1` handoff. No Discord client secret or Supabase privileged key belongs in the APK. The Worker account-auth route must be deployed with the Android OAuth handoff changes before native sign-in can complete.
