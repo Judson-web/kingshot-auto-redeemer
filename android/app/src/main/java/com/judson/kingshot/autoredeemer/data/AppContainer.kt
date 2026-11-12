@@ -51,5 +51,6 @@ class AppContainer(context: Context) {
         const val API_KEY_STORAGE = "developer_api_key"
         const val PENDING_REDEMPTION_STORAGE = "pending_redemption"
         const val PROFILE_COOKIE_STORAGE = "discord_profile_cookie"
+        const val DISCORD_PKCE_STORAGE = "discord_pkce_verifier"
     }
 }
