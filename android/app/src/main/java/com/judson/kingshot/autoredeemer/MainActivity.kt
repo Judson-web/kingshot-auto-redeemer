@@ -347,6 +347,7 @@ private fun RedeemScreen(container: AppContainer) {
     var message by remember { mutableStateOf<String?>(null) }
     var successful by remember { mutableStateOf<Boolean?>(null) }
     var pending by remember { mutableStateOf(container.repository.pendingRedemption()) }
+    val hasDeveloperKey = !container.secureStorage.read(AppContainer.API_KEY_STORAGE).isNullOrBlank()
     var retryWaitSeconds by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(retryWaitSeconds) {
@@ -358,6 +359,9 @@ private fun RedeemScreen(container: AppContainer) {
 
     ScreenColumn {
         ScreenHeading("Manual redemption", "Send a single request through the production V4 API.")
+        if (!hasDeveloperKey) {
+            NoticeCard("A Developer API key is required for manual redemption. Add one in the Players tab before submitting a code.", Warning)
+        }
         if (pending != null) {
             NoticeCard(
                 "An earlier attempt is unresolved. The app has preserved its exact request and idempotency key. Only retry this same attempt.",
@@ -413,7 +417,7 @@ private fun RedeemScreen(container: AppContainer) {
                     }
                 }
             },
-            enabled = !busy && retryWaitSeconds == 0 &&
+            enabled = hasDeveloperKey && !busy && retryWaitSeconds == 0 &&
                 (pending != null || (playerId.matches(Regex("\\d{5,20}")) &&
                     kingdomId.matches(Regex("\\d{1,10}")) &&
                     code.matches(Regex("[A-Za-z0-9_-]{1,64}")))),
@@ -454,6 +458,9 @@ private fun PlayersScreen(container: AppContainer, onApiKeyChanged: () -> Unit) 
     var busy by remember { mutableStateOf(false) }
     var key by remember { mutableStateOf("") }
     var keySaved by remember { mutableStateOf(false) }
+    var keyConfigured by remember {
+        mutableStateOf(!container.secureStorage.read(AppContainer.API_KEY_STORAGE).isNullOrBlank())
+    }
 
     ScreenColumn {
         ScreenHeading("Players", "Look up player profiles and enroll accounts in the existing server-side workflow.")
@@ -474,7 +481,7 @@ private fun PlayersScreen(container: AppContainer, onApiKeyChanged: () -> Unit) 
                         } finally { busy = false }
                     }
                 },
-                enabled = !busy && playerId.matches(Regex("\\d{5,20}")),
+                enabled = !busy && keyConfigured && playerId.matches(Regex("\\d{5,20}")),
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(14.dp)
             ) { Text(if (busy) "Please wait…" else "Look up") }
@@ -529,11 +536,17 @@ private fun PlayersScreen(container: AppContainer, onApiKeyChanged: () -> Unit) 
         Text("Enrollment adds the player to the existing scheduled workflow. It does not force an immediate redemption. Kingdom ID is optional if you do not have it.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
         OutlinedField("Kingdom ID (optional)", kingdomId, { kingdomId = it.filter(Char::isDigit).take(10) }, keyboardType = KeyboardType.Number)
         OutlinedField("Player name (optional)", playerName, { playerName = it.take(120) })
-        message?.let { NoticeCard(it, if (registration?.registered == true) Mint else Warning) }
+        message?.takeIf { registration == null }?.let { NoticeCard(it, Warning) }
 
         Divider(color = Border)
         Text("Developer API key", color = Ink, fontWeight = FontWeight.Bold, fontSize = 17.sp)
         Text("Create a key in the official Developer Portal. It is encrypted locally with Android Keystore and sent only to V4 API routes.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
+        Text(
+            if (keyConfigured) "A Developer API key is saved securely on this device."
+            else "No key is saved yet. Player registration remains available without one.",
+            color = if (keyConfigured) Mint else Warning,
+            fontSize = 11.sp
+        )
         OutlinedField("Paste Developer API key", key, { key = it.trim() }, password = true)
         Button(
             onClick = {
@@ -543,6 +556,7 @@ private fun PlayersScreen(container: AppContainer, onApiKeyChanged: () -> Unit) 
                     }.onSuccess {
                         key = ""
                         keySaved = true
+                        keyConfigured = true
                         onApiKeyChanged()
                     }.onFailure {
                         message = it.message ?: "Could not securely save the key."
@@ -556,11 +570,11 @@ private fun PlayersScreen(container: AppContainer, onApiKeyChanged: () -> Unit) 
             shape = RoundedCornerShape(14.dp)
         ) { Text("Save key securely") }
         if (keySaved) Text("Developer key saved on this device.", color = Mint, fontSize = 12.sp)
-        if (!container.secureStorage.read(AppContainer.API_KEY_STORAGE).isNullOrBlank()) {
+        if (keyConfigured) {
             OutlinedButton(
                 onClick = {
                     runCatching { container.secureStorage.remove(AppContainer.API_KEY_STORAGE) }
-                        .onSuccess { keySaved = false; onApiKeyChanged(); message = "Saved key removed from this device." }
+                       .onSuccess { keySaved = false; keyConfigured = false; onApiKeyChanged(); message = "Saved key removed from this device." }
                         .onFailure { message = it.message ?: "Could not remove the saved key." }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -613,8 +627,12 @@ private fun HistoryScreen(container: AppContainer) {
     var rows by remember { mutableStateOf(emptyList<RedemptionHistoryItem>()) }
     var message by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
+    val hasDeveloperKey = !container.secureStorage.read(AppContainer.API_KEY_STORAGE).isNullOrBlank()
     ScreenColumn {
         ScreenHeading("Redemption history", "Review recorded outcomes. Reading history never submits a redemption.")
+        if (!hasDeveloperKey) {
+            NoticeCard("A Developer API key with redemption-history access is required. Add one in the Players tab.", Warning)
+        }
         OutlinedField("Player ID", playerId, { playerId = it.filter(Char::isDigit).take(20) }, keyboardType = KeyboardType.Number)
         Button(
             onClick = {
@@ -630,7 +648,7 @@ private fun HistoryScreen(container: AppContainer) {
                     } finally { busy = false }
                 }
             },
-            enabled = !busy && playerId.matches(Regex("\\d{5,20}")),
+            enabled = !busy && hasDeveloperKey && playerId.matches(Regex("\\d{5,20}")),
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(14.dp)
         ) { Text(if (busy) "Loading history…" else "Load history") }
