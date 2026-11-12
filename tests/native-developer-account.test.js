@@ -91,7 +91,7 @@ test("native logout reports server-side revocation failures after clearing brows
   assert.match(adapter, /localSessionCleared: true, serverSessionRevoked: false/);
 });
 
-test("Android Discord sign-in uses the existing compatible profile OAuth action and pins the native callback", async () => {
+test("Android Discord sign-in uses the dedicated native OAuth action and pins the native callback", async () => {
   const repository = await readFile(new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/data/RedeemerRepository.kt", import.meta.url), "utf8");
   const profile = await readFile(new URL("../src/ProfileApp.tsx", import.meta.url), "utf8");
   assert.match(repository, /addProperty\("action", "android-discord-url"\)/);
@@ -108,6 +108,8 @@ test("Android account UI handles OAuth callback failures and avoids exposing the
   const activity = await readFile(new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/MainActivity.kt", import.meta.url), "utf8");
   assert.match(activity, /authCallbackError/);
   assert.match(activity, /LaunchedEffect\(authCode, authError\)/);
+  assert.match(activity, /LaunchedEffect\(Unit\)/);
+  assert.match(activity, /if \(authCode\.isNullOrBlank\(\) && authError\.isNullOrBlank\(\)\) return@LaunchedEffect/);
   assert.match(activity, /Checking account session/);
   assert.match(activity, /Retry account check/);
   assert.match(activity, /Administration/);
