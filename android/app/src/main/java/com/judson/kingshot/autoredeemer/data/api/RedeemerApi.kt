@@ -10,7 +10,7 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface RedeemerApi {
-    @GET("api/health")
+    @GET("api/kingshot-health")
     suspend fun health(): Response<ServiceHealth>
 
     @GET("api/v4/players/{playerId}")
