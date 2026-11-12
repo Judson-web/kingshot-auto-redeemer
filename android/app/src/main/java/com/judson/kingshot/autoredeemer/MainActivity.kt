@@ -675,7 +675,12 @@ private fun AccountScreen(container: AppContainer, authCode: String?, authError:
         }
     }
 
+    LaunchedEffect(Unit) {
+        if (authCode.isNullOrBlank() && authError.isNullOrBlank()) refreshProfile()
+    }
+
     LaunchedEffect(authCode, authError) {
+        if (authCode.isNullOrBlank() && authError.isNullOrBlank()) return@LaunchedEffect
         val callbackError = authError?.take(300)
         if (!callbackError.isNullOrBlank()) {
             error = if (callbackError.contains("access_denied", true) ||
@@ -687,10 +692,7 @@ private fun AccountScreen(container: AppContainer, authCode: String?, authError:
             return@LaunchedEffect
         }
         val code = authCode
-        if (code.isNullOrBlank()) {
-            refreshProfile()
-            return@LaunchedEffect
-        }
+        if (code.isNullOrBlank()) return@LaunchedEffect
         busy = true
         checking = false
         error = null
