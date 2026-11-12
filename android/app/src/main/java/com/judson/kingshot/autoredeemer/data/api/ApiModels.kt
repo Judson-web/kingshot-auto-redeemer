@@ -1,7 +1,5 @@
 package com.judson.kingshot.autoredeemer.data.api
 
-import com.google.gson.annotations.SerializedName
-
 data class ApiEnvelope<T>(
     val success: Boolean = false,
     val data: T? = null,
@@ -18,6 +16,7 @@ data class ApiError(
 )
 
 data class ApiMeta(
+    val apiVersion: String? = null,
     val requestId: String? = null,
     val timestamp: String? = null,
     val stale: Boolean? = null
@@ -53,6 +52,8 @@ data class ServiceHealth(
     val healthy: Boolean? = null,
     val status: String? = null,
     val lastCompletedAt: String? = null,
+    val runningSince: String? = null,
+    val ageSeconds: Long? = null,
     val locked: Boolean? = null
 )
 
@@ -65,5 +66,17 @@ data class RedemptionHistoryItem(
     val playerId: String,
     val code: String,
     val status: String,
-    val createdAt: String
+    val createdAt: String,
+    val errorCode: String? = null,
+    val message: String? = null
+)
+
+data class RegistrationOutcome(
+    val registered: Boolean,
+    val alreadyRegistered: Boolean,
+    val registrationStatus: String?,
+    val kingdomVerified: Boolean?,
+    val verificationPending: Boolean?,
+    val verifiedKingdomId: String?,
+    val message: String
 )
