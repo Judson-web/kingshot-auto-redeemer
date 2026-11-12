@@ -4,8 +4,8 @@ import android.content.Context
 import com.google.gson.Gson
 import com.judson.kingshot.autoredeemer.data.api.RedeemerApi
 import com.judson.kingshot.autoredeemer.data.storage.SecureStorage
-import okhttp3.OkHttpClient
 import okhttp3.Interceptor
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
@@ -19,17 +19,18 @@ class AppContainer(context: Context) {
         .readTimeout(20, TimeUnit.SECONDS)
         .writeTimeout(20, TimeUnit.SECONDS)
         .callTimeout(25, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(false)
         .addInterceptor(Interceptor { chain ->
-            val request = chain.request().newBuilder()
+            val original = chain.request()
+            val requestBuilder = original.newBuilder()
                 .header("Accept", "application/json")
-                .header("User-Agent", "KingshotAutoRedeemer-Android/1.0")
-                .apply {
-                    secureStorage.read(API_KEY_STORAGE)?.takeIf(String::isNotBlank)?.let {
-                        header("Authorization", "Bearer " + it)
-                    }
-                }
-                .build()
-            chain.proceed(request)
+                .header("User-Agent", "KingshotAutoRedeemer-Android/1.2")
+            if (original.url.encodedPath.startsWith("/api/v4/")) {
+                secureStorage.read(API_KEY_STORAGE)
+                    ?.takeIf(String::isNotBlank)
+                    ?.let { requestBuilder.header("Authorization", "Bearer $it") }
+            }
+            chain.proceed(requestBuilder.build())
         })
         .build()
 
