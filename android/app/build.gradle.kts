@@ -12,8 +12,8 @@ android {
         applicationId = "com.judson.kingshot.autoredeemer"
         minSdk = 26
         targetSdk = 35
-        versionCode = providers.gradleProperty("appVersionCode").orElse("3").get().toInt()
-        versionName = providers.gradleProperty("appVersion").orElse("1.2.0").get()
+        versionCode = providers.gradleProperty("appVersionCode").orElse("4").get().toInt()
+        versionName = providers.gradleProperty("appVersion").orElse("1.3.0").get()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
