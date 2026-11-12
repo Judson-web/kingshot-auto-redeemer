@@ -25,12 +25,15 @@ class AppContainer(context: Context) {
             val requestBuilder = original.newBuilder()
                 .header("Accept", "application/json")
                 .header("User-Agent", "KingshotAutoRedeemer-Android/1.2")
+            secureStorage.read(PROFILE_COOKIE_STORAGE)?.takeIf(String::isNotBlank)?.let { requestBuilder.header("Cookie", it) }
             if (original.url.encodedPath.startsWith("/api/v4/")) {
                 secureStorage.read(API_KEY_STORAGE)
                     ?.takeIf(String::isNotBlank)
                     ?.let { requestBuilder.header("Authorization", "Bearer $it") }
             }
-            chain.proceed(requestBuilder.build())
+            val response = chain.proceed(requestBuilder.build())
+            response.headers("Set-Cookie").firstOrNull { it.startsWith("__Host-ks_profile_session=") }?.substringBefore(";")?.let { secureStorage.write(PROFILE_COOKIE_STORAGE, it) }
+            response
         })
         .build()
 
@@ -47,5 +50,6 @@ class AppContainer(context: Context) {
         const val API_BASE_URL = "https://app.ks-redeemer.workers.dev/"
         const val API_KEY_STORAGE = "developer_api_key"
         const val PENDING_REDEMPTION_STORAGE = "pending_redemption"
+        const val PROFILE_COOKIE_STORAGE = "discord_profile_cookie"
     }
 }
