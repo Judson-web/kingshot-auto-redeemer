@@ -1,6 +1,9 @@
 package com.judson.kingshot.autoredeemer
 
 import android.os.Bundle
+import android.content.Intent
+import android.net.Uri
+import android.util.Base64
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -35,6 +38,8 @@ import com.judson.kingshot.autoredeemer.data.api.RedemptionHistoryItem
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.UUID
+import java.security.MessageDigest
+import java.security.SecureRandom
 
 private val Night = Color(0xFF07110D)
 private val Panel = Color(0xFF101D17)
@@ -47,9 +52,18 @@ private val Danger = Color(0xFFFF9292)
 private val Border = Color(0xFF263A2F)
 
 class MainActivity : ComponentActivity() {
+    private var authCallback by mutableStateOf<String?>(null)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        authCallback = intent.data?.takeIf { it.scheme == "ksredeemer" && it.host == "discord-callback" }?.getQueryParameter("code")
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val container = AppContainer(applicationContext)
+        authCallback = intent.data?.takeIf { it.scheme == "ksredeemer" && it.host == "discord-callback" }?.getQueryParameter("code")
         setContent {
             MaterialTheme(
                 colorScheme = darkColorScheme(
@@ -66,7 +80,7 @@ class MainActivity : ComponentActivity() {
                 )
             ) {
                 Surface(Modifier.fillMaxSize(), color = Night) {
-                    RedeemerApp(container)
+                    RedeemerApp(container, authCallback) { authCallback = null }
                 }
             }
         }
@@ -79,7 +93,7 @@ private enum class AppTab(val label: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RedeemerApp(container: AppContainer) {
+private fun RedeemerApp(container: AppContainer, authCode: String?, onAuthCodeConsumed: () -> Unit) {
     val scope = rememberCoroutineScope()
     var tab by remember { mutableStateOf(AppTab.HOME) }
     var healthText by remember { mutableStateOf("Connecting to production…") }
@@ -170,7 +184,8 @@ private fun RedeemerApp(container: AppContainer) {
                     Triple(AppTab.HOME, Icons.Outlined.Dashboard, "Home"),
                     Triple(AppTab.REDEEM, Icons.Outlined.Redeem, "Redeem"),
                     Triple(AppTab.PLAYERS, Icons.Outlined.Groups, "Players"),
-                    Triple(AppTab.HISTORY, Icons.Outlined.History, "History")
+                    Triple(AppTab.HISTORY, Icons.Outlined.History, "History"),
+                    Triple(AppTab.ACCOUNT, Icons.Outlined.AccountCircle, "Account")
                 )
                 items.forEach { (destination, icon, label) ->
                     NavigationBarItem(
@@ -204,6 +219,7 @@ private fun RedeemerApp(container: AppContainer) {
                     apiKeySet = !container.secureStorage.read(AppContainer.API_KEY_STORAGE).isNullOrBlank()
                 }
                 AppTab.HISTORY -> HistoryScreen(container)
+                AppTab.ACCOUNT -> AccountScreen(container, authCode, onAuthCodeConsumed)
             }
         }
     }
@@ -617,6 +633,153 @@ private fun ProfileMetric(label: String, value: String, modifier: Modifier = Mod
     Column(modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
         Text(label, color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp)
         Text(value, color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+
+@Composable
+private fun AccountScreen(container: AppContainer, authCode: String?, onAuthCodeConsumed: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
+    var busy by remember { mutableStateOf(false) }
+    var profile by remember { mutableStateOf<com.google.gson.JsonObject?>(null) }
+    var message by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    suspend fun refreshProfile() {
+        try {
+            val result = container.repository.discordProfile()
+            profile = result.takeIf { it.get("authenticated")?.asBoolean == true }
+            if (profile == null) message = "Sign in with Discord to unlock your account."
+        } catch (e: Exception) { error = e.message ?: "Could not verify account." }
+    }
+
+    LaunchedEffect(Unit) { refreshProfile() }
+    LaunchedEffect(authCode) {
+        val code = authCode ?: return@LaunchedEffect
+        busy = true
+        error = null
+        try {
+            val verifier = container.secureStorage.read(AppContainer.DISCORD_PKCE_STORAGE)
+                ?: throw IllegalStateException("Sign-in attempt expired. Please start again.")
+            container.repository.completeDiscordSignIn(code, verifier)
+            container.secureStorage.remove(AppContainer.DISCORD_PKCE_STORAGE)
+            refreshProfile()
+            message = "Discord account connected."
+        } catch (e: Exception) {
+            error = e.message ?: "Discord sign-in failed."
+            runCatching { container.secureStorage.remove(AppContainer.DISCORD_PKCE_STORAGE) }
+        } finally {
+            busy = false
+            onAuthCodeConsumed()
+        }
+    }
+
+    val user = profile?.getAsJsonObject("user")
+    val role = profile?.get("role")?.asString ?: "guest"
+    ScreenColumn {
+        ScreenHeading("Your account", "One verified Discord identity for your Kingshot Redeemer account.")
+        Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(24.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Border)) {
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                if (profile == null) {
+                    Icon(Icons.Outlined.AccountCircle, contentDescription = null, tint = Mint, modifier = Modifier.size(38.dp))
+                    Text("Connect Discord", color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text("Sign in securely with Discord. Your permissions are checked by the production backend.", color = Muted, fontSize = 13.sp, lineHeight = 19.sp)
+                    Button(onClick = {
+                        scope.launch {
+                            busy = true; error = null
+                            try {
+                                val bytes = ByteArray(32).also { SecureRandom().nextBytes(it) }
+                                val verifier = Base64.encodeToString(bytes, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
+                                val challenge = Base64.encodeToString(
+                                    MessageDigest.getInstance("SHA-256").digest(verifier.toByteArray(Charsets.US_ASCII)),
+                                    Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING
+                                )
+                                container.secureStorage.write(AppContainer.DISCORD_PKCE_STORAGE, verifier)
+                                val url = container.repository.startDiscordSignIn(challenge)
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                            } catch (e: Exception) {
+                                error = e.message ?: "Could not start Discord sign-in."
+                                runCatching { container.secureStorage.remove(AppContainer.DISCORD_PKCE_STORAGE) }
+                            } finally { busy = false }
+                        }
+                    }, enabled = !busy, modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Mint, contentColor = Night)) {
+                        Icon(Icons.Outlined.Chat, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (busy) "Connecting…" else "Continue with Discord", fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    Text("SIGNED IN WITH DISCORD", color = Mint, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                    Text(user?.get("display_name")?.asString ?: user?.get("username")?.asString ?: "Discord user",
+                        color = Ink, fontSize = 23.sp, fontWeight = FontWeight.Bold)
+                    Text(user?.get("discord_username")?.asString?.let { "@$it" } ?: "Verified Discord account",
+                        color = Muted, fontSize = 13.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(if (role == "admin") Icons.Outlined.AdminPanelSettings else Icons.Outlined.VerifiedUser,
+                            contentDescription = null, tint = Mint)
+                        Text(if (role == "admin") "PROJECT ADMINISTRATOR" else if (role == "developer") "DEVELOPER ACCOUNT" else "STANDARD USER",
+                            color = Mint, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Text(if (role == "admin") "Full administrator access is enabled for this verified account."
+                        else "Your account is active. Administrative controls are not available to standard users.",
+                        color = Muted, fontSize = 13.sp, lineHeight = 19.sp)
+                    if (role == "admin") {
+                        Divider(color = Border)
+                        Text("ADMINISTRATION", color = Mint, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.sp)
+                        AdminActionRow("Player database", "Review player records and redemption activity", Icons.Outlined.Groups) {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://app.ks-redeemer.workers.dev/admin/players")))
+                        }
+                        AdminActionRow("Alliance sync", "Manage registered alliance sync configurations", Icons.Outlined.Sync) {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://app.ks-redeemer.workers.dev/admin/alliance-sync")))
+                        }
+                        AdminActionRow("Maintenance", "Open maintenance controls", Icons.Outlined.Build) {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://app.ks-redeemer.workers.dev/admin/maintenance")))
+                        }
+                        AdminActionRow("Support centre", "Review and respond to support requests", Icons.Outlined.SupportAgent) {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://app.ks-redeemer.workers.dev/devsupport")))
+                        }
+                    }
+                    OutlinedButton(onClick = {
+                        scope.launch {
+                            container.secureStorage.remove(AppContainer.PROFILE_COOKIE_STORAGE)
+                            profile = null
+                            message = "Signed out on this device."
+                        }
+                    }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.outlinedButtonColors(contentColor = Ink)) {
+                        Icon(Icons.Outlined.Logout, contentDescription = null)
+                        Spacer(Modifier.width(8.dp)); Text("Sign out")
+                    }
+                }
+            }
+        }
+        if (busy) LinearProgressIndicator(Modifier.fillMaxWidth(), color = Mint)
+        message?.let { Text(it, color = Mint, fontSize = 12.sp) }
+        error?.let { NoticeCard(it, Danger) }
+        Text("Security: roles are returned by the verified backend session. The app never lets users assign themselves administrator access.",
+            color = Muted, fontSize = 11.sp, lineHeight = 17.sp)
+    }
+}
+
+@Composable
+private fun AdminActionRow(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit
+) {
+    Surface(onClick = onClick, color = PanelRaised, shape = RoundedCornerShape(15.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Border), modifier = Modifier.fillMaxWidth()) {
+        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = Mint)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(title, color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                Text(subtitle, color = Muted, fontSize = 11.sp)
+            }
+            Icon(Icons.Outlined.OpenInNew, contentDescription = null, tint = Muted)
+        }
     }
 }
 
