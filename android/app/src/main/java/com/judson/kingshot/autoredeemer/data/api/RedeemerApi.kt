@@ -10,6 +10,9 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface RedeemerApi {
+    @POST("api/kingshot-player?developer=account-auth")
+    suspend fun accountAuth(@Body body: JsonObject): Response<JsonObject>
+
     @GET("api/kingshot-health")
     suspend fun health(): Response<ServiceHealth>
 
