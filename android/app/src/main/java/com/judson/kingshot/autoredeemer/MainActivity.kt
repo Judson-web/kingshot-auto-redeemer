@@ -182,8 +182,7 @@ private fun HomeScreen(
     ScreenColumn {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("YOUR KINGDOM. YOUR REWARDS.", color = Mint, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
-            Text("Everything in
-one place.", color = Ink, fontSize = 32.sp, lineHeight = 36.sp, fontWeight = FontWeight.ExtraBold)
+            Text("Everything in one place.", color = Ink, fontSize = 32.sp, lineHeight = 36.sp, fontWeight = FontWeight.ExtraBold)
             Text("A faster way to keep your Kingshot rewards in reach.", color = Muted, fontSize = 14.sp)
         }
         Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(22.dp)) {
