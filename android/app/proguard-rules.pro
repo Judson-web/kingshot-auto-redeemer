@@ -1,0 +1,3 @@
+-keepattributes Signature
+-keepattributes *Annotation*
+-keep class com.judson.kingshot.autoredeemer.data.api.** { *; }
