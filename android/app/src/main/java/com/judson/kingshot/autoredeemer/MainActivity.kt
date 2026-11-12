@@ -743,9 +743,9 @@ private fun AccountScreen(container: AppContainer, authCode: String?, onAuthCode
                     }
                     OutlinedButton(onClick = {
                         scope.launch {
-                            container.secureStorage.remove(AppContainer.PROFILE_COOKIE_STORAGE)
+                            container.repository.discordLogout()
                             profile = null
-                            message = "Signed out on this device."
+                            message = "Signed out successfully."
                         }
                     }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.outlinedButtonColors(contentColor = Ink)) {
                         Icon(Icons.Outlined.Logout, contentDescription = null)
