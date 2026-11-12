@@ -409,6 +409,7 @@ private fun HistoryScreen(container: AppContainer) {
 
 @Composable
 private fun SettingsScreen(container: AppContainer, apiKeySet: Boolean, onChanged: () -> Unit) {
+    val uriHandler = LocalUriHandler.current
     var key by remember { mutableStateOf("") }
     var message by remember { mutableStateOf<String?>(null) }
     ScreenColumn {
