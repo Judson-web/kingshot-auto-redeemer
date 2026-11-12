@@ -45,18 +45,17 @@ GitHub Actions publishes an installable, signed APK to GitHub Releases when a ve
 Before the first release, create a dedicated Android upload/release keystore and keep a secure offline backup. Never commit the keystore or passwords:
 
 ```bash
-keytool -genkeypair -v -keystore kingshot-android-release.jks -keyalg RSA -keysize 4096 -validity 10000 -alias kingshot-release
-base64 -w 0 kingshot-android-release.jks
+base64 -w 0 Atomos-Device-Bridge-Release-Key.jks
 ```
 
 Add these four repository Actions secrets under **Settings → Secrets and variables → Actions**:
 
-- `ANDROID_KEYSTORE_BASE64`: the base64 output of the JKS file
-- `ANDROID_KEYSTORE_PASSWORD`: keystore password
-- `ANDROID_KEY_ALIAS`: `kingshot-release` (or the alias chosen above)
-- `ANDROID_KEY_PASSWORD`: key password
+- `ANDROID_SIGNING_KEY_BASE64`: the base64 output of the JKS file
+- `ANDROID_SIGNING_STORE_PASSWORD`: keystore password
+- `ANDROID_SIGNING_KEY_ALIAS`: `atomos-release`
+- `ANDROID_SIGNING_KEY_PASSWORD`: key password
 
-Keep the keystore and passwords backed up securely. Losing the signing key can prevent users from installing updates over an existing installation. Do not regenerate it for subsequent releases.
+Keep the keystore and passwords backed up securely. Losing the signing key can prevent users from installing updates over an existing installation. Use the exact same keystore bytes, alias and passwords already used by Atomos Utility Suite. GitHub repository secrets are scoped to a repository, so ensure these same values are configured for this Kingshot repository too, or make them available through an authorized organization-level Actions secret. Secret values cannot be copied or read back through the GitHub API.
 
 After the secrets are configured, push a version tag:
 
