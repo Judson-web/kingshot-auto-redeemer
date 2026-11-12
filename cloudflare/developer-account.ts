@@ -206,7 +206,9 @@ function discordAuthorizeUrl(env: Env, action: string, challenge: string): strin
   const base = String(env.SUPABASE_URL || "").replace(/\/$/, "");
   const key = String(env.SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY || "");
   if (!base || !key || !/^[A-Za-z0-9_-]{43}$/.test(challenge)) return null;
-  const destination = action === "dev-oauth-url" || action === "dev-discord-oauth-url"
+  const destination = action === "android-discord-url"
+    ? "https://app.ks-redeemer.workers.dev/profile?provider=discord&native=1"
+    : action === "dev-oauth-url" || action === "dev-discord-oauth-url"
     ? "https://app.ks-redeemer.workers.dev/dev?provider=discord"
     : action === "oauth-url" || action === "discord-oauth-url"
       ? "https://app.ks-redeemer.workers.dev/developer?provider=discord"
@@ -290,7 +292,7 @@ export async function handleNativeDeveloperAccount(request: Request, env: Env, r
     try { body = await request.json() as Json; } catch { return json(400, { error: "Invalid JSON body." }, headers); }
     const action = String(body.action || "");
     try {
-      const startActions = new Set(["profile-discord-url", "site-discord-oauth-url", "dev-oauth-url",
+      const startActions = new Set(["profile-discord-url", "site-discord-oauth-url", "android-discord-url", "dev-oauth-url",
         "dev-discord-oauth-url", "oauth-url", "discord-oauth-url"]);
       if (startActions.has(action)) {
         const authorizeUrl = discordAuthorizeUrl(env, action, String(body.code_challenge || ""));
