@@ -58,7 +58,7 @@ data class ServiceHealth(
 )
 
 data class PendingRedemption(
-    val idempotencyKey: String,
+    val requestId: String,
     val request: RedemptionRequest
 )
 
