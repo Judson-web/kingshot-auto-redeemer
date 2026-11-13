@@ -295,9 +295,9 @@ private fun MoreScreen(
             border = androidx.compose.foundation.BorderStroke(1.dp, Border)
         ) {
             Column(Modifier.padding(17.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("OFFICIAL WEB EXPERIENCE", color = Mint, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
-                Text("Every tool. One app.", color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Text("These screens use the production website and its existing permission checks. Your app does not need a Developer API key for normal use.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
+                Text("NATIVE APP · SECURE WORKSPACES", color = Mint, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                Text("Your tools, one command centre.", color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("Core player, redemption, alliance and account workflows run natively. Protected specialist consoles open in your browser and retain their existing server-side permission checks.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
             }
         }
         features.groupBy { it.group }.forEach { (group, items) ->
@@ -702,27 +702,36 @@ private fun AllianceSyncAdminScreen(container: AppContainer, onBack: () -> Unit)
 
 @Composable
 private fun NativeFeatureScreen(route: String, onBack: () -> Unit) {
-    val title = when (route) {
-        "/alliance-registration" -> "Alliance registration"
-        "/gift-codes" -> "Gift codes"
-        "/info" -> "Service information"
-        "/profile" -> "Account profile"
-        "/developer" -> "Developer portal"
-        "/dev" -> "Developer workspace"
-        "/devsupport" -> "Developer support"
-        "/push" -> "Notifications"
-        "/message" -> "Custom message"
-        "/admin/players" -> "Player administration"
-        "/admin/alliance-sync" -> "Alliance sync"
-        "/admin/maintenance" -> "Maintenance"
-        else -> "Official tools"
-    }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val destinations = mapOf(
+        "/dev" to ("Developer workspace" to "Private owner workspace, route inventory and API map."),
+        "/devsupport" to ("Developer support" to "Open the protected developer support inbox."),
+        "/push" to ("Push console" to "Compose and send a production push announcement."),
+        "/message" to ("Custom message" to "Create Discord or website announcements and schedules."),
+        "/admin/players" to ("Player administration" to "Review registered players, restrictions and redemption history."),
+        "/admin/maintenance" to ("Maintenance controls" to "Inspect or change the live public maintenance state.")
+    )
+    val destination = destinations[route]
+    val title = destination?.first ?: "Official workspace"
+    val description = destination?.second ?: "Open the corresponding protected production workspace."
+    val target = "https://app.ks-redeemer.workers.dev" + route
     ScreenColumn {
-        ScreenHeading(title, "Native Android workspace")
+        ScreenHeading(title, description)
         NoticeCard(
-            "This feature is being implemented with native Android screens and direct backend calls. It is intentionally not loading the website inside the app. Core native screens for Home, manual redemption, player lookup, registration, account sign-in and optional developer tools remain available.",
+            "This workspace uses the existing production website and its server-side Discord authorization. It opens in your browser, not an embedded WebView. You may be asked to sign in again because browser sessions are separate from the app's native account session.",
             Warning
         )
+        Button(
+            onClick = {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(target))
+                runCatching { context.startActivity(intent) }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Outlined.OpenInBrowser, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("Open $title")
+        }
         OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Outlined.ArrowBack, contentDescription = null)
             Spacer(Modifier.width(8.dp))
