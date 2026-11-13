@@ -24,11 +24,33 @@ test("the Android application does not embed the website", () => {
 test("native app retains backend-backed Discord OAuth and optional developer settings", () => {
   assert.match(activity, /startDiscordSignIn\(challenge\)/);
   assert.match(activity, /completeDiscordSignIn\(code, verifier\)/);
-  assert.match(activity, /Developer API key is only/i);
+  assert.match(activity, /No Developer API key is required/);
+  assert.match(activity, /AllianceRegistrationScreen/);
+  assert.match(activity, /GiftCodesScreen/);
   assert.match(activity, /DeveloperApiSettings\(container\)/);
 });
 
 test("native Explore never silently opens an embedded web route", () => {
   assert.match(activity, /NativeFeatureScreen\(nativeFeature!!\)/);
   assert.match(activity, /being implemented with native Android screens and direct backend calls/);
+});
+
+test("ordinary redemption and player lookup use public endpoints without a developer key", async () => {
+  const apiUrl = new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/data/api/RedeemerApi.kt", import.meta.url);
+  const repoUrl = new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/data/RedeemerRepository.kt", import.meta.url);
+  const api = await readFile(apiUrl, "utf8");
+  const repository = await readFile(repoUrl, "utf8");
+  assert.match(api, /api\/kingshot-player/);
+  assert.match(api, /api\/kingshot-redeem/);
+  assert.match(repository, /api\.publicPlayer\(playerId\)/);
+  assert.match(repository, /api\.publicRedeem\(body\)/);
+  assert.match(repository, /redemption_unresolved/);
+});
+
+test("native alliance and gift-code tools use first-party backend endpoints", async () => {
+  const apiUrl = new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/data/api/RedeemerApi.kt", import.meta.url);
+  const api = await readFile(apiUrl, "utf8");
+  assert.match(api, /api\/kingshot-gift-codes/);
+  assert.match(api, /developerPath=alliance-lookup/);
+  assert.match(api, /developer=alliance-sync/);
 });
