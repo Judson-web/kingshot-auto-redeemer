@@ -126,8 +126,7 @@ class RedeemerRepository(
     suspend fun redeem(attempt: PendingRedemption): RedemptionResult {
         require(PLAYER_ID.matches(attempt.request.playerId)) { "Player ID must contain 5–20 digits." }
         require(KINGDOM_ID.matches(attempt.request.kid)) { "Kingdom ID must contain 1–10 digits." }
-        require(GIFT_CODE.matches(attempt.request.code)) { "Gift code contains unsupported characters." }
-        require(IDEMPOTENCY_KEY.matches(attempt.idempotencyKey)) { "Invalid redemption request reference." }
+        require(PUBLIC_GIFT_CODE.matches(attempt.request.code)) { "Gift codes must contain 6–32 letters, numbers, underscores, or hyphens." }
 
         val body = JsonObject().apply {
             addProperty("playerId", attempt.request.playerId)
@@ -324,7 +323,7 @@ class RedeemerRepository(
         val PLAYER_ID = Regex("\\d{5,20}")
         val KINGDOM_ID = Regex("\\d{1,10}")
         val GIFT_CODE = Regex("[A-Za-z0-9_-]{1,64}")
-        val IDEMPOTENCY_KEY = Regex("[A-Za-z0-9._:-]{8,128}")
+        val PUBLIC_GIFT_CODE = Regex("[A-Za-z0-9_-]{6,32}")
         val ALLIANCE_TAG = Regex("[A-Za-z0-9_-]{1,20}")
     }
 }
