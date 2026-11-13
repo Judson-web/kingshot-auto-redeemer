@@ -196,6 +196,12 @@ class RedeemerRepository(
     }
 
 
+    suspend fun giftCodes(): JsonObject {
+        val response = api.giftCodes()
+        if (!response.isSuccessful) throw apiException(response, "Verified gift codes are unavailable.")
+        return response.body() ?: throw ApiException("Gift-code service returned an empty response.", response.code())
+    }
+
     suspend fun searchAlliances(kingdomId: String, query: String): JsonObject {
         require(KINGDOM_ID.matches(kingdomId)) { "Kingdom ID must contain 1–10 digits." }
         val response = api.allianceLookup(kingdomId, "search", query = query.trim().take(80).ifBlank { null })
