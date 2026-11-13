@@ -768,6 +768,10 @@ private fun RedeemScreen(container: AppContainer) {
                         message = result.message ?: result.statusLabel ?: result.status ?: "Request processed."
                     } catch (error: Exception) {
                         val apiError = error as? ApiException
+                        if (apiError?.retryHint == "do_not_retry" && pending != null) {
+                            pending = pending!!.copy(outcomeNeedsReview = true)
+                            container.repository.savePendingRedemption(pending!!)
+                        }
                         val definitiveFailure = apiError?.retryHint == "do_not_retry" ||
                             (apiError?.retryHint == null && apiError?.status in listOf(400, 401, 404, 415))
                         if (definitiveFailure) {
@@ -791,7 +795,7 @@ private fun RedeemScreen(container: AppContainer) {
                     }
                 }
             },
-            enabled = !busy && retryWaitSeconds == 0 &&
+            enabled = !busy && retryWaitSeconds == 0 && pending?.outcomeNeedsReview != true &&
                 (pending != null || (playerId.matches(Regex("\\d{5,20}")) &&
                     kingdomId.matches(Regex("\\d{1,10}")) &&
                     code.matches(Regex("[A-Za-z0-9_-]{6,32}")))),
@@ -804,6 +808,7 @@ private fun RedeemScreen(container: AppContainer) {
             Text(
                 when {
                     busy -> "Processing securely…"
+                    pending?.outcomeNeedsReview == true -> "Outcome needs review"
                     retryWaitSeconds > 0 -> "Retry available in ${retryWaitSeconds}s"
                     pending != null -> "Retry same attempt"
                     else -> "Redeem code"
