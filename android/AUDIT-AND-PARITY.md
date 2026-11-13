@@ -40,12 +40,10 @@ The official Android app must use the same first-party production backend and pe
 - The Explore catalogue now exposes the website's existing routes from inside the Android shell. Server-side role and authorization checks remain authoritative; hiding a route in the UI is not treated as security.
 - This approach deliberately reuses the production website and backend rather than creating a second implementation of sensitive workflows in Android.
 
-### P1: Web content security
-- The embedded workspace is HTTPS-only and pinned to the production app host for in-app navigation.
-- JavaScript and DOM storage are enabled because the official site is a React application. File/content access and mixed content are disabled; multiple windows and JavaScript-opened windows are disabled.
-- External links are handed to Android's normal URL handler. The app does not expose a JavaScript bridge to website content.
-- The native Discord profile session cookie is copied to Android WebView's cookie store with Secure, HttpOnly, SameSite and root-path attributes. No API key is copied into WebView cookies.
-- OAuth handoff still uses the existing verified native deep link and PKCE flow. The website's own Supabase browser session remains separate from the native profile-session cookie.
+### P1: Native transport security
+- All native API calls use the pinned HTTPS production origin. No WebView or JavaScript bridge is used.
+- The encrypted Discord profile session cookie is attached only to the first-party profile/alliance-sync API path. No cookie or Developer API key is sent to public lookup, redemption or gift-code endpoints.
+- OAuth handoff uses the existing verified native deep link and PKCE flow.
 
 ### P1: Navigation and recovery
 - The native shell retains primary Home, Redeem, Players, History and Account destinations and adds Explore for the wider website feature set.
@@ -61,13 +59,14 @@ The official Android app must use the same first-party production backend and pe
 ## Verification required before production release
 
 1. Android unit tests and debug assembly on JDK 17 / Gradle 8.9.
-2. Manual WebView verification on Android 10 and Android 17: route loading, JavaScript, storage, back navigation, external links, cookie persistence and offline retry.
+2. Manual native workflow verification on Android 10 and Android 17, including navigation, lifecycle, offline retry and rotation.
 3. Discord OAuth round trip on a real device, including cancellation, denial, expired verifier, successful profile check and logout.
-4. Guest checks: automatic redemption page, manual redemption, player lookup, gift-code catalogue, info and alliance registration.
-5. Role checks: standard user cannot access developer/admin operations; developer-only tools remain server-gated; only the owner identity receives admin access.
-6. Regression checks for redemption ambiguity: no silent duplicate retry and no new idempotency key for an unresolved native V4 attempt.
-7. Release-signing workflow must publish a signed release APK only when the repository's signing secrets are configured.
+4. Guest checks: public player lookup, manual redemption, gift-code catalogue and alliance discovery.
+5. Signed-in checks: alliance preview, capacity enforcement, registration, progress and history.
+6. Role checks: standard user cannot access developer/admin operations; developer-only tools remain server-gated; only the owner identity receives admin access.
+7. Redemption ambiguity checks: no blind retries after unresolved outcomes; server-side recovery journal remains authoritative.
+8. Release-signing workflow must publish a signed release APK only after all checks pass.
 
 ## Scope note
 
-This change establishes a parity-first Android shell by embedding the official responsive website for workflows that already exist there. It does not claim that every website page has been rewritten as a fully native Compose screen. Native-first implementations can be introduced incrementally where they add meaningful Android value, while keeping one backend contract and one source of truth.
+The native consumer workflows are implemented without WebView. Private developer and administrative tools are not represented as complete until their backend contracts and native screens are implemented. Unsupported controls are not presented as functional, and privileged operations continue to depend on server-side authorization.
