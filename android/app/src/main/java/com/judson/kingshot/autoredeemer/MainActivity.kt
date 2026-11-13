@@ -447,6 +447,10 @@ private fun AllianceRegistrationScreen(container: AppContainer, onBack: () -> Un
                         selectedTag = tag; busy = true; error = null; notice = null; roster = emptyList(); registered = emptySet()
                         try {
                             val result = container.repository.allianceRoster(kingdom, tag)
+                            if (result.get("stale")?.takeIf { it.isJsonPrimitive }?.asBoolean == true ||
+                                result.get("fresh")?.takeIf { it.isJsonPrimitive }?.asBoolean == false) {
+                                throw IllegalStateException("The provider marked this roster stale. Refresh later; registration is disabled until a fresh roster is available.")
+                            }
                             val rows = result.get("members")?.takeIf { it.isJsonArray }?.asJsonArray
                             roster = rows?.mapNotNull { it.takeIf { item -> item.isJsonObject }?.asJsonObject } ?: emptyList()
                             if (roster.isEmpty()) throw IllegalStateException("The provider returned no usable roster.")
