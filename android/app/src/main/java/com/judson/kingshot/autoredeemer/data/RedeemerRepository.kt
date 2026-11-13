@@ -102,6 +102,10 @@ class RedeemerRepository(
         val returnedId = text("governor_id", "fid", "player_id", "playerId", "id")
         if (returnedId != playerId) throw ApiException("The provider returned a different player ID.", response.code())
         val alliance = player.get("alliance")?.takeIf { it.isJsonObject }?.asJsonObject
+        val frame = runCatching { api.avatarFrame(playerId = playerId).body()?.getAsJsonObject("frame") }.getOrNull()
+        val frameAssetId = frame?.get("assetId")?.takeIf { it.isJsonPrimitive }?.asString
+            ?.takeIf { it.matches(Regex("\\d{6,12}")) }
+        val frameName = frame?.get("name")?.takeIf { it.isJsonPrimitive }?.asString?.take(80)
         return PlayerProfile(
             playerId = returnedId, name = text("nick_name", "name", "nickname", "player_name", "display_name"),
             kingdomId = text("kid", "kingdom_id", "kingdomId"), power = number("power", "total_power", "totalPower"),
