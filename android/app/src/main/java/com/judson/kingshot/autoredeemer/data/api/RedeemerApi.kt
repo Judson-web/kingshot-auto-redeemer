@@ -50,6 +50,19 @@ interface RedeemerApi {
         @Query("ids") ids: String? = null
     ): Response<JsonObject>
 
+    @GET("api/kingshot-alliance-sync")
+    suspend fun allianceSyncList(): Response<JsonObject>
+
+    @GET("api/kingshot-alliance-sync")
+    suspend fun allianceSyncQuery(
+        @Query("action") action: String,
+        @Query("kingdomId") kingdomId: String,
+        @Query("allianceTag") allianceTag: String
+    ): Response<JsonObject>
+
+    @POST("api/kingshot-alliance-sync")
+    suspend fun allianceSyncAction(@Body body: JsonObject): Response<JsonObject>
+
     @POST("api/kingshot-player?developer=alliance-sync")
     suspend fun allianceSync(@Body body: JsonObject): Response<JsonObject>
 
