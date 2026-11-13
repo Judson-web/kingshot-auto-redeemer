@@ -9,7 +9,7 @@ test("official Android primary workflows use the production website rather than 
   assert.match(activity, /AppTab\.HOME -> OfficialWebScreen\("\/", container\)/);
   assert.match(activity, /AppTab\.REDEEM -> OfficialWebScreen\("\/manual", container\)/);
   assert.match(activity, /AppTab\.PLAYERS -> OfficialWebScreen\("\/user", container\)/);
-  assert.match(activity, /Developer API key is \*\*not required\*\*/);
+  assert.match(activity, /does not need a Developer API key for normal use/);
   assert.match(activity, /optional integration/i);
 });
 
