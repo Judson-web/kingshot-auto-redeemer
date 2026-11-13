@@ -973,6 +973,10 @@ private fun PlayersScreen(container: AppContainer, onApiKeyChanged: () -> Unit) 
     var kingdomId by remember { mutableStateOf("") }
     var playerName by remember { mutableStateOf("") }
     var profile by remember { mutableStateOf<PlayerProfile?>(null) }
+    var compareId by remember { mutableStateOf("") }
+    var compareProfile by remember { mutableStateOf<PlayerProfile?>(null) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var recentIds by remember { mutableStateOf(context.getSharedPreferences("player_lookup_history", android.content.Context.MODE_PRIVATE).getString("ids", "").orEmpty().split(",").filter { it.matches(Regex("\\d{5,20}")) }.take(5)) }
     var registration by remember { mutableStateOf<RegistrationOutcome?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
@@ -985,6 +989,14 @@ private fun PlayersScreen(container: AppContainer, onApiKeyChanged: () -> Unit) 
     ScreenColumn {
         ScreenHeading("Players", "Look up player profiles and enroll accounts in the existing server-side workflow. No Developer API key is needed.")
         OutlinedField("Player ID", playerId, { playerId = it.filter(Char::isDigit).take(20) }, keyboardType = KeyboardType.Number)
+        if (recentIds.isNotEmpty()) {
+            Text("RECENT LOOKUPS", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                recentIds.forEach { id ->
+                    AssistChip(onClick = { playerId = id }, label = { Text(id) }, colors = AssistChipDefaults.assistChipColors(labelColor = Ink))
+                }
+            }
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Button(
                 onClick = {
@@ -994,6 +1006,8 @@ private fun PlayersScreen(container: AppContainer, onApiKeyChanged: () -> Unit) 
                         registration = null
                         try {
                             profile = container.repository.lookup(playerId)
+                            recentIds = (listOf(playerId) + recentIds.filterNot { it == playerId }).take(5)
+                            context.getSharedPreferences("player_lookup_history", android.content.Context.MODE_PRIVATE).edit().putString("ids", recentIds.joinToString(",")).apply()
                             message = "Player profile loaded from the public player service."
                         } catch (error: Exception) {
                             profile = null
@@ -1027,6 +1041,31 @@ private fun PlayersScreen(container: AppContainer, onApiKeyChanged: () -> Unit) 
             ) { Text("Register") }
         }
         profile?.let { PlayerCard(it) }
+        if (profile != null) {
+            Divider(color = Border)
+            Text("Compare another player", color = Ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            Text("Load a second profile to compare the available public statistics side by side.", color = Muted, fontSize = 12.sp, lineHeight = 17.sp)
+            OutlinedField("Second player ID", compareId, { compareId = it.filter(Char::isDigit).take(20) }, keyboardType = KeyboardType.Number)
+            OutlinedButton(
+                onClick = {
+                    scope.launch {
+                        busy = true
+                        message = null
+                        try {
+                            compareProfile = container.repository.lookup(compareId)
+                            recentIds = (listOf(compareId) + recentIds.filterNot { it == compareId }).take(5)
+                            context.getSharedPreferences("player_lookup_history", android.content.Context.MODE_PRIVATE).edit().putString("ids", recentIds.joinToString(",")).apply()
+                        } catch (error: Exception) {
+                            compareProfile = null
+                            message = error.message ?: "Could not load comparison profile."
+                        } finally { busy = false }
+                    }
+                },
+                enabled = !busy && compareId.matches(Regex("\\d{5,20}")) && compareId != profile?.playerId,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text(if (busy) "Loading comparison…" else "Compare players") }
+            compareProfile?.let { PlayerComparisonCard(profile!!, it) }
+        }
         registration?.let { outcome ->
             Card(
                 colors = CardDefaults.cardColors(containerColor = Panel),
@@ -1149,6 +1188,32 @@ private fun PlayerCard(profile: PlayerProfile) {
     }
 }
 
+@Composable
+private fun PlayerComparisonCard(first: PlayerProfile, second: PlayerProfile) {
+    Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(20.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Border)) {
+        Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
+            Text("PLAYER COMPARISON", color = Mint, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(first.name ?: first.playerId ?: "Player 1", Modifier.weight(1f), color = Ink, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 2)
+                Text(second.name ?: second.playerId ?: "Player 2", Modifier.weight(1f), color = Ink, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 2)
+            }
+            Divider(color = Border)
+            @Composable fun compare(label: String, a: Long?, b: Long?) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(a?.let { "%,d".format(it) } ?: "—", Modifier.weight(1f), color = if (a != null && b != null && a > b) Mint else Ink, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Text(label, Modifier.weight(1f), color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    Text(b?.let { "%,d".format(it) } ?: "—", Modifier.weight(1f), color = if (a != null && b != null && b > a) Mint else Ink, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                }
+            }
+            compare("POWER", first.power, second.power)
+            compare("KILLS", first.kills, second.kills)
+            compare("DEATHS", first.deaths, second.deaths)
+            compare("ALLIANCE POWER", first.alliancePower, second.alliancePower)
+            Row { Text(first.townCenterLevel?.let { "TC $it" } ?: "TC —", Modifier.weight(1f), color = Muted, fontSize = 11.sp); Text(second.townCenterLevel?.let { "TC $it" } ?: "TC —", color = Muted, fontSize = 11.sp) }
+            Text("Higher reported values are highlighted. Missing provider fields are left blank.", color = Muted, fontSize = 10.sp)
+        }
+    }
+}
 @Composable
 private fun ProfileMetric(label: String, value: String, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
