@@ -1,6 +1,6 @@
 # Kingshot Auto Redeemer for Android
 
-Official Android companion for the Kingshot Auto Redeemer website. Built with Kotlin, Jetpack Compose, Retrofit and Android WebView.
+Official Android companion for the Kingshot Auto Redeemer website. Built with Kotlin, Jetpack Compose and Retrofit. Core screens use native Android UI and call the first-party Cloudflare backend directly.
 
 ## Requirements
 
@@ -22,9 +22,9 @@ The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Official app architecture
 
-The Android app is a native shell around the same production website and Cloudflare backend. Home, manual redemption, player lookup and the Explore catalogue use the official responsive website workflows. This keeps registration, redemption, gift-code, alliance and administration behavior aligned with the website instead of maintaining a second, drifting implementation.
+The Android app uses native Jetpack Compose screens and calls the same production Cloudflare backend as the website. It does not embed the website in a WebView. Home, manual redemption, player lookup, alliance discovery/roster preview/registration, verified gift-code catalogue and Discord account are native. Alliance registration is revalidated by the existing server-side sync handler, which retains the four-alliance kingdom cap and owner bypass.
 
-The embedded workspace is pinned to `https://app.ks-redeemer.workers.dev`. It permits in-app navigation only on that HTTPS host, disables mixed content and file/content access, does not expose a JavaScript bridge, and sends external links to Android's URL handler. The website continues to enforce authorization on the server.
+Native screens communicate with the pinned HTTPS production API. The app does not create a JavaScript bridge or embed remote web content. Backend authorization remains authoritative.
 
 ## Developer API key is optional
 
