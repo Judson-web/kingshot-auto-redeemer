@@ -4,8 +4,15 @@ import android.os.Bundle
 import android.content.Intent
 import android.net.Uri
 import android.util.Base64
+import android.webkit.CookieManager
+import android.webkit.WebResourceRequest
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import android.content.ActivityNotFoundException
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -99,7 +106,7 @@ class MainActivity : ComponentActivity() {
 }
 
 private enum class AppTab(val label: String) {
-    HOME("Home"), REDEEM("Redeem"), PLAYERS("Players"), HISTORY("History"), ACCOUNT("Account")
+    HOME("Home"), REDEEM("Redeem"), PLAYERS("Players"), HISTORY("History"), ACCOUNT("Account"), MORE("More"), KEYS("Developer API")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -113,6 +120,7 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
     var apiKeySet by remember {
         mutableStateOf(!container.secureStorage.read(AppContainer.API_KEY_STORAGE).isNullOrBlank())
     }
+    var webRoute by remember { mutableStateOf<String?>(null) }
 
     suspend fun refreshHealth() {
         refreshing = true
@@ -195,13 +203,12 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
                     Triple(AppTab.HOME, Icons.Outlined.Dashboard, "Home"),
                     Triple(AppTab.REDEEM, Icons.Outlined.Redeem, "Redeem"),
                     Triple(AppTab.PLAYERS, Icons.Outlined.Groups, "Players"),
-                    Triple(AppTab.HISTORY, Icons.Outlined.History, "History"),
-                    Triple(AppTab.ACCOUNT, Icons.Outlined.AccountCircle, "Account")
+                    Triple(AppTab.MORE, Icons.Outlined.Explore, "Explore")
                 )
                 items.forEach { (destination, icon, label) ->
                     NavigationBarItem(
                         selected = tab == destination,
-                        onClick = { tab = destination },
+                        onClick = { tab = destination; if (destination == AppTab.MORE) webRoute = null },
                         icon = { Icon(icon, contentDescription = label) },
                         label = { Text(label, fontSize = 10.sp, fontWeight = FontWeight.SemiBold) },
                         colors = NavigationBarItemDefaults.colors(
@@ -218,20 +225,247 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (tab) {
-                AppTab.HOME -> HomeScreen(
-                    healthText, serviceOnline, apiKeySet, refreshing,
-                    onRefresh = { scope.launch { refreshHealth() } },
-                    onRedeem = { tab = AppTab.REDEEM },
-                    onPlayers = { tab = AppTab.PLAYERS },
-                    onSettings = { tab = AppTab.PLAYERS }
-                )
-                AppTab.REDEEM -> RedeemScreen(container)
-                AppTab.PLAYERS -> PlayersScreen(container) {
-                    apiKeySet = !container.secureStorage.read(AppContainer.API_KEY_STORAGE).isNullOrBlank()
-                }
+                AppTab.HOME -> OfficialWebScreen("/", container)
+                AppTab.REDEEM -> OfficialWebScreen("/manual", container)
+                AppTab.PLAYERS -> OfficialWebScreen("/user", container)
                 AppTab.HISTORY -> HistoryScreen(container)
                 AppTab.ACCOUNT -> AccountScreen(container, authCode, authError, onAuthCodeConsumed)
+                AppTab.MORE -> if (webRoute == null) MoreScreen(
+                    onNavigate = { webRoute = it },
+                    onOpenDeveloperKeys = { tab = AppTab.KEYS },
+                    onOpenApiHistory = { tab = AppTab.HISTORY }
+                ) else OfficialWebScreen(webRoute!!, container)
+                AppTab.KEYS -> DeveloperApiSettings(container) { tab = AppTab.MORE }
             }
+        }
+    }
+}
+
+
+private data class OfficialFeature(
+    val title: String,
+    val description: String,
+    val route: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val group: String
+)
+
+@Composable
+private fun MoreScreen(
+    onNavigate: (String) -> Unit,
+    onOpenDeveloperKeys: () -> Unit,
+    onOpenApiHistory: () -> Unit
+) {
+    val features = listOf(
+        OfficialFeature("Alliance registration", "Register and review alliance members with the official sync workflow.", "/alliance-registration", Icons.Outlined.Groups, "KINGDOM TOOLS"),
+        OfficialFeature("Gift codes", "Browse current and previously published gift codes.", "/gift-codes", Icons.Outlined.CardGiftcard, "KINGDOM TOOLS"),
+        OfficialFeature("Player profiles", "Open the full player profile and lookup experience.", "/user", Icons.Outlined.PersonSearch, "KINGDOM TOOLS"),
+        OfficialFeature("Service information", "How the service works, status guidance and documentation.", "/info", Icons.Outlined.Info, "RESOURCES"),
+        OfficialFeature("Discord account", "Manage your verified account and access level.", "/profile", Icons.Outlined.AccountCircle, "ACCOUNT"),
+        OfficialFeature("Developer portal", "Optional API keys, documentation, usage and integrations.", "/developer", Icons.Outlined.Code, "DEVELOPER"),
+        OfficialFeature("Developer workspace", "Private developer tools and workspace.", "/dev", Icons.Outlined.Terminal, "DEVELOPER"),
+        OfficialFeature("Developer support", "Technical support and developer assistance.", "/devsupport", Icons.Outlined.SupportAgent, "SUPPORT"),
+        OfficialFeature("Push console", "Notification tools and delivery controls.", "/push", Icons.Outlined.Notifications, "ADMINISTRATION"),
+        OfficialFeature("Custom message", "Manage the official Discord message experience.", "/message", Icons.Outlined.Message, "ADMINISTRATION"),
+        OfficialFeature("Player administration", "Administrative player and registration controls.", "/admin/players", Icons.Outlined.ManageAccounts, "ADMINISTRATION"),
+        OfficialFeature("Alliance sync", "Manage alliance synchronization and registration queues.", "/admin/alliance-sync", Icons.Outlined.Sync, "ADMINISTRATION"),
+        OfficialFeature("Maintenance", "Service maintenance and operational controls.", "/admin/maintenance", Icons.Outlined.Build, "ADMINISTRATION")
+    )
+    ScreenColumn {
+        ScreenHeading("Explore", "The complete official Kingshot Redeemer experience, connected to the same live backend as the website.")
+        Card(
+            colors = CardDefaults.cardColors(containerColor = PanelRaised),
+            shape = RoundedCornerShape(22.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Border)
+        ) {
+            Column(Modifier.padding(17.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("OFFICIAL WEB EXPERIENCE", color = Mint, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                Text("Every tool. One app.", color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("These screens use the production website and its existing permission checks. Your app does not need a Developer API key for normal use.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
+            }
+        }
+        features.groupBy { it.group }.forEach { (group, items) ->
+            Text(group, color = Mint, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
+            items.forEach { feature ->
+                Card(
+                    onClick = { onNavigate(feature.route) },
+                    colors = CardDefaults.cardColors(containerColor = Panel),
+                    shape = RoundedCornerShape(17.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Border)
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(13.dp)
+                    ) {
+                        Box(
+                            Modifier.size(42.dp).background(PanelRaised, RoundedCornerShape(13.dp)),
+                            contentAlignment = Alignment.Center
+                        ) { Icon(feature.icon, contentDescription = null, tint = Mint) }
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(feature.title, color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Text(feature.description, color = Muted, fontSize = 11.sp, lineHeight = 16.sp)
+                        }
+                        Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = Muted)
+                    }
+                }
+            }
+        }
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Panel),
+            shape = RoundedCornerShape(17.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Border)
+        ) {
+            Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Text("Optional V4 redemption history", color = Ink, fontWeight = FontWeight.Bold)
+                Text("History through the public V4 Developer API is an optional advanced feature and requires a Developer API key. It is not needed for automatic or manual redemption.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
+                OutlinedButton(onClick = onOpenApiHistory, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Outlined.History, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Open V4 history")
+                }
+            }
+        }
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Panel),
+            shape = RoundedCornerShape(17.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Border)
+        ) {
+            Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Text("Optional Developer API", color = Ink, fontWeight = FontWeight.Bold)
+                Text("A personal API key is only needed when you choose to call the public V4 Developer API from external tools. It is not required for the app's normal workflows.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
+                OutlinedButton(onClick = onOpenDeveloperKeys, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Outlined.Key, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Manage optional API key")
+                }
+            }
+        }
+        Text("Independent community service · Not affiliated with Century Games", color = Muted, fontSize = 10.sp)
+    }
+}
+
+
+@Composable
+private fun DeveloperApiSettings(container: AppContainer, onBack: () -> Unit) {
+    var key by remember { mutableStateOf("") }
+    var configured by remember { mutableStateOf(!container.secureStorage.read(AppContainer.API_KEY_STORAGE).isNullOrBlank()) }
+    var message by remember { mutableStateOf<String?>(null) }
+    ScreenColumn {
+        ScreenHeading("Developer API", "Optional integration for external tools. The official app works without this key.")
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Panel),
+            shape = RoundedCornerShape(20.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Border)
+        ) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Outlined.Key, contentDescription = null, tint = Mint)
+                    Text(if (configured) "Key stored securely on this device" else "No key configured", color = Ink, fontWeight = FontWeight.SemiBold)
+                }
+                Text("This key is only attached to /api/v4 requests made by optional developer integrations. It is not used for the app's official website workspace, Discord account, registration or normal redemption flows.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
+                OutlinedField("Paste Developer API key", key, { key = it.trim() }, password = true)
+                Button(
+                    onClick = {
+                        if (key.matches(Regex("ks_live_[a-f0-9]{64}"))) {
+                            runCatching { container.secureStorage.write(AppContainer.API_KEY_STORAGE, key) }
+                                .onSuccess { key = ""; configured = true; message = "Developer API key saved securely." }
+                                .onFailure { message = it.message ?: "Could not save the key securely." }
+                        } else message = "The key format is not valid."
+                    },
+                    enabled = key.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Save optional key") }
+                if (configured) OutlinedButton(
+                    onClick = {
+                        runCatching { container.secureStorage.remove(AppContainer.API_KEY_STORAGE) }
+                            .onSuccess { configured = false; message = "Saved key removed from this device." }
+                            .onFailure { message = it.message ?: "Could not remove the key." }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Remove key") }
+                message?.let { Text(it, color = Mint, fontSize = 12.sp) }
+            }
+        }
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back to Explore") }
+    }
+}
+
+@Composable
+private fun OfficialWebScreen(route: String, container: AppContainer) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val origin = AppContainer.API_BASE_URL.removeSuffix("/")
+    var webView by remember { mutableStateOf<WebView?>(null) }
+    var pageError by remember { mutableStateOf<String?>(null) }
+    val targetUrl = remember(route) { origin + route }
+    BackHandler(enabled = webView?.canGoBack() == true) {
+        webView?.goBack()
+    }
+    AndroidView(
+        modifier = Modifier.fillMaxSize().background(Night),
+        factory = { viewContext ->
+            WebView(viewContext).apply {
+                webView = this
+                settings.javaScriptEnabled = true
+                settings.domStorageEnabled = true
+                settings.databaseEnabled = true
+                settings.loadsImagesAutomatically = true
+                settings.javaScriptCanOpenWindowsAutomatically = false
+                settings.setSupportMultipleWindows(false)
+                settings.allowFileAccess = false
+                settings.allowContentAccess = false
+                settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                settings.safeBrowsingEnabled = true
+                CookieManager.getInstance().setAcceptCookie(true)
+                container.secureStorage.read(AppContainer.PROFILE_COOKIE_STORAGE)
+                    ?.takeIf(String::isNotBlank)
+                    ?.let { savedCookie ->
+                        CookieManager.getInstance().setCookie(
+                            origin,
+                            "$savedCookie; Path=/; Secure; HttpOnly; SameSite=Strict"
+                        )
+                        CookieManager.getInstance().flush()
+                    }
+                webViewClient = object : WebViewClient() {
+                    override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                        val uri = request.url
+                        if (uri.scheme == "https" && uri.host == android.net.Uri.parse(origin).host) return false
+                        return try {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                            true
+                        } catch (_: ActivityNotFoundException) {
+                            true
+                        }
+                    }
+
+                    override fun onPageFinished(view: WebView, url: String) {
+                        pageError = null
+                        CookieManager.getInstance().flush()
+                    }
+
+                    override fun onReceivedError(
+                        view: WebView,
+                        request: WebResourceRequest,
+                        error: android.webkit.WebResourceError
+                    ) {
+                        if (request.isForMainFrame) pageError = "The official workspace could not be loaded. Check your connection and retry."
+                    }
+                }
+                loadUrl(targetUrl)
+            }
+        },
+        update = { view ->
+            webView = view
+            if (view.url != targetUrl) view.loadUrl(targetUrl)
+        }
+    )
+    pageError?.let { message ->
+        Column(
+            Modifier.fillMaxWidth().padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            NoticeCard(message, Warning)
+            OutlinedButton(onClick = { webView?.reload() }) { Text("Retry") }
         }
     }
 }
@@ -952,9 +1186,9 @@ private fun HistoryScreen(container: AppContainer) {
     var busy by remember { mutableStateOf(false) }
     val hasDeveloperKey = !container.secureStorage.read(AppContainer.API_KEY_STORAGE).isNullOrBlank()
     ScreenColumn {
-        ScreenHeading("Redemption history", "Review recorded outcomes. Reading history never submits a redemption.")
+        ScreenHeading("V4 redemption history", "Optional Developer API feature. Reading history never submits a redemption.")
         if (!hasDeveloperKey) {
-            NoticeCard("A Developer API key with redemption-history access is required. Add one in the Players tab.", Warning)
+            NoticeCard("A Developer API key with redemption-history access is required. You can add one from Explore → Optional Developer API.", Warning)
         }
         OutlinedField("Player ID", playerId, { playerId = it.filter(Char::isDigit).take(20) }, keyboardType = KeyboardType.Number)
         Button(
