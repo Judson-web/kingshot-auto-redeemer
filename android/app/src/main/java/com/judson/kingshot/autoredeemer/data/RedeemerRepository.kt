@@ -227,6 +227,36 @@ class RedeemerRepository(
         return rows.mapNotNull { it.takeIf { value -> value.isJsonPrimitive }?.asString }.toSet()
     }
 
+
+    suspend fun allianceSyncConfigs(): List<JsonObject> {
+        val response = api.allianceSyncList()
+        if (!response.isSuccessful) throw apiException(response, "Could not load alliance sync configurations.")
+        val rows = response.body()?.get("configs")?.takeIf { it.isJsonArray }?.asJsonArray
+            ?: throw ApiException("Alliance sync service returned an invalid configuration list.", response.code())
+        return rows.mapNotNull { it.takeIf { value -> value.isJsonObject }?.asJsonObject }
+    }
+
+    suspend fun allianceSyncAction(action: String, id: String): JsonObject {
+        require(action in setOf("pause", "resume", "sync")) { "Unsupported alliance sync action." }
+        require(id.matches(Regex("[0-9a-fA-F-]{36}"))) { "Choose a valid alliance configuration." }
+        val body = JsonObject().apply { addProperty("action", action); addProperty("id", id) }
+        val response = api.allianceSyncAction(body)
+        if (!response.isSuccessful) throw apiException(response, "Alliance sync action failed.")
+        return response.body() ?: throw ApiException("Alliance sync service returned an empty response.", response.code())
+    }
+
+    suspend fun allianceSyncProgress(kingdomId: String, tag: String): JsonObject {
+        val response = api.allianceSyncQuery("progress", kingdomId, tag)
+        if (!response.isSuccessful) throw apiException(response, "Could not load alliance sync progress.")
+        return response.body() ?: throw ApiException("Alliance sync service returned an empty response.", response.code())
+    }
+
+    suspend fun allianceSyncHistory(kingdomId: String, tag: String): JsonObject {
+        val response = api.allianceSyncQuery("history", kingdomId, tag)
+        if (!response.isSuccessful) throw apiException(response, "Could not load alliance sync history.")
+        return response.body() ?: throw ApiException("Alliance sync service returned an empty response.", response.code())
+    }
+
     suspend fun registerAlliance(kingdomId: String, tag: String): JsonObject {
         require(KINGDOM_ID.matches(kingdomId) && ALLIANCE_TAG.matches(tag)) { "Check the kingdom ID and alliance tag." }
         val body = JsonObject().apply {
