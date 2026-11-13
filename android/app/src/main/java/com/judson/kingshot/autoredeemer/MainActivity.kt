@@ -209,7 +209,7 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
                 items.forEach { (destination, icon, label) ->
                     NavigationBarItem(
                         selected = tab == destination,
-                        onClick = { tab = destination },
+                        onClick = { tab = destination; if (destination == AppTab.MORE) webRoute = null },
                         icon = { Icon(icon, contentDescription = label) },
                         label = { Text(label, fontSize = 10.sp, fontWeight = FontWeight.SemiBold) },
                         colors = NavigationBarItemDefaults.colors(
