@@ -1,5 +1,7 @@
 package com.judson.kingshot.autoredeemer.data.api
 
+import com.google.gson.annotations.SerializedName
+
 data class ApiEnvelope<T>(
     val success: Boolean = false,
     val data: T? = null,
@@ -58,8 +60,10 @@ data class ServiceHealth(
 )
 
 data class PendingRedemption(
-    val idempotencyKey: String,
-    val request: RedemptionRequest
+    @SerializedName(value = "requestId", alternate = ["idempotencyKey"])
+    val requestId: String,
+    val request: RedemptionRequest,
+    val outcomeNeedsReview: Boolean = false
 )
 
 data class RedemptionHistoryItem(

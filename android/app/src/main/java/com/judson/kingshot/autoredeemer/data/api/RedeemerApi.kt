@@ -16,8 +16,14 @@ interface RedeemerApi {
     @GET("api/kingshot-health")
     suspend fun health(): Response<ServiceHealth>
 
+    @GET("api/kingshot-player")
+    suspend fun publicPlayer(@Query("id") playerId: String): Response<JsonObject>
+
     @GET("api/v4/players/{playerId}")
     suspend fun player(@Path("playerId") playerId: String): Response<ApiEnvelope<PlayerProfile>>
+
+    @POST("api/kingshot-redeem")
+    suspend fun publicRedeem(@Body request: JsonObject): Response<JsonObject>
 
     @POST("api/v4/redemptions")
     suspend fun redeem(
@@ -31,6 +37,21 @@ interface RedeemerApi {
         @Query("limit") limit: Int = 25,
         @Query("offset") offset: Int = 0
     ): Response<JsonObject>
+
+    @GET("api/kingshot-gift-codes")
+    suspend fun giftCodes(): Response<JsonObject>
+
+    @GET("api/kingshot-player?developerPath=alliance-lookup")
+    suspend fun allianceLookup(
+        @Query("kingdomId") kingdomId: String,
+        @Query("mode") mode: String? = null,
+        @Query("tag") tag: String? = null,
+        @Query("q") query: String? = null,
+        @Query("ids") ids: String? = null
+    ): Response<JsonObject>
+
+    @POST("api/kingshot-player?developer=alliance-sync")
+    suspend fun allianceSync(@Body body: JsonObject): Response<JsonObject>
 
     @POST("api/kingshot-register")
     suspend fun register(@Body body: JsonObject): Response<JsonObject>

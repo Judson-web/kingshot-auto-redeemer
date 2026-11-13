@@ -4,15 +4,9 @@ import android.os.Bundle
 import android.content.Intent
 import android.net.Uri
 import android.util.Base64
-import android.webkit.CookieManager
-import android.webkit.WebResourceRequest
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import android.content.ActivityNotFoundException
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.BackHandler
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -120,7 +114,7 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
     var apiKeySet by remember {
         mutableStateOf(!container.secureStorage.read(AppContainer.API_KEY_STORAGE).isNullOrBlank())
     }
-    var webRoute by remember { mutableStateOf<String?>(null) }
+    var nativeFeature by remember { mutableStateOf<String?>(null) }
 
     suspend fun refreshHealth() {
         refreshing = true
@@ -208,7 +202,7 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
                 items.forEach { (destination, icon, label) ->
                     NavigationBarItem(
                         selected = tab == destination,
-                        onClick = { tab = destination; if (destination == AppTab.MORE) webRoute = null },
+                        onClick = { tab = destination; if (destination == AppTab.MORE) nativeFeature = null },
                         icon = { Icon(icon, contentDescription = label) },
                         label = { Text(label, fontSize = 10.sp, fontWeight = FontWeight.SemiBold) },
                         colors = NavigationBarItemDefaults.colors(
@@ -225,16 +219,33 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (tab) {
-                AppTab.HOME -> OfficialWebScreen("/", container)
-                AppTab.REDEEM -> OfficialWebScreen("/manual", container)
-                AppTab.PLAYERS -> OfficialWebScreen("/user", container)
+                AppTab.HOME -> HomeScreen(
+                    healthText = healthText,
+                    serviceOnline = serviceOnline,
+                    apiKeySet = apiKeySet,
+                    refreshing = refreshing,
+                    onRefresh = { scope.launch { refreshHealth() } },
+                    onRedeem = { tab = AppTab.REDEEM },
+                    onPlayers = { tab = AppTab.PLAYERS },
+                    onSettings = { tab = AppTab.KEYS }
+                )
+                AppTab.REDEEM -> RedeemScreen(container)
+                AppTab.PLAYERS -> PlayersScreen(container) {
+                    apiKeySet = !container.secureStorage.read(AppContainer.API_KEY_STORAGE).isNullOrBlank()
+                }
                 AppTab.HISTORY -> HistoryScreen(container)
                 AppTab.ACCOUNT -> AccountScreen(container, authCode, authError, onAuthCodeConsumed)
-                AppTab.MORE -> if (webRoute == null) MoreScreen(
-                    onNavigate = { webRoute = it },
+                AppTab.MORE -> if (nativeFeature == null) MoreScreen(
+                    onNavigate = { nativeFeature = it },
                     onOpenDeveloperKeys = { tab = AppTab.KEYS },
                     onOpenApiHistory = { tab = AppTab.HISTORY }
-                ) else OfficialWebScreen(webRoute!!, container)
+                ) else if (nativeFeature == "/alliance-registration") AllianceRegistrationScreen(container) { nativeFeature = null }
+                else if (nativeFeature == "/gift-codes") GiftCodesScreen(container) { nativeFeature = null }
+                else if (nativeFeature == "/user") PlayersScreen(container) { nativeFeature = null }
+                else if (nativeFeature == "/profile") AccountScreen(container, authCode, authError, onAuthCodeConsumed)
+                else if (nativeFeature == "/developer") DeveloperApiSettings(container) { nativeFeature = null }
+                else if (nativeFeature == "/info") InfoScreen { nativeFeature = null }
+                else NativeFeatureScreen(nativeFeature!!) { nativeFeature = null }
                 AppTab.KEYS -> DeveloperApiSettings(container) { tab = AppTab.MORE }
             }
         }
@@ -391,81 +402,222 @@ private fun DeveloperApiSettings(container: AppContainer, onBack: () -> Unit) {
     }
 }
 
+
 @Composable
-private fun OfficialWebScreen(route: String, container: AppContainer) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val origin = AppContainer.API_BASE_URL.removeSuffix("/")
-    var webView by remember { mutableStateOf<WebView?>(null) }
-    var pageError by remember { mutableStateOf<String?>(null) }
-    val targetUrl = remember(route) { origin + route }
-    BackHandler(enabled = webView?.canGoBack() == true) {
-        webView?.goBack()
-    }
-    AndroidView(
-        modifier = Modifier.fillMaxSize().background(Night),
-        factory = { viewContext ->
-            WebView(viewContext).apply {
-                webView = this
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
-                settings.databaseEnabled = true
-                settings.loadsImagesAutomatically = true
-                settings.javaScriptCanOpenWindowsAutomatically = false
-                settings.setSupportMultipleWindows(false)
-                settings.allowFileAccess = false
-                settings.allowContentAccess = false
-                settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
-                settings.safeBrowsingEnabled = true
-                CookieManager.getInstance().setAcceptCookie(true)
-                container.secureStorage.read(AppContainer.PROFILE_COOKIE_STORAGE)
-                    ?.takeIf(String::isNotBlank)
-                    ?.let { savedCookie ->
-                        CookieManager.getInstance().setCookie(
-                            origin,
-                            "$savedCookie; Path=/; Secure; HttpOnly; SameSite=Strict"
-                        )
-                        CookieManager.getInstance().flush()
-                    }
-                webViewClient = object : WebViewClient() {
-                    override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                        val uri = request.url
-                        if (uri.scheme == "https" && uri.host == android.net.Uri.parse(origin).host) return false
-                        return try {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, uri))
-                            true
-                        } catch (_: ActivityNotFoundException) {
-                            true
-                        }
-                    }
+private fun AllianceRegistrationScreen(container: AppContainer, onBack: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    var kingdom by remember { mutableStateOf("") }
+    var search by remember { mutableStateOf("") }
+    var alliances by remember { mutableStateOf(emptyList<com.google.gson.JsonObject>()) }
+    var selectedTag by remember { mutableStateOf("") }
+    var roster by remember { mutableStateOf(emptyList<com.google.gson.JsonObject>()) }
+    var registered by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var notice by remember { mutableStateOf<String?>(null) }
+    var registrationAllowed by remember { mutableStateOf(false) }
+    fun com.google.gson.JsonObject.str(key: String): String =
+        get(key)?.takeIf { it.isJsonPrimitive && !it.isJsonNull }?.asString.orEmpty()
 
-                    override fun onPageFinished(view: WebView, url: String) {
-                        pageError = null
-                        CookieManager.getInstance().flush()
-                    }
-
-                    override fun onReceivedError(
-                        view: WebView,
-                        request: WebResourceRequest,
-                        error: android.webkit.WebResourceError
-                    ) {
-                        if (request.isForMainFrame) pageError = "The official workspace could not be loaded. Check your connection and retry."
-                    }
+    ScreenColumn {
+        ScreenHeading("Alliance registration", "Find your kingdom alliance, review its roster and register its existing 24-hour sync workflow.")
+        OutlinedField("Kingdom ID", kingdom, { kingdom = it.filter(Char::isDigit).take(10) }, keyboardType = KeyboardType.Number)
+        OutlinedField("Search alliance name or tag", search, { search = it.take(80) })
+        Button(
+            onClick = {
+                scope.launch {
+                    busy = true; error = null; notice = null; alliances = emptyList(); roster = emptyList(); selectedTag = ""
+                    try {
+                        val result = container.repository.searchAlliances(kingdom, search)
+                        val list = result.get("alliances")?.takeIf { it.isJsonArray }?.asJsonArray
+                        alliances = list?.mapNotNull { it.takeIf { item -> item.isJsonObject }?.asJsonObject } ?: emptyList()
+                        if (alliances.isEmpty()) notice = "No alliances were returned. Check the kingdom ID or search term."
+                    } catch (e: Exception) { error = e.message ?: "Alliance search failed." }
+                    finally { busy = false }
                 }
-                loadUrl(targetUrl)
+            },
+            enabled = !busy && kingdom.matches(Regex("\\d{1,10}")),
+            modifier = Modifier.fillMaxWidth()
+        ) { Text(if (busy) "Searching…" else "Find alliances") }
+        alliances.forEach { alliance ->
+            val tag = alliance.str("tag")
+            Card(
+                onClick = {
+                    scope.launch {
+                        selectedTag = tag; busy = true; error = null; notice = null; roster = emptyList(); registered = emptySet()
+                        try {
+                            val result = container.repository.allianceRoster(kingdom, tag)
+                            if (result.get("stale")?.takeIf { it.isJsonPrimitive }?.asBoolean == true ||
+                                result.get("fresh")?.takeIf { it.isJsonPrimitive }?.asBoolean == false) {
+                                throw IllegalStateException("The provider marked this roster stale. Refresh later; registration is disabled until a fresh roster is available.")
+                            }
+                            val rows = result.get("members")?.takeIf { it.isJsonArray }?.asJsonArray
+                            roster = rows?.mapNotNull { it.takeIf { item -> item.isJsonObject }?.asJsonObject } ?: emptyList()
+                            if (roster.isEmpty()) throw IllegalStateException("The provider returned no usable roster.")
+                            registered = container.repository.allianceRegistrationStatus(roster.map { it.str("playerId") })
+                            registrationAllowed = true
+                        } catch (e: Exception) { error = e.message ?: "Roster could not be verified."; registrationAllowed = false }
+                        finally { busy = false }
+                    }
+                },
+                colors = CardDefaults.cardColors(containerColor = Panel),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Border),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("[${tag}] " + alliance.str("name"), color = Ink, fontWeight = FontWeight.Bold)
+                        Text("Rank " + alliance.str("rank") + " · " + alliance.str("memberCount") + " members", color = Muted, fontSize = 11.sp)
+                    }
+                    Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = Mint)
+                }
             }
-        },
-        update = { view ->
-            webView = view
-            if (view.url != targetUrl) view.loadUrl(targetUrl)
         }
-    )
-    pageError?.let { message ->
-        Column(
-            Modifier.fillMaxWidth().padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            NoticeCard(message, Warning)
-            OutlinedButton(onClick = { webView?.reload() }) { Text("Retry") }
+        if (selectedTag.isNotBlank()) {
+            Divider(color = Border)
+            Text("ROSTER · [${selectedTag}]", color = Mint, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+            Text("${registered.size} already registered · ${(roster.size - registered.size).coerceAtLeast(0)} not registered", color = Muted, fontSize = 12.sp)
+            roster.forEach { member ->
+                val id = member.str("playerId")
+                Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(member.str("name").ifBlank { "Kingshot Player" }, color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        Text(id, color = Muted, fontSize = 10.sp)
+                    }
+                    Text(if (id in registered) "REGISTERED" else "NOT REGISTERED",
+                        color = if (id in registered) Mint else Warning, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+            Button(
+                onClick = {
+                    scope.launch {
+                        busy = true; error = null; notice = null
+                        try {
+                            val result = container.repository.registerAlliance(kingdom, selectedTag)
+                            val count = result.get("validatedRosterCount")?.asInt ?: roster.size
+                            notice = "Alliance registration confirmed for ${count} roster members. The existing server-side worker will process the initial sync and continue on its 24-hour schedule."
+                            registrationAllowed = false
+                        } catch (e: Exception) { error = e.message ?: "Alliance registration failed." }
+                        finally { busy = false }
+                    }
+                },
+                enabled = !busy && registrationAllowed,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text(if (busy) "Registering…" else "Register alliance and schedule sync") }
+            Text("The backend revalidates the roster and enforces the four-alliance kingdom cap and owner bypass. Existing registrations are preserved.", color = Muted, fontSize = 11.sp, lineHeight = 16.sp)
+        }
+        notice?.let { NoticeCard(it, Mint) }
+        error?.let { NoticeCard(it, Danger) }
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back to Explore") }
+    }
+}
+
+
+@Composable
+private fun GiftCodesScreen(container: AppContainer, onBack: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var codes by remember { mutableStateOf(emptyList<com.google.gson.JsonObject>()) }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var loadedAt by remember { mutableStateOf<String?>(null) }
+    fun com.google.gson.JsonObject.str(key: String): String =
+        get(key)?.takeIf { it.isJsonPrimitive && !it.isJsonNull }?.asString.orEmpty()
+    suspend fun refresh() {
+        busy = true; error = null
+        try {
+            val result = container.repository.giftCodes()
+            val rows = result.get("codes")?.takeIf { it.isJsonArray }?.asJsonArray
+            codes = rows?.mapNotNull { it.takeIf { item -> item.isJsonObject }?.asJsonObject } ?: emptyList()
+            loadedAt = result.str("generatedAt")
+        } catch (e: Exception) { error = e.message ?: "Could not load verified gift codes." }
+        finally { busy = false }
+    }
+    LaunchedEffect(Unit) { refresh() }
+    ScreenColumn {
+        ScreenHeading("Verified gift codes", "Codes confirmed by the service. Only active, unsuppressed and verified entries are shown.")
+        OutlinedButton(onClick = { scope.launch { refresh() } }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Outlined.Refresh, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text(if (busy) "Refreshing…" else "Refresh codes")
+        }
+        Text("${codes.size} verified codes · recent success counts cover the last 7 days", color = Muted, fontSize = 11.sp)
+        codes.forEach { item ->
+            val code = item.str("code")
+            Card(colors = CardDefaults.cardColors(containerColor = Panel), border = androidx.compose.foundation.BorderStroke(1.dp, Border), shape = RoundedCornerShape(16.dp)) {
+                Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(code, color = Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                        IconButton(onClick = {
+                            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Kingshot gift code", code))
+                        }) { Icon(Icons.Outlined.ContentCopy, contentDescription = "Copy gift code", tint = Mint) }
+                    }
+                    Text(item.str("recentSuccesses") + " successful redemptions in the last 7 days", color = Muted, fontSize = 11.sp)
+                    Text("Validated " + item.str("validatedAt").ifBlank { "date unavailable" }, color = Muted, fontSize = 10.sp)
+                }
+            }
+        }
+        if (codes.isEmpty() && !busy && error == null) NoticeCard("No currently verified gift codes were returned.", Warning)
+        error?.let { NoticeCard(it, Danger) }
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back to Explore") }
+    }
+}
+
+@Composable
+private fun InfoScreen(onBack: () -> Unit) {
+    ScreenColumn {
+        ScreenHeading("Service information", "How the official Kingshot Auto Redeemer works.")
+        Card(colors = CardDefaults.cardColors(containerColor = Panel), border = androidx.compose.foundation.BorderStroke(1.dp, Border), shape = RoundedCornerShape(18.dp)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Automatic redemption", color = Ink, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Text("Register a player once. The existing server-side workers check eligible gift codes on their scheduled cycle. The Android app does not run a competing worker.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
+            }
+        }
+        Card(colors = CardDefaults.cardColors(containerColor = Panel), border = androidx.compose.foundation.BorderStroke(1.dp, Border), shape = RoundedCornerShape(18.dp)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Manual redemption", color = Ink, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Text("Manual requests use the public rate-limited service. If the game response is uncertain, the backend recovery journal blocks another attempt until the outcome can be reviewed.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
+            }
+        }
+        Card(colors = CardDefaults.cardColors(containerColor = Panel), border = androidx.compose.foundation.BorderStroke(1.dp, Border), shape = RoundedCornerShape(18.dp)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Accounts and permissions", color = Ink, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Text("Discord sign-in verifies your account with the production backend. Developer and administrator permissions are never granted by the app itself.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
+            }
+        }
+        Text("Independent community service. Not affiliated with Century Games.", color = Muted, fontSize = 10.sp)
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back to Explore") }
+    }
+}
+
+@Composable
+private fun NativeFeatureScreen(route: String, onBack: () -> Unit) {
+    val title = when (route) {
+        "/alliance-registration" -> "Alliance registration"
+        "/gift-codes" -> "Gift codes"
+        "/info" -> "Service information"
+        "/profile" -> "Account profile"
+        "/developer" -> "Developer portal"
+        "/dev" -> "Developer workspace"
+        "/devsupport" -> "Developer support"
+        "/push" -> "Notifications"
+        "/message" -> "Custom message"
+        "/admin/players" -> "Player administration"
+        "/admin/alliance-sync" -> "Alliance sync"
+        "/admin/maintenance" -> "Maintenance"
+        else -> "Official tools"
+    }
+    ScreenColumn {
+        ScreenHeading(title, "Native Android workspace")
+        NoticeCard(
+            "This feature is being implemented with native Android screens and direct backend calls. It is intentionally not loading the website inside the app. Core native screens for Home, manual redemption, player lookup, registration, account sign-in and optional developer tools remain available.",
+            Warning
+        )
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Outlined.ArrowBack, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("Back to Explore")
         }
     }
 }
@@ -608,7 +760,6 @@ private fun RedeemScreen(container: AppContainer) {
     var message by remember { mutableStateOf<String?>(null) }
     var successful by remember { mutableStateOf<Boolean?>(null) }
     var pending by remember { mutableStateOf(container.repository.pendingRedemption()) }
-    val hasDeveloperKey = !container.secureStorage.read(AppContainer.API_KEY_STORAGE).isNullOrBlank()
     var retryWaitSeconds by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(retryWaitSeconds) {
@@ -619,20 +770,17 @@ private fun RedeemScreen(container: AppContainer) {
     }
 
     ScreenColumn {
-        ScreenHeading("Manual redemption", "Send a single request through the production V4 API.")
-        if (!hasDeveloperKey) {
-            NoticeCard("A Developer API key is required for manual redemption. Add one in the Players tab before submitting a code.", Warning)
-        }
+        ScreenHeading("Manual redemption", "Submit a gift code through the official rate-limited redemption service. No Developer API key is required.")
         if (pending != null) {
             NoticeCard(
-                "An earlier attempt is unresolved. The app has preserved its exact request and idempotency key. Only retry this same attempt.",
+                "An earlier attempt is unresolved. The app has preserved its exact unresolved request. The backend blocks duplicate submissions while its outcome is unresolved. Only retry this same attempt.",
                 Warning
             )
-            Text("Request reference: " + pending!!.idempotencyKey.take(8) + "…", color = Muted, fontSize = 11.sp)
+            Text("Request reference: " + pending!!.requestId.take(8) + "…", color = Muted, fontSize = 11.sp)
         }
         OutlinedField("Player ID", playerId, { playerId = it.filter(Char::isDigit).take(20) }, enabled = pending == null, keyboardType = KeyboardType.Number)
         OutlinedField("Kingdom ID", kingdomId, { kingdomId = it.filter(Char::isDigit).take(10) }, enabled = pending == null, keyboardType = KeyboardType.Number)
-        OutlinedField("Gift code", code, { code = it.uppercase().filter { ch -> ch.isLetterOrDigit() || ch == '_' || ch == '-' }.take(64) }, enabled = pending == null)
+        OutlinedField("Gift code", code, { code = it.uppercase().filter { ch -> ch.isLetterOrDigit() || ch == '_' || ch == '-' }.take(32) }, enabled = pending == null)
         Button(
             onClick = {
                 scope.launch {
@@ -655,7 +803,11 @@ private fun RedeemScreen(container: AppContainer) {
                         message = result.message ?: result.statusLabel ?: result.status ?: "Request processed."
                     } catch (error: Exception) {
                         val apiError = error as? ApiException
-                        val definitiveFailure = apiError?.retryHint == "do_not_retry" ||
+                        if (apiError?.retryHint == "do_not_retry" && pending != null) {
+                            pending = pending!!.copy(outcomeNeedsReview = true)
+                            container.repository.savePendingRedemption(pending!!)
+                        }
+                        val definitiveFailure = (apiError?.let { it.retryHint == "do_not_retry" && it.status in listOf(400, 401, 404, 415) } == true) ||
                             (apiError?.retryHint == null && apiError?.status in listOf(400, 401, 404, 415))
                         if (definitiveFailure) {
                             container.repository.clearPendingRedemption()
@@ -678,10 +830,10 @@ private fun RedeemScreen(container: AppContainer) {
                     }
                 }
             },
-            enabled = hasDeveloperKey && !busy && retryWaitSeconds == 0 &&
+            enabled = !busy && retryWaitSeconds == 0 && pending?.outcomeNeedsReview != true &&
                 (pending != null || (playerId.matches(Regex("\\d{5,20}")) &&
                     kingdomId.matches(Regex("\\d{1,10}")) &&
-                    code.matches(Regex("[A-Za-z0-9_-]{1,64}")))),
+                    code.matches(Regex("[A-Za-z0-9_-]{6,32}")))),
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(15.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Mint, contentColor = Night)
@@ -691,6 +843,7 @@ private fun RedeemScreen(container: AppContainer) {
             Text(
                 when {
                     busy -> "Processing securely…"
+                    pending?.outcomeNeedsReview == true -> "Outcome needs review"
                     retryWaitSeconds > 0 -> "Retry available in ${retryWaitSeconds}s"
                     pending != null -> "Retry same attempt"
                     else -> "Redeem code"
@@ -724,7 +877,7 @@ private fun PlayersScreen(container: AppContainer, onApiKeyChanged: () -> Unit) 
     }
 
     ScreenColumn {
-        ScreenHeading("Players", "Look up player profiles and enroll accounts in the existing server-side workflow.")
+        ScreenHeading("Players", "Look up player profiles and enroll accounts in the existing server-side workflow. No Developer API key is needed.")
         OutlinedField("Player ID", playerId, { playerId = it.filter(Char::isDigit).take(20) }, keyboardType = KeyboardType.Number)
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Button(
@@ -735,14 +888,14 @@ private fun PlayersScreen(container: AppContainer, onApiKeyChanged: () -> Unit) 
                         registration = null
                         try {
                             profile = container.repository.lookup(playerId)
-                            message = "Player profile loaded from the V4 API."
+                            message = "Player profile loaded from the public player service."
                         } catch (error: Exception) {
                             profile = null
                             message = error.message
                         } finally { busy = false }
                     }
                 },
-                enabled = !busy && keyConfigured && playerId.matches(Regex("\\d{5,20}")),
+                enabled = !busy && playerId.matches(Regex("\\d{5,20}")),
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(14.dp)
             ) { Text(if (busy) "Please wait…" else "Look up") }
