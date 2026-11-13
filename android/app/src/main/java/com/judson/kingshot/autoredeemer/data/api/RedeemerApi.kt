@@ -38,6 +38,9 @@ interface RedeemerApi {
         @Query("offset") offset: Int = 0
     ): Response<JsonObject>
 
+    @GET("api/kingshot-gift-codes")
+    suspend fun giftCodes(): Response<JsonObject>
+
     @GET("api/kingshot-player?developerPath=alliance-lookup")
     suspend fun allianceLookup(
         @Query("kingdomId") kingdomId: String,
