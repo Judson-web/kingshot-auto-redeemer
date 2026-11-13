@@ -1525,6 +1525,10 @@ private fun HistoryScreen(container: AppContainer) {
     var rows by remember { mutableStateOf(emptyList<RedemptionHistoryItem>()) }
     var message by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
+    var statusFilter by remember { mutableStateOf("ALL") }
+    var historyQuery by remember { mutableStateOf("") }
+    val filteredRows = rows.filter { (statusFilter == "ALL" || it.status.equals(statusFilter, true)) &&
+        (historyQuery.isBlank() || it.code.contains(historyQuery, true) || it.playerId.contains(historyQuery, true) || (it.message?.contains(historyQuery, true) == true)) }
     val hasDeveloperKey = !container.secureStorage.read(AppContainer.API_KEY_STORAGE).isNullOrBlank()
     ScreenColumn {
         ScreenHeading("V4 redemption history", "Optional Developer API feature. Reading history never submits a redemption.")
@@ -1551,7 +1555,17 @@ private fun HistoryScreen(container: AppContainer) {
             shape = RoundedCornerShape(14.dp)
         ) { Text(if (busy) "Loading history…" else "Load history") }
         message?.let { NoticeCard(it, Warning) }
-        rows.forEach { item ->
+        if (rows.isNotEmpty()) {
+            OutlinedField("Filter by code, player ID or message", historyQuery, { historyQuery = it })
+            Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                listOf("ALL", "SUCCESS", "FAILED", "PENDING").forEach { status ->
+                    FilterChip(selected = statusFilter == status, onClick = { statusFilter = status }, label = { Text(status, fontSize = 10.sp) })
+                }
+            }
+            Text(filteredRows.size.toString() + " of " + rows.size + " records", color = Muted, fontSize = 11.sp)
+            if (filteredRows.isEmpty()) NoticeCard("No records match these filters. Try another status or search term.", Warning)
+        }
+        filteredRows.forEach { item ->
             Card(
                 colors = CardDefaults.cardColors(containerColor = Panel),
                 shape = RoundedCornerShape(17.dp),
