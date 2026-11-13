@@ -21,6 +21,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.draw.clip
+import coil.compose.AsyncImage
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
@@ -1149,6 +1152,38 @@ private fun PlayersScreen(container: AppContainer, onApiKeyChanged: () -> Unit) 
 }
 
 @Composable
+private fun PlayerPortrait(profile: PlayerProfile, size: Int) {
+    val shape = CircleShape
+    Box(Modifier.size(size.dp), contentAlignment = Alignment.Center) {
+        Box(
+            Modifier.size((size * 0.78f).dp)
+                .clip(shape)
+                .background(Brush.linearGradient(listOf(Mint, Color(0xFF3E9D70)))),
+            contentAlignment = Alignment.Center
+        ) {
+            if (!profile.avatarUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = profile.avatarUrl,
+                    contentDescription = profile.name?.let { "$it avatar" } ?: "Player avatar",
+                    modifier = Modifier.fillMaxSize().clip(shape),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Text(profile.name?.firstOrNull()?.uppercase() ?: "K", color = Night, fontSize = (size * 0.36f).sp, fontWeight = FontWeight.ExtraBold)
+            }
+        }
+        profile.avatarFrameAssetId?.let { assetId ->
+            AsyncImage(
+                model = "https://app.ks-redeemer.workers.dev/api/kingshot-player?frame=asset&asset=$assetId",
+                contentDescription = profile.avatarFrameName?.let { "Equipped avatar frame: $it" } ?: "Equipped avatar frame",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit
+            )
+        }
+    }
+}
+
+@Composable
 private fun PlayerCard(profile: PlayerProfile) {
     val clipboard = LocalClipboardManager.current
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -1158,9 +1193,7 @@ private fun PlayerCard(profile: PlayerProfile) {
     Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(23.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Border)) {
         Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF1D4934), Panel, Panel))).padding(17.dp), verticalArrangement = Arrangement.spacedBy(13.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
-                Box(Modifier.size(58.dp).background(Brush.linearGradient(listOf(Mint, Color(0xFF3E9D70))), CircleShape), contentAlignment = Alignment.Center) {
-                    Text(profile.name?.firstOrNull()?.uppercase() ?: "K", color = Night, fontSize = 25.sp, fontWeight = FontWeight.ExtraBold)
-                }
+                PlayerPortrait(profile, 72)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(profile.name ?: "Unknown player", color = Ink, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
                     Text(alliance, color = Mint, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
@@ -1193,9 +1226,17 @@ private fun PlayerComparisonCard(first: PlayerProfile, second: PlayerProfile) {
     Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(20.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Border)) {
         Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
             Text("PLAYER COMPARISON", color = Mint, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(first.name ?: first.playerId ?: "Player 1", Modifier.weight(1f), color = Ink, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 2)
-                Text(second.name ?: second.playerId ?: "Player 2", Modifier.weight(1f), color = Ink, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 2)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    PlayerPortrait(first, 58)
+                    Text(first.name ?: first.playerId ?: "Player 1", color = Ink, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 2)
+                    first.avatarFrameName?.let { Text(it, color = Mint, fontSize = 9.sp, maxLines = 1) }
+                }
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    PlayerPortrait(second, 58)
+                    Text(second.name ?: second.playerId ?: "Player 2", color = Ink, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 2)
+                    second.avatarFrameName?.let { Text(it, color = Mint, fontSize = 9.sp, maxLines = 1) }
+                }
             }
             Divider(color = Border)
             @Composable fun compare(label: String, a: Long?, b: Long?) {
