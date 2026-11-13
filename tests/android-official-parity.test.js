@@ -5,35 +5,52 @@ import { readFile } from "node:fs/promises";
 const activityUrl = new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/MainActivity.kt", import.meta.url);
 const activity = await readFile(activityUrl, "utf8");
 
-test("official Android primary workflows use the production website rather than requiring a V4 key", () => {
-  assert.match(activity, /AppTab\.HOME -> OfficialWebScreen\("\/", container\)/);
-  assert.match(activity, /AppTab\.REDEEM -> OfficialWebScreen\("\/manual", container\)/);
-  assert.match(activity, /AppTab\.PLAYERS -> OfficialWebScreen\("\/user", container\)/);
-  assert.match(activity, /does not need a Developer API key for normal use/);
-  assert.match(activity, /optional integration/i);
+test("primary application destinations render native Compose screens", () => {
+  assert.match(activity, /AppTab\.HOME -> HomeScreen\(/);
+  assert.match(activity, /AppTab\.REDEEM -> RedeemScreen\(container\)/);
+  assert.match(activity, /AppTab\.PLAYERS -> PlayersScreen\(container\)/);
+  assert.match(activity, /AppTab\.ACCOUNT -> AccountScreen\(/);
+  assert.match(activity, /AppTab\.HISTORY -> HistoryScreen\(container\)/);
 });
 
-test("Explore exposes the official website feature routes", () => {
-  for (const route of [
-    "/alliance-registration", "/gift-codes", "/info", "/profile",
-    "/developer", "/dev", "/devsupport", "/push", "/message",
-    "/admin/players", "/admin/alliance-sync", "/admin/maintenance"
-  ]) {
-    assert.ok(activity.includes('"' + route + '"'), "Missing official route " + route);
-  }
-});
-
-test("embedded official workspace is HTTPS host-pinned and blocks local file access", () => {
-  assert.match(activity, /uri\.scheme == "https" && uri\.host == android\.net\.Uri\.parse\(origin\)\.host/);
-  assert.match(activity, /settings\.allowFileAccess = false/);
-  assert.match(activity, /settings\.allowContentAccess = false/);
-  assert.match(activity, /WebSettings\.MIXED_CONTENT_NEVER_ALLOW/);
-  assert.match(activity, /settings\.javaScriptCanOpenWindowsAutomatically = false/);
+test("the Android application does not embed the website", () => {
+  assert.doesNotMatch(activity, /android\.webkit\.WebView/);
+  assert.doesNotMatch(activity, /AndroidView\s*\(/);
+  assert.doesNotMatch(activity, /OfficialWebScreen/);
+  assert.doesNotMatch(activity, /loadUrl\(/);
   assert.doesNotMatch(activity, /addJavascriptInterface\(/);
 });
 
-test("native Discord profile cookie is scoped to the official HTTPS WebView origin", () => {
-  assert.match(activity, /PROFILE_COOKIE_STORAGE/);
-  assert.match(activity, /Path=\/; Secure; HttpOnly; SameSite=Strict/);
-  assert.match(activity, /CookieManager\.getInstance\(\)\.flush\(\)/);
+test("native app retains backend-backed Discord OAuth and optional developer settings", () => {
+  assert.match(activity, /startDiscordSignIn\(challenge\)/);
+  assert.match(activity, /completeDiscordSignIn\(code, verifier\)/);
+  assert.match(activity, /No Developer API key is required/);
+  assert.match(activity, /AllianceRegistrationScreen/);
+  assert.match(activity, /GiftCodesScreen/);
+  assert.match(activity, /DeveloperApiSettings\(container\)/);
+});
+
+test("native Explore never silently opens an embedded web route", () => {
+  assert.match(activity, /NativeFeatureScreen\(nativeFeature!!\)/);
+  assert.match(activity, /being implemented with native Android screens and direct backend calls/);
+});
+
+test("ordinary redemption and player lookup use public endpoints without a developer key", async () => {
+  const apiUrl = new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/data/api/RedeemerApi.kt", import.meta.url);
+  const repoUrl = new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/data/RedeemerRepository.kt", import.meta.url);
+  const api = await readFile(apiUrl, "utf8");
+  const repository = await readFile(repoUrl, "utf8");
+  assert.match(api, /api\/kingshot-player/);
+  assert.match(api, /api\/kingshot-redeem/);
+  assert.match(repository, /api\.publicPlayer\(playerId\)/);
+  assert.match(repository, /api\.publicRedeem\(body\)/);
+  assert.match(repository, /redemption_unresolved/);
+});
+
+test("native alliance and gift-code tools use first-party backend endpoints", async () => {
+  const apiUrl = new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/data/api/RedeemerApi.kt", import.meta.url);
+  const api = await readFile(apiUrl, "utf8");
+  assert.match(api, /api\/kingshot-gift-codes/);
+  assert.match(api, /developerPath=alliance-lookup/);
+  assert.match(api, /developer=alliance-sync/);
 });
