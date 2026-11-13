@@ -803,7 +803,7 @@ private fun RedeemScreen(container: AppContainer) {
                             pending = pending!!.copy(outcomeNeedsReview = true)
                             container.repository.savePendingRedemption(pending!!)
                         }
-                        val definitiveFailure = (apiError?.retryHint == "do_not_retry" && apiError?.status in listOf(400, 401, 404, 415)) ||
+                        val definitiveFailure = (apiError?.let { it.retryHint == "do_not_retry" && it.status in listOf(400, 401, 404, 415) } == true) ||
                             (apiError?.retryHint == null && apiError?.status in listOf(400, 401, 404, 415))
                         if (definitiveFailure) {
                             container.repository.clearPendingRedemption()
