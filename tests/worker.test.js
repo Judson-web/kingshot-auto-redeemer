@@ -338,3 +338,13 @@ test("per-code redemption accounting keeps queued work separate from attempts", 
     statuses:{QUEUED:1,SUCCESS:1},
   });
 });
+
+
+test("public Android gift-code feed reads only verified active codes through the service RPC", async () => {
+  const worker = await readFile(new URL("../cloudflare/worker.ts", import.meta.url), "utf8");
+  assert.match(worker, /incoming\.pathname === "\/api\/kingshot-gift-codes"/);
+  assert.match(worker, /discord_list_verified_gift_codes/);
+  assert.match(worker, /validation_status|verified/);
+  assert.match(worker, /bucket\.count > 30/);
+  assert.match(worker, /max-age=30, s-maxage=60/);
+});
