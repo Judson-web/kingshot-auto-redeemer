@@ -27,6 +27,7 @@ test("native app retains backend-backed Discord OAuth and optional developer set
   assert.match(activity, /No Developer API key is required/);
   assert.match(activity, /AllianceRegistrationScreen/);
   assert.match(activity, /GiftCodesScreen/);
+  assert.match(activity, /AllianceSyncAdminScreen/);
   assert.match(activity, /DeveloperApiSettings\(container\)/);
 });
 
@@ -53,4 +54,15 @@ test("native alliance and gift-code tools use first-party backend endpoints", as
   assert.match(api, /api\/kingshot-gift-codes/);
   assert.match(api, /developerPath=alliance-lookup/);
   assert.match(api, /developer=alliance-sync/);
+});
+
+test("native alliance sync administration uses the existing authenticated worker API", async () => {
+  const apiUrl = new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/data/api/RedeemerApi.kt", import.meta.url);
+  const containerUrl = new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/data/AppContainer.kt", import.meta.url);
+  const api = await readFile(apiUrl, "utf8");
+  const container = await readFile(containerUrl, "utf8");
+  assert.match(api, /api\/kingshot-alliance-sync/);
+  assert.match(api, /allianceSyncAction/);
+  assert.match(api, /allianceSyncQuery/);
+  assert.match(container, /api\/kingshot-alliance-sync/);
 });
