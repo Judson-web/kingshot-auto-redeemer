@@ -245,6 +245,7 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
                 else if (nativeFeature == "/profile") AccountScreen(container, authCode, authError, onAuthCodeConsumed)
                 else if (nativeFeature == "/developer") DeveloperApiSettings(container) { nativeFeature = null }
                 else if (nativeFeature == "/info") InfoScreen { nativeFeature = null }
+                else if (nativeFeature == "/admin/alliance-sync") AllianceSyncAdminScreen(container) { nativeFeature = null }
                 else NativeFeatureScreen(nativeFeature!!) { nativeFeature = null }
                 AppTab.KEYS -> DeveloperApiSettings(container) { tab = AppTab.MORE }
             }
@@ -587,6 +588,110 @@ private fun InfoScreen(onBack: () -> Unit) {
             }
         }
         Text("Independent community service. Not affiliated with Century Games.", color = Muted, fontSize = 10.sp)
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back to Explore") }
+    }
+}
+
+
+@Composable
+private fun AllianceSyncAdminScreen(container: AppContainer, onBack: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    var configs by remember { mutableStateOf(emptyList<com.google.gson.JsonObject>()) }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var notice by remember { mutableStateOf<String?>(null) }
+    var detail by remember { mutableStateOf<String?>(null) }
+    fun com.google.gson.JsonObject.str(key: String): String =
+        get(key)?.takeIf { it.isJsonPrimitive && !it.isJsonNull }?.asString.orEmpty()
+    fun com.google.gson.JsonObject.flag(key: String): Boolean =
+        get(key)?.takeIf { it.isJsonPrimitive && !it.isJsonNull }?.asBoolean == true
+    suspend fun refresh() {
+        busy = true; error = null
+        try { configs = container.repository.allianceSyncConfigs() }
+        catch (e: Exception) { error = e.message ?: "Could not load alliance sync configurations." }
+        finally { busy = false }
+    }
+    LaunchedEffect(Unit) { refresh() }
+    ScreenColumn {
+        ScreenHeading("Alliance sync", "Manage your registered alliance workers. The backend owns leases, scheduling, capacity and player-level registration.")
+        OutlinedButton(onClick = { scope.launch { refresh() } }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Outlined.Refresh, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text(if (busy) "Refreshing…" else "Refresh configurations")
+        }
+        if (configs.isEmpty() && !busy && error == null) NoticeCard("No alliance sync configurations are linked to this Discord account.", Warning)
+        configs.forEach { config ->
+            val id = config.str("id")
+            val kingdom = config.str("kingdom_id")
+            val tag = config.str("alliance_tag")
+            val enabled = config.flag("enabled")
+            Card(colors = CardDefaults.cardColors(containerColor = Panel), border = androidx.compose.foundation.BorderStroke(1.dp, Border), shape = RoundedCornerShape(18.dp)) {
+                Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("[${tag}] " + config.str("alliance_name"), color = Ink, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text("Kingdom ${kingdom} · 24-hour schedule", color = Muted, fontSize = 11.sp)
+                        }
+                        Text(if (enabled) "ACTIVE" else "PAUSED", color = if (enabled) Mint else Warning, fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                    }
+                    Text("Status: " + config.str("last_status").ifBlank { "pending" } + " · Roster: " + config.str("last_roster_count") + " · Added: " + config.str("last_added_count"), color = Muted, fontSize = 11.sp)
+                    Text("Next run: " + config.str("next_run_at").ifBlank { "Not scheduled" }, color = Muted, fontSize = 10.sp)
+                    if (config.str("last_error_message").isNotBlank()) Text(config.str("last_error_message"), color = Warning, fontSize = 11.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = {
+                                scope.launch {
+                                    busy = true; error = null; notice = null
+                                    try {
+                                        container.repository.allianceSyncAction(if (enabled) "pause" else "resume", id)
+                                        notice = if (enabled) "Alliance sync paused." else "Alliance sync resumed."
+                                        refresh()
+                                    } catch (e: Exception) { error = e.message ?: "Could not update alliance sync." }
+                                    finally { busy = false }
+                                }
+                            },
+                            enabled = !busy,
+                            modifier = Modifier.weight(1f)
+                        ) { Text(if (enabled) "Pause" else "Resume") }
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    busy = true; error = null; notice = null
+                                    try {
+                                        val result = container.repository.allianceSyncAction("sync", id)
+                                        notice = "Manual sync completed. Added " + result.str("addedCount") + ", skipped " + result.str("skippedCount") + ", failed " + result.str("failedCount") + "."
+                                        refresh()
+                                    } catch (e: Exception) { error = e.message ?: "Manual sync failed." }
+                                    finally { busy = false }
+                                }
+                            },
+                            enabled = !busy && enabled,
+                            modifier = Modifier.weight(1f)
+                        ) { Text("Sync now") }
+                    }
+                    TextButton(onClick = {
+                        scope.launch {
+                            busy = true; error = null
+                            try {
+                                val progress = container.repository.allianceSyncProgress(kingdom, tag)
+                                val history = container.repository.allianceSyncHistory(kingdom, tag)
+                                val runRows = history.get("runs")?.takeIf { it.isJsonArray }?.asJsonArray
+                                val latest = runRows?.firstOrNull()?.takeIf { it.isJsonObject }?.asJsonObject
+                                detail = if (progress.get("active")?.asBoolean == true) {
+                                    "Sync progress: " + progress.str("processedCount") + " / " + progress.str("totalCount") + " processed. Current player: " + progress.str("currentPlayerId")
+                                } else {
+                                    "Latest run: " + (latest?.get("status")?.asString ?: "No completed run") + ". Departed members: " + history.str("departedCount")
+                                }
+                            } catch (e: Exception) { error = e.message ?: "Could not load sync history." }
+                            finally { busy = false }
+                        }
+                    }) { Text("View progress and history", color = Mint) }
+                }
+            }
+        }
+        notice?.let { NoticeCard(it, Mint) }
+        detail?.let { NoticeCard(it, Warning) }
+        error?.let { NoticeCard(it, Danger) }
         OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back to Explore") }
     }
 }
