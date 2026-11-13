@@ -31,9 +31,15 @@ test("native app retains backend-backed Discord OAuth and optional developer set
   assert.match(activity, /DeveloperApiSettings\(container\)/);
 });
 
-test("native Explore never silently opens an embedded web route", () => {
-  assert.match(activity, /NativeFeatureScreen\(nativeFeature!!\)/);
-  assert.match(activity, /being implemented with native Android screens and direct backend calls/);
+test("unfinished specialist workspaces open their real protected production routes", () => {
+  assert.match(activity, /"\/dev" to \("Developer workspace"/);
+  assert.match(activity, /"\/devsupport" to \("Developer support"/);
+  assert.match(activity, /"\/push" to \("Push console"/);
+  assert.match(activity, /"\/message" to \("Custom message"/);
+  assert.match(activity, /"\/admin\/players" to \("Player administration"/);
+  assert.match(activity, /"\/admin\/maintenance" to \("Maintenance controls"/);
+  assert.match(activity, /Intent\(Intent\.ACTION_VIEW, Uri\.parse\(target\)\)/);
+  assert.match(activity, /server-side Discord authorization/);
 });
 
 test("ordinary redemption and player lookup use public endpoints without a developer key", async () => {
