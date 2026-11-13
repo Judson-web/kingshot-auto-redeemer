@@ -13,19 +13,19 @@ The official Android app must use the same first-party production backend and pe
 | `/` and `/auto` | Automatic redemption home and service experience | Home |
 | `/manual` and `/redeem` | Manual gift-code redemption, player lookup and game-result handling | Redeem |
 | `/user` | Public player profile lookup | Players |
-| `/alliance-registration` | Alliance roster registration and sync workflow | Explore |
-| `/gift-codes` | Gift-code catalogue | Explore |
-| `/info` | Service information and instructions | Explore |
-| `/profile` | Discord profile and account experience | Explore / native Account |
-| `/developer` | Developer API portal, keys, usage and documentation | Explore, optional |
-| `/dev` | Private developer workspace | Explore, server-gated |
-| `/devsupport` | Developer support | Explore, server-gated |
-| `/push` | Push notification console | Explore, server-gated |
-| `/message` | Custom Discord message experience | Explore, server-gated |
-| `/admin/players` | Player administration | Explore, server-gated |
-| `/admin/alliance-sync` | Alliance sync administration | Explore, server-gated |
-| `/admin/maintenance` | Maintenance administration | Explore, server-gated |
-| `/terms`, `/privacy` | Legal information | Website footer / Explore follow-up |
+| `/alliance-registration` | Alliance roster registration and sync workflow | Native Compose |
+| `/gift-codes` | Verified gift-code catalogue | Native Compose |
+| `/info` | Service information and instructions | Native Compose |
+| `/profile` | Discord profile and account experience | Native Account |
+| `/developer` | Developer API settings and documentation | Native optional key settings; full portal not ported |
+| `/dev` | Private developer workspace | Not yet ported natively |
+| `/devsupport` | Developer support | Not yet ported natively |
+| `/push` | Push notification console | Not yet ported natively |
+| `/message` | Custom Discord message experience | Not yet ported natively |
+| `/admin/players` | Player administration | Not yet ported natively |
+| `/admin/alliance-sync` | Alliance sync administration | Not yet ported natively |
+| `/admin/maintenance` | Maintenance administration | Not yet ported natively |
+| `/terms`, `/privacy` | Legal information | Not yet ported natively |
 
 ## Findings and remediation
 
