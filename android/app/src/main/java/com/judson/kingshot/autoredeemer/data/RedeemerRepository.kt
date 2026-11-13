@@ -195,6 +195,45 @@ class RedeemerRepository(
         }
     }
 
+
+    suspend fun searchAlliances(kingdomId: String, query: String): JsonObject {
+        require(KINGDOM_ID.matches(kingdomId)) { "Kingdom ID must contain 1–10 digits." }
+        val response = api.allianceLookup(kingdomId, "search", query = query.trim().take(80).ifBlank { null })
+        if (!response.isSuccessful) throw apiException(response, "Alliance rankings are unavailable.")
+        return response.body() ?: throw ApiException("Alliance service returned an empty response.", response.code())
+    }
+
+    suspend fun allianceRoster(kingdomId: String, tag: String): JsonObject {
+        require(KINGDOM_ID.matches(kingdomId)) { "Kingdom ID must contain 1–10 digits." }
+        require(ALLIANCE_TAG.matches(tag)) { "Enter a valid alliance tag." }
+        val response = api.allianceLookup(kingdomId, tag = tag)
+        if (!response.isSuccessful) throw apiException(response, "Alliance roster is unavailable.")
+        return response.body() ?: throw ApiException("Alliance service returned an empty response.", response.code())
+    }
+
+    suspend fun allianceRegistrationStatus(playerIds: List<String>): Set<String> {
+        require(playerIds.isNotEmpty() && playerIds.size <= 200 && playerIds.all { PLAYER_ID.matches(it) }) {
+            "Alliance roster contains invalid player IDs."
+        }
+        val response = api.allianceLookup("", mode = "registration-status", ids = playerIds.distinct().joinToString(","))
+        if (!response.isSuccessful) throw apiException(response, "Could not verify existing registrations.")
+        val rows = response.body()?.get("registeredIds")?.takeIf { it.isJsonArray }?.asJsonArray
+            ?: throw ApiException("Registration status was not confirmed.", response.code())
+        return rows.mapNotNull { it.takeIf { value -> value.isJsonPrimitive }?.asString }.toSet()
+    }
+
+    suspend fun registerAlliance(kingdomId: String, tag: String): JsonObject {
+        require(KINGDOM_ID.matches(kingdomId) && ALLIANCE_TAG.matches(tag)) { "Check the kingdom ID and alliance tag." }
+        val body = JsonObject().apply {
+            addProperty("action", "register-alliance")
+            addProperty("kingdomId", kingdomId)
+            addProperty("allianceTag", tag)
+        }
+        val response = api.allianceSync(body)
+        if (!response.isSuccessful) throw apiException(response, "Alliance registration failed.")
+        return response.body() ?: throw ApiException("Alliance registration was not confirmed.", response.code())
+    }
+
     suspend fun register(playerId: String, kingdomId: String, playerName: String): RegistrationOutcome {
         require(PLAYER_ID.matches(playerId)) { "Player ID must contain 5–20 digits." }
         val normalizedKingdom = kingdomId.trim()
@@ -280,6 +319,7 @@ class RedeemerRepository(
         val KINGDOM_ID = Regex("\\d{1,10}")
         val GIFT_CODE = Regex("[A-Za-z0-9_-]{1,64}")
         val IDEMPOTENCY_KEY = Regex("[A-Za-z0-9._:-]{8,128}")
+        val ALLIANCE_TAG = Regex("[A-Za-z0-9_-]{1,20}")
     }
 }
 
