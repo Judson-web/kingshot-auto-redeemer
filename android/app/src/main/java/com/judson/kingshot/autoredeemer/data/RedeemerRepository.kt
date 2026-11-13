@@ -299,7 +299,10 @@ class RedeemerRepository(
             message = message,
             status = response.code(),
             requestId = requestId,
-            retryHint = error?.stringValue("retryHint"),
+            retryHint = error?.stringValue("retryHint") ?: when (root?.stringValue("code")) {
+                "redemption_outcome_needs_review", "redemption_unresolved" -> "do_not_retry"
+                else -> null
+            },
             retryAfterSeconds = retryAfter
         )
     }
