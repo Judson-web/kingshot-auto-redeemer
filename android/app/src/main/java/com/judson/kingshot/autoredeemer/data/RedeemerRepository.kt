@@ -84,21 +84,38 @@ class RedeemerRepository(
 
     suspend fun lookup(playerId: String): PlayerProfile {
         require(PLAYER_ID.matches(playerId)) { "Player ID must contain 5–20 digits." }
-        val response = api.player(playerId)
+        val response = api.publicPlayer(playerId)
         if (!response.isSuccessful) throw apiException(response, "Player lookup failed.")
-        val envelope = response.body()
-            ?: throw ApiException("The API returned an empty player response.", response.code())
-        if (!envelope.success) {
-            throw ApiException(
-                envelope.error?.message ?: "Player lookup was not successful.",
-                response.code(),
-                envelope.meta?.requestId,
-                envelope.error?.retryHint,
-                envelope.error?.retryAfterSeconds
-            )
+        val root = response.body()
+            ?: throw ApiException("The player service returned an empty response.", response.code())
+        val player = root.get("player")?.takeIf { it.isJsonObject }?.asJsonObject
+            ?: root.getAsJsonObject("data")?.get("player")?.takeIf { it.isJsonObject }?.asJsonObject
+            ?: root.get("data")?.takeIf { it.isJsonObject }?.asJsonObject
+            ?: root
+        fun text(vararg names: String): String? = names.firstNotNullOfOrNull { name ->
+            player.get(name)?.takeIf { it.isJsonPrimitive && !it.isJsonNull }?.asString?.takeIf(String::isNotBlank)
         }
-        return envelope.data
-            ?: throw ApiException("The API returned no player data.", response.code(), envelope.meta?.requestId)
+        fun number(vararg names: String): Long? = names.firstNotNullOfOrNull { name ->
+            player.get(name)?.takeIf { it.isJsonPrimitive && !it.isJsonNull }?.let {
+                runCatching { it.asLong }.getOrNull()
+            }
+        }
+        val returnedId = text("governor_id", "fid", "player_id", "playerId", "id")
+        if (returnedId != playerId) throw ApiException("The provider returned a different player ID.", response.code())
+        val alliance = player.get("alliance")?.takeIf { it.isJsonObject }?.asJsonObject
+        return PlayerProfile(
+            playerId = returnedId,
+            name = text("nick_name", "name", "nickname", "player_name"),
+            kingdomId = text("kid", "kingdom_id", "kingdomId"),
+            power = number("power"),
+            townCenterLevel = number("town_center_level", "townCenterLevel")?.toInt(),
+            avatarUrl = text("avatar_url", "avatarUrl"),
+            allianceName = alliance?.get("name")?.takeIf { it.isJsonPrimitive }?.asString
+                ?: text("alliance_name", "allianceName"),
+            allianceTag = alliance?.get("abbr")?.takeIf { it.isJsonPrimitive }?.asString
+                ?: alliance?.get("tag")?.takeIf { it.isJsonPrimitive }?.asString
+                ?: text("alliance_abbr", "alliance_tag", "allianceTag")
+        )
     }
 
     fun pendingRedemption(): PendingRedemption? =
@@ -112,21 +129,33 @@ class RedeemerRepository(
         require(GIFT_CODE.matches(attempt.request.code)) { "Gift code contains unsupported characters." }
         require(IDEMPOTENCY_KEY.matches(attempt.idempotencyKey)) { "Invalid redemption request reference." }
 
-        val response = api.redeem(attempt.request, attempt.idempotencyKey)
-        if (!response.isSuccessful) throw apiException(response, "Redemption request failed.")
-        val envelope = response.body()
-            ?: throw ApiException("The API returned an empty redemption response.", response.code())
-        if (!envelope.success) {
+        val body = JsonObject().apply {
+            addProperty("playerId", attempt.request.playerId)
+            addProperty("code", attempt.request.code)
+            addProperty("kid", attempt.request.kid)
+        }
+        val response = api.publicRedeem(body)
+        val result = response.body()
+        if (!response.isSuccessful) {
+            val code = result?.stringValue("code")
+            val message = result?.stringValue("error", "message") ?: "Redemption request failed."
             throw ApiException(
-                envelope.error?.message ?: "The redemption request was not accepted.",
+                message,
                 response.code(),
-                envelope.meta?.requestId,
-                envelope.error?.retryHint,
-                envelope.error?.retryAfterSeconds
+                response.headers()["X-Request-Id"],
+                if (code == "redemption_outcome_needs_review" || code == "redemption_unresolved") "do_not_retry" else null,
+                result?.longValue("retryAfterSeconds") ?: response.headers()["Retry-After"]?.toLongOrNull()
             )
         }
-        return envelope.data
-            ?: throw ApiException("The API returned no redemption result.", response.code(), envelope.meta?.requestId)
+        val payload = result ?: throw ApiException("The redemption service returned an empty response.", response.code())
+        return RedemptionResult(
+            ok = payload.booleanValue("ok"),
+            status = payload.stringValue("status"),
+            statusLabel = payload.stringValue("statusLabel"),
+            message = payload.stringValue("message", "error"),
+            errorCategory = payload.stringValue("errorCategory"),
+            errCode = payload.stringValue("errCode")
+        )
     }
 
     fun savePendingRedemption(attempt: PendingRedemption) {
