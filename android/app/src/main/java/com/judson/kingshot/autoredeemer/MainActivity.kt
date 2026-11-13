@@ -738,14 +738,14 @@ private fun RedeemScreen(container: AppContainer) {
         ScreenHeading("Manual redemption", "Submit a gift code through the official rate-limited redemption service. No Developer API key is required.")
         if (pending != null) {
             NoticeCard(
-                "An earlier attempt is unresolved. The app has preserved its exact request and idempotency key. Only retry this same attempt.",
+                "An earlier attempt is unresolved. The app has preserved its exact unresolved request. The backend blocks duplicate submissions while its outcome is unresolved.. Only retry this same attempt.",
                 Warning
             )
-            Text("Request reference: " + pending!!.idempotencyKey.take(8) + "…", color = Muted, fontSize = 11.sp)
+            Text("Request reference: " + pending!!.requestId.take(8) + "…", color = Muted, fontSize = 11.sp)
         }
         OutlinedField("Player ID", playerId, { playerId = it.filter(Char::isDigit).take(20) }, enabled = pending == null, keyboardType = KeyboardType.Number)
         OutlinedField("Kingdom ID", kingdomId, { kingdomId = it.filter(Char::isDigit).take(10) }, enabled = pending == null, keyboardType = KeyboardType.Number)
-        OutlinedField("Gift code", code, { code = it.uppercase().filter { ch -> ch.isLetterOrDigit() || ch == '_' || ch == '-' }.take(64) }, enabled = pending == null)
+        OutlinedField("Gift code", code, { code = it.uppercase().filter { ch -> ch.isLetterOrDigit() || ch == '_' || ch == '-' }.take(32) }, enabled = pending == null)
         Button(
             onClick = {
                 scope.launch {
@@ -794,7 +794,7 @@ private fun RedeemScreen(container: AppContainer) {
             enabled = !busy && retryWaitSeconds == 0 &&
                 (pending != null || (playerId.matches(Regex("\\d{5,20}")) &&
                     kingdomId.matches(Regex("\\d{1,10}")) &&
-                    code.matches(Regex("[A-Za-z0-9_-]{1,64}")))),
+                    code.matches(Regex("[A-Za-z0-9_-]{6,32}")))),
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(15.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Mint, contentColor = Night)
