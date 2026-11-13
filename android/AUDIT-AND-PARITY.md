@@ -23,7 +23,7 @@ The official Android app must use the same first-party production backend and pe
 | `/push` | Push notification console | Not yet ported natively |
 | `/message` | Custom Discord message experience | Not yet ported natively |
 | `/admin/players` | Player administration | Not yet ported natively |
-| `/admin/alliance-sync` | Alliance sync administration | Not yet ported natively |
+| `/admin/alliance-sync` | Alliance sync administration | Native Compose, authenticated existing sync API |
 | `/admin/maintenance` | Maintenance administration | Not yet ported natively |
 | `/terms`, `/privacy` | Legal information | Not yet ported natively |
 

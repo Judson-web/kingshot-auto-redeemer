@@ -22,7 +22,7 @@ The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Official app architecture
 
-The Android app uses native Jetpack Compose screens and calls the same production Cloudflare backend as the website. It does not embed the website in a WebView. Home, manual redemption, player lookup, alliance discovery/roster preview/registration, verified gift-code catalogue and Discord account are native. Alliance registration is revalidated by the existing server-side sync handler, which retains the four-alliance kingdom cap and owner bypass.
+The Android app uses native Jetpack Compose screens and calls the same production Cloudflare backend as the website. It does not embed the website in a WebView. Home, manual redemption, player lookup, alliance discovery/roster preview/registration, authenticated alliance-sync management, verified gift-code catalogue and Discord account are native. Alliance registration is revalidated by the existing server-side sync handler, which retains the four-alliance kingdom cap and owner bypass.
 
 Native screens communicate with the pinned HTTPS production API. The app does not create a JavaScript bridge or embed remote web content. Backend authorization remains authoritative.
 
