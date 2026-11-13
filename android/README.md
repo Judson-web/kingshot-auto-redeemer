@@ -28,7 +28,7 @@ Native screens communicate with the pinned HTTPS production API. The app does no
 
 ## Developer API key is optional
 
-A Developer API key is **not required** for ordinary app use. Normal users use the official backend workflows for automatic redemption, manual redemption, player lookup, registration, gift codes, alliance registration and other website features.
+A Developer API key is **not required** for ordinary app use. Normal users use the official backend workflows for automatic redemption, manual redemption, player lookup, player registration, verified gift codes and alliance registration. Private admin and developer workspaces are not yet ported as native screens.
 
 The optional key is only for external tools or integrations that deliberately call the public V4 Developer API. It is encrypted with Android Keystore and attached only to `/api/v4/*` requests. It is never embedded in the APK or sent to public website routes.
 
@@ -43,7 +43,7 @@ Native Discord sign-in uses the existing Supabase Auth Discord provider and Clou
 - Developer: existing developer role, based on server-verified active API keys.
 - Admin: existing owner Discord identity, determined by the backend.
 
-The profile session cookie is stored encrypted on-device and copied into the WebView cookie store only for the production HTTPS origin. Signing out revokes the server-side session. The website may still maintain its own Supabase browser session for web-specific flows.
+The profile session cookie is stored encrypted on-device and attached only to first-party profile and alliance-sync API requests. Signing out revokes the server-side session.
 
 ## Security notes
 
