@@ -479,6 +479,66 @@ async function handlePublicHealth(request: Request, env: Env): Promise<Response>
   }
 }
 
+
+const giftCodeBuckets = new Map<string, { count: number; resetAt: number }>();
+
+async function handlePublicGiftCodes(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "GET") return new Response(JSON.stringify({ error: "Method not allowed." }), {
+    status: 405, headers: { Allow: "GET", "Content-Type": "application/json", "Cache-Control": "no-store" },
+  });
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+    return jsonError(503, "gift_codes_unavailable", "Verified gift codes are temporarily unavailable.");
+  }
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+  const now = Date.now();
+  let bucket = giftCodeBuckets.get(ip);
+  if (!bucket || bucket.resetAt <= now) bucket = { count: 0, resetAt: now + 60_000 };
+  bucket.count++;
+  giftCodeBuckets.set(ip, bucket);
+  if (giftCodeBuckets.size > 5000) {
+    for (const [key, value] of giftCodeBuckets) if (value.resetAt <= now) giftCodeBuckets.delete(key);
+  }
+  if (bucket.count > 30) return new Response(JSON.stringify({
+    error: "Too many gift-code requests. Please wait before refreshing.", code: "rate_limit_exceeded",
+  }), { status: 429, headers: {
+    "Content-Type": "application/json", "Cache-Control": "no-store",
+    "Retry-After": String(Math.max(1, Math.ceil((bucket.resetAt - now) / 1000))),
+  } });
+  const base = String(env.SUPABASE_URL).replace(/\/$/, "");
+  const since = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
+  try {
+    const response = await fetch(base + "/rest/v1/rpc/discord_list_verified_gift_codes", {
+      method: "POST",
+      headers: {
+        apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+        authorization: "Bearer " + env.SUPABASE_SERVICE_ROLE_KEY,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ p_since: since }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok) return jsonError(503, "gift_codes_unavailable", "Verified gift codes are temporarily unavailable.");
+    const rows: unknown = await response.json().catch(() => null);
+    if (!Array.isArray(rows)) return jsonError(503, "gift_codes_unavailable", "Gift-code data could not be verified.");
+    const codes = rows.flatMap((row: Record<string, unknown>) => {
+      const code = typeof row.code === "string" ? row.code.trim() : "";
+      if (!/^[A-Za-z0-9_-]{6,32}$/.test(code)) return [];
+      const successes = Number(row.recent_successes);
+      return [{
+        code,
+        recentSuccesses: Number.isFinite(successes) ? Math.max(0, successes) : 0,
+        validatedAt: typeof row.validated_at === "string" ? row.validated_at : null,
+      }];
+    });
+    return Response.json({ codes, generatedAt: new Date().toISOString(), windowDays: 7 }, {
+      headers: { "Cache-Control": "public, max-age=30, s-maxage=60", "X-Content-Type-Options": "nosniff" },
+    });
+  } catch {
+    return jsonError(503, "gift_codes_unavailable", "Verified gift codes are temporarily unavailable.");
+  }
+}
+
 async function handleVisitorTelemetry(request: Request, env: Env): Promise<Response> {
   if (request.method === "GET") return handleEdgeLocale(request);
   if (request.method !== "POST") {
@@ -738,6 +798,7 @@ export default {
       if (developerPath === "account-keys") return handleNativeDeveloperAccount(request, env, "keys");
     }
 
+    if (incoming.pathname === "/api/kingshot-gift-codes") return handlePublicGiftCodes(request, env);
     if (incoming.pathname === "/api/kingshot-register") return handleNativeRegistration(request, env);
     if (incoming.pathname === "/api/kingshot-redeem") return handleNativeRedemption(request, env);
 
