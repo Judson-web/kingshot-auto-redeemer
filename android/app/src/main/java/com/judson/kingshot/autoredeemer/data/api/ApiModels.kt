@@ -31,8 +31,16 @@ data class PlayerProfile(
     val power: Long? = null,
     val townCenterLevel: Int? = null,
     val avatarUrl: String? = null,
+    val avatarFrameAssetId: String? = null,
+    val avatarFrameName: String? = null,
     val allianceName: String? = null,
-    val allianceTag: String? = null
+    val allianceTag: String? = null,
+    val vipLevel: Int? = null,
+    val kills: Long? = null,
+    val deaths: Long? = null,
+    val alliancePower: Long? = null,
+    val rank: Int? = null,
+    val lastActive: String? = null
 )
 
 data class RedemptionRequest(

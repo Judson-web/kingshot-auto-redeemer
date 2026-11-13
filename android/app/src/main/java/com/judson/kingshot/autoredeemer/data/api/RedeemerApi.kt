@@ -19,6 +19,9 @@ interface RedeemerApi {
     @GET("api/kingshot-player")
     suspend fun publicPlayer(@Query("id") playerId: String): Response<JsonObject>
 
+    @GET("api/kingshot-player")
+    suspend fun avatarFrame(@Query("frame") mode: String = "profile", @Query("id") playerId: String): Response<JsonObject>
+
     @GET("api/v4/players/{playerId}")
     suspend fun player(@Path("playerId") playerId: String): Response<ApiEnvelope<PlayerProfile>>
 

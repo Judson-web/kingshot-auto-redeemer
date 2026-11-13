@@ -18,13 +18,13 @@ The official Android app must use the same first-party production backend and pe
 | `/info` | Service information and instructions | Native Compose |
 | `/profile` | Discord profile and account experience | Native Account |
 | `/developer` | Developer API settings and documentation | Native optional key settings; full portal not ported |
-| `/dev` | Private developer workspace | Not yet ported natively |
-| `/devsupport` | Developer support | Not yet ported natively |
-| `/push` | Push notification console | Not yet ported natively |
-| `/message` | Custom Discord message experience | Not yet ported natively |
-| `/admin/players` | Player administration | Not yet ported natively |
+| `/dev` | Private developer workspace | Opens the protected production workspace in the external browser |
+| `/devsupport` | Developer support | Opens the protected production support inbox in the external browser |
+| `/push` | Push notification console | Opens the protected production console in the external browser |
+| `/message` | Custom Discord message experience | Opens the protected production message studio in the external browser |
+| `/admin/players` | Player administration | Opens the protected production player database in the external browser |
 | `/admin/alliance-sync` | Alliance sync administration | Native Compose, authenticated existing sync API |
-| `/admin/maintenance` | Maintenance administration | Not yet ported natively |
+| `/admin/maintenance` | Maintenance administration | Opens the protected production maintenance console in the external browser |
 | `/terms`, `/privacy` | Legal information | Not yet ported natively |
 
 ## Findings and remediation
@@ -37,8 +37,8 @@ The official Android app must use the same first-party production backend and pe
 
 ### P0: Feature parity gap
 - The previous app had no native entry point for alliance registration, gift-code catalogue, information, announcements, support, push console, custom message, developer workspace or admin workspaces.
-- The Explore catalogue now exposes the website's existing routes from inside the Android shell. Server-side role and authorization checks remain authoritative; hiding a route in the UI is not treated as security.
-- This approach deliberately reuses the production website and backend rather than creating a second implementation of sensitive workflows in Android.
+- Core consumer workflows are native Compose screens backed by first-party APIs. Sensitive specialist consoles that are not ported natively open their exact production routes in the external browser, preserving the existing UI and authorization flows.
+- The Android shell does not embed the website or use a JavaScript bridge. Browser sign-in may be required separately because browser cookies are isolated from the app's native account session.
 
 ### P1: Native transport security
 - All native API calls use the pinned HTTPS production origin. No WebView or JavaScript bridge is used.
@@ -47,14 +47,13 @@ The official Android app must use the same first-party production backend and pe
 
 ### P1: Navigation and recovery
 - The native shell retains primary Home, Redeem, Players, History and Account destinations and adds Explore for the wider website feature set.
-- Embedded pages support Android back navigation, retry after main-frame load errors, and reuse the official website's responsive/mobile interface.
-- Web pages retain their own loading, validation, cancellation and upstream-result handling rather than duplicating it in Kotlin.
+- Specialist workspaces open through Android's external browser intent. The app clearly explains the browser handoff and does not pretend these workspaces are native screens.
 
 ### P1: Identity and role separation
 - Guest, user, developer and admin roles continue to be derived server-side from verified Discord identity and existing backend entitlements.
 - Developer API keys are not used to infer app identity or role.
 - The V4 redemption-history endpoint remains an explicitly optional Developer API feature and is placed under Explore rather than the primary consumer navigation. Automatic redemption, manual redemption, player lookup and registration do not require a V4 key.
-- Private developer and admin pages are routed through the existing website guards and APIs.
+- Private developer and admin pages are opened through the existing production routes and continue to use the website's server-side guards and APIs.
 
 ## Verification required before production release
 
@@ -69,4 +68,4 @@ The official Android app must use the same first-party production backend and pe
 
 ## Scope note
 
-The native consumer workflows are implemented without WebView. Private developer and administrative tools are not represented as complete until their backend contracts and native screens are implemented. Unsupported controls are not presented as functional, and privileged operations continue to depend on server-side authorization.
+The native consumer workflows are implemented without WebView. Core consumer flows and alliance-sync administration are native. Specialist developer/admin consoles are functional through the production browser handoff but are not claimed as native Compose implementations. Their privileged operations continue to depend on server-side authorization.

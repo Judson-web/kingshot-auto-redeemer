@@ -21,6 +21,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.draw.clip
+import coil.compose.AsyncImage
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -273,6 +277,8 @@ private fun MoreScreen(
         OfficialFeature("Gift codes", "Browse current and previously published gift codes.", "/gift-codes", Icons.Outlined.CardGiftcard, "KINGDOM TOOLS"),
         OfficialFeature("Player profiles", "Open the full player profile and lookup experience.", "/user", Icons.Outlined.PersonSearch, "KINGDOM TOOLS"),
         OfficialFeature("Service information", "How the service works, status guidance and documentation.", "/info", Icons.Outlined.Info, "RESOURCES"),
+        OfficialFeature("Terms of service", "Read the service terms and acceptable-use rules.", "/terms", Icons.Outlined.Description, "RESOURCES"),
+        OfficialFeature("Privacy notice", "Review what data the service processes and why.", "/privacy", Icons.Outlined.Policy, "RESOURCES"),
         OfficialFeature("Discord account", "Manage your verified account and access level.", "/profile", Icons.Outlined.AccountCircle, "ACCOUNT"),
         OfficialFeature("Developer portal", "Optional API keys, documentation, usage and integrations.", "/developer", Icons.Outlined.Code, "DEVELOPER"),
         OfficialFeature("Developer workspace", "Private developer tools and workspace.", "/dev", Icons.Outlined.Terminal, "DEVELOPER"),
@@ -291,9 +297,9 @@ private fun MoreScreen(
             border = androidx.compose.foundation.BorderStroke(1.dp, Border)
         ) {
             Column(Modifier.padding(17.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("OFFICIAL WEB EXPERIENCE", color = Mint, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
-                Text("Every tool. One app.", color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Text("These screens use the production website and its existing permission checks. Your app does not need a Developer API key for normal use.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
+                Text("NATIVE APP · SECURE WORKSPACES", color = Mint, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                Text("Your tools, one command centre.", color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("Core player, redemption, alliance and account workflows run natively. Protected specialist consoles open in your browser and retain their existing server-side permission checks.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
             }
         }
         features.groupBy { it.group }.forEach { (group, items) ->
@@ -698,27 +704,38 @@ private fun AllianceSyncAdminScreen(container: AppContainer, onBack: () -> Unit)
 
 @Composable
 private fun NativeFeatureScreen(route: String, onBack: () -> Unit) {
-    val title = when (route) {
-        "/alliance-registration" -> "Alliance registration"
-        "/gift-codes" -> "Gift codes"
-        "/info" -> "Service information"
-        "/profile" -> "Account profile"
-        "/developer" -> "Developer portal"
-        "/dev" -> "Developer workspace"
-        "/devsupport" -> "Developer support"
-        "/push" -> "Notifications"
-        "/message" -> "Custom message"
-        "/admin/players" -> "Player administration"
-        "/admin/alliance-sync" -> "Alliance sync"
-        "/admin/maintenance" -> "Maintenance"
-        else -> "Official tools"
-    }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val destinations = mapOf(
+        "/dev" to ("Developer workspace" to "Private owner workspace, route inventory and API map."),
+        "/devsupport" to ("Developer support" to "Open the protected developer support inbox."),
+        "/push" to ("Push console" to "Compose and send a production push announcement."),
+        "/message" to ("Custom message" to "Create Discord or website announcements and schedules."),
+        "/admin/players" to ("Player administration" to "Review registered players, restrictions and redemption history."),
+        "/admin/maintenance" to ("Maintenance controls" to "Inspect or change the live public maintenance state."),
+        "/terms" to ("Terms of service" to "Read the current service terms in your browser."),
+        "/privacy" to ("Privacy notice" to "Read the current privacy notice in your browser.")
+    )
+    val destination = destinations[route]
+    val title = destination?.first ?: "Official workspace"
+    val description = destination?.second ?: "Open the corresponding protected production workspace."
+    val target = "https://app.ks-redeemer.workers.dev" + route
     ScreenColumn {
-        ScreenHeading(title, "Native Android workspace")
+        ScreenHeading(title, description)
         NoticeCard(
-            "This feature is being implemented with native Android screens and direct backend calls. It is intentionally not loading the website inside the app. Core native screens for Home, manual redemption, player lookup, registration, account sign-in and optional developer tools remain available.",
+            "This workspace uses the existing production website and its server-side Discord authorization. It opens in your browser, not an embedded WebView. You may be asked to sign in again because browser sessions are separate from the app's native account session.",
             Warning
         )
+        Button(
+            onClick = {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(target))
+                runCatching { context.startActivity(intent) }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Outlined.OpenInBrowser, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("Open $title")
+        }
         OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Outlined.ArrowBack, contentDescription = null)
             Spacer(Modifier.width(8.dp))
@@ -972,6 +989,10 @@ private fun PlayersScreen(container: AppContainer, onApiKeyChanged: () -> Unit) 
     var kingdomId by remember { mutableStateOf("") }
     var playerName by remember { mutableStateOf("") }
     var profile by remember { mutableStateOf<PlayerProfile?>(null) }
+    var compareId by remember { mutableStateOf("") }
+    var compareProfile by remember { mutableStateOf<PlayerProfile?>(null) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var recentIds by remember { mutableStateOf(context.getSharedPreferences("player_lookup_history", android.content.Context.MODE_PRIVATE).getString("ids", "").orEmpty().split(",").filter { it.matches(Regex("\\d{5,20}")) }.take(5)) }
     var registration by remember { mutableStateOf<RegistrationOutcome?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
@@ -984,6 +1005,14 @@ private fun PlayersScreen(container: AppContainer, onApiKeyChanged: () -> Unit) 
     ScreenColumn {
         ScreenHeading("Players", "Look up player profiles and enroll accounts in the existing server-side workflow. No Developer API key is needed.")
         OutlinedField("Player ID", playerId, { playerId = it.filter(Char::isDigit).take(20) }, keyboardType = KeyboardType.Number)
+        if (recentIds.isNotEmpty()) {
+            Text("RECENT LOOKUPS", color = Muted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                recentIds.forEach { id ->
+                    AssistChip(onClick = { playerId = id }, label = { Text(id) }, colors = AssistChipDefaults.assistChipColors(labelColor = Ink))
+                }
+            }
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Button(
                 onClick = {
@@ -993,6 +1022,8 @@ private fun PlayersScreen(container: AppContainer, onApiKeyChanged: () -> Unit) 
                         registration = null
                         try {
                             profile = container.repository.lookup(playerId)
+                            recentIds = (listOf(playerId) + recentIds.filterNot { it == playerId }).take(5)
+                            context.getSharedPreferences("player_lookup_history", android.content.Context.MODE_PRIVATE).edit().putString("ids", recentIds.joinToString(",")).apply()
                             message = "Player profile loaded from the public player service."
                         } catch (error: Exception) {
                             profile = null
@@ -1026,6 +1057,31 @@ private fun PlayersScreen(container: AppContainer, onApiKeyChanged: () -> Unit) 
             ) { Text("Register") }
         }
         profile?.let { PlayerCard(it) }
+        if (profile != null) {
+            Divider(color = Border)
+            Text("Compare another player", color = Ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            Text("Load a second profile to compare the available public statistics side by side.", color = Muted, fontSize = 12.sp, lineHeight = 17.sp)
+            OutlinedField("Second player ID", compareId, { compareId = it.filter(Char::isDigit).take(20) }, keyboardType = KeyboardType.Number)
+            OutlinedButton(
+                onClick = {
+                    scope.launch {
+                        busy = true
+                        message = null
+                        try {
+                            compareProfile = container.repository.lookup(compareId)
+                            recentIds = (listOf(compareId) + recentIds.filterNot { it == compareId }).take(5)
+                            context.getSharedPreferences("player_lookup_history", android.content.Context.MODE_PRIVATE).edit().putString("ids", recentIds.joinToString(",")).apply()
+                        } catch (error: Exception) {
+                            compareProfile = null
+                            message = error.message ?: "Could not load comparison profile."
+                        } finally { busy = false }
+                    }
+                },
+                enabled = !busy && compareId.matches(Regex("\\d{5,20}")) && compareId != profile?.playerId,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text(if (busy) "Loading comparison…" else "Compare players") }
+            compareProfile?.let { PlayerComparisonCard(profile!!, it) }
+        }
         registration?.let { outcome ->
             Card(
                 colors = CardDefaults.cardColors(containerColor = Panel),
@@ -1109,28 +1165,109 @@ private fun PlayersScreen(container: AppContainer, onApiKeyChanged: () -> Unit) 
 }
 
 @Composable
-private fun PlayerCard(profile: PlayerProfile) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Panel),
-        shape = RoundedCornerShape(20.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Border)
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(profile.name ?: "Unknown player", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Ink)
-            Text("ID " + (profile.playerId ?: "—") + "  ·  Kingdom " + (profile.kingdomId ?: "—"), color = Muted, fontSize = 12.sp)
-            Divider(color = Border)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                ProfileMetric("POWER", profile.power?.let { "%,d".format(it) } ?: "—", Modifier.weight(1f))
-                ProfileMetric("TOWN CENTER", profile.townCenterLevel?.toString() ?: "—", Modifier.weight(1f))
+private fun PlayerPortrait(profile: PlayerProfile, size: Int) {
+    val shape = CircleShape
+    Box(Modifier.size(size.dp), contentAlignment = Alignment.Center) {
+        Box(
+            Modifier.size((size * 0.78f).dp)
+                .clip(shape)
+                .background(Brush.linearGradient(listOf(Mint, Color(0xFF3E9D70)))),
+            contentAlignment = Alignment.Center
+        ) {
+            if (!profile.avatarUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = profile.avatarUrl,
+                    contentDescription = profile.name?.let { "$it avatar" } ?: "Player avatar",
+                    modifier = Modifier.fillMaxSize().clip(shape),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Text(profile.name?.firstOrNull()?.uppercase() ?: "K", color = Night, fontSize = (size * 0.36f).sp, fontWeight = FontWeight.ExtraBold)
             }
-            Text(
-                "Alliance  " + (profile.allianceName ?: "—") + (profile.allianceTag?.let { " [$it]" } ?: ""),
-                color = Ink, fontSize = 13.sp
+        }
+        profile.avatarFrameAssetId?.let { assetId ->
+            AsyncImage(
+                model = "https://app.ks-redeemer.workers.dev/api/kingshot-player?frame=asset&asset=$assetId",
+                contentDescription = profile.avatarFrameName?.let { "Equipped avatar frame: $it" } ?: "Equipped avatar frame",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit
             )
         }
     }
 }
 
+@Composable
+private fun PlayerCard(profile: PlayerProfile) {
+    val clipboard = LocalClipboardManager.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val playerId = profile.playerId ?: return
+    val alliance = profile.allianceName ?: profile.allianceTag?.let { "[$it]" } ?: "Independent"
+    val powerText = profile.power?.let { "%,d".format(it) } ?: "Not reported"
+    Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(23.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Border)) {
+        Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF1D4934), Panel, Panel))).padding(17.dp), verticalArrangement = Arrangement.spacedBy(13.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
+                PlayerPortrait(profile, 72)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(profile.name ?: "Unknown player", color = Ink, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
+                    Text(alliance, color = Mint, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("KINGDOM ${profile.kingdomId ?: "UNKNOWN"}", color = Muted, fontSize = 10.sp, letterSpacing = 1.sp, fontWeight = FontWeight.Bold)
+                }
+                Surface(color = Color(0xFF173D2A), shape = RoundedCornerShape(10.dp)) { Text("PLAYER", Modifier.padding(horizontal = 9.dp, vertical = 6.dp), color = Mint, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp) }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) { Text("PLAYER ID", color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp); Text(playerId, color = Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
+                TextButton(onClick = { clipboard.setText(androidx.compose.ui.text.AnnotatedString(playerId)) }) { Icon(Icons.Outlined.ContentCopy, contentDescription = null, tint = Mint, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(5.dp)); Text("Copy ID", color = Mint, fontSize = 11.sp) }
+                TextButton(onClick = {
+                    val share = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "Kingshot player: ${profile.name ?: "Unknown"}\nID: $playerId\nKingdom: ${profile.kingdomId ?: "Unknown"}\nPower: $powerText\nAlliance: $alliance") }
+                    context.startActivity(Intent.createChooser(share, "Share player profile"))
+                }) { Icon(Icons.Outlined.Share, contentDescription = null, tint = Mint, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(5.dp)); Text("Share", color = Mint, fontSize = 11.sp) }
+            }
+            Divider(color = Border)
+            Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) { ProfileMetric("TOTAL POWER", powerText, Modifier.weight(1.2f)); ProfileMetric("TOWN CENTER", profile.townCenterLevel?.let { "Lv. $it" } ?: "—", Modifier.weight(0.8f)) }
+            Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) { ProfileMetric("VIP LEVEL", profile.vipLevel?.let { "VIP $it" } ?: "—", Modifier.weight(1f)); ProfileMetric("KILLS", profile.kills?.let { "%,d".format(it) } ?: "—", Modifier.weight(1f)); ProfileMetric("DEATHS", profile.deaths?.let { "%,d".format(it) } ?: "—", Modifier.weight(1f)) }
+            if (profile.alliancePower != null || profile.rank != null || profile.lastActive != null) {
+                Divider(color = Border); Text("ADDITIONAL DETAILS", color = Mint, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                profile.alliancePower?.let { ProfileMetric("ALLIANCE POWER", "%,d".format(it)) }; profile.rank?.let { ProfileMetric("ALLIANCE RANK", "#$it") }; profile.lastActive?.let { ProfileMetric("LAST ACTIVE", it) }
+            }
+            Text("Profile details are shown only when supplied by the player data provider.", color = Muted, fontSize = 10.sp, lineHeight = 14.sp)
+        }
+    }
+}
+
+@Composable
+private fun PlayerComparisonCard(first: PlayerProfile, second: PlayerProfile) {
+    Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(20.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Border)) {
+        Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(11.dp)) {
+            Text("PLAYER COMPARISON", color = Mint, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    PlayerPortrait(first, 58)
+                    Text(first.name ?: first.playerId ?: "Player 1", color = Ink, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 2)
+                    first.avatarFrameName?.let { Text(it, color = Mint, fontSize = 9.sp, maxLines = 1) }
+                }
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    PlayerPortrait(second, 58)
+                    Text(second.name ?: second.playerId ?: "Player 2", color = Ink, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 2)
+                    second.avatarFrameName?.let { Text(it, color = Mint, fontSize = 9.sp, maxLines = 1) }
+                }
+            }
+            Divider(color = Border)
+            @Composable fun compare(label: String, a: Long?, b: Long?) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(a?.let { "%,d".format(it) } ?: "—", Modifier.weight(1f), color = if (a != null && b != null && a > b) Mint else Ink, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Text(label, Modifier.weight(1f), color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    Text(b?.let { "%,d".format(it) } ?: "—", Modifier.weight(1f), color = if (a != null && b != null && b > a) Mint else Ink, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                }
+            }
+            compare("POWER", first.power, second.power)
+            compare("KILLS", first.kills, second.kills)
+            compare("DEATHS", first.deaths, second.deaths)
+            compare("ALLIANCE POWER", first.alliancePower, second.alliancePower)
+            Row { Text(first.townCenterLevel?.let { "TC $it" } ?: "TC —", Modifier.weight(1f), color = Muted, fontSize = 11.sp); Text(second.townCenterLevel?.let { "TC $it" } ?: "TC —", color = Muted, fontSize = 11.sp) }
+            Text("Higher reported values are highlighted. Missing provider fields are left blank.", color = Muted, fontSize = 10.sp)
+        }
+    }
+}
 @Composable
 private fun ProfileMetric(label: String, value: String, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -1442,6 +1579,10 @@ private fun HistoryScreen(container: AppContainer) {
     var rows by remember { mutableStateOf(emptyList<RedemptionHistoryItem>()) }
     var message by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
+    var statusFilter by remember { mutableStateOf("ALL") }
+    var historyQuery by remember { mutableStateOf("") }
+    val filteredRows = rows.filter { (statusFilter == "ALL" || it.status.equals(statusFilter, true)) &&
+        (historyQuery.isBlank() || it.code.contains(historyQuery, true) || it.playerId.contains(historyQuery, true) || (it.message?.contains(historyQuery, true) == true)) }
     val hasDeveloperKey = !container.secureStorage.read(AppContainer.API_KEY_STORAGE).isNullOrBlank()
     ScreenColumn {
         ScreenHeading("V4 redemption history", "Optional Developer API feature. Reading history never submits a redemption.")
@@ -1468,7 +1609,17 @@ private fun HistoryScreen(container: AppContainer) {
             shape = RoundedCornerShape(14.dp)
         ) { Text(if (busy) "Loading history…" else "Load history") }
         message?.let { NoticeCard(it, Warning) }
-        rows.forEach { item ->
+        if (rows.isNotEmpty()) {
+            OutlinedField("Filter by code, player ID or message", historyQuery, { historyQuery = it })
+            Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                listOf("ALL", "SUCCESS", "FAILED", "PENDING").forEach { status ->
+                    FilterChip(selected = statusFilter == status, onClick = { statusFilter = status }, label = { Text(status, fontSize = 10.sp) })
+                }
+            }
+            Text(filteredRows.size.toString() + " of " + rows.size + " records", color = Muted, fontSize = 11.sp)
+            if (filteredRows.isEmpty()) NoticeCard("No records match these filters. Try another status or search term.", Warning)
+        }
+        filteredRows.forEach { item ->
             Card(
                 colors = CardDefaults.cardColors(containerColor = Panel),
                 shape = RoundedCornerShape(17.dp),

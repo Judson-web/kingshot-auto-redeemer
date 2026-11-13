@@ -86,35 +86,36 @@ class RedeemerRepository(
         require(PLAYER_ID.matches(playerId)) { "Player ID must contain 5–20 digits." }
         val response = api.publicPlayer(playerId)
         if (!response.isSuccessful) throw apiException(response, "Player lookup failed.")
-        val root = response.body()
-            ?: throw ApiException("The player service returned an empty response.", response.code())
+        val root = response.body() ?: throw ApiException("The player service returned an empty response.", response.code())
+        val data = root.get("data")?.takeIf { it.isJsonObject }?.asJsonObject
         val player = root.get("player")?.takeIf { it.isJsonObject }?.asJsonObject
-            ?: root.getAsJsonObject("data")?.get("player")?.takeIf { it.isJsonObject }?.asJsonObject
-            ?: root.get("data")?.takeIf { it.isJsonObject }?.asJsonObject
-            ?: root
-        fun text(vararg names: String): String? = names.firstNotNullOfOrNull { name ->
-            player.get(name)?.takeIf { it.isJsonPrimitive && !it.isJsonNull }?.asString?.takeIf(String::isNotBlank)
+            ?: data?.get("player")?.takeIf { it.isJsonObject }?.asJsonObject ?: data ?: root
+        val stats = player.get("stats")?.takeIf { it.isJsonObject }?.asJsonObject
+            ?: player.get("statistics")?.takeIf { it.isJsonObject }?.asJsonObject
+        fun first(vararg names: String): JsonElement? = names.firstNotNullOfOrNull { name ->
+            player.get(name)?.takeUnless { it.isJsonNull } ?: stats?.get(name)?.takeUnless { it.isJsonNull }
         }
-        fun number(vararg names: String): Long? = names.firstNotNullOfOrNull { name ->
-            player.get(name)?.takeIf { it.isJsonPrimitive && !it.isJsonNull }?.let {
-                runCatching { it.asLong }.getOrNull()
-            }
+        fun text(vararg names: String): String? = first(*names)?.takeIf { it.isJsonPrimitive }?.asString?.trim()?.takeIf(String::isNotBlank)
+        fun number(vararg names: String): Long? = first(*names)?.let {
+            if (!it.isJsonPrimitive) null else runCatching { if (it.asJsonPrimitive.isNumber) it.asLong else it.asString.replace(",", "").toLong() }.getOrNull()
         }
         val returnedId = text("governor_id", "fid", "player_id", "playerId", "id")
         if (returnedId != playerId) throw ApiException("The provider returned a different player ID.", response.code())
         val alliance = player.get("alliance")?.takeIf { it.isJsonObject }?.asJsonObject
+        val frame = runCatching { api.avatarFrame(playerId = playerId).body()?.getAsJsonObject("frame") }.getOrNull()
+        val frameAssetId = frame?.get("assetId")?.takeIf { it.isJsonPrimitive }?.asString
+            ?.takeIf { it.matches(Regex("\\d{6,12}")) }
+        val frameName = frame?.get("name")?.takeIf { it.isJsonPrimitive }?.asString?.take(80)
         return PlayerProfile(
-            playerId = returnedId,
-            name = text("nick_name", "name", "nickname", "player_name"),
-            kingdomId = text("kid", "kingdom_id", "kingdomId"),
-            power = number("power"),
-            townCenterLevel = number("town_center_level", "townCenterLevel")?.toInt(),
-            avatarUrl = text("avatar_url", "avatarUrl"),
-            allianceName = alliance?.get("name")?.takeIf { it.isJsonPrimitive }?.asString
-                ?: text("alliance_name", "allianceName"),
-            allianceTag = alliance?.get("abbr")?.takeIf { it.isJsonPrimitive }?.asString
-                ?: alliance?.get("tag")?.takeIf { it.isJsonPrimitive }?.asString
-                ?: text("alliance_abbr", "alliance_tag", "allianceTag")
+            playerId = returnedId, name = text("nick_name", "name", "nickname", "player_name", "display_name"),
+            kingdomId = text("kid", "kingdom_id", "kingdomId"), power = number("power", "total_power", "totalPower"),
+            townCenterLevel = number("town_center_level", "townCenterLevel", "castle_level", "level")?.toInt(),
+            avatarUrl = text("avatar_url", "avatarUrl", "avatar"),
+            allianceName = alliance?.get("name")?.takeIf { it.isJsonPrimitive }?.asString ?: text("alliance_name", "allianceName"),
+            allianceTag = alliance?.get("abbr")?.takeIf { it.isJsonPrimitive }?.asString ?: alliance?.get("tag")?.takeIf { it.isJsonPrimitive }?.asString ?: text("alliance_abbr", "alliance_tag", "allianceTag"),
+            vipLevel = number("vip_level", "vipLevel", "vip")?.toInt(), kills = number("kills", "kill_count", "killCount"),
+            deaths = number("deaths", "death_count", "deathCount"), alliancePower = number("alliance_power", "alliancePower"),
+            rank = number("rank", "alliance_rank", "allianceRank")?.toInt(), lastActive = text("last_active", "lastActive", "last_login", "lastLogin")
         )
     }
 
