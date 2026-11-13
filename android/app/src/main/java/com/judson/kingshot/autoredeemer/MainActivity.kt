@@ -277,6 +277,8 @@ private fun MoreScreen(
         OfficialFeature("Gift codes", "Browse current and previously published gift codes.", "/gift-codes", Icons.Outlined.CardGiftcard, "KINGDOM TOOLS"),
         OfficialFeature("Player profiles", "Open the full player profile and lookup experience.", "/user", Icons.Outlined.PersonSearch, "KINGDOM TOOLS"),
         OfficialFeature("Service information", "How the service works, status guidance and documentation.", "/info", Icons.Outlined.Info, "RESOURCES"),
+        OfficialFeature("Terms of service", "Read the service terms and acceptable-use rules.", "/terms", Icons.Outlined.Description, "RESOURCES"),
+        OfficialFeature("Privacy notice", "Review what data the service processes and why.", "/privacy", Icons.Outlined.Policy, "RESOURCES"),
         OfficialFeature("Discord account", "Manage your verified account and access level.", "/profile", Icons.Outlined.AccountCircle, "ACCOUNT"),
         OfficialFeature("Developer portal", "Optional API keys, documentation, usage and integrations.", "/developer", Icons.Outlined.Code, "DEVELOPER"),
         OfficialFeature("Developer workspace", "Private developer tools and workspace.", "/dev", Icons.Outlined.Terminal, "DEVELOPER"),
@@ -709,7 +711,9 @@ private fun NativeFeatureScreen(route: String, onBack: () -> Unit) {
         "/push" to ("Push console" to "Compose and send a production push announcement."),
         "/message" to ("Custom message" to "Create Discord or website announcements and schedules."),
         "/admin/players" to ("Player administration" to "Review registered players, restrictions and redemption history."),
-        "/admin/maintenance" to ("Maintenance controls" to "Inspect or change the live public maintenance state.")
+        "/admin/maintenance" to ("Maintenance controls" to "Inspect or change the live public maintenance state."),
+        "/terms" to ("Terms of service" to "Read the current service terms in your browser."),
+        "/privacy" to ("Privacy notice" to "Read the current privacy notice in your browser.")
     )
     val destination = destinations[route]
     val title = destination?.first ?: "Official workspace"
