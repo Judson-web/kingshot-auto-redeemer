@@ -55,6 +55,7 @@ The official Android app must use the same first-party production backend and pe
 ### P1: Identity and role separation
 - Guest, user, developer and admin roles continue to be derived server-side from verified Discord identity and existing backend entitlements.
 - Developer API keys are not used to infer app identity or role.
+- The V4 redemption-history endpoint remains an explicitly optional Developer API feature and is placed under Explore rather than the primary consumer navigation. Automatic redemption, manual redemption, player lookup and registration do not require a V4 key.
 - Private developer and admin pages are routed through the existing website guards and APIs.
 
 ## Verification required before production release
