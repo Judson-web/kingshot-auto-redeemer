@@ -106,7 +106,7 @@ class MainActivity : ComponentActivity() {
 }
 
 private enum class AppTab(val label: String) {
-    HOME("Home"), REDEEM("Redeem"), PLAYERS("Players"), HISTORY("History"), ACCOUNT("Account"), MORE("More")
+    HOME("Home"), REDEEM("Redeem"), PLAYERS("Players"), HISTORY("History"), ACCOUNT("Account"), MORE("More"), KEYS("Developer API")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -233,8 +233,9 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
                 AppTab.ACCOUNT -> AccountScreen(container, authCode, authError, onAuthCodeConsumed)
                 AppTab.MORE -> if (webRoute == null) MoreScreen(
                     onNavigate = { webRoute = it },
-                    onOpenDeveloperKeys = { tab = AppTab.PLAYERS }
+                    onOpenDeveloperKeys = { tab = AppTab.KEYS }
                 ) else OfficialWebScreen(webRoute!!, container)
+                AppTab.KEYS -> DeveloperApiSettings(container) { tab = AppTab.MORE }
             }
         }
     }
@@ -325,6 +326,52 @@ private fun MoreScreen(
             }
         }
         Text("Independent community service · Not affiliated with Century Games", color = Muted, fontSize = 10.sp)
+    }
+}
+
+
+@Composable
+private fun DeveloperApiSettings(container: AppContainer, onBack: () -> Unit) {
+    var key by remember { mutableStateOf("") }
+    var configured by remember { mutableStateOf(!container.secureStorage.read(AppContainer.API_KEY_STORAGE).isNullOrBlank()) }
+    var message by remember { mutableStateOf<String?>(null) }
+    ScreenColumn {
+        ScreenHeading("Developer API", "Optional integration for external tools. The official app works without this key.")
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Panel),
+            shape = RoundedCornerShape(20.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Border)
+        ) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Outlined.Key, contentDescription = null, tint = Mint)
+                    Text(if (configured) "Key stored securely on this device" else "No key configured", color = Ink, fontWeight = FontWeight.SemiBold)
+                }
+                Text("This key is only attached to /api/v4 requests made by optional developer integrations. It is not used for the app's official website workspace, Discord account, registration or normal redemption flows.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
+                OutlinedField("Paste Developer API key", key, { key = it.trim() }, password = true)
+                Button(
+                    onClick = {
+                        if (key.matches(Regex("ks_live_[a-f0-9]{64}"))) {
+                            runCatching { container.secureStorage.write(AppContainer.API_KEY_STORAGE, key) }
+                                .onSuccess { key = ""; configured = true; message = "Developer API key saved securely." }
+                                .onFailure { message = it.message ?: "Could not save the key securely." }
+                        } else message = "The key format is not valid."
+                    },
+                    enabled = key.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Save optional key") }
+                if (configured) OutlinedButton(
+                    onClick = {
+                        runCatching { container.secureStorage.remove(AppContainer.API_KEY_STORAGE) }
+                            .onSuccess { configured = false; message = "Saved key removed from this device." }
+                            .onFailure { message = it.message ?: "Could not remove the key." }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Remove key") }
+                message?.let { Text(it, color = Mint, fontSize = 12.sp) }
+            }
+        }
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back to Explore") }
     }
 }
 
