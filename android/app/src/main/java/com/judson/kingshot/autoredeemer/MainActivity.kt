@@ -4,15 +4,9 @@ import android.os.Bundle
 import android.content.Intent
 import android.net.Uri
 import android.util.Base64
-import android.webkit.CookieManager
-import android.webkit.WebResourceRequest
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import android.content.ActivityNotFoundException
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.BackHandler
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -120,7 +114,7 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
     var apiKeySet by remember {
         mutableStateOf(!container.secureStorage.read(AppContainer.API_KEY_STORAGE).isNullOrBlank())
     }
-    var webRoute by remember { mutableStateOf<String?>(null) }
+    var nativeFeature by remember { mutableStateOf<String?>(null) }
 
     suspend fun refreshHealth() {
         refreshing = true
@@ -208,7 +202,7 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
                 items.forEach { (destination, icon, label) ->
                     NavigationBarItem(
                         selected = tab == destination,
-                        onClick = { tab = destination; if (destination == AppTab.MORE) webRoute = null },
+                        onClick = { tab = destination; if (destination == AppTab.MORE) nativeFeature = null },
                         icon = { Icon(icon, contentDescription = label) },
                         label = { Text(label, fontSize = 10.sp, fontWeight = FontWeight.SemiBold) },
                         colors = NavigationBarItemDefaults.colors(
@@ -225,16 +219,27 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (tab) {
-                AppTab.HOME -> OfficialWebScreen("/", container)
-                AppTab.REDEEM -> OfficialWebScreen("/manual", container)
-                AppTab.PLAYERS -> OfficialWebScreen("/user", container)
+                AppTab.HOME -> HomeScreen(
+                    healthText = healthText,
+                    serviceOnline = serviceOnline,
+                    apiKeySet = apiKeySet,
+                    refreshing = refreshing,
+                    onRefresh = { scope.launch { refreshHealth() } },
+                    onRedeem = { tab = AppTab.REDEEM },
+                    onPlayers = { tab = AppTab.PLAYERS },
+                    onSettings = { tab = AppTab.KEYS }
+                )
+                AppTab.REDEEM -> RedeemScreen(container)
+                AppTab.PLAYERS -> PlayersScreen(container) {
+                    apiKeySet = !container.secureStorage.read(AppContainer.API_KEY_STORAGE).isNullOrBlank()
+                }
                 AppTab.HISTORY -> HistoryScreen(container)
                 AppTab.ACCOUNT -> AccountScreen(container, authCode, authError, onAuthCodeConsumed)
-                AppTab.MORE -> if (webRoute == null) MoreScreen(
-                    onNavigate = { webRoute = it },
+                AppTab.MORE -> if (nativeFeature == null) MoreScreen(
+                    onNavigate = { nativeFeature = it },
                     onOpenDeveloperKeys = { tab = AppTab.KEYS },
                     onOpenApiHistory = { tab = AppTab.HISTORY }
-                ) else OfficialWebScreen(webRoute!!, container)
+                ) else NativeFeatureScreen(nativeFeature!!) { nativeFeature = null }
                 AppTab.KEYS -> DeveloperApiSettings(container) { tab = AppTab.MORE }
             }
         }
@@ -392,80 +397,32 @@ private fun DeveloperApiSettings(container: AppContainer, onBack: () -> Unit) {
 }
 
 @Composable
-private fun OfficialWebScreen(route: String, container: AppContainer) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val origin = AppContainer.API_BASE_URL.removeSuffix("/")
-    var webView by remember { mutableStateOf<WebView?>(null) }
-    var pageError by remember { mutableStateOf<String?>(null) }
-    val targetUrl = remember(route) { origin + route }
-    BackHandler(enabled = webView?.canGoBack() == true) {
-        webView?.goBack()
+private fun NativeFeatureScreen(route: String, onBack: () -> Unit) {
+    val title = when (route) {
+        "/alliance-registration" -> "Alliance registration"
+        "/gift-codes" -> "Gift codes"
+        "/info" -> "Service information"
+        "/profile" -> "Account profile"
+        "/developer" -> "Developer portal"
+        "/dev" -> "Developer workspace"
+        "/devsupport" -> "Developer support"
+        "/push" -> "Notifications"
+        "/message" -> "Custom message"
+        "/admin/players" -> "Player administration"
+        "/admin/alliance-sync" -> "Alliance sync"
+        "/admin/maintenance" -> "Maintenance"
+        else -> "Official tools"
     }
-    AndroidView(
-        modifier = Modifier.fillMaxSize().background(Night),
-        factory = { viewContext ->
-            WebView(viewContext).apply {
-                webView = this
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
-                settings.databaseEnabled = true
-                settings.loadsImagesAutomatically = true
-                settings.javaScriptCanOpenWindowsAutomatically = false
-                settings.setSupportMultipleWindows(false)
-                settings.allowFileAccess = false
-                settings.allowContentAccess = false
-                settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
-                settings.safeBrowsingEnabled = true
-                CookieManager.getInstance().setAcceptCookie(true)
-                container.secureStorage.read(AppContainer.PROFILE_COOKIE_STORAGE)
-                    ?.takeIf(String::isNotBlank)
-                    ?.let { savedCookie ->
-                        CookieManager.getInstance().setCookie(
-                            origin,
-                            "$savedCookie; Path=/; Secure; HttpOnly; SameSite=Strict"
-                        )
-                        CookieManager.getInstance().flush()
-                    }
-                webViewClient = object : WebViewClient() {
-                    override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                        val uri = request.url
-                        if (uri.scheme == "https" && uri.host == android.net.Uri.parse(origin).host) return false
-                        return try {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, uri))
-                            true
-                        } catch (_: ActivityNotFoundException) {
-                            true
-                        }
-                    }
-
-                    override fun onPageFinished(view: WebView, url: String) {
-                        pageError = null
-                        CookieManager.getInstance().flush()
-                    }
-
-                    override fun onReceivedError(
-                        view: WebView,
-                        request: WebResourceRequest,
-                        error: android.webkit.WebResourceError
-                    ) {
-                        if (request.isForMainFrame) pageError = "The official workspace could not be loaded. Check your connection and retry."
-                    }
-                }
-                loadUrl(targetUrl)
-            }
-        },
-        update = { view ->
-            webView = view
-            if (view.url != targetUrl) view.loadUrl(targetUrl)
-        }
-    )
-    pageError?.let { message ->
-        Column(
-            Modifier.fillMaxWidth().padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            NoticeCard(message, Warning)
-            OutlinedButton(onClick = { webView?.reload() }) { Text("Retry") }
+    ScreenColumn {
+        ScreenHeading(title, "Native Android workspace")
+        NoticeCard(
+            "This feature is being implemented with native Android screens and direct backend calls. It is intentionally not loading the website inside the app. Core native screens for Home, manual redemption, player lookup, registration, account sign-in and optional developer tools remain available.",
+            Warning
+        )
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Outlined.ArrowBack, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("Back to Explore")
         }
     }
 }
