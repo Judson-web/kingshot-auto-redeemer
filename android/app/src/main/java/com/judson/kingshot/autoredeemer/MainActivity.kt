@@ -241,6 +241,10 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
                     onOpenApiHistory = { tab = AppTab.HISTORY }
                 ) else if (nativeFeature == "/alliance-registration") AllianceRegistrationScreen(container) { nativeFeature = null }
                 else if (nativeFeature == "/gift-codes") GiftCodesScreen(container) { nativeFeature = null }
+                else if (nativeFeature == "/user") PlayersScreen(container) { nativeFeature = null }
+                else if (nativeFeature == "/profile") AccountScreen(container, authCode, authError, onAuthCodeConsumed)
+                else if (nativeFeature == "/developer") DeveloperApiSettings(container) { nativeFeature = null }
+                else if (nativeFeature == "/info") InfoScreen { nativeFeature = null }
                 else NativeFeatureScreen(nativeFeature!!) { nativeFeature = null }
                 AppTab.KEYS -> DeveloperApiSettings(container) { tab = AppTab.MORE }
             }
@@ -557,6 +561,33 @@ private fun GiftCodesScreen(container: AppContainer, onBack: () -> Unit) {
 }
 
 @Composable
+private fun InfoScreen(onBack: () -> Unit) {
+    ScreenColumn {
+        ScreenHeading("Service information", "How the official Kingshot Auto Redeemer works.")
+        Card(colors = CardDefaults.cardColors(containerColor = Panel), border = androidx.compose.foundation.BorderStroke(1.dp, Border), shape = RoundedCornerShape(18.dp)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Automatic redemption", color = Ink, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Text("Register a player once. The existing server-side workers check eligible gift codes on their scheduled cycle. The Android app does not run a competing worker.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
+            }
+        }
+        Card(colors = CardDefaults.cardColors(containerColor = Panel), border = androidx.compose.foundation.BorderStroke(1.dp, Border), shape = RoundedCornerShape(18.dp)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Manual redemption", color = Ink, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Text("Manual requests use the public rate-limited service. If the game response is uncertain, the backend recovery journal blocks another attempt until the outcome can be reviewed.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
+            }
+        }
+        Card(colors = CardDefaults.cardColors(containerColor = Panel), border = androidx.compose.foundation.BorderStroke(1.dp, Border), shape = RoundedCornerShape(18.dp)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Accounts and permissions", color = Ink, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Text("Discord sign-in verifies your account with the production backend. Developer and administrator permissions are never granted by the app itself.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
+            }
+        }
+        Text("Independent community service. Not affiliated with Century Games.", color = Muted, fontSize = 10.sp)
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back to Explore") }
+    }
+}
+
+@Composable
 private fun NativeFeatureScreen(route: String, onBack: () -> Unit) {
     val title = when (route) {
         "/alliance-registration" -> "Alliance registration"
@@ -738,7 +769,7 @@ private fun RedeemScreen(container: AppContainer) {
         ScreenHeading("Manual redemption", "Submit a gift code through the official rate-limited redemption service. No Developer API key is required.")
         if (pending != null) {
             NoticeCard(
-                "An earlier attempt is unresolved. The app has preserved its exact unresolved request. The backend blocks duplicate submissions while its outcome is unresolved.. Only retry this same attempt.",
+                "An earlier attempt is unresolved. The app has preserved its exact unresolved request. The backend blocks duplicate submissions while its outcome is unresolved. Only retry this same attempt.",
                 Warning
             )
             Text("Request reference: " + pending!!.requestId.take(8) + "…", color = Muted, fontSize = 11.sp)
