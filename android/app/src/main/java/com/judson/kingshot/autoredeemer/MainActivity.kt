@@ -565,7 +565,6 @@ private fun RedeemScreen(container: AppContainer) {
     var message by remember { mutableStateOf<String?>(null) }
     var successful by remember { mutableStateOf<Boolean?>(null) }
     var pending by remember { mutableStateOf(container.repository.pendingRedemption()) }
-    val hasDeveloperKey = !container.secureStorage.read(AppContainer.API_KEY_STORAGE).isNullOrBlank()
     var retryWaitSeconds by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(retryWaitSeconds) {
@@ -576,10 +575,7 @@ private fun RedeemScreen(container: AppContainer) {
     }
 
     ScreenColumn {
-        ScreenHeading("Manual redemption", "Send a single request through the production V4 API.")
-        if (!hasDeveloperKey) {
-            NoticeCard("A Developer API key is required for manual redemption. Add one in the Players tab before submitting a code.", Warning)
-        }
+        ScreenHeading("Manual redemption", "Submit a gift code through the official rate-limited redemption service. No Developer API key is required.")
         if (pending != null) {
             NoticeCard(
                 "An earlier attempt is unresolved. The app has preserved its exact request and idempotency key. Only retry this same attempt.",
@@ -635,7 +631,7 @@ private fun RedeemScreen(container: AppContainer) {
                     }
                 }
             },
-            enabled = hasDeveloperKey && !busy && retryWaitSeconds == 0 &&
+            enabled = !busy && retryWaitSeconds == 0 &&
                 (pending != null || (playerId.matches(Regex("\\d{5,20}")) &&
                     kingdomId.matches(Regex("\\d{1,10}")) &&
                     code.matches(Regex("[A-Za-z0-9_-]{1,64}")))),
@@ -681,7 +677,7 @@ private fun PlayersScreen(container: AppContainer, onApiKeyChanged: () -> Unit) 
     }
 
     ScreenColumn {
-        ScreenHeading("Players", "Look up player profiles and enroll accounts in the existing server-side workflow.")
+        ScreenHeading("Players", "Look up player profiles and enroll accounts in the existing server-side workflow. No Developer API key is needed.")
         OutlinedField("Player ID", playerId, { playerId = it.filter(Char::isDigit).take(20) }, keyboardType = KeyboardType.Number)
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Button(
@@ -692,14 +688,14 @@ private fun PlayersScreen(container: AppContainer, onApiKeyChanged: () -> Unit) 
                         registration = null
                         try {
                             profile = container.repository.lookup(playerId)
-                            message = "Player profile loaded from the V4 API."
+                            message = "Player profile loaded from the public player service."
                         } catch (error: Exception) {
                             profile = null
                             message = error.message
                         } finally { busy = false }
                     }
                 },
-                enabled = !busy && keyConfigured && playerId.matches(Regex("\\d{5,20}")),
+                enabled = !busy && playerId.matches(Regex("\\d{5,20}")),
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(14.dp)
             ) { Text(if (busy) "Please wait…" else "Look up") }
