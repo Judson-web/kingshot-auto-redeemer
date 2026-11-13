@@ -203,8 +203,7 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
                     Triple(AppTab.HOME, Icons.Outlined.Dashboard, "Home"),
                     Triple(AppTab.REDEEM, Icons.Outlined.Redeem, "Redeem"),
                     Triple(AppTab.PLAYERS, Icons.Outlined.Groups, "Players"),
-                    Triple(AppTab.HISTORY, Icons.Outlined.History, "History"),
-                    Triple(AppTab.MORE, Icons.Outlined.Explore, "More")
+                    Triple(AppTab.MORE, Icons.Outlined.Explore, "Explore")
                 )
                 items.forEach { (destination, icon, label) ->
                     NavigationBarItem(
@@ -233,7 +232,8 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
                 AppTab.ACCOUNT -> AccountScreen(container, authCode, authError, onAuthCodeConsumed)
                 AppTab.MORE -> if (webRoute == null) MoreScreen(
                     onNavigate = { webRoute = it },
-                    onOpenDeveloperKeys = { tab = AppTab.KEYS }
+                    onOpenDeveloperKeys = { tab = AppTab.KEYS },
+                    onOpenApiHistory = { tab = AppTab.HISTORY }
                 ) else OfficialWebScreen(webRoute!!, container)
                 AppTab.KEYS -> DeveloperApiSettings(container) { tab = AppTab.MORE }
             }
@@ -253,7 +253,8 @@ private data class OfficialFeature(
 @Composable
 private fun MoreScreen(
     onNavigate: (String) -> Unit,
-    onOpenDeveloperKeys: () -> Unit
+    onOpenDeveloperKeys: () -> Unit,
+    onOpenApiHistory: () -> Unit
 ) {
     val features = listOf(
         OfficialFeature("Alliance registration", "Register and review alliance members with the official sync workflow.", "/alliance-registration", Icons.Outlined.Groups, "KINGDOM TOOLS"),
@@ -307,6 +308,21 @@ private fun MoreScreen(
                         }
                         Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = Muted)
                     }
+                }
+            }
+        }
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Panel),
+            shape = RoundedCornerShape(17.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Border)
+        ) {
+            Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Text("Optional V4 redemption history", color = Ink, fontWeight = FontWeight.Bold)
+                Text("History through the public V4 Developer API is an optional advanced feature and requires a Developer API key. It is not needed for automatic or manual redemption.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp)
+                OutlinedButton(onClick = onOpenApiHistory, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Outlined.History, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Open V4 history")
                 }
             }
         }
@@ -1170,9 +1186,9 @@ private fun HistoryScreen(container: AppContainer) {
     var busy by remember { mutableStateOf(false) }
     val hasDeveloperKey = !container.secureStorage.read(AppContainer.API_KEY_STORAGE).isNullOrBlank()
     ScreenColumn {
-        ScreenHeading("Redemption history", "Review recorded outcomes. Reading history never submits a redemption.")
+        ScreenHeading("V4 redemption history", "Optional Developer API feature. Reading history never submits a redemption.")
         if (!hasDeveloperKey) {
-            NoticeCard("A Developer API key with redemption-history access is required. Add one in the Players tab.", Warning)
+            NoticeCard("A Developer API key with redemption-history access is required. You can add one from Explore → Optional Developer API.", Warning)
         }
         OutlinedField("Player ID", playerId, { playerId = it.filter(Char::isDigit).take(20) }, keyboardType = KeyboardType.Number)
         Button(
