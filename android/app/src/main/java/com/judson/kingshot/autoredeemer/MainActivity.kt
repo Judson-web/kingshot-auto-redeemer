@@ -239,7 +239,8 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
                     onNavigate = { nativeFeature = it },
                     onOpenDeveloperKeys = { tab = AppTab.KEYS },
                     onOpenApiHistory = { tab = AppTab.HISTORY }
-                ) else NativeFeatureScreen(nativeFeature!!) { nativeFeature = null }
+                ) else if (nativeFeature == "/alliance-registration") AllianceRegistrationScreen(container) { nativeFeature = null }
+                else NativeFeatureScreen(nativeFeature!!) { nativeFeature = null }
                 AppTab.KEYS -> DeveloperApiSettings(container) { tab = AppTab.MORE }
             }
         }
@@ -392,6 +393,112 @@ private fun DeveloperApiSettings(container: AppContainer, onBack: () -> Unit) {
                 message?.let { Text(it, color = Mint, fontSize = 12.sp) }
             }
         }
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back to Explore") }
+    }
+}
+
+
+@Composable
+private fun AllianceRegistrationScreen(container: AppContainer, onBack: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    var kingdom by remember { mutableStateOf("") }
+    var search by remember { mutableStateOf("") }
+    var alliances by remember { mutableStateOf(emptyList<com.google.gson.JsonObject>()) }
+    var selectedTag by remember { mutableStateOf("") }
+    var roster by remember { mutableStateOf(emptyList<com.google.gson.JsonObject>()) }
+    var registered by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var notice by remember { mutableStateOf<String?>(null) }
+    var registrationAllowed by remember { mutableStateOf(false) }
+    fun com.google.gson.JsonObject.str(key: String): String =
+        get(key)?.takeIf { it.isJsonPrimitive && !it.isJsonNull }?.asString.orEmpty()
+
+    ScreenColumn {
+        ScreenHeading("Alliance registration", "Find your kingdom alliance, review its roster and register its existing 24-hour sync workflow.")
+        OutlinedField("Kingdom ID", kingdom, { kingdom = it.filter(Char::isDigit).take(10) }, keyboardType = KeyboardType.Number)
+        OutlinedField("Search alliance name or tag", search, { search = it.take(80) })
+        Button(
+            onClick = {
+                scope.launch {
+                    busy = true; error = null; notice = null; alliances = emptyList(); roster = emptyList(); selectedTag = ""
+                    try {
+                        val result = container.repository.searchAlliances(kingdom, search)
+                        val list = result.get("alliances")?.takeIf { it.isJsonArray }?.asJsonArray
+                        alliances = list?.mapNotNull { it.takeIf { item -> item.isJsonObject }?.asJsonObject } ?: emptyList()
+                        if (alliances.isEmpty()) notice = "No alliances were returned. Check the kingdom ID or search term."
+                    } catch (e: Exception) { error = e.message ?: "Alliance search failed." }
+                    finally { busy = false }
+                }
+            },
+            enabled = !busy && kingdom.matches(Regex("\\d{1,10}")),
+            modifier = Modifier.fillMaxWidth()
+        ) { Text(if (busy) "Searching…" else "Find alliances") }
+        alliances.forEach { alliance ->
+            val tag = alliance.str("tag")
+            Card(
+                onClick = {
+                    scope.launch {
+                        selectedTag = tag; busy = true; error = null; notice = null; roster = emptyList(); registered = emptySet()
+                        try {
+                            val result = container.repository.allianceRoster(kingdom, tag)
+                            val rows = result.get("members")?.takeIf { it.isJsonArray }?.asJsonArray
+                            roster = rows?.mapNotNull { it.takeIf { item -> item.isJsonObject }?.asJsonObject } ?: emptyList()
+                            if (roster.isEmpty()) throw IllegalStateException("The provider returned no usable roster.")
+                            registered = container.repository.allianceRegistrationStatus(roster.map { it.str("playerId") })
+                            registrationAllowed = true
+                        } catch (e: Exception) { error = e.message ?: "Roster could not be verified."; registrationAllowed = false }
+                        finally { busy = false }
+                    }
+                },
+                colors = CardDefaults.cardColors(containerColor = Panel),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Border),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("[${tag}] " + alliance.str("name"), color = Ink, fontWeight = FontWeight.Bold)
+                        Text("Rank " + alliance.str("rank") + " · " + alliance.str("memberCount") + " members", color = Muted, fontSize = 11.sp)
+                    }
+                    Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = Mint)
+                }
+            }
+        }
+        if (selectedTag.isNotBlank()) {
+            Divider(color = Border)
+            Text("ROSTER · [${selectedTag}]", color = Mint, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+            Text("${registered.size} already registered · ${(roster.size - registered.size).coerceAtLeast(0)} not registered", color = Muted, fontSize = 12.sp)
+            roster.forEach { member ->
+                val id = member.str("playerId")
+                Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(member.str("name").ifBlank { "Kingshot Player" }, color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        Text(id, color = Muted, fontSize = 10.sp)
+                    }
+                    Text(if (id in registered) "REGISTERED" else "NOT REGISTERED",
+                        color = if (id in registered) Mint else Warning, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+            Button(
+                onClick = {
+                    scope.launch {
+                        busy = true; error = null; notice = null
+                        try {
+                            val result = container.repository.registerAlliance(kingdom, selectedTag)
+                            val count = result.get("validatedRosterCount")?.asInt ?: roster.size
+                            notice = "Alliance registration confirmed for ${count} roster members. The existing server-side worker will process the initial sync and continue on its 24-hour schedule."
+                            registrationAllowed = false
+                        } catch (e: Exception) { error = e.message ?: "Alliance registration failed." }
+                        finally { busy = false }
+                    }
+                },
+                enabled = !busy && registrationAllowed,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text(if (busy) "Registering…" else "Register alliance and schedule sync") }
+            Text("The backend revalidates the roster and enforces the four-alliance kingdom cap and owner bypass. Existing registrations are preserved.", color = Muted, fontSize = 11.sp, lineHeight = 16.sp)
+        }
+        notice?.let { NoticeCard(it, Mint) }
+        error?.let { NoticeCard(it, Danger) }
         OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back to Explore") }
     }
 }
