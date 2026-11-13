@@ -16,8 +16,14 @@ interface RedeemerApi {
     @GET("api/kingshot-health")
     suspend fun health(): Response<ServiceHealth>
 
+    @GET("api/kingshot-player")
+    suspend fun publicPlayer(@Query("id") playerId: String): Response<JsonObject>
+
     @GET("api/v4/players/{playerId}")
     suspend fun player(@Path("playerId") playerId: String): Response<ApiEnvelope<PlayerProfile>>
+
+    @POST("api/kingshot-redeem")
+    suspend fun publicRedeem(@Body request: JsonObject): Response<JsonObject>
 
     @POST("api/v4/redemptions")
     suspend fun redeem(
