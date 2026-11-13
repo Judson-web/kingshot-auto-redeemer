@@ -240,6 +240,7 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
                     onOpenDeveloperKeys = { tab = AppTab.KEYS },
                     onOpenApiHistory = { tab = AppTab.HISTORY }
                 ) else if (nativeFeature == "/alliance-registration") AllianceRegistrationScreen(container) { nativeFeature = null }
+                else if (nativeFeature == "/gift-codes") GiftCodesScreen(container) { nativeFeature = null }
                 else NativeFeatureScreen(nativeFeature!!) { nativeFeature = null }
                 AppTab.KEYS -> DeveloperApiSettings(container) { tab = AppTab.MORE }
             }
@@ -498,6 +499,58 @@ private fun AllianceRegistrationScreen(container: AppContainer, onBack: () -> Un
             Text("The backend revalidates the roster and enforces the four-alliance kingdom cap and owner bypass. Existing registrations are preserved.", color = Muted, fontSize = 11.sp, lineHeight = 16.sp)
         }
         notice?.let { NoticeCard(it, Mint) }
+        error?.let { NoticeCard(it, Danger) }
+        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back to Explore") }
+    }
+}
+
+
+@Composable
+private fun GiftCodesScreen(container: AppContainer, onBack: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var codes by remember { mutableStateOf(emptyList<com.google.gson.JsonObject>()) }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var loadedAt by remember { mutableStateOf<String?>(null) }
+    fun com.google.gson.JsonObject.str(key: String): String =
+        get(key)?.takeIf { it.isJsonPrimitive && !it.isJsonNull }?.asString.orEmpty()
+    suspend fun refresh() {
+        busy = true; error = null
+        try {
+            val result = container.repository.giftCodes()
+            val rows = result.get("codes")?.takeIf { it.isJsonArray }?.asJsonArray
+            codes = rows?.mapNotNull { it.takeIf { item -> item.isJsonObject }?.asJsonObject } ?: emptyList()
+            loadedAt = result.str("generatedAt")
+        } catch (e: Exception) { error = e.message ?: "Could not load verified gift codes." }
+        finally { busy = false }
+    }
+    LaunchedEffect(Unit) { refresh() }
+    ScreenColumn {
+        ScreenHeading("Verified gift codes", "Codes confirmed by the service. Only active, unsuppressed and verified entries are shown.")
+        OutlinedButton(onClick = { scope.launch { refresh() } }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Outlined.Refresh, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text(if (busy) "Refreshing…" else "Refresh codes")
+        }
+        Text("${codes.size} verified codes · recent success counts cover the last 7 days", color = Muted, fontSize = 11.sp)
+        codes.forEach { item ->
+            val code = item.str("code")
+            Card(colors = CardDefaults.cardColors(containerColor = Panel), border = androidx.compose.foundation.BorderStroke(1.dp, Border), shape = RoundedCornerShape(16.dp)) {
+                Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(code, color = Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                        IconButton(onClick = {
+                            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Kingshot gift code", code))
+                        }) { Icon(Icons.Outlined.ContentCopy, contentDescription = "Copy gift code", tint = Mint) }
+                    }
+                    Text(item.str("recentSuccesses") + " successful redemptions in the last 7 days", color = Muted, fontSize = 11.sp)
+                    Text("Validated " + item.str("validatedAt").ifBlank { "date unavailable" }, color = Muted, fontSize = 10.sp)
+                }
+            }
+        }
+        if (codes.isEmpty() && !busy && error == null) NoticeCard("No currently verified gift codes were returned.", Warning)
         error?.let { NoticeCard(it, Danger) }
         OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back to Explore") }
     }
