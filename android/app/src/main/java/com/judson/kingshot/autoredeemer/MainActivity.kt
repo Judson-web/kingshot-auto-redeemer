@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -1110,23 +1111,40 @@ private fun PlayersScreen(container: AppContainer, onApiKeyChanged: () -> Unit) 
 
 @Composable
 private fun PlayerCard(profile: PlayerProfile) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Panel),
-        shape = RoundedCornerShape(20.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Border)
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(profile.name ?: "Unknown player", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Ink)
-            Text("ID " + (profile.playerId ?: "—") + "  ·  Kingdom " + (profile.kingdomId ?: "—"), color = Muted, fontSize = 12.sp)
-            Divider(color = Border)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                ProfileMetric("POWER", profile.power?.let { "%,d".format(it) } ?: "—", Modifier.weight(1f))
-                ProfileMetric("TOWN CENTER", profile.townCenterLevel?.toString() ?: "—", Modifier.weight(1f))
+    val clipboard = LocalClipboardManager.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val playerId = profile.playerId ?: return
+    val alliance = profile.allianceName ?: profile.allianceTag?.let { "[$it]" } ?: "Independent"
+    val powerText = profile.power?.let { "%,d".format(it) } ?: "Not reported"
+    Card(colors = CardDefaults.cardColors(containerColor = Panel), shape = RoundedCornerShape(23.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Border)) {
+        Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF1D4934), Panel, Panel))).padding(17.dp), verticalArrangement = Arrangement.spacedBy(13.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(13.dp)) {
+                Box(Modifier.size(58.dp).background(Brush.linearGradient(listOf(Mint, Color(0xFF3E9D70))), CircleShape), contentAlignment = Alignment.Center) {
+                    Text(profile.name?.firstOrNull()?.uppercase() ?: "K", color = Night, fontSize = 25.sp, fontWeight = FontWeight.ExtraBold)
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(profile.name ?: "Unknown player", color = Ink, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
+                    Text(alliance, color = Mint, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("KINGDOM ${profile.kingdomId ?: "UNKNOWN"}", color = Muted, fontSize = 10.sp, letterSpacing = 1.sp, fontWeight = FontWeight.Bold)
+                }
+                Surface(color = Color(0xFF173D2A), shape = RoundedCornerShape(10.dp)) { Text("PLAYER", Modifier.padding(horizontal = 9.dp, vertical = 6.dp), color = Mint, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp) }
             }
-            Text(
-                "Alliance  " + (profile.allianceName ?: "—") + (profile.allianceTag?.let { " [$it]" } ?: ""),
-                color = Ink, fontSize = 13.sp
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) { Text("PLAYER ID", color = Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp); Text(playerId, color = Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
+                TextButton(onClick = { clipboard.setText(androidx.compose.ui.text.AnnotatedString(playerId)) }) { Icon(Icons.Outlined.ContentCopy, contentDescription = null, tint = Mint, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(5.dp)); Text("Copy ID", color = Mint, fontSize = 11.sp) }
+                TextButton(onClick = {
+                    val share = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "Kingshot player: ${profile.name ?: "Unknown"}\nID: $playerId\nKingdom: ${profile.kingdomId ?: "Unknown"}\nPower: $powerText\nAlliance: $alliance") }
+                    context.startActivity(Intent.createChooser(share, "Share player profile"))
+                }) { Icon(Icons.Outlined.Share, contentDescription = null, tint = Mint, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(5.dp)); Text("Share", color = Mint, fontSize = 11.sp) }
+            }
+            Divider(color = Border)
+            Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) { ProfileMetric("TOTAL POWER", powerText, Modifier.weight(1.2f)); ProfileMetric("TOWN CENTER", profile.townCenterLevel?.let { "Lv. $it" } ?: "—", Modifier.weight(0.8f)) }
+            Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) { ProfileMetric("VIP LEVEL", profile.vipLevel?.let { "VIP $it" } ?: "—", Modifier.weight(1f)); ProfileMetric("KILLS", profile.kills?.let { "%,d".format(it) } ?: "—", Modifier.weight(1f)); ProfileMetric("DEATHS", profile.deaths?.let { "%,d".format(it) } ?: "—", Modifier.weight(1f)) }
+            if (profile.alliancePower != null || profile.rank != null || profile.lastActive != null) {
+                Divider(color = Border); Text("ADDITIONAL DETAILS", color = Mint, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                profile.alliancePower?.let { ProfileMetric("ALLIANCE POWER", "%,d".format(it)) }; profile.rank?.let { ProfileMetric("ALLIANCE RANK", "#$it") }; profile.lastActive?.let { ProfileMetric("LAST ACTIVE", it) }
+            }
+            Text("Profile details are shown only when supplied by the player data provider.", color = Muted, fontSize = 10.sp, lineHeight = 14.sp)
         }
     }
 }
