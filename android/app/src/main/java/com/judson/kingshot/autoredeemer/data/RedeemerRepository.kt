@@ -64,12 +64,24 @@ class RedeemerRepository(
         val response = api.accountAuth(JsonObject().apply { addProperty("action", "profile-logout") })
         if (!response.isSuccessful) throw apiException(response, "Could not revoke the Discord session.")
         storage.remove(AppContainer.PROFILE_COOKIE_STORAGE)
+        storage.remove(AppContainer.OWNER_COOKIE_STORAGE)
     }
 
     suspend fun discordProfile(): JsonObject {
         val response = api.accountAuth(JsonObject().apply { addProperty("action", "profile-check") })
         if (!response.isSuccessful) throw apiException(response, "Could not verify your Discord session.")
         return response.body() ?: throw ApiException("The account service returned an empty response.", response.code())
+    }
+
+    suspend fun ensureOwnerSession(): JsonObject {
+        val response = api.accountAuth(JsonObject().apply { addProperty("action", "dev-check") })
+        if (!response.isSuccessful) throw apiException(response, "Could not verify administrator access.")
+        val result = response.body()
+            ?: throw ApiException("The administrator service returned an empty response.", response.code())
+        if (result.booleanValue("authenticated") != true) {
+            throw ApiException("Administrator access is restricted to the configured owner Discord account.", 403)
+        }
+        return result
     }
 
     suspend fun health(): ServiceHealth {
