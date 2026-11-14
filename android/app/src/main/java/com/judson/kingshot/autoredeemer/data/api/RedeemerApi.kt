@@ -78,6 +78,20 @@ interface RedeemerApi {
     @POST("api/kingshot-admin-data")
     suspend fun updateAdminMaintenance(@Body body: JsonObject): Response<JsonObject>
 
+    @GET("api/kingshot-admin-data")
+    suspend fun adminPlayers(
+        @Query("playerPage") page: Int = 1,
+        @Query("playerPageSize") pageSize: Int = 25,
+        @Query("playerSearch") search: String = "",
+        @Query("playerStatus") status: String = "all"
+    ): Response<JsonObject>
+
+    @GET("api/kingshot-admin-data")
+    suspend fun adminPlayerHistory(@Query("playerHistory") playerId: String): Response<JsonObject>
+
+    @POST("api/kingshot-admin-data")
+    suspend fun adminPlayerAction(@Body body: JsonObject): Response<JsonObject>
+
     @POST("api/kingshot-register")
     suspend fun register(@Body body: JsonObject): Response<JsonObject>
 }
