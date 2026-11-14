@@ -716,8 +716,6 @@ private fun NativeFeatureScreen(route: String, onBack: () -> Unit) {
         "/devsupport" to ("Developer support" to "Open the protected developer support inbox."),
         "/push" to ("Push console" to "Compose and send a production push announcement."),
         "/message" to ("Custom message" to "Create Discord or website announcements and schedules."),
-        "/admin/players" to ("Player administration" to "Review registered players, restrictions and redemption history."),
-        "/admin/maintenance" to ("Maintenance controls" to "Inspect or change the live public maintenance state."),
         "/terms" to ("Terms of service" to "Read the current service terms in your browser."),
         "/privacy" to ("Privacy notice" to "Read the current privacy notice in your browser.")
     )
