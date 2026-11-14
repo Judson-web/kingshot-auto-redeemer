@@ -72,3 +72,23 @@ test("native alliance sync administration uses the existing authenticated worker
   assert.match(api, /allianceSyncQuery/);
   assert.match(container, /api\/kingshot-alliance-sync/);
 });
+
+
+test("announcements and legal pages are native Compose destinations", async () => {
+  const apiUrl = new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/data/api/RedeemerApi.kt", import.meta.url);
+  const announcementsUrl = new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/features/announcements/AnnouncementsScreen.kt", import.meta.url);
+  const legalUrl = new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/features/legal/NativeLegalScreen.kt", import.meta.url);
+  const api = await readFile(apiUrl, "utf8");
+  const announcements = await readFile(announcementsUrl, "utf8");
+  const legal = await readFile(legalUrl, "utf8");
+  assert.match(activity, /features\.announcements\.AnnouncementsScreen\(container\)/);
+  assert.match(activity, /features\.legal\.NativeLegalScreen\(nativeFeature == "\/privacy"\)/);
+  assert.match(activity, /"\/announcements"/);
+  assert.match(api, /api\/kingshot-admin-data\?public=announcements/);
+  assert.match(announcements, /container\.api\.publicAnnouncements\(\)/);
+  assert.match(announcements, /uri\?\.scheme == "https"/);
+  assert.match(legal, /Use the service responsibly/);
+  assert.match(legal, /Your data, explained/);
+  assert.match(legal, /30-day expiry/);
+  assert.match(legal, /Never send it to us/);
+});
