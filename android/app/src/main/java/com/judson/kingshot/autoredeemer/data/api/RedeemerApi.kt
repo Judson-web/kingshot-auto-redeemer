@@ -44,6 +44,9 @@ interface RedeemerApi {
     @GET("api/kingshot-gift-codes")
     suspend fun giftCodes(): Response<JsonObject>
 
+    @GET("api/kingshot-admin-data?public=announcements")
+    suspend fun publicAnnouncements(): Response<JsonObject>
+
     @GET("api/kingshot-player?developerPath=alliance-lookup")
     suspend fun allianceLookup(
         @Query("kingdomId") kingdomId: String,
