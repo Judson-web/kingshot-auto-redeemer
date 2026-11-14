@@ -223,7 +223,7 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (tab) {
-                AppTab.HOME -> HomeScreen(
+                AppTab.HOME -> com.judson.kingshot.autoredeemer.ui.home.ProfessionalHomeScreen(
                     healthText = healthText,
                     serviceOnline = serviceOnline,
                     apiKeySet = apiKeySet,
