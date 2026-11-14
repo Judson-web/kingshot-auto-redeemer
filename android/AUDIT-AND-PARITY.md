@@ -16,16 +16,18 @@ The official Android app must use the same first-party production backend and pe
 | `/alliance-registration` | Alliance roster registration and sync workflow | Native Compose |
 | `/gift-codes` | Verified gift-code catalogue | Native Compose |
 | `/info` | Service information and instructions | Native Compose |
+| `/announcements` | Public service announcements | Native Compose, first-party public feed |
+| `/terms`, `/privacy` | Legal information | Native Compose, synchronized to current published policy text |
 | `/profile` | Discord profile and account experience | Native Account |
 | `/developer` | Developer API settings and documentation | Native optional key settings; full portal not ported |
 | `/dev` | Private developer workspace | Opens the protected production workspace in the external browser |
 | `/devsupport` | Developer support | Opens the protected production support inbox in the external browser |
 | `/push` | Push notification console | Opens the protected production console in the external browser |
 | `/message` | Custom Discord message experience | Opens the protected production message studio in the external browser |
-| `/admin/players` | Player administration | Opens the protected production player database in the external browser |
+| `/admin/players` | Player administration | Native Compose, owner-session gated player search, history and restriction controls |
 | `/admin/alliance-sync` | Alliance sync administration | Native Compose, authenticated existing sync API |
-| `/admin/maintenance` | Maintenance administration | Opens the protected production maintenance console in the external browser |
-| `/terms`, `/privacy` | Legal information | Not yet ported natively |
+| `/admin/maintenance` | Maintenance administration | Native Compose, owner-session gated status and maintenance controls |
+| `/terms`, `/privacy` | Legal information | Native Compose |
 
 ## Findings and remediation
 
@@ -37,7 +39,7 @@ The official Android app must use the same first-party production backend and pe
 
 ### P0: Feature parity gap
 - The previous app had no native entry point for alliance registration, gift-code catalogue, information, announcements, support, push console, custom message, developer workspace or admin workspaces.
-- Core consumer workflows are native Compose screens backed by first-party APIs. Sensitive specialist consoles that are not ported natively open their exact production routes in the external browser, preserving the existing UI and authorization flows.
+- Core consumer workflows are native Compose screens backed by first-party APIs. The remaining specialist consoles that are not ported natively open their exact production routes in the external browser, preserving the existing UI and authorization flows.
 - The Android shell does not embed the website or use a JavaScript bridge. Browser sign-in may be required separately because browser cookies are isolated from the app's native account session.
 
 ### P1: Native transport security
@@ -59,12 +61,12 @@ The official Android app must use the same first-party production backend and pe
 
 1. Android unit tests and debug assembly on JDK 17 / Gradle 8.9.
 2. Manual native workflow verification on Android 10 and Android 17, including navigation, lifecycle, offline retry and rotation.
-3. Discord OAuth round trip on a real device, including cancellation, denial, expired verifier, successful profile check and logout.
-4. Guest checks: public player lookup, manual redemption, gift-code catalogue and alliance discovery.
-5. Signed-in checks: alliance preview, capacity enforcement, registration, progress and history.
-6. Role checks: standard user cannot access developer/admin operations; developer-only tools remain server-gated; only the owner identity receives admin access.
-7. Redemption ambiguity checks: no blind retries after unresolved outcomes; server-side recovery journal remains authoritative.
-8. Release-signing workflow must publish a signed release APK only after all checks pass.
+3. Discord OAuth round trip on a real device, including cancellation, denial, expired verifier, successful profile check and logout.\n4. Owner-only maintenance/player admin tests with the configured owner account, plus explicit denial for standard and developer accounts.
+5. Guest checks: public player lookup, manual redemption, gift-code catalogue, announcements and alliance discovery.
+6. Signed-in checks: alliance preview, capacity enforcement, registration, progress and history.
+7. Role checks: standard user cannot access developer/admin operations; developer-only tools remain server-gated; only the owner identity receives admin access.
+8. Redemption ambiguity checks: no blind retries after unresolved outcomes; server-side recovery journal remains authoritative.
+9. Release-signing workflow must publish a signed release APK only after all checks pass.
 
 ## Scope note
 
