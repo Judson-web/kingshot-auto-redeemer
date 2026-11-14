@@ -1,8 +1,6 @@
 package com.judson.kingshot.autoredeemer.features.adminplayers
 
 import com.google.gson.JsonObject
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -157,7 +155,7 @@ fun NativeAdminPlayersScreen(
 
     LaunchedEffect(Unit) { load(1) }
     val selected = rows.firstOrNull { it.textValue("player_id") == selectedId }
-    val banned = bans.containsKey(selectedId) || selected?.booleanValue("enabled") == false
+    val banned = bans.containsKey(selectedId) || (selected?.get("enabled")?.takeIf { it.isJsonPrimitive && !it.isJsonNull }?.asBoolean == false)
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 18.dp),
@@ -198,7 +196,7 @@ fun NativeAdminPlayersScreen(
             if (loading && rows.isEmpty()) CircularProgressIndicator()
             rows.forEach { player ->
                 val id = player.textValue("player_id")
-                val isRestricted = bans.containsKey(id) || player.booleanValue("enabled").not()
+                val isRestricted = bans.containsKey(id) || (player.get("enabled")?.takeIf { it.isJsonPrimitive && !it.isJsonNull }?.asBoolean == false)
                 Card(
                     modifier = Modifier.fillMaxWidth().clickable { selectedId = id; scope.launch { loadHistory(id) } },
                     shape = RoundedCornerShape(16.dp),
