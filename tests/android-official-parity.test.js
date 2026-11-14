@@ -90,7 +90,7 @@ test("announcements and legal pages are native Compose destinations", async () =
   assert.match(legal, /Use the service responsibly/);
   assert.match(legal, /Your data, explained/);
   assert.match(legal, /30-day expiry/);
-  assert.match(legal, /Never send it to us/);
+  assert.match(legal, /never send it to us/i);
 });
 
 
@@ -113,7 +113,7 @@ test("owner administration uses the production session exchange and server autho
   assert.match(api, /adminPlayers/);
   assert.match(api, /adminPlayerAction/);
   assert.match(maintenance, /SET_MAINTENANCE/);
-  assert.match(maintenance, /Administrator access is restricted/);
+  assert.match(repository, /restricted to the configured owner Discord account/);
   assert.match(players, /BAN_PLAYER/);
   assert.match(players, /UNBAN_PLAYER/);
   assert.match(players, /ensureOwnerSession/);
