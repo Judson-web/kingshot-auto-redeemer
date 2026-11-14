@@ -6,7 +6,7 @@ const activityUrl = new URL("../android/app/src/main/java/com/judson/kingshot/au
 const activity = await readFile(activityUrl, "utf8");
 
 test("primary application destinations render native Compose screens", () => {
-  assert.match(activity, /AppTab\.HOME -> HomeScreen\(/);
+  assert.match(activity, /AppTab\.HOME -> com\.judson\.kingshot\.autoredeemer\.ui\.home\.ProfessionalHomeScreen\(/);
   assert.match(activity, /AppTab\.REDEEM -> RedeemScreen\(container\)/);
   assert.match(activity, /AppTab\.PLAYERS -> PlayersScreen\(container\)/);
   assert.match(activity, /AppTab\.ACCOUNT -> AccountScreen\(/);
