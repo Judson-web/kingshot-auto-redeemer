@@ -254,6 +254,7 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
                 else if (nativeFeature == "/terms" || nativeFeature == "/privacy") com.judson.kingshot.autoredeemer.features.legal.NativeLegalScreen(nativeFeature == "/privacy") { nativeFeature = null }
                 else if (nativeFeature == "/admin/alliance-sync") AllianceSyncAdminScreen(container) { nativeFeature = null }
                 else if (nativeFeature == "/admin/maintenance") com.judson.kingshot.autoredeemer.features.maintenance.NativeMaintenanceScreen(container, { nativeFeature = null }, { tab = AppTab.ACCOUNT; nativeFeature = null })
+                else if (nativeFeature == "/admin/players") com.judson.kingshot.autoredeemer.features.adminplayers.NativeAdminPlayersScreen(container, { nativeFeature = null }, { tab = AppTab.ACCOUNT; nativeFeature = null })
                 else NativeFeatureScreen(nativeFeature!!) { nativeFeature = null }
                 AppTab.KEYS -> DeveloperApiSettings(container) { tab = AppTab.MORE }
             }
@@ -290,7 +291,7 @@ private fun MoreScreen(
         OfficialFeature("Developer support", "Technical support and developer assistance.", "/devsupport", Icons.Outlined.SupportAgent, "SUPPORT"),
         OfficialFeature("Push console", "Notification tools and delivery controls.", "/push", Icons.Outlined.Notifications, "ADMINISTRATION"),
         OfficialFeature("Custom message", "Manage the official Discord message experience.", "/message", Icons.Outlined.Message, "ADMINISTRATION"),
-        OfficialFeature("Player administration", "Administrative player and registration controls.", "/admin/players", Icons.Outlined.ManageAccounts, "ADMINISTRATION"),
+        OfficialFeature("Player administration", "Owner-only player records, redemption history and restriction controls.", "/admin/players", Icons.Outlined.ManageAccounts, "ADMINISTRATION"),
         OfficialFeature("Alliance sync", "Manage alliance synchronization and registration queues.", "/admin/alliance-sync", Icons.Outlined.Sync, "ADMINISTRATION"),
         OfficialFeature("Maintenance mode", "Owner-only control of the public service maintenance state.", "/admin/maintenance", Icons.Outlined.Build, "ADMINISTRATION")
     )
