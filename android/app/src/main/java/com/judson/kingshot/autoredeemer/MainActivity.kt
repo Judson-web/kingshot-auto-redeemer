@@ -245,7 +245,7 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
                     onOpenDeveloperKeys = { tab = AppTab.KEYS },
                     onOpenApiHistory = { tab = AppTab.HISTORY }
                 ) else if (nativeFeature == "/alliance-registration") AllianceRegistrationScreen(container) { nativeFeature = null }
-                else if (nativeFeature == "/gift-codes") GiftCodesScreen(container) { nativeFeature = null }
+                else if (nativeFeature == "/gift-codes") com.judson.kingshot.autoredeemer.features.giftcodes.GiftCodesScreen(container) { nativeFeature = null }
                 else if (nativeFeature == "/user") PlayersScreen(container) { nativeFeature = null }
                 else if (nativeFeature == "/profile") AccountScreen(container, authCode, authError, onAuthCodeConsumed)
                 else if (nativeFeature == "/developer") DeveloperApiSettings(container) { nativeFeature = null }
