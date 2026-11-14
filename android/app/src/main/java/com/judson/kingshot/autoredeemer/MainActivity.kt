@@ -250,6 +250,8 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
                 else if (nativeFeature == "/profile") AccountScreen(container, authCode, authError, onAuthCodeConsumed)
                 else if (nativeFeature == "/developer") DeveloperApiSettings(container) { nativeFeature = null }
                 else if (nativeFeature == "/info") InfoScreen { nativeFeature = null }
+                else if (nativeFeature == "/announcements") com.judson.kingshot.autoredeemer.features.announcements.AnnouncementsScreen(container) { nativeFeature = null }
+                else if (nativeFeature == "/terms" || nativeFeature == "/privacy") com.judson.kingshot.autoredeemer.features.legal.NativeLegalScreen(nativeFeature == "/privacy") { nativeFeature = null }
                 else if (nativeFeature == "/admin/alliance-sync") AllianceSyncAdminScreen(container) { nativeFeature = null }
                 else NativeFeatureScreen(nativeFeature!!) { nativeFeature = null }
                 AppTab.KEYS -> DeveloperApiSettings(container) { tab = AppTab.MORE }
@@ -278,7 +280,8 @@ private fun MoreScreen(
         OfficialFeature("Gift codes", "Browse current and previously published gift codes.", "/gift-codes", Icons.Outlined.CardGiftcard, "KINGDOM TOOLS"),
         OfficialFeature("Player profiles", "Open the full player profile and lookup experience.", "/user", Icons.Outlined.PersonSearch, "KINGDOM TOOLS"),
         OfficialFeature("Service information", "How the service works, status guidance and documentation.", "/info", Icons.Outlined.Info, "RESOURCES"),
-        OfficialFeature("Terms of service", "Read the service terms and acceptable-use rules.", "/terms", Icons.Outlined.Description, "RESOURCES"),
+        OfficialFeature("Announcements", "Read current service notices and official updates.", "/announcements", Icons.Outlined.Campaign, "RESOURCES"),
+        OfficialFeature("Terms of service", "Read the current service terms and acceptable-use rules.", "/terms", Icons.Outlined.Description, "RESOURCES"),
         OfficialFeature("Privacy notice", "Review what data the service processes and why.", "/privacy", Icons.Outlined.Policy, "RESOURCES"),
         OfficialFeature("Discord account", "Manage your verified account and access level.", "/profile", Icons.Outlined.AccountCircle, "ACCOUNT"),
         OfficialFeature("Developer portal", "Optional API keys, documentation, usage and integrations.", "/developer", Icons.Outlined.Code, "DEVELOPER"),
