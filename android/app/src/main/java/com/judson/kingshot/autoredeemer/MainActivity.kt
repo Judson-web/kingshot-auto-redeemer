@@ -201,6 +201,7 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
                     Triple(AppTab.HOME, Icons.Outlined.Dashboard, "Home"),
                     Triple(AppTab.REDEEM, Icons.Outlined.Redeem, "Redeem"),
                     Triple(AppTab.PLAYERS, Icons.Outlined.Groups, "Players"),
+                    Triple(AppTab.HISTORY, Icons.Outlined.History, "History"),
                     Triple(AppTab.MORE, Icons.Outlined.Explore, "Explore")
                 )
                 items.forEach { (destination, icon, label) ->
