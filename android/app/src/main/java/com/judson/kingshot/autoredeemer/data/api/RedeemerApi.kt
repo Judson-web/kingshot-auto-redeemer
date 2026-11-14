@@ -72,6 +72,12 @@ interface RedeemerApi {
     @POST("api/kingshot-player?developer=alliance-sync")
     suspend fun allianceSync(@Body body: JsonObject): Response<JsonObject>
 
+    @GET("api/kingshot-admin-data")
+    suspend fun adminMaintenance(@Query("maintenanceOnly") maintenanceOnly: Int = 1): Response<JsonObject>
+
+    @POST("api/kingshot-admin-data")
+    suspend fun updateAdminMaintenance(@Body body: JsonObject): Response<JsonObject>
+
     @POST("api/kingshot-register")
     suspend fun register(@Body body: JsonObject): Response<JsonObject>
 }
