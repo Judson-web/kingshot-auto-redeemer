@@ -19,10 +19,11 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.ShieldCheck
+import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -263,7 +264,7 @@ fun NativeAdminPlayersScreen(
                         } else {
                             Button(onClick = { scope.launch { setRestriction(selectedId, false) } },
                                 enabled = !busy, modifier = Modifier.fillMaxWidth()) {
-                                Icon(Icons.Outlined.ShieldCheck, contentDescription = null)
+                                Icon(Icons.Outlined.Security, contentDescription = null)
                                 Text("Restore player", modifier = Modifier.padding(start = 8.dp))
                             }
                         }
