@@ -253,6 +253,7 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
                 else if (nativeFeature == "/announcements") com.judson.kingshot.autoredeemer.features.announcements.AnnouncementsScreen(container) { nativeFeature = null }
                 else if (nativeFeature == "/terms" || nativeFeature == "/privacy") com.judson.kingshot.autoredeemer.features.legal.NativeLegalScreen(nativeFeature == "/privacy") { nativeFeature = null }
                 else if (nativeFeature == "/admin/alliance-sync") AllianceSyncAdminScreen(container) { nativeFeature = null }
+                else if (nativeFeature == "/admin/maintenance") com.judson.kingshot.autoredeemer.features.maintenance.NativeMaintenanceScreen(container, { nativeFeature = null }, { tab = AppTab.ACCOUNT; nativeFeature = null })
                 else NativeFeatureScreen(nativeFeature!!) { nativeFeature = null }
                 AppTab.KEYS -> DeveloperApiSettings(container) { tab = AppTab.MORE }
             }
@@ -291,7 +292,7 @@ private fun MoreScreen(
         OfficialFeature("Custom message", "Manage the official Discord message experience.", "/message", Icons.Outlined.Message, "ADMINISTRATION"),
         OfficialFeature("Player administration", "Administrative player and registration controls.", "/admin/players", Icons.Outlined.ManageAccounts, "ADMINISTRATION"),
         OfficialFeature("Alliance sync", "Manage alliance synchronization and registration queues.", "/admin/alliance-sync", Icons.Outlined.Sync, "ADMINISTRATION"),
-        OfficialFeature("Maintenance", "Service maintenance and operational controls.", "/admin/maintenance", Icons.Outlined.Build, "ADMINISTRATION")
+        OfficialFeature("Maintenance mode", "Owner-only control of the public service maintenance state.", "/admin/maintenance", Icons.Outlined.Build, "ADMINISTRATION")
     )
     ScreenColumn {
         ScreenHeading("Explore", "The complete official Kingshot Redeemer experience, connected to the same live backend as the website.")
