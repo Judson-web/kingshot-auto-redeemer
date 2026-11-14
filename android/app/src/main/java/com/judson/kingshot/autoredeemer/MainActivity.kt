@@ -201,6 +201,7 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
                     Triple(AppTab.HOME, Icons.Outlined.Dashboard, "Home"),
                     Triple(AppTab.REDEEM, Icons.Outlined.Redeem, "Redeem"),
                     Triple(AppTab.PLAYERS, Icons.Outlined.Groups, "Players"),
+                    Triple(AppTab.HISTORY, Icons.Outlined.History, "History"),
                     Triple(AppTab.MORE, Icons.Outlined.Explore, "Explore")
                 )
                 items.forEach { (destination, icon, label) ->
@@ -223,7 +224,7 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (tab) {
-                AppTab.HOME -> HomeScreen(
+                AppTab.HOME -> com.judson.kingshot.autoredeemer.ui.home.ProfessionalHomeScreen(
                     healthText = healthText,
                     serviceOnline = serviceOnline,
                     apiKeySet = apiKeySet,
@@ -244,12 +245,16 @@ private fun RedeemerApp(container: AppContainer, authCode: String?, authError: S
                     onOpenDeveloperKeys = { tab = AppTab.KEYS },
                     onOpenApiHistory = { tab = AppTab.HISTORY }
                 ) else if (nativeFeature == "/alliance-registration") AllianceRegistrationScreen(container) { nativeFeature = null }
-                else if (nativeFeature == "/gift-codes") GiftCodesScreen(container) { nativeFeature = null }
+                else if (nativeFeature == "/gift-codes") com.judson.kingshot.autoredeemer.features.giftcodes.GiftCodesScreen(container) { nativeFeature = null }
                 else if (nativeFeature == "/user") PlayersScreen(container) { nativeFeature = null }
                 else if (nativeFeature == "/profile") AccountScreen(container, authCode, authError, onAuthCodeConsumed)
                 else if (nativeFeature == "/developer") DeveloperApiSettings(container) { nativeFeature = null }
                 else if (nativeFeature == "/info") InfoScreen { nativeFeature = null }
+                else if (nativeFeature == "/announcements") com.judson.kingshot.autoredeemer.features.announcements.AnnouncementsScreen(container) { nativeFeature = null }
+                else if (nativeFeature == "/terms" || nativeFeature == "/privacy") com.judson.kingshot.autoredeemer.features.legal.NativeLegalScreen(nativeFeature == "/privacy") { nativeFeature = null }
                 else if (nativeFeature == "/admin/alliance-sync") AllianceSyncAdminScreen(container) { nativeFeature = null }
+                else if (nativeFeature == "/admin/maintenance") com.judson.kingshot.autoredeemer.features.maintenance.NativeMaintenanceScreen(container, { nativeFeature = null }, { tab = AppTab.ACCOUNT; nativeFeature = null })
+                else if (nativeFeature == "/admin/players") com.judson.kingshot.autoredeemer.features.adminplayers.NativeAdminPlayersScreen(container, { nativeFeature = null }, { tab = AppTab.ACCOUNT; nativeFeature = null })
                 else NativeFeatureScreen(nativeFeature!!) { nativeFeature = null }
                 AppTab.KEYS -> DeveloperApiSettings(container) { tab = AppTab.MORE }
             }
@@ -277,7 +282,8 @@ private fun MoreScreen(
         OfficialFeature("Gift codes", "Browse current and previously published gift codes.", "/gift-codes", Icons.Outlined.CardGiftcard, "KINGDOM TOOLS"),
         OfficialFeature("Player profiles", "Open the full player profile and lookup experience.", "/user", Icons.Outlined.PersonSearch, "KINGDOM TOOLS"),
         OfficialFeature("Service information", "How the service works, status guidance and documentation.", "/info", Icons.Outlined.Info, "RESOURCES"),
-        OfficialFeature("Terms of service", "Read the service terms and acceptable-use rules.", "/terms", Icons.Outlined.Description, "RESOURCES"),
+        OfficialFeature("Announcements", "Read current service notices and official updates.", "/announcements", Icons.Outlined.Campaign, "RESOURCES"),
+        OfficialFeature("Terms of service", "Read the current service terms and acceptable-use rules.", "/terms", Icons.Outlined.Description, "RESOURCES"),
         OfficialFeature("Privacy notice", "Review what data the service processes and why.", "/privacy", Icons.Outlined.Policy, "RESOURCES"),
         OfficialFeature("Discord account", "Manage your verified account and access level.", "/profile", Icons.Outlined.AccountCircle, "ACCOUNT"),
         OfficialFeature("Developer portal", "Optional API keys, documentation, usage and integrations.", "/developer", Icons.Outlined.Code, "DEVELOPER"),
@@ -285,9 +291,9 @@ private fun MoreScreen(
         OfficialFeature("Developer support", "Technical support and developer assistance.", "/devsupport", Icons.Outlined.SupportAgent, "SUPPORT"),
         OfficialFeature("Push console", "Notification tools and delivery controls.", "/push", Icons.Outlined.Notifications, "ADMINISTRATION"),
         OfficialFeature("Custom message", "Manage the official Discord message experience.", "/message", Icons.Outlined.Message, "ADMINISTRATION"),
-        OfficialFeature("Player administration", "Administrative player and registration controls.", "/admin/players", Icons.Outlined.ManageAccounts, "ADMINISTRATION"),
+        OfficialFeature("Player administration", "Owner-only player records, redemption history and restriction controls.", "/admin/players", Icons.Outlined.ManageAccounts, "ADMINISTRATION"),
         OfficialFeature("Alliance sync", "Manage alliance synchronization and registration queues.", "/admin/alliance-sync", Icons.Outlined.Sync, "ADMINISTRATION"),
-        OfficialFeature("Maintenance", "Service maintenance and operational controls.", "/admin/maintenance", Icons.Outlined.Build, "ADMINISTRATION")
+        OfficialFeature("Maintenance mode", "Owner-only control of the public service maintenance state.", "/admin/maintenance", Icons.Outlined.Build, "ADMINISTRATION")
     )
     ScreenColumn {
         ScreenHeading("Explore", "The complete official Kingshot Redeemer experience, connected to the same live backend as the website.")
@@ -710,8 +716,6 @@ private fun NativeFeatureScreen(route: String, onBack: () -> Unit) {
         "/devsupport" to ("Developer support" to "Open the protected developer support inbox."),
         "/push" to ("Push console" to "Compose and send a production push announcement."),
         "/message" to ("Custom message" to "Create Discord or website announcements and schedules."),
-        "/admin/players" to ("Player administration" to "Review registered players, restrictions and redemption history."),
-        "/admin/maintenance" to ("Maintenance controls" to "Inspect or change the live public maintenance state."),
         "/terms" to ("Terms of service" to "Read the current service terms in your browser."),
         "/privacy" to ("Privacy notice" to "Read the current privacy notice in your browser.")
     )

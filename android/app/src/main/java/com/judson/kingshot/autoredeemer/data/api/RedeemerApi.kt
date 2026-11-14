@@ -44,6 +44,9 @@ interface RedeemerApi {
     @GET("api/kingshot-gift-codes")
     suspend fun giftCodes(): Response<JsonObject>
 
+    @GET("api/kingshot-admin-data?public=announcements")
+    suspend fun publicAnnouncements(): Response<JsonObject>
+
     @GET("api/kingshot-player?developerPath=alliance-lookup")
     suspend fun allianceLookup(
         @Query("kingdomId") kingdomId: String,
@@ -68,6 +71,26 @@ interface RedeemerApi {
 
     @POST("api/kingshot-player?developer=alliance-sync")
     suspend fun allianceSync(@Body body: JsonObject): Response<JsonObject>
+
+    @GET("api/kingshot-admin-data")
+    suspend fun adminMaintenance(@Query("maintenanceOnly") maintenanceOnly: Int = 1): Response<JsonObject>
+
+    @POST("api/kingshot-admin-data")
+    suspend fun updateAdminMaintenance(@Body body: JsonObject): Response<JsonObject>
+
+    @GET("api/kingshot-admin-data")
+    suspend fun adminPlayers(
+        @Query("playerPage") page: Int = 1,
+        @Query("playerPageSize") pageSize: Int = 25,
+        @Query("playerSearch") search: String = "",
+        @Query("playerStatus") status: String = "all"
+    ): Response<JsonObject>
+
+    @GET("api/kingshot-admin-data")
+    suspend fun adminPlayerHistory(@Query("playerHistory") playerId: String): Response<JsonObject>
+
+    @POST("api/kingshot-admin-data")
+    suspend fun adminPlayerAction(@Body body: JsonObject): Response<JsonObject>
 
     @POST("api/kingshot-register")
     suspend fun register(@Body body: JsonObject): Response<JsonObject>

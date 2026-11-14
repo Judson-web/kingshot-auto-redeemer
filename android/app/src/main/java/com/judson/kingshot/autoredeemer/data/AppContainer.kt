@@ -25,10 +25,14 @@ class AppContainer(context: Context) {
             val requestBuilder = original.newBuilder()
                 .header("Accept", "application/json")
                 .header("User-Agent", "KingshotAutoRedeemer-Android/1.3")
-            if (original.url.encodedPath == "/api/kingshot-player" || original.url.encodedPath == "/api/kingshot-alliance-sync") {
-                secureStorage.read(PROFILE_COOKIE_STORAGE)?.takeIf(String::isNotBlank)?.let {
-                    requestBuilder.header("Cookie", it)
-                }
+            if (original.url.encodedPath == "/api/kingshot-player" ||
+                original.url.encodedPath == "/api/kingshot-alliance-sync" ||
+                original.url.encodedPath == "/api/kingshot-admin-data") {
+                val cookies = listOf(
+                    secureStorage.read(PROFILE_COOKIE_STORAGE),
+                    secureStorage.read(OWNER_COOKIE_STORAGE)
+                ).filterNot { it.isNullOrBlank() }.joinToString("; ")
+                if (cookies.isNotBlank()) requestBuilder.header("Cookie", cookies)
             }
             if (original.url.encodedPath.startsWith("/api/v4/")) {
                 secureStorage.read(API_KEY_STORAGE)
@@ -36,7 +40,14 @@ class AppContainer(context: Context) {
                     ?.let { requestBuilder.header("Authorization", "Bearer $it") }
             }
             val response = chain.proceed(requestBuilder.build())
-            response.headers("Set-Cookie").firstOrNull { it.startsWith("__Host-ks_profile_session=") }?.substringBefore(";")?.let { secureStorage.write(PROFILE_COOKIE_STORAGE, it) }
+            response.headers("Set-Cookie").forEach { cookie ->
+                when {
+                    cookie.startsWith("__Host-ks_profile_session=") ->
+                        secureStorage.write(PROFILE_COOKIE_STORAGE, cookie.substringBefore(";"))
+                    cookie.startsWith("__Host-ks_owner_session=") ->
+                        secureStorage.write(OWNER_COOKIE_STORAGE, cookie.substringBefore(";"))
+                }
+            }
             response
         })
         .build()
@@ -55,6 +66,7 @@ class AppContainer(context: Context) {
         const val API_KEY_STORAGE = "developer_api_key"
         const val PENDING_REDEMPTION_STORAGE = "pending_redemption"
         const val PROFILE_COOKIE_STORAGE = "discord_profile_cookie"
+        const val OWNER_COOKIE_STORAGE = "discord_owner_cookie"
         const val DISCORD_PKCE_STORAGE = "discord_pkce_verifier"
     }
 }
