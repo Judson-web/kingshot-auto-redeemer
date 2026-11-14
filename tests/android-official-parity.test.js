@@ -92,3 +92,37 @@ test("announcements and legal pages are native Compose destinations", async () =
   assert.match(legal, /30-day expiry/);
   assert.match(legal, /Never send it to us/);
 });
+
+
+test("owner administration uses the production session exchange and server authorization", async () => {
+  const containerUrl = new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/data/AppContainer.kt", import.meta.url);
+  const repositoryUrl = new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/data/RedeemerRepository.kt", import.meta.url);
+  const apiUrl = new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/data/api/RedeemerApi.kt", import.meta.url);
+  const maintenanceUrl = new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/features/maintenance/NativeMaintenanceScreen.kt", import.meta.url);
+  const playersUrl = new URL("../android/app/src/main/java/com/judson/kingshot/autoredeemer/features/adminplayers/NativeAdminPlayersScreen.kt", import.meta.url);
+  const container = await readFile(containerUrl, "utf8");
+  const repository = await readFile(repositoryUrl, "utf8");
+  const api = await readFile(apiUrl, "utf8");
+  const maintenance = await readFile(maintenanceUrl, "utf8");
+  const players = await readFile(playersUrl, "utf8");
+  assert.match(container, /__Host-ks_owner_session/);
+  assert.match(container, /OWNER_COOKIE_STORAGE/);
+  assert.match(repository, /action", "dev-check"/);
+  assert.match(repository, /ensureOwnerSession/);
+  assert.match(api, /adminMaintenance/);
+  assert.match(api, /adminPlayers/);
+  assert.match(api, /adminPlayerAction/);
+  assert.match(maintenance, /SET_MAINTENANCE/);
+  assert.match(maintenance, /Administrator access is restricted/);
+  assert.match(players, /BAN_PLAYER/);
+  assert.match(players, /UNBAN_PLAYER/);
+  assert.match(players, /ensureOwnerSession/);
+  assert.match(activity, /features\.maintenance\.NativeMaintenanceScreen/);
+  assert.match(activity, /features\.adminplayers\.NativeAdminPlayersScreen/);
+});
+
+test("legal and announcements pages no longer hand off to the browser", () => {
+  assert.match(activity, /features\.legal\.NativeLegalScreen/);
+  assert.match(activity, /features\.announcements\.AnnouncementsScreen/);
+  assert.match(activity, /OfficialFeature\("Announcements"/);
+});
